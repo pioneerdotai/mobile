@@ -1,0 +1,41 @@
+{
+    "title": "स्किल्स",
+    "subtitle": "इस वर्कस्पेस में एजेंटों के लिए उपलब्ध स्किल्स इंस्टॉल और प्रबंधित करें.",
+    "installArchive": "स्किल आर्काइव इंस्टॉल करें",
+    "refresh": "स्किल्स अपडेट करें",
+    "installedSummary": "{{installed}} इंस्टॉल · कुल {{total}}",
+    "loading": "स्किल्स लोड हो रही हैं...",
+    "gatewayOfflineTitle": "गेटवे offline है",
+    "gatewayOfflineDescription": "स्किल्स प्रबंधित करने के लिए रिमोट गेटवे कनेक्ट करें.",
+    "emptyTitle": "कोई इंस्टॉल की गई स्किल नहीं",
+    "emptyDescription": "इस वर्कस्पेस में स्किल उपलब्ध कराने के लिए .tar.gz स्किल आर्काइव इंस्टॉल करें.",
+    "workspaceRequired": "Workspace आवश्यक है.",
+    "installFailed": "स्किल इंस्टॉल नहीं हो सकी",
+    "progress": {
+        "preparing": "Archive तैयार हो रहा है...",
+        "uploading": "Archive upload हो रहा है...",
+        "finalizing": "Install finalize हो रहा है...",
+        "cancel": "Upload cancel करें"
+    },
+    "detail": {
+        "headerFallback": "स्किल",
+        "notSelectedTitle": "स्किल चयनित नहीं है",
+        "notSelectedDescription": "सूची से स्किल खोलें.",
+        "loading": "स्किल लोड हो रही है...",
+        "overview": "अवलोकन",
+        "policy": "नीति",
+        "installation": "इंस्टॉल",
+        "validation": "सत्यापन",
+        "dependencies": "निर्भरताएँ",
+        "security": "सुरक्षा",
+        "trust": "भरोसा",
+        "audit": "ऑडिट",
+        "refreshHealth": "स्थिति अपडेट करें",
+        "updateArchive": "आर्काइव अपडेट करें",
+        "uninstall": "अनइंस्टॉल",
+        "uninstallTitle": "स्किल अनइंस्टॉल करें?",
+        "uninstallMessage": "यह इंस्टॉल की गई स्किल को रिमोट गेटवे से हटाता है.",
+        "updateFailed": "Skill update नहीं हो सका",
+        "uninstallFailed": "Skill uninstall नहीं हो सका"
+    }
+}

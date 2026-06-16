@@ -1,0 +1,9 @@
+{
+    "save": "保存",
+    "cancel": "取消",
+    "remove": "移除",
+    "activate": "启用",
+    "retry": "重试",
+    "add": "添加",
+    "startupFailed": "无法初始化应用。"
+}

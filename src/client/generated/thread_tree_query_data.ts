@@ -1,0 +1,148 @@
+/* eslint-disable */
+
+export type ThreadAgentsDocStatus = 'draft' | 'active' | 'archived';
+export type ThreadMode = 'Chat' | 'Agent';
+export type ThreadStatus = 'Active' | 'Idle' | 'Closed';
+export type PromptManifestDiagnosticCode =
+  | 'missing_file'
+  | 'file_read_error'
+  | 'file_truncated'
+  | 'total_budget_truncated'
+  | 'file_filtered_by_profile'
+  | 'dynamic_section_truncated'
+  | 'dynamic_section_omitted'
+  | 'hook_diagnostic'
+  | 'hook_best_effort_failed'
+  | 'capability_rejected';
+export type PromptManifestHookPhase =
+  | 'turn_pre_prompt_context'
+  | 'turn_post_preflight_prompt_context'
+  | 'turn_pre_prompt_compile';
+export type PromptManifestHookContributionKind =
+  | 'prompt_context'
+  | 'prompt_section'
+  | 'prompt_manifest_diagnostic'
+  | 'runtime_failure';
+export type PromptManifestHookTruncation = 'none' | 'hook' | 'prompt' | 'hook_and_prompt' | 'unknown';
+export type PromptManifestProfile = 'assistant_full' | 'assistant_minimal' | 'assistant_none';
+export type TurnStatus = 'InProgress' | 'Completed' | 'Failed' | 'Interrupted' | 'Blocked';
+
+export interface ClientThreadTreeQueryData {
+  composer_model_selection?: ComposerModelSelection | null;
+  snapshot: ClientThreadTreeSnapshot;
+}
+export interface ComposerModelSelection {
+  model: string;
+  provider: string;
+  [k: string]: unknown;
+}
+export interface ClientThreadTreeSnapshot {
+  agents_doc_summaries_by_folder_key: {
+    [k: string]: ThreadAgentsDocSummary;
+  };
+  child_folder_ids_by_parent_id: {
+    [k: string]: string[];
+  };
+  folders_by_id: {
+    [k: string]: ThreadFolder;
+  };
+  placements_by_thread_id: {
+    [k: string]: ThreadPlacement;
+  };
+  thread_ids_by_folder_id: {
+    [k: string]: string[];
+  };
+  threads_by_id: {
+    [k: string]: Thread;
+  };
+  workspace_id: string;
+}
+export interface ThreadAgentsDocSummary {
+  char_count: number;
+  content_sha256: string;
+  folder_id?: string | null;
+  id: string;
+  status: ThreadAgentsDocStatus;
+  updated_at: number;
+  version: number;
+  workspace_id: string;
+  [k: string]: unknown;
+}
+export interface ThreadFolder {
+  created_at: number;
+  id: string;
+  name: string;
+  parent_folder_id?: string | null;
+  updated_at: number;
+  workspace_id: string;
+  [k: string]: unknown;
+}
+export interface ThreadPlacement {
+  folder_id?: string | null;
+  thread_id: string;
+  workspace_id: string;
+  [k: string]: unknown;
+}
+export interface Thread {
+  agent_nickname?: string | null;
+  agent_role?: string | null;
+  created_at: number;
+  id: string;
+  mode: ThreadMode;
+  model: string;
+  model_provider: string;
+  name?: string | null;
+  origin_kind?: 'user' | 'task_run' | 'system';
+  preview: string;
+  sidebar_visibility?: 'visible' | 'hidden';
+  status: ThreadStatus;
+  turns: Turn[];
+  updated_at: number;
+  workspace_id: string;
+  [k: string]: unknown;
+}
+export interface Turn {
+  error?: string | null;
+  id: string;
+  origin?: 'user' | 'scheduled_task' | 'detached_task' | 'attached_task';
+  prompt_manifest?: PromptManifest | null;
+  status: TurnStatus;
+  turn_kind?: 'conversation' | 'task_run';
+  [k: string]: unknown;
+}
+export interface PromptManifest {
+  compiler_version: string;
+  diagnostics?: PromptManifestDiagnostic[];
+  fingerprint_dynamic: string;
+  fingerprint_full: string;
+  fingerprint_stable: string;
+  hook_sources?: PromptManifestHookSourceEntry[];
+  profile: PromptManifestProfile;
+  section_ids?: string[];
+  [k: string]: unknown;
+}
+export interface PromptManifestDiagnostic {
+  code: PromptManifestDiagnosticCode;
+  file?: string | null;
+  hook_source?: PromptManifestHookSource | null;
+  message: string;
+  section_id?: string | null;
+  [k: string]: unknown;
+}
+export interface PromptManifestHookSource {
+  contribution_hash?: string | null;
+  contribution_id?: string | null;
+  hook_id: string;
+  phase: PromptManifestHookPhase;
+  subscription_id: string;
+  [k: string]: unknown;
+}
+export interface PromptManifestHookSourceEntry {
+  contribution_kind: PromptManifestHookContributionKind;
+  priority?: number | null;
+  section_id?: string | null;
+  source: PromptManifestHookSource;
+  source_count?: number | null;
+  truncation: PromptManifestHookTruncation;
+  [k: string]: unknown;
+}

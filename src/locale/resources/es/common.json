@@ -1,0 +1,9 @@
+{
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "remove": "Eliminar",
+    "activate": "Activar",
+    "retry": "Reintentar",
+    "add": "Añadir",
+    "startupFailed": "No se pudo inicializar la aplicación."
+}

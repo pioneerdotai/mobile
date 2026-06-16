@@ -1,0 +1,41 @@
+{
+    "title": "Скиллы",
+    "subtitle": "Устанавливайте и управляйте skills, доступными агентам в этом workspace.",
+    "installArchive": "Установить архив skill",
+    "refresh": "Обновить skills",
+    "installedSummary": "Установлено {{installed}} · всего {{total}}",
+    "loading": "Загрузка skills...",
+    "gatewayOfflineTitle": "Гейтвей офлайн",
+    "gatewayOfflineDescription": "Подключите удаленный гейтвей для управления skills.",
+    "emptyTitle": "Нет установленных skills",
+    "emptyDescription": "Установите архив .tar.gz, чтобы skill стал доступен в этом workspace.",
+    "workspaceRequired": "Требуется workspace.",
+    "installFailed": "Не удалось установить skill",
+    "progress": {
+        "preparing": "Подготовка архива...",
+        "uploading": "Загрузка архива...",
+        "finalizing": "Завершение установки...",
+        "cancel": "Отменить загрузку"
+    },
+    "detail": {
+        "headerFallback": "Скилл",
+        "notSelectedTitle": "Skill не выбран",
+        "notSelectedDescription": "Откройте skill из списка.",
+        "loading": "Загрузка skill...",
+        "overview": "Обзор",
+        "policy": "Политика",
+        "installation": "Установка",
+        "validation": "Валидация",
+        "dependencies": "Зависимости",
+        "security": "Безопасность",
+        "trust": "Доверие",
+        "audit": "Аудит",
+        "refreshHealth": "Обновить состояние",
+        "updateArchive": "Обновить архив",
+        "uninstall": "Удалить",
+        "uninstallTitle": "Удалить skill?",
+        "uninstallMessage": "Это удалит установленный skill из удаленного гейтвея.",
+        "updateFailed": "Не удалось обновить skill",
+        "uninstallFailed": "Не удалось удалить skill"
+    }
+}

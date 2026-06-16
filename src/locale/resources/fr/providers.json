@@ -1,0 +1,31 @@
+{
+    "title": "Fournisseurs",
+    "subtitle": "Configurez les fournisseurs de modèles pour ce workspace.",
+    "refresh": "Actualiser les fournisseurs",
+    "loading": "Chargement des fournisseurs...",
+    "gatewayOfflineTitle": "Gateway hors ligne",
+    "gatewayOfflineDescription": "Connectez un gateway distant pour gérer les clés API des fournisseurs.",
+    "noConnectedTitle": "Aucun fournisseur connecté",
+    "noConnectedDescription": "Passez à Tous pour configurer un fournisseur pour ce workspace.",
+    "filters": {
+        "all": "Tous",
+        "connected": "Connectés"
+    },
+    "status": {
+        "connected": "Connecté",
+        "notConnected": "Non connecté"
+    },
+    "configureApiKey": "Configurer la clé API",
+    "detail": {
+        "headerFallback": "Fournisseur",
+        "notFoundTitle": "Fournisseur introuvable",
+        "notFoundDescription": "Ce fournisseur ne fait pas partie du catalogue.",
+        "configured": "Clé API configurée",
+        "loading": "Chargement du statut du fournisseur...",
+        "apiKeyTitle": "Clé API",
+        "apiKeyPlaceholder": "Collez la clé API",
+        "removeApiKey": "Supprimer la clé API",
+        "saveFailed": "Impossible d’enregistrer la clé API",
+        "removeFailed": "Impossible de supprimer la clé API"
+    }
+}

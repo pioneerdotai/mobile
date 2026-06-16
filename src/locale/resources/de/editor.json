@@ -1,0 +1,18 @@
+{
+    "title": "Bearbeitung",
+    "agentsDoc": "AGENTS.md",
+    "placeholder": "Schreibe Anweisungen für Agenten in diesem Bereich...",
+    "clean": "Gespeichert",
+    "dirty": "Ungespeicherte Änderungen",
+    "saving": "Speichern...",
+    "saved": "Gespeichert",
+    "saveFailed": "Speichern fehlgeschlagen: {{message}}",
+    "conflict": "Konflikt",
+    "conflictTitle": "Remote-Änderungen erkannt",
+    "conflictDescription": "Dieses Dokument wurde remote geändert, während du es bearbeitet hast. Lade den Remote-Inhalt neu oder überschreibe ihn mit deiner lokalen Version.",
+    "conflictMissingRemote": "Die remote AGENTS.md existiert nicht mehr. Lade die Datei vor dem erneuten Speichern neu.",
+    "local": "Lokal",
+    "remote": "Entfernt",
+    "reloadRemote": "Remote neu laden",
+    "overwriteRemote": "Remote überschreiben"
+}

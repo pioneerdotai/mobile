@@ -1,0 +1,28 @@
+{
+    "title": "Артефакты",
+    "subtitle": "Артефакты треда",
+    "refresh": "Обновить artifacts",
+    "filters": {
+        "all": "Все",
+        "documents": "Документы",
+        "images": "Изображения",
+        "code": "Код",
+        "other": "Другое"
+    },
+    "loadFailed": "Не удалось загрузить artifacts",
+    "attachFailed": "Не удалось прикрепить artifact",
+    "loading": "Загрузка artifacts",
+    "empty": "Нет artifacts",
+    "emptyForFilter": "Нет artifacts для этого фильтра",
+    "workspaceDisconnected": "Workspace не подключен",
+    "artifactNotReady": "Artifact не готов",
+    "open": "Открыть",
+    "share": "Поделиться",
+    "save": "Сохранить",
+    "attach": "Прикрепить",
+    "size": "Размер",
+    "created": "Создан",
+    "updated": "Обновлен",
+    "metadata": "Метаданные",
+    "bindings": "Привязки"
+}

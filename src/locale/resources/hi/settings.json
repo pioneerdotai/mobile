@@ -1,0 +1,66 @@
+{
+    "title": "सेटिंग्स",
+    "subtitle": "ऐप की भाषा और रूप सेट करें.",
+    "language": {
+        "eyebrow": "भाषा",
+        "title": "ऐप की भाषा",
+        "description": "भाषा चुनें या डिवाइस सेटिंग का उपयोग करें.",
+        "options": {
+            "system": {
+                "label": "सिस्टम",
+                "description": "समर्थित होने पर डिवाइस की भाषा का उपयोग करें."
+            },
+            "english": {
+                "label": "अंग्रेज़ी",
+                "description": "English"
+            },
+            "russian": {
+                "label": "रूसी",
+                "description": "Русский"
+            },
+            "german": {
+                "label": "जर्मन",
+                "description": "Deutsch"
+            },
+            "spanish": {
+                "label": "स्पैनिश",
+                "description": "Español"
+            },
+            "french": {
+                "label": "फ्रेंच",
+                "description": "Français"
+            },
+            "hindi": {
+                "label": "हिन्दी",
+                "description": "हिन्दी"
+            },
+            "japanese": {
+                "label": "जापानी",
+                "description": "日本語"
+            },
+            "chinese": {
+                "label": "चीनी",
+                "description": "中文"
+            }
+        }
+    },
+    "theme": {
+        "eyebrow": "थीम",
+        "title": "रूप",
+        "description": "सिस्टम थीम का उपयोग करें या ऐप का रूप चुनें.",
+        "options": {
+            "system": {
+                "label": "सिस्टम",
+                "description": "डिवाइस के रूप का पालन करें."
+            },
+            "light": {
+                "label": "लाइट",
+                "description": "लाइट रूप का उपयोग करें."
+            },
+            "dark": {
+                "label": "डार्क",
+                "description": "डार्क रूप का उपयोग करें."
+            }
+        }
+    }
+}

@@ -1,0 +1,33 @@
+{
+    "title": "Рабочая область",
+    "manageTitle": "Рабочие области",
+    "subtitle": "Выберите workspace для этого гейтвея.",
+    "gatewayOfflineTitle": "Гейтвей офлайн",
+    "gatewayOfflineDescription": "Подключите удаленный гейтвей для управления workspaces.",
+    "loading": "Загрузка workspaces...",
+    "retry": "Повторить",
+    "emptyTitle": "Нет активных workspaces",
+    "emptyDescription": "Этот гейтвей не вернул активные workspaces.",
+    "available": "Доступные workspaces",
+    "newWorkspace": "Новый workspace",
+    "renameWorkspace": "Переименовать workspace",
+    "name": "Название",
+    "untitled": "Workspace без названия",
+    "active": "Активный",
+    "selectAction": "Выбрать workspace",
+    "editAction": "Редактировать workspace",
+    "create": "Создать",
+    "save": "Сохранить",
+    "cancel": "Отмена",
+    "errors": {
+        "selectFailed": "Не удалось выбрать workspace.",
+        "createFailed": "Не удалось создать workspace.",
+        "renameFailed": "Не удалось переименовать workspace.",
+        "gatewayNotFound": "Активный гейтвей не найден.",
+        "gatewayNotConnected": "Гейтвей не подключен.",
+        "bootstrapFailed": "Не удалось загрузить workspaces.",
+        "emptyName": "Укажите название workspace.",
+        "busy": "Операция с workspace уже выполняется.",
+        "unknownTarget": "Workspace недоступен."
+    }
+}

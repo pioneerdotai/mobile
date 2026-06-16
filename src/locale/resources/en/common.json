@@ -1,0 +1,9 @@
+{
+    "save": "Save",
+    "cancel": "Cancel",
+    "remove": "Remove",
+    "activate": "Activate",
+    "retry": "Retry",
+    "add": "Add",
+    "startupFailed": "Failed to initialize application."
+}

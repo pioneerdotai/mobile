@@ -1,0 +1,8 @@
+{
+    "ios": {
+        "CFBundleDisplayName": "Pioneer"
+    },
+    "android": {
+        "app_name": "Pioneer"
+    }
+}

@@ -1,0 +1,28 @@
+{
+    "title": "工件",
+    "subtitle": "线程 artifacts",
+    "refresh": "刷新 artifacts",
+    "filters": {
+        "all": "全部",
+        "documents": "文档",
+        "images": "图片",
+        "code": "代码",
+        "other": "其他"
+    },
+    "loadFailed": "无法加载 artifacts",
+    "attachFailed": "无法附加 artifact",
+    "loading": "正在加载 artifacts",
+    "empty": "没有 artifacts",
+    "emptyForFilter": "此筛选条件下没有 artifacts",
+    "workspaceDisconnected": "Workspace 未连接",
+    "artifactNotReady": "Artifact 尚未就绪",
+    "open": "打开",
+    "share": "分享",
+    "save": "保存",
+    "attach": "附加",
+    "size": "大小",
+    "created": "已创建",
+    "updated": "已更新",
+    "metadata": "元数据",
+    "bindings": "绑定"
+}

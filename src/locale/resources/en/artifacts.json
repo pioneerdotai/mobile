@@ -1,0 +1,28 @@
+{
+    "title": "Artifacts",
+    "subtitle": "Thread artifacts",
+    "refresh": "Refresh artifacts",
+    "filters": {
+        "all": "All",
+        "documents": "Documents",
+        "images": "Images",
+        "code": "Code",
+        "other": "Other"
+    },
+    "loadFailed": "Failed to load artifacts",
+    "attachFailed": "Failed to attach artifact",
+    "loading": "Loading artifacts",
+    "empty": "No artifacts",
+    "emptyForFilter": "No artifacts for this filter",
+    "workspaceDisconnected": "Workspace is not connected",
+    "artifactNotReady": "Artifact is not ready",
+    "open": "Open",
+    "share": "Share",
+    "save": "Save",
+    "attach": "Attach",
+    "size": "Size",
+    "created": "Created",
+    "updated": "Updated",
+    "metadata": "Metadata",
+    "bindings": "Bindings"
+}

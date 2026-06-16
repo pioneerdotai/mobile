@@ -1,0 +1,37 @@
+{
+    "name": "@pioneer/client-nitro",
+    "version": "0.1.0",
+    "description": "Pioneer client native bridge exposed to React Native through Nitro Modules.",
+    "main": "src/index",
+    "module": "src/index",
+    "types": "src/index.ts",
+    "react-native": "src/index",
+    "source": "src/index",
+    "files": [
+        "src",
+        "cpp",
+        "ios",
+        "android",
+        "nitrogen",
+        "scripts",
+        "rust",
+        "nitro.json",
+        "react-native.config.js",
+        "PioneerClientNitro.podspec"
+    ],
+    "scripts": {
+        "specs": "nitrogen",
+        "build:rust:ios": "bash scripts/build-rust-ios.sh",
+        "build:rust:android": "bash scripts/build-rust-android.sh",
+        "check:rust:prebuilt": "bash scripts/check-rust-prebuilt.sh all"
+    },
+    "peerDependencies": {
+        "react": "*",
+        "react-native": "*",
+        "react-native-nitro-modules": "*"
+    },
+    "devDependencies": {
+        "nitrogen": "^0.35.9"
+    },
+    "license": "MIT"
+}

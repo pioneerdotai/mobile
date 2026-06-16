@@ -1,0 +1,33 @@
+{
+    "title": "工作区",
+    "manageTitle": "工作区",
+    "subtitle": "为此网关选择 workspace。",
+    "gatewayOfflineTitle": "网关离线",
+    "gatewayOfflineDescription": "连接远程网关以管理 workspaces。",
+    "loading": "正在加载 workspaces...",
+    "retry": "重试",
+    "emptyTitle": "没有活动 workspaces",
+    "emptyDescription": "此网关没有可用的活动 workspaces。",
+    "available": "可用 workspaces",
+    "newWorkspace": "新建 workspace",
+    "renameWorkspace": "重命名 workspace",
+    "name": "名称",
+    "untitled": "未命名 workspace",
+    "active": "当前",
+    "selectAction": "选择 workspace",
+    "editAction": "编辑 workspace",
+    "create": "创建",
+    "save": "保存",
+    "cancel": "取消",
+    "errors": {
+        "selectFailed": "无法选择 workspace。",
+        "createFailed": "无法创建 workspace。",
+        "renameFailed": "无法重命名 workspace。",
+        "gatewayNotFound": "未找到活动网关。",
+        "gatewayNotConnected": "网关未连接。",
+        "bootstrapFailed": "无法加载 workspaces。",
+        "emptyName": "Workspace 名称为必填项。",
+        "busy": "Workspace 操作已在进行中。",
+        "unknownTarget": "Workspace 不可用。"
+    }
+}

@@ -1,0 +1,31 @@
+{
+    "title": "提供商",
+    "subtitle": "为此 workspace 配置模型提供商。",
+    "refresh": "刷新提供商",
+    "loading": "正在加载提供商...",
+    "gatewayOfflineTitle": "网关离线",
+    "gatewayOfflineDescription": "连接远程网关以管理提供商 API 密钥。",
+    "noConnectedTitle": "没有已连接的提供商",
+    "noConnectedDescription": "切换到全部，为此 workspace 配置提供商。",
+    "filters": {
+        "all": "全部",
+        "connected": "已连接"
+    },
+    "status": {
+        "connected": "已连接",
+        "notConnected": "未连接"
+    },
+    "configureApiKey": "配置 API 密钥",
+    "detail": {
+        "headerFallback": "提供商",
+        "notFoundTitle": "未找到提供商",
+        "notFoundDescription": "此提供商不在目录中。",
+        "configured": "API 密钥已配置",
+        "loading": "正在加载提供商状态...",
+        "apiKeyTitle": "API 密钥",
+        "apiKeyPlaceholder": "粘贴 API 密钥",
+        "removeApiKey": "移除 API 密钥",
+        "saveFailed": "无法保存 API 密钥",
+        "removeFailed": "无法移除 API 密钥"
+    }
+}

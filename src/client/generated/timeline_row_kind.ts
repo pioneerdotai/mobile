@@ -1,0 +1,31 @@
+/* eslint-disable */
+
+export type TimelineRowKind =
+  | {
+      Item: {
+        timeline_index: number;
+        [k: string]: unknown;
+      };
+    }
+  | {
+      TurnWorkToggle: TurnWorkGroupRow;
+    }
+  | {
+      CoalescedTools: TimelineCoalescedToolsRow;
+    };
+export type TimelineCoalescedToolsKind = 'CompletedTaskTools' | 'RepeatedTaskWait';
+
+export interface TurnWorkGroupRow {
+  anchor_entry_id: string;
+  elapsed_ms?: number | null;
+  is_open: boolean;
+  toggle_key: string;
+  [k: string]: unknown;
+}
+export interface TimelineCoalescedToolsRow {
+  count: number;
+  is_open: boolean;
+  kind: TimelineCoalescedToolsKind;
+  toggle_key: string;
+  [k: string]: unknown;
+}

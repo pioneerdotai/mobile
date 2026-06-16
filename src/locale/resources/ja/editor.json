@@ -1,0 +1,18 @@
+{
+    "title": "エディタ",
+    "agentsDoc": "AGENTS.md",
+    "placeholder": "この範囲の agent 向け指示を書いてください...",
+    "clean": "保存済み",
+    "dirty": "未保存の変更",
+    "saving": "保存中...",
+    "saved": "保存済み",
+    "saveFailed": "保存に失敗しました: {{message}}",
+    "conflict": "競合",
+    "conflictTitle": "リモート変更を検出しました",
+    "conflictDescription": "編集中にこの document がリモートで変更されました。リモート内容を再読み込みするか、ローカル版で上書きしてください。",
+    "conflictMissingRemote": "リモートの AGENTS.md はもう存在しません。もう一度保存する前に file を再読み込みしてください。",
+    "local": "ローカル",
+    "remote": "リモート",
+    "reloadRemote": "リモートを再読み込み",
+    "overwriteRemote": "リモートを上書き"
+}

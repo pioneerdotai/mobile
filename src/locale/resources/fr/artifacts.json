@@ -1,0 +1,28 @@
+{
+    "title": "Artefacts",
+    "subtitle": "Artefacts du thread",
+    "refresh": "Actualiser les artefacts",
+    "filters": {
+        "all": "Tous",
+        "documents": "Documents",
+        "images": "Images",
+        "code": "Code",
+        "other": "Autre"
+    },
+    "loadFailed": "Impossible de charger les artefacts",
+    "attachFailed": "Impossible d’attacher l’artefact",
+    "loading": "Chargement des artefacts",
+    "empty": "Aucun artefact",
+    "emptyForFilter": "Aucun artefact pour ce filtre",
+    "workspaceDisconnected": "Le workspace n’est pas connecté",
+    "artifactNotReady": "L’artefact n’est pas prêt",
+    "open": "Ouvrir",
+    "share": "Partager",
+    "save": "Enregistrer",
+    "attach": "Attacher",
+    "size": "Taille",
+    "created": "Créé",
+    "updated": "Mis à jour",
+    "metadata": "Métadonnées",
+    "bindings": "Liaisons"
+}

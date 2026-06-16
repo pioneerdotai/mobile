@@ -1,0 +1,33 @@
+{
+    "title": "वर्कस्पेस",
+    "manageTitle": "वर्कस्पेस",
+    "subtitle": "इस गेटवे के लिए वर्कस्पेस चुनें.",
+    "gatewayOfflineTitle": "गेटवे offline है",
+    "gatewayOfflineDescription": "वर्कस्पेस प्रबंधित करने के लिए रिमोट गेटवे कनेक्ट करें.",
+    "loading": "वर्कस्पेस लोड हो रहे हैं...",
+    "retry": "फिर कोशिश करें",
+    "emptyTitle": "कोई active workspace नहीं",
+    "emptyDescription": "इस गेटवे से कोई active workspace उपलब्ध नहीं है.",
+    "available": "उपलब्ध वर्कस्पेस",
+    "newWorkspace": "नया वर्कस्पेस",
+    "renameWorkspace": "वर्कस्पेस का नाम बदलें",
+    "name": "नाम",
+    "untitled": "बिना शीर्षक वर्कस्पेस",
+    "active": "सक्रिय",
+    "selectAction": "वर्कस्पेस चुनें",
+    "editAction": "वर्कस्पेस संपादित करें",
+    "create": "बनाएँ",
+    "save": "सहेजें",
+    "cancel": "रद्द करें",
+    "errors": {
+        "selectFailed": "Workspace चुना नहीं जा सका.",
+        "createFailed": "Workspace बनाया नहीं जा सका.",
+        "renameFailed": "Workspace rename नहीं हो सका.",
+        "gatewayNotFound": "सक्रिय गेटवे नहीं मिला.",
+        "gatewayNotConnected": "गेटवे कनेक्टेड नहीं है.",
+        "bootstrapFailed": "वर्कस्पेस लोड नहीं हो सके.",
+        "emptyName": "वर्कस्पेस नाम आवश्यक है.",
+        "busy": "वर्कस्पेस ऑपरेशन पहले से चल रहा है.",
+        "unknownTarget": "वर्कस्पेस उपलब्ध नहीं है."
+    }
+}

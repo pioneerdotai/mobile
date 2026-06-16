@@ -1,0 +1,41 @@
+{
+    "title": "Skills",
+    "subtitle": "Install and manage skills available to agents in this workspace.",
+    "installArchive": "Install skill archive",
+    "refresh": "Refresh skills",
+    "installedSummary": "{{installed}} installed · {{total}} total",
+    "loading": "Loading skills...",
+    "gatewayOfflineTitle": "Gateway is offline",
+    "gatewayOfflineDescription": "Connect a remote gateway to manage skills.",
+    "emptyTitle": "No installed skills",
+    "emptyDescription": "Install a .tar.gz skill archive to make it available in this workspace.",
+    "workspaceRequired": "Workspace is required.",
+    "installFailed": "Failed to install skill",
+    "progress": {
+        "preparing": "Preparing archive...",
+        "uploading": "Uploading archive...",
+        "finalizing": "Finalizing install...",
+        "cancel": "Cancel upload"
+    },
+    "detail": {
+        "headerFallback": "Skill",
+        "notSelectedTitle": "Skill not selected",
+        "notSelectedDescription": "Open a skill from the list.",
+        "loading": "Loading skill...",
+        "overview": "Overview",
+        "policy": "Policy",
+        "installation": "Installation",
+        "validation": "Validation",
+        "dependencies": "Dependencies",
+        "security": "Security",
+        "trust": "Trust",
+        "audit": "Audit",
+        "refreshHealth": "Refresh health",
+        "updateArchive": "Update archive",
+        "uninstall": "Uninstall",
+        "uninstallTitle": "Uninstall skill?",
+        "uninstallMessage": "This removes the installed skill from the remote gateway.",
+        "updateFailed": "Failed to update skill",
+        "uninstallFailed": "Failed to uninstall skill"
+    }
+}

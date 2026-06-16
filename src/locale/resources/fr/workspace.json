@@ -1,0 +1,33 @@
+{
+    "title": "Espace de travail",
+    "manageTitle": "Espaces de travail",
+    "subtitle": "Choisissez le workspace pour ce gateway.",
+    "gatewayOfflineTitle": "Gateway hors ligne",
+    "gatewayOfflineDescription": "Connectez un gateway distant pour gérer les workspaces.",
+    "loading": "Chargement des workspaces...",
+    "retry": "Réessayer",
+    "emptyTitle": "Aucun workspace actif",
+    "emptyDescription": "Aucun workspace actif n’est disponible depuis ce gateway.",
+    "available": "Workspaces disponibles",
+    "newWorkspace": "Nouveau workspace",
+    "renameWorkspace": "Renommer le workspace",
+    "name": "Nom",
+    "untitled": "Workspace sans titre",
+    "active": "Actif",
+    "selectAction": "Sélectionner le workspace",
+    "editAction": "Modifier le workspace",
+    "create": "Créer",
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "errors": {
+        "selectFailed": "Impossible de sélectionner le workspace.",
+        "createFailed": "Impossible de créer le workspace.",
+        "renameFailed": "Impossible de renommer le workspace.",
+        "gatewayNotFound": "Gateway actif introuvable.",
+        "gatewayNotConnected": "Le gateway n’est pas connecté.",
+        "bootstrapFailed": "Impossible de charger les workspaces.",
+        "emptyName": "Le nom du workspace est requis.",
+        "busy": "Une opération de workspace est déjà en cours.",
+        "unknownTarget": "Le workspace n’est pas disponible."
+    }
+}

@@ -1,0 +1,31 @@
+{
+    "title": "プロバイダー",
+    "subtitle": "このワークスペースのモデルプロバイダーを設定します。",
+    "refresh": "プロバイダーを更新",
+    "loading": "プロバイダーを読み込み中...",
+    "gatewayOfflineTitle": "ゲートウェイはオフラインです",
+    "gatewayOfflineDescription": "Provider API keys を管理するにはリモートゲートウェイに接続してください。",
+    "noConnectedTitle": "接続済みプロバイダーはありません",
+    "noConnectedDescription": "このワークスペースのプロバイダーを設定するには「すべて」に切り替えてください。",
+    "filters": {
+        "all": "すべて",
+        "connected": "接続済み"
+    },
+    "status": {
+        "connected": "接続済み",
+        "notConnected": "未接続"
+    },
+    "configureApiKey": "API key を設定",
+    "detail": {
+        "headerFallback": "プロバイダー",
+        "notFoundTitle": "プロバイダーが見つかりません",
+        "notFoundDescription": "このプロバイダーはカタログに含まれていません。",
+        "configured": "API key は設定済みです",
+        "loading": "プロバイダー状態を読み込み中...",
+        "apiKeyTitle": "API キー",
+        "apiKeyPlaceholder": "API key を貼り付け",
+        "removeApiKey": "API key を削除",
+        "saveFailed": "API key を保存できませんでした",
+        "removeFailed": "API key を削除できませんでした"
+    }
+}

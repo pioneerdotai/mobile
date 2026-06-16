@@ -1,0 +1,41 @@
+{
+    "title": "Compétences",
+    "subtitle": "Installez et gérez les skills disponibles pour les agents dans ce workspace.",
+    "installArchive": "Installer une archive de skill",
+    "refresh": "Actualiser les skills",
+    "installedSummary": "{{installed}} installées · {{total}} au total",
+    "loading": "Chargement des skills...",
+    "gatewayOfflineTitle": "Gateway hors ligne",
+    "gatewayOfflineDescription": "Connectez un gateway distant pour gérer les skills.",
+    "emptyTitle": "Aucune skill installée",
+    "emptyDescription": "Installez une archive .tar.gz pour la rendre disponible dans ce workspace.",
+    "workspaceRequired": "Workspace requis.",
+    "installFailed": "Impossible d’installer la skill",
+    "progress": {
+        "preparing": "Préparation de l’archive...",
+        "uploading": "Téléversement de l’archive...",
+        "finalizing": "Finalisation de l’installation...",
+        "cancel": "Annuler le téléversement"
+    },
+    "detail": {
+        "headerFallback": "Compétence",
+        "notSelectedTitle": "Skill non sélectionnée",
+        "notSelectedDescription": "Ouvrez une skill depuis la liste.",
+        "loading": "Chargement de la skill...",
+        "overview": "Vue d’ensemble",
+        "policy": "Politique",
+        "installation": "Installation",
+        "validation": "Validation",
+        "dependencies": "Dépendances",
+        "security": "Sécurité",
+        "trust": "Confiance",
+        "audit": "Audit",
+        "refreshHealth": "Actualiser la santé",
+        "updateArchive": "Mettre à jour l’archive",
+        "uninstall": "Désinstaller",
+        "uninstallTitle": "Désinstaller la skill ?",
+        "uninstallMessage": "Cela supprime la skill installée du gateway distant.",
+        "updateFailed": "Impossible de mettre à jour la skill",
+        "uninstallFailed": "Impossible de désinstaller la skill"
+    }
+}

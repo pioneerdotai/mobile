@@ -1,0 +1,28 @@
+{
+    "title": "Artefactos",
+    "subtitle": "Artefactos del hilo",
+    "refresh": "Actualizar artefactos",
+    "filters": {
+        "all": "Todos",
+        "documents": "Documentos",
+        "images": "Imágenes",
+        "code": "Código",
+        "other": "Otro"
+    },
+    "loadFailed": "No se pudieron cargar los artefactos",
+    "attachFailed": "No se pudo adjuntar el artefacto",
+    "loading": "Cargando artefactos",
+    "empty": "No hay artefactos",
+    "emptyForFilter": "No hay artefactos para este filtro",
+    "workspaceDisconnected": "El workspace no está conectado",
+    "artifactNotReady": "El artefacto no está listo",
+    "open": "Abrir",
+    "share": "Compartir",
+    "save": "Guardar",
+    "attach": "Adjuntar",
+    "size": "Tamaño",
+    "created": "Creado",
+    "updated": "Actualizado",
+    "metadata": "Metadatos",
+    "bindings": "Vinculaciones"
+}

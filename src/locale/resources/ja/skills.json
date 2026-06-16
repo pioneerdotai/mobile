@@ -1,0 +1,41 @@
+{
+    "title": "スキル",
+    "subtitle": "このワークスペースでエージェントが利用できるスキルをインストールおよび管理します。",
+    "installArchive": "スキルアーカイブをインストール",
+    "refresh": "スキルを更新",
+    "installedSummary": "{{installed}} インストール済み · 合計 {{total}}",
+    "loading": "スキルを読み込み中...",
+    "gatewayOfflineTitle": "ゲートウェイはオフラインです",
+    "gatewayOfflineDescription": "スキルを管理するにはリモートゲートウェイに接続してください。",
+    "emptyTitle": "インストール済みスキルはありません",
+    "emptyDescription": "このワークスペースでスキルを利用できるようにするには .tar.gz スキルアーカイブをインストールしてください。",
+    "workspaceRequired": "Workspace が必要です。",
+    "installFailed": "スキルをインストールできませんでした",
+    "progress": {
+        "preparing": "Archive を準備中...",
+        "uploading": "Archive をアップロード中...",
+        "finalizing": "インストールを完了中...",
+        "cancel": "アップロードをキャンセル"
+    },
+    "detail": {
+        "headerFallback": "スキル",
+        "notSelectedTitle": "スキルが選択されていません",
+        "notSelectedDescription": "リストからスキルを開いてください。",
+        "loading": "スキルを読み込み中...",
+        "overview": "概要",
+        "policy": "ポリシー",
+        "installation": "インストール",
+        "validation": "検証",
+        "dependencies": "依存関係",
+        "security": "セキュリティ",
+        "trust": "信頼",
+        "audit": "監査",
+        "refreshHealth": "状態を更新",
+        "updateArchive": "アーカイブを更新",
+        "uninstall": "アンインストール",
+        "uninstallTitle": "スキルをアンインストールしますか？",
+        "uninstallMessage": "インストール済みスキルをリモートゲートウェイから削除します。",
+        "updateFailed": "Skill を更新できませんでした",
+        "uninstallFailed": "Skill を uninstall できませんでした"
+    }
+}

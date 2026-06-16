@@ -1,0 +1,66 @@
+{
+    "title": "Ajustes",
+    "subtitle": "Configura el idioma y la apariencia de la app.",
+    "language": {
+        "eyebrow": "Idioma",
+        "title": "Idioma de la aplicación",
+        "description": "Elige un idioma o usa la configuración del dispositivo.",
+        "options": {
+            "system": {
+                "label": "Sistema",
+                "description": "Usar el idioma del dispositivo cuando sea compatible."
+            },
+            "english": {
+                "label": "Inglés",
+                "description": "English"
+            },
+            "russian": {
+                "label": "Ruso",
+                "description": "Русский"
+            },
+            "german": {
+                "label": "Alemán",
+                "description": "Deutsch"
+            },
+            "spanish": {
+                "label": "Español",
+                "description": "Español"
+            },
+            "french": {
+                "label": "Francés",
+                "description": "Français"
+            },
+            "hindi": {
+                "label": "Hindi",
+                "description": "हिन्दी"
+            },
+            "japanese": {
+                "label": "Japonés",
+                "description": "日本語"
+            },
+            "chinese": {
+                "label": "Chino",
+                "description": "中文"
+            }
+        }
+    },
+    "theme": {
+        "eyebrow": "Tema",
+        "title": "Apariencia",
+        "description": "Usa el tema del sistema o elige la apariencia manualmente.",
+        "options": {
+            "system": {
+                "label": "Sistema",
+                "description": "Seguir la apariencia del dispositivo."
+            },
+            "light": {
+                "label": "Claro",
+                "description": "Usar la apariencia clara."
+            },
+            "dark": {
+                "label": "Oscuro",
+                "description": "Usar la apariencia oscura."
+            }
+        }
+    }
+}

@@ -1,0 +1,66 @@
+{
+    "title": "Réglages",
+    "subtitle": "Configurez la langue et l'apparence de l'app.",
+    "language": {
+        "eyebrow": "Langue",
+        "title": "Langue de l'application",
+        "description": "Choisissez une langue ou suivez le réglage de l'appareil.",
+        "options": {
+            "system": {
+                "label": "Système",
+                "description": "Utiliser la langue de l'appareil lorsqu'elle est prise en charge."
+            },
+            "english": {
+                "label": "Anglais",
+                "description": "English"
+            },
+            "russian": {
+                "label": "Russe",
+                "description": "Русский"
+            },
+            "german": {
+                "label": "Allemand",
+                "description": "Deutsch"
+            },
+            "spanish": {
+                "label": "Espagnol",
+                "description": "Español"
+            },
+            "french": {
+                "label": "Français",
+                "description": "Français"
+            },
+            "hindi": {
+                "label": "Hindi",
+                "description": "हिन्दी"
+            },
+            "japanese": {
+                "label": "Japonais",
+                "description": "日本語"
+            },
+            "chinese": {
+                "label": "Chinois",
+                "description": "中文"
+            }
+        }
+    },
+    "theme": {
+        "eyebrow": "Thème",
+        "title": "Apparence",
+        "description": "Utilisez le thème système ou choisissez l'apparence manuellement.",
+        "options": {
+            "system": {
+                "label": "Système",
+                "description": "Suivre l'apparence de l'appareil."
+            },
+            "light": {
+                "label": "Clair",
+                "description": "Utiliser l'apparence claire."
+            },
+            "dark": {
+                "label": "Sombre",
+                "description": "Utiliser l'apparence sombre."
+            }
+        }
+    }
+}

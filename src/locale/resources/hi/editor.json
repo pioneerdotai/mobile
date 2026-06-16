@@ -1,0 +1,18 @@
+{
+    "title": "संपादक",
+    "agentsDoc": "AGENTS.md",
+    "placeholder": "इस scope में agents के लिए निर्देश लिखें...",
+    "clean": "सहेजा गया",
+    "dirty": "बिना सहेजे बदलाव",
+    "saving": "सहेजा जा रहा है...",
+    "saved": "सहेजा गया",
+    "saveFailed": "सहेजना विफल: {{message}}",
+    "conflict": "टकराव",
+    "conflictTitle": "रिमोट बदलाव मिले",
+    "conflictDescription": "आपके संपादन के दौरान यह दस्तावेज़ रिमोट पर बदल गया. रिमोट सामग्री फिर लोड करें या अपने लोकल संस्करण से उसे ओवरराइट करें.",
+    "conflictMissingRemote": "रिमोट AGENTS.md अब मौजूद नहीं है. फिर सहेजने से पहले फ़ाइल फिर लोड करें.",
+    "local": "लोकल",
+    "remote": "रिमोट",
+    "reloadRemote": "रिमोट फिर लोड करें",
+    "overwriteRemote": "रिमोट ओवरराइट करें"
+}

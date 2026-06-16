@@ -1,0 +1,45 @@
+import type { HybridObject } from 'react-native-nitro-modules';
+
+export interface PioneerClient extends HybridObject<{ ios: 'c++'; android: 'c++' }> {
+    versionJson(): string;
+    initializeJson(configJson: string): string;
+    gatewayValidateRemoteJson(inputJson: string): Promise<string>;
+    gatewayPlanAddRemoteJson(inputJson: string): Promise<string>;
+    gatewayPlanAddAndActivateRemoteRegistryJson(inputJson: string): Promise<string>;
+    gatewayPlanActivateRegistryJson(inputJson: string): Promise<string>;
+    gatewayPlanUpdateRemoteRegistryJson(inputJson: string): Promise<string>;
+    gatewayPlanDeleteRemoteRegistryJson(inputJson: string): Promise<string>;
+    gatewayPlanSetWorkspaceRegistryJson(inputJson: string): Promise<string>;
+    gatewayConnectJson(inputJson: string): Promise<string>;
+    gatewayNextEventsJson(): Promise<string>;
+    gatewayDisconnectJson(): Promise<string>;
+    workspaceBootstrapJson(inputJson: string): Promise<string>;
+    workspaceSwitchJson(inputJson: string): Promise<string>;
+    workspaceCreateJson(inputJson: string): Promise<string>;
+    workspaceRenameJson(inputJson: string): Promise<string>;
+    providerListJson(inputJson: string): Promise<string>;
+    providerListModelsJson(inputJson: string): Promise<string>;
+    providerModelDisplayJson(inputJson: string): Promise<string>;
+    composerAttachmentFromPathJson(inputJson: string): string;
+    composerAttachmentsUpdateJson(inputJson: string): string;
+    composerSkillPickerRowsJson(inputJson: string): Promise<string>;
+    composerMcpPickerRowsJson(inputJson: string): Promise<string>;
+    composerCapabilitiesUpdateJson(inputJson: string): string;
+    composerSkillCapabilityFromRowJson(inputJson: string): string;
+    composerMcpCapabilityFromRowJson(inputJson: string): string;
+    composerSkillToggleJson(inputJson: string): string;
+    composerMcpToggleJson(inputJson: string): string;
+    composerFilterSkillRowsJson(inputJson: string): string;
+    composerFilterMcpRowsJson(inputJson: string): string;
+    threadTreeRefreshJson(inputJson: string): Promise<string>;
+    threadTreeLevelJson(inputJson: string): string;
+    agentsDocGetJson(inputJson: string): Promise<string>;
+    agentsDocSaveJson(inputJson: string): Promise<string>;
+    agentsDocArchiveJson(inputJson: string): Promise<string>;
+    activeThreadOpenJson(inputJson: string): Promise<string>;
+    activeThreadSnapshotJson(inputJson: string): string;
+    activeThreadApplyEventJson(inputJson: string): Promise<string>;
+    activeThreadSendTextJson(inputJson: string): Promise<string>;
+    activeThreadCancelTurnJson(inputJson: string): Promise<string>;
+    activeThreadClearJson(): Promise<string>;
+}

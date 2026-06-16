@@ -1,0 +1,31 @@
+{
+    "title": "प्रदाता",
+    "subtitle": "इस वर्कस्पेस के लिए मॉडल प्रदाता कॉन्फ़िगर करें.",
+    "refresh": "प्रदाता अपडेट करें",
+    "loading": "प्रदाता लोड हो रहे हैं...",
+    "gatewayOfflineTitle": "गेटवे offline है",
+    "gatewayOfflineDescription": "Provider API keys प्रबंधित करने के लिए रिमोट गेटवे कनेक्ट करें.",
+    "noConnectedTitle": "कोई कनेक्टेड प्रदाता नहीं",
+    "noConnectedDescription": "इस वर्कस्पेस के लिए प्रदाता कॉन्फ़िगर करने के लिए सभी पर जाएँ.",
+    "filters": {
+        "all": "सभी",
+        "connected": "कनेक्टेड"
+    },
+    "status": {
+        "connected": "कनेक्टेड",
+        "notConnected": "कनेक्टेड नहीं"
+    },
+    "configureApiKey": "API key कॉन्फ़िगर करें",
+    "detail": {
+        "headerFallback": "प्रदाता",
+        "notFoundTitle": "प्रदाता नहीं मिला",
+        "notFoundDescription": "यह प्रदाता कैटलॉग में नहीं है.",
+        "configured": "API key कॉन्फ़िगर है",
+        "loading": "प्रदाता स्थिति लोड हो रही है...",
+        "apiKeyTitle": "API कुंजी",
+        "apiKeyPlaceholder": "API key paste करें",
+        "removeApiKey": "API key हटाएँ",
+        "saveFailed": "API key सहेजी नहीं जा सकी",
+        "removeFailed": "API key हटाई नहीं जा सकी"
+    }
+}

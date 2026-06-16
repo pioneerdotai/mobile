@@ -1,0 +1,41 @@
+{
+    "title": "技能",
+    "subtitle": "安装并管理此 workspace 中 agent 可用的 skills。",
+    "installArchive": "安装 skill 归档",
+    "refresh": "刷新 skills",
+    "installedSummary": "已安装 {{installed}} · 共 {{total}}",
+    "loading": "正在加载 skills...",
+    "gatewayOfflineTitle": "网关离线",
+    "gatewayOfflineDescription": "连接远程网关以管理 skills。",
+    "emptyTitle": "没有已安装的 skills",
+    "emptyDescription": "安装 .tar.gz skill 归档，使其在此 workspace 中可用。",
+    "workspaceRequired": "需要 workspace。",
+    "installFailed": "无法安装 skill",
+    "progress": {
+        "preparing": "正在准备归档...",
+        "uploading": "正在上传归档...",
+        "finalizing": "正在完成安装...",
+        "cancel": "取消上传"
+    },
+    "detail": {
+        "headerFallback": "技能",
+        "notSelectedTitle": "未选择 skill",
+        "notSelectedDescription": "从列表中打开 skill。",
+        "loading": "正在加载 skill...",
+        "overview": "概览",
+        "policy": "策略",
+        "installation": "安装",
+        "validation": "验证",
+        "dependencies": "依赖",
+        "security": "安全",
+        "trust": "信任",
+        "audit": "审计",
+        "refreshHealth": "刷新健康状态",
+        "updateArchive": "更新归档",
+        "uninstall": "卸载",
+        "uninstallTitle": "卸载 skill？",
+        "uninstallMessage": "这会从远程网关移除已安装的 skill。",
+        "updateFailed": "无法更新 skill",
+        "uninstallFailed": "无法卸载 skill"
+    }
+}

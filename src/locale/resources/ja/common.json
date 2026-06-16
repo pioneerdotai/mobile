@@ -1,0 +1,9 @@
+{
+    "save": "保存",
+    "cancel": "キャンセル",
+    "remove": "削除",
+    "activate": "有効化",
+    "retry": "再試行",
+    "add": "追加",
+    "startupFailed": "アプリケーションを初期化できませんでした。"
+}

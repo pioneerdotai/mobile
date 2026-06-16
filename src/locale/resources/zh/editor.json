@@ -1,0 +1,18 @@
+{
+    "title": "编辑器",
+    "agentsDoc": "AGENTS.md",
+    "placeholder": "为此范围内的 agent 编写说明...",
+    "clean": "已保存",
+    "dirty": "未保存的更改",
+    "saving": "正在保存...",
+    "saved": "已保存",
+    "saveFailed": "保存失败：{{message}}",
+    "conflict": "冲突",
+    "conflictTitle": "检测到远程更改",
+    "conflictDescription": "你编辑期间，此文档在远程发生了变化。请重新加载远程内容，或用本地版本覆盖。",
+    "conflictMissingRemote": "远程 AGENTS.md 已不存在。再次保存前请重新加载文件。",
+    "local": "本地",
+    "remote": "远程",
+    "reloadRemote": "重新加载远程",
+    "overwriteRemote": "覆盖远程"
+}

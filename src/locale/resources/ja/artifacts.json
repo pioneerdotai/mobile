@@ -1,0 +1,28 @@
+{
+    "title": "アーティファクト",
+    "subtitle": "スレッドのアーティファクト",
+    "refresh": "アーティファクトを更新",
+    "filters": {
+        "all": "すべて",
+        "documents": "ドキュメント",
+        "images": "画像",
+        "code": "コード",
+        "other": "その他"
+    },
+    "loadFailed": "アーティファクトを読み込めませんでした",
+    "attachFailed": "アーティファクトを添付できませんでした",
+    "loading": "アーティファクトを読み込み中",
+    "empty": "アーティファクトはありません",
+    "emptyForFilter": "このフィルターに一致するアーティファクトはありません",
+    "workspaceDisconnected": "ワークスペースは接続されていません",
+    "artifactNotReady": "アーティファクトはまだ準備できていません",
+    "open": "開く",
+    "share": "共有",
+    "save": "保存",
+    "attach": "添付",
+    "size": "サイズ",
+    "created": "作成済み",
+    "updated": "更新済み",
+    "metadata": "メタデータ",
+    "bindings": "バインディング"
+}

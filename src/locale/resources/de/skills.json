@@ -1,0 +1,41 @@
+{
+    "title": "Fähigkeiten",
+    "subtitle": "Installiere und verwalte Skills, die Agenten in diesem Workspace zur Verfügung stehen.",
+    "installArchive": "Skill-Archiv installieren",
+    "refresh": "Skills aktualisieren",
+    "installedSummary": "{{installed}} installiert · {{total}} gesamt",
+    "loading": "Skills werden geladen...",
+    "gatewayOfflineTitle": "Gateway ist offline",
+    "gatewayOfflineDescription": "Verbinde ein entferntes Gateway, um Skills zu verwalten.",
+    "emptyTitle": "Keine installierten Skills",
+    "emptyDescription": "Installiere ein .tar.gz-Skill-Archiv, um es in diesem Workspace verfügbar zu machen.",
+    "workspaceRequired": "Workspace ist erforderlich.",
+    "installFailed": "Skill konnte nicht installiert werden",
+    "progress": {
+        "preparing": "Archiv wird vorbereitet...",
+        "uploading": "Archiv wird hochgeladen...",
+        "finalizing": "Installation wird abgeschlossen...",
+        "cancel": "Upload abbrechen"
+    },
+    "detail": {
+        "headerFallback": "Fähigkeit",
+        "notSelectedTitle": "Skill nicht ausgewählt",
+        "notSelectedDescription": "Öffne einen Skill aus der Liste.",
+        "loading": "Skill wird geladen...",
+        "overview": "Übersicht",
+        "policy": "Richtlinie",
+        "installation": "Installation",
+        "validation": "Validierung",
+        "dependencies": "Abhängigkeiten",
+        "security": "Sicherheit",
+        "trust": "Vertrauen",
+        "audit": "Prüfung",
+        "refreshHealth": "Status aktualisieren",
+        "updateArchive": "Archiv aktualisieren",
+        "uninstall": "Deinstallieren",
+        "uninstallTitle": "Skill deinstallieren?",
+        "uninstallMessage": "Dadurch wird der installierte Skill vom entfernten Gateway entfernt.",
+        "updateFailed": "Skill konnte nicht aktualisiert werden",
+        "uninstallFailed": "Skill konnte nicht deinstalliert werden"
+    }
+}

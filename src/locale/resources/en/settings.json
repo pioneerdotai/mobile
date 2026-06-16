@@ -1,0 +1,66 @@
+{
+    "title": "Settings",
+    "subtitle": "Configure app language and appearance.",
+    "language": {
+        "eyebrow": "Language",
+        "title": "Application language",
+        "description": "Choose a language or follow the device setting.",
+        "options": {
+            "system": {
+                "label": "System",
+                "description": "Use the device language when supported."
+            },
+            "english": {
+                "label": "English",
+                "description": "English"
+            },
+            "russian": {
+                "label": "Russian",
+                "description": "Русский"
+            },
+            "german": {
+                "label": "German",
+                "description": "Deutsch"
+            },
+            "spanish": {
+                "label": "Spanish",
+                "description": "Español"
+            },
+            "french": {
+                "label": "French",
+                "description": "Français"
+            },
+            "hindi": {
+                "label": "Hindi",
+                "description": "हिन्दी"
+            },
+            "japanese": {
+                "label": "Japanese",
+                "description": "日本語"
+            },
+            "chinese": {
+                "label": "Chinese",
+                "description": "中文"
+            }
+        }
+    },
+    "theme": {
+        "eyebrow": "Theme",
+        "title": "Appearance",
+        "description": "Use the system theme or choose a manual app appearance.",
+        "options": {
+            "system": {
+                "label": "System",
+                "description": "Follow the device appearance."
+            },
+            "light": {
+                "label": "Light",
+                "description": "Use the light app appearance."
+            },
+            "dark": {
+                "label": "Dark",
+                "description": "Use the dark app appearance."
+            }
+        }
+    }
+}

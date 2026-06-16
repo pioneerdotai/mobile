@@ -1,0 +1,18 @@
+{
+    "title": "Éditeur",
+    "agentsDoc": "AGENTS.md",
+    "placeholder": "Écrivez les instructions pour les agents dans ce périmètre...",
+    "clean": "Enregistré",
+    "dirty": "Modifications non enregistrées",
+    "saving": "Enregistrement...",
+    "saved": "Enregistré",
+    "saveFailed": "Échec de l’enregistrement : {{message}}",
+    "conflict": "Conflit",
+    "conflictTitle": "Modifications distantes détectées",
+    "conflictDescription": "Ce document a été modifié à distance pendant votre édition. Rechargez le contenu distant ou remplacez-le par votre version locale.",
+    "conflictMissingRemote": "Le AGENTS.md distant n’existe plus. Rechargez le fichier avant de l’enregistrer à nouveau.",
+    "local": "Local",
+    "remote": "Distant",
+    "reloadRemote": "Recharger le distant",
+    "overwriteRemote": "Remplacer le distant"
+}

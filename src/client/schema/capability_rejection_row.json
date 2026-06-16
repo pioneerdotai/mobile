@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CapabilityRejectionRow",
+  "type": "object",
+  "properties": {
+    "kind": {
+      "$ref": "#/$defs/CapabilityRejectionKind"
+    },
+    "label": {
+      "$ref": "#/$defs/CapabilityRejectionLabel"
+    },
+    "message": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "label",
+    "kind",
+    "message"
+  ],
+  "$defs": {
+    "CapabilityRejectionKind": {
+      "type": "string",
+      "enum": [
+        "Skill",
+        "McpServer",
+        "McpTool",
+        "Capability"
+      ]
+    },
+    "CapabilityRejectionLabel": {
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "Skill",
+            "McpServer",
+            "McpTool",
+            "Capability"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "Text": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "Text"
+          ]
+        }
+      ]
+    }
+  }
+}

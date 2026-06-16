@@ -1,0 +1,33 @@
+{
+    "title": "ワークスペース",
+    "manageTitle": "ワークスペース",
+    "subtitle": "このゲートウェイの workspace を選択します。",
+    "gatewayOfflineTitle": "ゲートウェイはオフラインです",
+    "gatewayOfflineDescription": "Workspaces を管理するにはリモートゲートウェイに接続してください。",
+    "loading": "Workspaces を読み込み中...",
+    "retry": "再試行",
+    "emptyTitle": "アクティブな workspace はありません",
+    "emptyDescription": "このゲートウェイから利用できるアクティブな workspace はありません。",
+    "available": "利用可能な workspaces",
+    "newWorkspace": "新規 workspace",
+    "renameWorkspace": "Workspace 名を変更",
+    "name": "名前",
+    "untitled": "無題の workspace",
+    "active": "アクティブ",
+    "selectAction": "Workspace を選択",
+    "editAction": "Workspace を編集",
+    "create": "作成",
+    "save": "保存",
+    "cancel": "キャンセル",
+    "errors": {
+        "selectFailed": "Workspace を選択できませんでした。",
+        "createFailed": "Workspace を作成できませんでした。",
+        "renameFailed": "Workspace 名を変更できませんでした。",
+        "gatewayNotFound": "アクティブな gateway が見つかりませんでした。",
+        "gatewayNotConnected": "Gateway は接続されていません。",
+        "bootstrapFailed": "Workspaces を読み込めませんでした。",
+        "emptyName": "Workspace name は必須です。",
+        "busy": "Workspace operation はすでに実行中です。",
+        "unknownTarget": "Workspace は利用できません。"
+    }
+}

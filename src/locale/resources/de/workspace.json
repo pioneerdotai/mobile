@@ -1,0 +1,33 @@
+{
+    "title": "Arbeitsbereich",
+    "manageTitle": "Arbeitsbereiche",
+    "subtitle": "Wähle den Workspace für dieses Gateway.",
+    "gatewayOfflineTitle": "Gateway ist offline",
+    "gatewayOfflineDescription": "Verbinde ein entferntes Gateway, um Workspaces zu verwalten.",
+    "loading": "Workspaces werden geladen...",
+    "retry": "Erneut versuchen",
+    "emptyTitle": "Keine aktiven Workspaces",
+    "emptyDescription": "Von diesem Gateway sind keine aktiven Workspaces verfügbar.",
+    "available": "Verfügbare Workspaces",
+    "newWorkspace": "Neuer Workspace",
+    "renameWorkspace": "Workspace umbenennen",
+    "name": "Name",
+    "untitled": "Unbenannter Workspace",
+    "active": "Aktiv",
+    "selectAction": "Workspace auswählen",
+    "editAction": "Workspace bearbeiten",
+    "create": "Erstellen",
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "errors": {
+        "selectFailed": "Workspace konnte nicht ausgewählt werden.",
+        "createFailed": "Workspace konnte nicht erstellt werden.",
+        "renameFailed": "Workspace konnte nicht umbenannt werden.",
+        "gatewayNotFound": "Aktives Gateway wurde nicht gefunden.",
+        "gatewayNotConnected": "Gateway ist nicht verbunden.",
+        "bootstrapFailed": "Workspaces konnten nicht geladen werden.",
+        "emptyName": "Workspace-Name ist erforderlich.",
+        "busy": "Workspace-Vorgang läuft bereits.",
+        "unknownTarget": "Workspace ist nicht verfügbar."
+    }
+}

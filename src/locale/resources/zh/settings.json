@@ -1,0 +1,66 @@
+{
+    "title": "设置",
+    "subtitle": "配置应用语言和外观。",
+    "language": {
+        "eyebrow": "语言",
+        "title": "应用语言",
+        "description": "选择语言或跟随设备设置。",
+        "options": {
+            "system": {
+                "label": "系统",
+                "description": "支持时使用设备语言。"
+            },
+            "english": {
+                "label": "英语",
+                "description": "English"
+            },
+            "russian": {
+                "label": "俄语",
+                "description": "Русский"
+            },
+            "german": {
+                "label": "德语",
+                "description": "Deutsch"
+            },
+            "spanish": {
+                "label": "西班牙语",
+                "description": "Español"
+            },
+            "french": {
+                "label": "法语",
+                "description": "Français"
+            },
+            "hindi": {
+                "label": "印地语",
+                "description": "हिन्दी"
+            },
+            "japanese": {
+                "label": "日语",
+                "description": "日本語"
+            },
+            "chinese": {
+                "label": "中文",
+                "description": "中文"
+            }
+        }
+    },
+    "theme": {
+        "eyebrow": "主题",
+        "title": "外观",
+        "description": "使用系统主题或手动选择应用外观。",
+        "options": {
+            "system": {
+                "label": "系统",
+                "description": "跟随设备外观。"
+            },
+            "light": {
+                "label": "浅色",
+                "description": "使用浅色外观。"
+            },
+            "dark": {
+                "label": "深色",
+                "description": "使用深色外观。"
+            }
+        }
+    }
+}

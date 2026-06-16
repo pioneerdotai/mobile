@@ -1,0 +1,31 @@
+{
+    "title": "Provider",
+    "subtitle": "Konfiguriere Modell-Provider für diesen Workspace.",
+    "refresh": "Provider aktualisieren",
+    "loading": "Provider werden geladen...",
+    "gatewayOfflineTitle": "Gateway ist offline",
+    "gatewayOfflineDescription": "Verbinde ein entferntes Gateway, um Provider-API-Schlüssel zu verwalten.",
+    "noConnectedTitle": "Keine verbundenen Provider",
+    "noConnectedDescription": "Wechsle zu Alle, um einen Provider für diesen Workspace zu konfigurieren.",
+    "filters": {
+        "all": "Alle",
+        "connected": "Verbunden"
+    },
+    "status": {
+        "connected": "Verbunden",
+        "notConnected": "Nicht verbunden"
+    },
+    "configureApiKey": "API-Schlüssel konfigurieren",
+    "detail": {
+        "headerFallback": "Anbieter",
+        "notFoundTitle": "Provider nicht gefunden",
+        "notFoundDescription": "Dieser Provider ist nicht Teil des Katalogs.",
+        "configured": "API-Schlüssel konfiguriert",
+        "loading": "Provider-Status wird geladen...",
+        "apiKeyTitle": "API-Schlüssel",
+        "apiKeyPlaceholder": "API-Schlüssel einfügen",
+        "removeApiKey": "API-Schlüssel entfernen",
+        "saveFailed": "API-Schlüssel konnte nicht gespeichert werden",
+        "removeFailed": "API-Schlüssel konnte nicht entfernt werden"
+    }
+}

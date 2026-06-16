@@ -1,0 +1,66 @@
+{
+    "title": "設定",
+    "subtitle": "アプリの言語と外観を設定します。",
+    "language": {
+        "eyebrow": "言語",
+        "title": "アプリの言語",
+        "description": "言語を選択するか、デバイス設定に従います。",
+        "options": {
+            "system": {
+                "label": "システム",
+                "description": "対応している場合はデバイスの言語を使用します。"
+            },
+            "english": {
+                "label": "英語",
+                "description": "English"
+            },
+            "russian": {
+                "label": "ロシア語",
+                "description": "Русский"
+            },
+            "german": {
+                "label": "ドイツ語",
+                "description": "Deutsch"
+            },
+            "spanish": {
+                "label": "スペイン語",
+                "description": "Español"
+            },
+            "french": {
+                "label": "フランス語",
+                "description": "Français"
+            },
+            "hindi": {
+                "label": "ヒンディー語",
+                "description": "हिन्दी"
+            },
+            "japanese": {
+                "label": "日本語",
+                "description": "日本語"
+            },
+            "chinese": {
+                "label": "中国語",
+                "description": "中文"
+            }
+        }
+    },
+    "theme": {
+        "eyebrow": "テーマ",
+        "title": "外観",
+        "description": "システムテーマを使用するか、外観を手動で選択します。",
+        "options": {
+            "system": {
+                "label": "システム",
+                "description": "デバイスの外観に従います。"
+            },
+            "light": {
+                "label": "ライト",
+                "description": "ライト外観を使用します。"
+            },
+            "dark": {
+                "label": "ダーク",
+                "description": "ダーク外観を使用します。"
+            }
+        }
+    }
+}

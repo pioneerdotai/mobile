@@ -1,0 +1,31 @@
+{
+    "title": "Провайдеры",
+    "subtitle": "Настройте провайдеров моделей для этого workspace.",
+    "refresh": "Обновить провайдеров",
+    "loading": "Загрузка провайдеров...",
+    "gatewayOfflineTitle": "Гейтвей офлайн",
+    "gatewayOfflineDescription": "Подключите удаленный гейтвей для управления API-ключами провайдеров.",
+    "noConnectedTitle": "Нет подключенных провайдеров",
+    "noConnectedDescription": "Переключитесь на Все, чтобы настроить провайдера для этого workspace.",
+    "filters": {
+        "all": "Все",
+        "connected": "Подключенные"
+    },
+    "status": {
+        "connected": "Подключен",
+        "notConnected": "Не подключен"
+    },
+    "configureApiKey": "Настроить API-ключ",
+    "detail": {
+        "headerFallback": "Провайдер",
+        "notFoundTitle": "Провайдер не найден",
+        "notFoundDescription": "Этого провайдера нет в каталоге.",
+        "configured": "API-ключ настроен",
+        "loading": "Загрузка статуса провайдера...",
+        "apiKeyTitle": "API-ключ",
+        "apiKeyPlaceholder": "Вставьте API-ключ",
+        "removeApiKey": "Удалить API-ключ",
+        "saveFailed": "Не удалось сохранить API-ключ",
+        "removeFailed": "Не удалось удалить API-ключ"
+    }
+}

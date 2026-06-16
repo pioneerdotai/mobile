@@ -1,0 +1,66 @@
+{
+    "title": "Einstellungen",
+    "subtitle": "App-Sprache und Darstellung konfigurieren.",
+    "language": {
+        "eyebrow": "Sprache",
+        "title": "App-Sprache",
+        "description": "Wähle eine Sprache oder nutze die Geräteeinstellung.",
+        "options": {
+            "system": {
+                "label": "System",
+                "description": "Gerätesprache verwenden, wenn sie unterstützt wird."
+            },
+            "english": {
+                "label": "Englisch",
+                "description": "English"
+            },
+            "russian": {
+                "label": "Russisch",
+                "description": "Русский"
+            },
+            "german": {
+                "label": "Deutsch",
+                "description": "Deutsch"
+            },
+            "spanish": {
+                "label": "Spanisch",
+                "description": "Español"
+            },
+            "french": {
+                "label": "Französisch",
+                "description": "Français"
+            },
+            "hindi": {
+                "label": "Hindi",
+                "description": "हिन्दी"
+            },
+            "japanese": {
+                "label": "Japanisch",
+                "description": "日本語"
+            },
+            "chinese": {
+                "label": "Chinesisch",
+                "description": "中文"
+            }
+        }
+    },
+    "theme": {
+        "eyebrow": "Design",
+        "title": "Darstellung",
+        "description": "Nutze das Systemdesign oder wähle die Darstellung manuell.",
+        "options": {
+            "system": {
+                "label": "System",
+                "description": "Darstellung des Geräts verwenden."
+            },
+            "light": {
+                "label": "Hell",
+                "description": "Helle Darstellung verwenden."
+            },
+            "dark": {
+                "label": "Dunkel",
+                "description": "Dunkle Darstellung verwenden."
+            }
+        }
+    }
+}

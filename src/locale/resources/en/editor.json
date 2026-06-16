@@ -1,0 +1,18 @@
+{
+    "title": "Editor",
+    "agentsDoc": "AGENTS.md",
+    "placeholder": "Write instructions for agents in this scope...",
+    "clean": "Saved",
+    "dirty": "Unsaved changes",
+    "saving": "Saving...",
+    "saved": "Saved",
+    "saveFailed": "Save failed: {{message}}",
+    "conflict": "Conflict",
+    "conflictTitle": "Remote changes detected",
+    "conflictDescription": "This document changed remotely while you were editing. Reload remote content or overwrite it with your local version.",
+    "conflictMissingRemote": "The remote AGENTS.md no longer exists. Reload the file before saving again.",
+    "local": "Local",
+    "remote": "Remote",
+    "reloadRemote": "Reload remote",
+    "overwriteRemote": "Overwrite remote"
+}

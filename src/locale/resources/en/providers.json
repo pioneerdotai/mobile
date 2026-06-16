@@ -1,0 +1,31 @@
+{
+    "title": "Providers",
+    "subtitle": "Configure model providers for this workspace.",
+    "refresh": "Refresh providers",
+    "loading": "Loading providers...",
+    "gatewayOfflineTitle": "Gateway is offline",
+    "gatewayOfflineDescription": "Connect a remote gateway to manage provider API keys.",
+    "noConnectedTitle": "No connected providers",
+    "noConnectedDescription": "Switch to All to configure a provider for this workspace.",
+    "filters": {
+        "all": "All",
+        "connected": "Connected"
+    },
+    "status": {
+        "connected": "Connected",
+        "notConnected": "Not connected"
+    },
+    "configureApiKey": "Configure API key",
+    "detail": {
+        "headerFallback": "Provider",
+        "notFoundTitle": "Provider not found",
+        "notFoundDescription": "This provider is not part of the catalog.",
+        "configured": "API key configured",
+        "loading": "Loading provider status...",
+        "apiKeyTitle": "API key",
+        "apiKeyPlaceholder": "Paste API key",
+        "removeApiKey": "Remove API key",
+        "saveFailed": "Failed to save API key",
+        "removeFailed": "Failed to remove API key"
+    }
+}
