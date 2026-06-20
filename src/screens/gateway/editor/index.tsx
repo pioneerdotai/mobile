@@ -59,6 +59,9 @@ const GatewayEditorScreen = ({ blocker = false, gatewayId }: GatewaySetupScreenP
         },
     });
     const submitting = busy || isSubmitting;
+    const clearFormError = useCallback(() => {
+        setFormError(null);
+    }, []);
 
     useEffect(() => {
         if (!isEdit || !editingGateway) {
@@ -120,6 +123,10 @@ const GatewayEditorScreen = ({ blocker = false, gatewayId }: GatewaySetupScreenP
                 return;
             }
 
+            if (!token) {
+                throw new GatewayOperationError('invalidToken');
+            }
+
             await addRemote({
                 name: values.name,
                 address: values.address.trim(),
@@ -156,6 +163,7 @@ const GatewayEditorScreen = ({ blocker = false, gatewayId }: GatewaySetupScreenP
                     name="name"
                     label={t('nameLabel')}
                     autoCapitalize="words"
+                    onValueChange={clearFormError}
                 />
                 <ControlledInput
                     control={control}
@@ -165,14 +173,20 @@ const GatewayEditorScreen = ({ blocker = false, gatewayId }: GatewaySetupScreenP
                     }}
                     label={t('addressLabel')}
                     autoCapitalize="none"
+                    autoCorrect={false}
+                    spellCheck={false}
                     keyboardType="url"
+                    onValueChange={clearFormError}
                 />
                 <ControlledInput
                     control={control}
                     name="token"
                     label={t('tokenLabel')}
                     autoCapitalize="none"
+                    autoCorrect={false}
+                    spellCheck={false}
                     secureTextEntry
+                    onValueChange={clearFormError}
                 />
 
                 {formError || storeErrorMessage ? (
