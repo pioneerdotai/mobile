@@ -25,6 +25,13 @@ char* pioneer_client_ffi_workspace_switch(PioneerClientFfi* client, const char* 
 char* pioneer_client_ffi_workspace_create(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_workspace_rename(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_provider_list(PioneerClientFfi* client, const char* input_json);
+char* pioneer_client_ffi_cli_runtime_list(PioneerClientFfi* client, const char* input_json);
+char* pioneer_client_ffi_cli_runtime_list_models(PioneerClientFfi* client, const char* input_json);
+char* pioneer_client_ffi_cli_runtime_thread_binding_get(PioneerClientFfi* client, const char* input_json);
+char* pioneer_client_ffi_cli_runtime_thread_compact(PioneerClientFfi* client, const char* input_json);
+char* pioneer_client_ffi_cli_runtime_turn_steer(PioneerClientFfi* client, const char* input_json);
+char* pioneer_client_ffi_cli_runtime_review_start(PioneerClientFfi* client, const char* input_json);
+char* pioneer_client_ffi_cli_runtime_request_respond(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_provider_list_models(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_provider_model_display(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_composer_attachment_from_path(PioneerClientFfi* client, const char* input_json);

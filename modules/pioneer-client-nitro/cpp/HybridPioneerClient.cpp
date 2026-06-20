@@ -132,6 +132,41 @@ HybridPioneerClient::providerListJson(const std::string& inputJson) {
 }
 
 std::shared_ptr<margelo::nitro::Promise<std::string>>
+HybridPioneerClient::cliRuntimeListJson(const std::string& inputJson) {
+  return callWithClientAsync(pioneer_client_ffi_cli_runtime_list, inputJson);
+}
+
+std::shared_ptr<margelo::nitro::Promise<std::string>>
+HybridPioneerClient::cliRuntimeListModelsJson(const std::string& inputJson) {
+  return callWithClientAsync(pioneer_client_ffi_cli_runtime_list_models, inputJson);
+}
+
+std::shared_ptr<margelo::nitro::Promise<std::string>>
+HybridPioneerClient::cliRuntimeThreadBindingGetJson(const std::string& inputJson) {
+  return callWithClientAsync(pioneer_client_ffi_cli_runtime_thread_binding_get, inputJson);
+}
+
+std::shared_ptr<margelo::nitro::Promise<std::string>>
+HybridPioneerClient::cliRuntimeThreadCompactJson(const std::string& inputJson) {
+  return callWithClientAsync(pioneer_client_ffi_cli_runtime_thread_compact, inputJson);
+}
+
+std::shared_ptr<margelo::nitro::Promise<std::string>>
+HybridPioneerClient::cliRuntimeTurnSteerJson(const std::string& inputJson) {
+  return callWithClientAsync(pioneer_client_ffi_cli_runtime_turn_steer, inputJson);
+}
+
+std::shared_ptr<margelo::nitro::Promise<std::string>>
+HybridPioneerClient::cliRuntimeReviewStartJson(const std::string& inputJson) {
+  return callWithClientAsync(pioneer_client_ffi_cli_runtime_review_start, inputJson);
+}
+
+std::shared_ptr<margelo::nitro::Promise<std::string>>
+HybridPioneerClient::cliRuntimeRequestRespondJson(const std::string& inputJson) {
+  return callWithClientAsync(pioneer_client_ffi_cli_runtime_request_respond, inputJson);
+}
+
+std::shared_ptr<margelo::nitro::Promise<std::string>>
 HybridPioneerClient::providerListModelsJson(const std::string& inputJson) {
   return callWithClientAsync(pioneer_client_ffi_provider_list_models, inputJson);
 }

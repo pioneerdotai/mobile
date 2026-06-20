@@ -32,6 +32,20 @@ import type { ClientComposerSkillToggleResult } from './generated/client_compose
 import type { ClientEvent } from './generated/client_event';
 import type { ClientGatewayConnectRequest } from './generated/client_gateway_connect_request';
 import type { ClientGatewayConnectResult } from './generated/client_gateway_connect_result';
+import type { CLIRuntimeListModelsParams } from './generated/cli_runtime_list_models_params';
+import type { CLIRuntimeListModelsResponse } from './generated/cli_runtime_list_models_response';
+import type { CLIRuntimeListParams } from './generated/cli_runtime_list_params';
+import type { CLIRuntimeListResponse } from './generated/cli_runtime_list_response';
+import type { CLIRuntimeRequestRespondParams } from './generated/cli_runtime_request_respond_params';
+import type { CLIRuntimeRequestRespondResponse } from './generated/cli_runtime_request_respond_response';
+import type { CLIRuntimeReviewStartParams } from './generated/cli_runtime_review_start_params';
+import type { CLIRuntimeReviewStartResponse } from './generated/cli_runtime_review_start_response';
+import type { CLIRuntimeThreadBindingGetParams } from './generated/cli_runtime_thread_binding_get_params';
+import type { CLIRuntimeThreadBindingGetResponse } from './generated/cli_runtime_thread_binding_get_response';
+import type { CLIRuntimeThreadCompactParams } from './generated/cli_runtime_thread_compact_params';
+import type { CLIRuntimeThreadCompactResponse } from './generated/cli_runtime_thread_compact_response';
+import type { CLIRuntimeTurnSteerParams } from './generated/cli_runtime_turn_steer_params';
+import type { CLIRuntimeTurnSteerResponse } from './generated/cli_runtime_turn_steer_response';
 import type { ComposerAttachment } from './generated/composer_attachment';
 import type { ComposerCapability } from './generated/composer_capability';
 import type { DeleteRemoteGatewayRegistryPlan } from './generated/delete_remote_gateway_registry_plan';
@@ -102,6 +116,30 @@ export type { ClientComposerSkillToggleResult } from './generated/client_compose
 export type { ClientEvent } from './generated/client_event';
 export type { ClientGatewayConnectRequest } from './generated/client_gateway_connect_request';
 export type { ClientGatewayConnectResult } from './generated/client_gateway_connect_result';
+export type { CLIRuntimeListModelsParams } from './generated/cli_runtime_list_models_params';
+export type {
+    CLIRuntimeListModelsResponse,
+    RuntimeModelInfo,
+} from './generated/cli_runtime_list_models_response';
+export type { CLIRuntimeListParams } from './generated/cli_runtime_list_params';
+export type {
+    CLIRuntimeListResponse,
+    RuntimeStatus,
+    RuntimeSummary,
+} from './generated/cli_runtime_list_response';
+export type { CLIRuntimePendingRequest } from './generated/cli_runtime_pending_request';
+export type { CLIRuntimeRequestResolution } from './generated/cli_runtime_request_resolution';
+export type { CLIRuntimeRequestRespondParams } from './generated/cli_runtime_request_respond_params';
+export type { CLIRuntimeRequestRespondResponse } from './generated/cli_runtime_request_respond_response';
+export type { CLIRuntimeReviewStartParams } from './generated/cli_runtime_review_start_params';
+export type { CLIRuntimeReviewStartResponse } from './generated/cli_runtime_review_start_response';
+export type { CLIRuntimeThreadBinding } from './generated/cli_runtime_thread_binding';
+export type { CLIRuntimeThreadBindingGetParams } from './generated/cli_runtime_thread_binding_get_params';
+export type { CLIRuntimeThreadBindingGetResponse } from './generated/cli_runtime_thread_binding_get_response';
+export type { CLIRuntimeThreadCompactParams } from './generated/cli_runtime_thread_compact_params';
+export type { CLIRuntimeThreadCompactResponse } from './generated/cli_runtime_thread_compact_response';
+export type { CLIRuntimeTurnSteerParams } from './generated/cli_runtime_turn_steer_params';
+export type { CLIRuntimeTurnSteerResponse } from './generated/cli_runtime_turn_steer_response';
 export type { ComposerAttachment } from './generated/composer_attachment';
 export type { ComposerAttachmentKind } from './generated/composer_attachment_kind';
 export type { ComposerAttachmentUploadState } from './generated/composer_attachment_upload_state';
@@ -307,6 +345,60 @@ export const pioneerClient = {
     async providerList(input: ProviderListParams): Promise<ProviderListResponse> {
         return parsePioneerClientResponse<ProviderListResponse>(
             await getPioneerClientNitro().providerListJson(JSON.stringify(input)),
+        );
+    },
+
+    async cliRuntimeList(input: CLIRuntimeListParams): Promise<CLIRuntimeListResponse> {
+        return parsePioneerClientResponse<CLIRuntimeListResponse>(
+            await getPioneerClientNitro().cliRuntimeListJson(JSON.stringify(input)),
+        );
+    },
+
+    async cliRuntimeListModels(
+        input: CLIRuntimeListModelsParams,
+    ): Promise<CLIRuntimeListModelsResponse> {
+        return parsePioneerClientResponse<CLIRuntimeListModelsResponse>(
+            await getPioneerClientNitro().cliRuntimeListModelsJson(JSON.stringify(input)),
+        );
+    },
+
+    async cliRuntimeThreadBindingGet(
+        input: CLIRuntimeThreadBindingGetParams,
+    ): Promise<CLIRuntimeThreadBindingGetResponse> {
+        return parsePioneerClientResponse<CLIRuntimeThreadBindingGetResponse>(
+            await getPioneerClientNitro().cliRuntimeThreadBindingGetJson(JSON.stringify(input)),
+        );
+    },
+
+    async cliRuntimeThreadCompact(
+        input: CLIRuntimeThreadCompactParams,
+    ): Promise<CLIRuntimeThreadCompactResponse> {
+        return parsePioneerClientResponse<CLIRuntimeThreadCompactResponse>(
+            await getPioneerClientNitro().cliRuntimeThreadCompactJson(JSON.stringify(input)),
+        );
+    },
+
+    async cliRuntimeTurnSteer(
+        input: CLIRuntimeTurnSteerParams,
+    ): Promise<CLIRuntimeTurnSteerResponse> {
+        return parsePioneerClientResponse<CLIRuntimeTurnSteerResponse>(
+            await getPioneerClientNitro().cliRuntimeTurnSteerJson(JSON.stringify(input)),
+        );
+    },
+
+    async cliRuntimeReviewStart(
+        input: CLIRuntimeReviewStartParams,
+    ): Promise<CLIRuntimeReviewStartResponse> {
+        return parsePioneerClientResponse<CLIRuntimeReviewStartResponse>(
+            await getPioneerClientNitro().cliRuntimeReviewStartJson(JSON.stringify(input)),
+        );
+    },
+
+    async cliRuntimeRequestRespond(
+        input: CLIRuntimeRequestRespondParams,
+    ): Promise<CLIRuntimeRequestRespondResponse> {
+        return parsePioneerClientResponse<CLIRuntimeRequestRespondResponse>(
+            await getPioneerClientNitro().cliRuntimeRequestRespondJson(JSON.stringify(input)),
         );
     },
 

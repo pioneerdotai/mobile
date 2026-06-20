@@ -10,6 +10,7 @@ import {
     FileVideo,
     Image,
     Loader,
+    MessageSquarePlus,
     Plus,
     Square,
     TriangleAlert,
@@ -33,15 +34,19 @@ type ThreadComposerProps = {
     placeholder: string;
     sendLabel: string;
     stopLabel: string;
+    steerLabel: string;
     disabled: boolean;
     sending: boolean;
     canSend: boolean;
+    canSteerTurn: boolean;
+    steering: boolean;
     hasInFlightTurn: boolean;
     canStopTurn: boolean;
     turnCancelling: boolean;
     error: string | null;
     attachments: ComposerAttachment[];
     capabilities: ComposerCapability[];
+    attachmentsEnabled: boolean;
     attachmentMenuAccessibilityLabel: string;
     modelSelectionLabel: string;
     modelSelectionLoading: boolean;
@@ -50,6 +55,7 @@ type ThreadComposerProps = {
     inputNativeID?: string;
     onChangeText: (text: string) => void;
     onSend: () => void;
+    onSteerTurn: () => void;
     onStopTurn: () => void;
     onOpenAttachmentMenu: () => void;
     onOpenModelSelector: () => void;
@@ -67,15 +73,19 @@ export const ThreadComposer = ({
     placeholder,
     sendLabel,
     stopLabel,
+    steerLabel,
     disabled,
     sending,
     canSend,
+    canSteerTurn,
+    steering,
     hasInFlightTurn,
     canStopTurn,
     turnCancelling,
     error,
     attachments,
     capabilities,
+    attachmentsEnabled,
     attachmentMenuAccessibilityLabel,
     modelSelectionLabel,
     modelSelectionLoading,
@@ -84,6 +94,7 @@ export const ThreadComposer = ({
     inputNativeID,
     onChangeText,
     onSend,
+    onSteerTurn,
     onStopTurn,
     onOpenAttachmentMenu,
     onOpenModelSelector,
@@ -101,7 +112,8 @@ export const ThreadComposer = ({
     const actionLoading = actionIsStop ? turnCancelling : sending;
     const actionLabel = actionIsStop ? stopLabel : sendLabel;
     const actionColor = rt.themeName === 'dark' ? theme.colors.neutral[950] : theme.colors.white;
-    const hasChips = attachments.length > 0 || capabilities.length > 0;
+    const hasChips = attachmentsEnabled && (attachments.length > 0 || capabilities.length > 0);
+    const steerDisabled = !canSteerTurn || disabled || steering;
 
     const handleLayout = useCallback(
         (event: LayoutChangeEvent) => {
@@ -150,21 +162,26 @@ export const ThreadComposer = ({
                         />
                         <HStack style={styles.bottomContainer}>
                             <HStack style={styles.leftActions}>
-                                <Pressable
-                                    accessibilityRole="button"
-                                    accessibilityLabel={attachmentMenuAccessibilityLabel}
-                                    disabled={disabled || sending}
-                                    onPress={handleOpenAttachmentMenu}
-                                    style={({ pressed }) => [
-                                        styles.addButton,
-                                        disabled || sending ? styles.modelButtonDisabled : null,
-                                        pressed && !disabled && !sending
-                                            ? styles.modelButtonPressed
-                                            : null,
-                                    ]}
-                                >
-                                    <Plus size={theme.space(6)} color={theme.colors.typography} />
-                                </Pressable>
+                                {attachmentsEnabled ? (
+                                    <Pressable
+                                        accessibilityRole="button"
+                                        accessibilityLabel={attachmentMenuAccessibilityLabel}
+                                        disabled={disabled || sending}
+                                        onPress={handleOpenAttachmentMenu}
+                                        style={({ pressed }) => [
+                                            styles.addButton,
+                                            disabled || sending ? styles.modelButtonDisabled : null,
+                                            pressed && !disabled && !sending
+                                                ? styles.modelButtonPressed
+                                                : null,
+                                        ]}
+                                    >
+                                        <Plus
+                                            size={theme.space(6)}
+                                            color={theme.colors.typography}
+                                        />
+                                    </Pressable>
+                                ) : null}
                                 <Pressable
                                     accessibilityRole="button"
                                     accessibilityLabel={modelSelectionAccessibilityLabel}
@@ -190,25 +207,54 @@ export const ThreadComposer = ({
                                     )}
                                 </Pressable>
                             </HStack>
-                            <Pressable
-                                accessibilityRole="button"
-                                accessibilityLabel={actionLabel}
-                                disabled={actionDisabled}
-                                onPress={actionIsStop ? onStopTurn : onSend}
-                                style={({ pressed }) => [
-                                    styles.sendButton,
-                                    actionDisabled && styles.sendButtonDisabled,
-                                    pressed && !actionDisabled && styles.sendButtonPressed,
-                                ]}
-                            >
-                                {actionLoading ? (
-                                    <Spinner size={theme.space(4)} color={actionColor} />
-                                ) : actionIsStop ? (
-                                    <Square size={theme.space(4)} color={actionColor} />
-                                ) : (
-                                    <ArrowUp size={theme.space(5)} color={actionColor} />
-                                )}
-                            </Pressable>
+                            <HStack style={styles.rightActions}>
+                                {actionIsStop && canSteerTurn ? (
+                                    <Pressable
+                                        accessibilityRole="button"
+                                        accessibilityLabel={steerLabel}
+                                        disabled={steerDisabled}
+                                        onPress={onSteerTurn}
+                                        style={({ pressed }) => [
+                                            styles.steerButton,
+                                            steerDisabled && styles.sendButtonDisabled,
+                                            pressed && !steerDisabled
+                                                ? styles.sendButtonPressed
+                                                : null,
+                                        ]}
+                                    >
+                                        {steering ? (
+                                            <Spinner
+                                                size={theme.space(4)}
+                                                color={theme.colors.typography}
+                                            />
+                                        ) : (
+                                            <MessageSquarePlus
+                                                size={theme.space(4)}
+                                                color={theme.colors.typography}
+                                            />
+                                        )}
+                                    </Pressable>
+                                ) : null}
+                                <Pressable
+                                    accessibilityRole="button"
+                                    accessibilityLabel={actionLabel}
+                                    disabled={actionDisabled}
+                                    onPress={actionIsStop ? onStopTurn : onSend}
+                                    style={({ pressed }) => [
+                                        styles.sendButton,
+                                        actionDisabled && styles.sendButtonDisabled,
+                                        pressed && !actionDisabled && styles.sendButtonPressed,
+                                    ]}
+                                >
+                                    {actionLoading ? (
+                                        <Spinner size={theme.space(4)} color={actionColor} />
+                                    ) : actionIsStop ? (
+                                        <Square size={theme.space(4)} color={actionColor} />
+                                    ) : (
+                                        <ArrowUp size={theme.space(5)} color={actionColor} />
+                                    )}
+                                </Pressable>
+                            </HStack>
                         </HStack>
                     </VStack>
                 </VStack>
@@ -407,6 +453,11 @@ const styles = StyleSheet.create((theme, rt) => ({
         alignItems: 'center',
         gap: theme.space(1),
     },
+    rightActions: {
+        alignItems: 'center',
+        gap: theme.space(1),
+        flexShrink: 0,
+    },
     addButton: {
         width: theme.space(8),
         height: theme.space(8),
@@ -448,6 +499,15 @@ const styles = StyleSheet.create((theme, rt) => ({
         justifyContent: 'center',
         borderRadius: theme.radius.full,
         backgroundColor: theme.colors.foreground,
+        flexShrink: 0,
+    },
+    steerButton: {
+        width: theme.space(8),
+        height: theme.space(8),
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: theme.radius.full,
+        backgroundColor: theme.colors.surfaceMuted,
         flexShrink: 0,
     },
     sendButtonDisabled: {

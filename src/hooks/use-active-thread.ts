@@ -10,6 +10,7 @@ import {
     openActiveThread,
     sendActiveThreadText,
 } from '@/services/threads/active';
+import { isCliRuntimeProvider } from '@/services/providers/cli-runtime';
 import { useActiveThreadStore } from '@/stores/active-thread';
 import { useGatewayStore } from '@/stores/gateway';
 
@@ -297,8 +298,13 @@ export const useActiveThread = (
             }
 
             const storeState = useActiveThreadStore.getState();
-            const attachments = storeState.composerAttachments;
-            const capabilities = storeState.composerCapabilities;
+            const currentSnapshot = storeState.snapshot;
+            const selectedProviderForSend = storeState.composerModelManuallySelected
+                ? storeState.composerSelectedProvider
+                : (currentSnapshot?.thread?.model_provider ?? thread?.model_provider ?? null);
+            const cliRuntimeSelected = isCliRuntimeProvider(selectedProviderForSend);
+            const attachments = cliRuntimeSelected ? [] : storeState.composerAttachments;
+            const capabilities = cliRuntimeSelected ? [] : storeState.composerCapabilities;
             const hasSendableContent =
                 normalizedText.length > 0 || attachments.length > 0 || capabilities.length > 0;
             if (
@@ -310,7 +316,6 @@ export const useActiveThread = (
                 return false;
             }
 
-            const currentSnapshot = storeState.snapshot;
             if (
                 storeState.composerModelManuallySelected &&
                 (!storeState.composerSelectedProvider || !storeState.composerSelectedModel)
@@ -339,7 +344,7 @@ export const useActiveThread = (
             setSending(true);
             setComposerError(null);
             const attachmentsForSend =
-                attachments.length > 0
+                !cliRuntimeSelected && attachments.length > 0
                     ? pioneerClient.composerAttachmentsUpdate({
                           attachments,
                           action: 'MarkPendingUploading',
@@ -389,7 +394,7 @@ export const useActiveThread = (
                     (!requestThreadId || activeThreadIdRef.current === requestThreadId)
                 ) {
                     const message = errorMessage(caught, t('sendFailed'));
-                    if (attachmentsForSend.length > 0) {
+                    if (!cliRuntimeSelected && attachmentsForSend.length > 0) {
                         setComposerAttachments(
                             pioneerClient.composerAttachmentsUpdate({
                                 attachments: useActiveThreadStore.getState().composerAttachments,

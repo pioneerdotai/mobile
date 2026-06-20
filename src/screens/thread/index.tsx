@@ -1,14 +1,20 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { router, useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Text, View } from 'react-native';
+import { type LayoutChangeEvent, Text, View } from 'react-native';
 import { KeyboardGestureArea, KeyboardStickyView } from 'react-native-keyboard-controller';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useKeyboardChatComposerInset } from '@legendapp/list/keyboard';
 import type { LegendListRef } from '@legendapp/list/react-native';
 
-import { pioneerClient, type ClientActiveThreadSnapshot, type Thread } from '@/client';
+import {
+    pioneerClient,
+    type CLIRuntimeThreadBinding,
+    type ClientActiveThreadSnapshot,
+    type Thread,
+} from '@/client';
 import Spinner from '@/components/feedback/spinner';
+import { CLIRuntimePendingRequests } from '@/components/thread/cli-runtime-pending-requests';
 import {
     ThreadComposer,
     THREAD_COMPOSER_MIN_INPUT_HEIGHT,
@@ -17,7 +23,10 @@ import { ThreadTimeline } from '@/components/thread/timeline/thread-timeline';
 import { useActiveThread } from '@/hooks/use-active-thread';
 import { useGateway } from '@/hooks/use-gateway';
 import { useProviderModelDisplayName } from '@/hooks/use-provider-model-display-name';
+import { isCliRuntimeProvider } from '@/services/providers/cli-runtime';
 import { useActiveThreadStore } from '@/stores/active-thread';
+import { useCliRuntimeStore } from '@/stores/cli-runtime';
+import { useGatewayStore } from '@/stores/gateway';
 import { useThreadTreeStore } from '@/stores/thread-tree';
 import { useWorkspaceStore } from '@/stores/workspace';
 
@@ -114,10 +123,13 @@ const ThreadScreen = ({ threadId }: ThreadScreenProps) => {
     const syncComposerModelSelection = useActiveThreadStore(
         (state) => state.syncComposerModelSelection,
     );
-
     const timelineRef = useRef<LegendListRef>(null);
     const composerRef = useRef<View>(null);
     const [draftText, setDraftText] = useState('');
+    const [steering, setSteering] = useState(false);
+    const [codexThreadBinding, setCodexThreadBinding] = useState<CLIRuntimeThreadBinding | null>(
+        null,
+    );
 
     const [composerHeight, setComposerHeight] = useState(THREAD_COMPOSER_MIN_INPUT_HEIGHT);
 
@@ -150,6 +162,8 @@ const ThreadScreen = ({ threadId }: ThreadScreenProps) => {
         : snapshot?.thread_id === threadId
           ? snapshot
           : null;
+    const visibleThreadId = visibleSnapshot?.thread_id ?? (!isDraftThread ? threadId : null);
+    const visibleTurnId = visibleSnapshot?.projection.in_flight_turn_id ?? null;
 
     const closed = Boolean(
         visibleSnapshot?.thread?.status === 'Closed' || thread?.status === 'Closed',
@@ -186,6 +200,7 @@ const ThreadScreen = ({ threadId }: ThreadScreenProps) => {
         : composerModelManuallySelected || shouldUseDraftComposerSelection
           ? composerSelectedModel
           : null;
+    const cliRuntimeSelected = isCliRuntimeProvider(selectedProvider);
     const { label: selectedModelDisplayName, loading: modelDisplayNameLoading } =
         useProviderModelDisplayName(activeWorkspaceId, selectedProvider, selectedModel);
     const modelSelectionLoading =
@@ -198,6 +213,29 @@ const ThreadScreen = ({ threadId }: ThreadScreenProps) => {
         !connected || closed || visibleSnapshot?.projection.composer_locked || sending,
     );
     const modelSelectionDisabled = Boolean(sending);
+    const lastGatewayEvent = useGatewayStore((state) => state.lastEvent);
+    const lastGatewayEventSerial = useGatewayStore((state) => state.lastEventSerial);
+    const applyCliRuntimeGatewayEvent = useCliRuntimeStore((state) => state.applyGatewayEvent);
+    const cliRuntimePendingRequests = useCliRuntimeStore((state) =>
+        state.pendingRequests.filter(
+            (request) =>
+                request.workspace_id === activeWorkspaceId && request.thread_id === visibleThreadId,
+        ),
+    );
+    const activeCodexThreadBinding =
+        codexThreadBinding?.workspace_id === activeWorkspaceId &&
+        codexThreadBinding.thread_id === visibleThreadId
+            ? codexThreadBinding
+            : null;
+    const canSteerCodexTurn = Boolean(
+        connected &&
+        activeCodexThreadBinding &&
+        visibleThreadId &&
+        visibleTurnId &&
+        draftText.trim().length > 0 &&
+        composerAttachments.length === 0 &&
+        composerCapabilities.length === 0,
+    );
 
     useFocusEffect(
         useCallback(() => {
@@ -217,11 +255,19 @@ const ThreadScreen = ({ threadId }: ThreadScreenProps) => {
         );
     }, []);
 
+    const handleComposerAreaLayout = useCallback(
+        (event: LayoutChangeEvent) => {
+            onComposerLayout(event);
+            updateComposerHeight(event.nativeEvent.layout.height);
+        },
+        [onComposerLayout, updateComposerHeight],
+    );
+
     const handleSend = useCallback(() => {
         const hasComposerPayload =
             draftText.trim().length > 0 ||
-            composerAttachments.length > 0 ||
-            composerCapabilities.length > 0;
+            (!cliRuntimeSelected &&
+                (composerAttachments.length > 0 || composerCapabilities.length > 0));
 
         if (!hasComposerPayload) {
             return;
@@ -232,11 +278,52 @@ const ThreadScreen = ({ threadId }: ThreadScreenProps) => {
                 setDraftText('');
             }
         });
-    }, [composerAttachments.length, composerCapabilities.length, draftText, sendText]);
+    }, [
+        cliRuntimeSelected,
+        composerAttachments.length,
+        composerCapabilities.length,
+        draftText,
+        sendText,
+    ]);
 
     const handleStopTurn = useCallback(() => {
         void stopTurn();
     }, [stopTurn]);
+
+    const handleSteerTurn = useCallback(() => {
+        const message = draftText.trim();
+
+        if (
+            !message ||
+            !activeWorkspaceId ||
+            !visibleThreadId ||
+            !visibleTurnId ||
+            !activeCodexThreadBinding
+        ) {
+            return;
+        }
+
+        setSteering(true);
+        useActiveThreadStore.getState().setComposerError(null);
+
+        void pioneerClient
+            .cliRuntimeTurnSteer({
+                workspace_id: activeWorkspaceId,
+                runtime_id: activeCodexThreadBinding.runtime_id,
+                thread_id: visibleThreadId,
+                turn_id: visibleTurnId,
+                message,
+            })
+            .then(() => {
+                setDraftText('');
+            })
+            .catch((steerError) => {
+                useActiveThreadStore.getState().setComposerError(errorMessage(steerError));
+            })
+            .finally(() => {
+                setSteering(false);
+            });
+    }, [activeCodexThreadBinding, activeWorkspaceId, draftText, visibleThreadId, visibleTurnId]);
 
     const updateDraftExpandedKeys = useCallback((_keys: string[]) => {}, []);
 
@@ -253,8 +340,12 @@ const ThreadScreen = ({ threadId }: ThreadScreenProps) => {
     }, [selectedModel, selectedProvider]);
 
     const openAttachmentMenu = useCallback(() => {
+        if (cliRuntimeSelected) {
+            return;
+        }
+
         useActiveThreadStore.getState().setComposerAttachmentMenuOpen(true);
-    }, []);
+    }, [cliRuntimeSelected]);
 
     const removeAttachment = useCallback(
         (index: number) => {
@@ -287,6 +378,47 @@ const ThreadScreen = ({ threadId }: ThreadScreenProps) => {
             syncComposerModelSelection(activeThreadModelProvider, activeThreadModel);
         }, [activeThreadModel, activeThreadModelProvider, syncComposerModelSelection]),
     );
+
+    useEffect(() => {
+        if (!lastGatewayEvent) {
+            return;
+        }
+
+        applyCliRuntimeGatewayEvent(lastGatewayEvent);
+    }, [applyCliRuntimeGatewayEvent, lastGatewayEvent, lastGatewayEventSerial]);
+
+    useEffect(() => {
+        let cancelled = false;
+
+        if (!connected || !activeWorkspaceId || !visibleThreadId) {
+            return () => {
+                cancelled = true;
+            };
+        }
+
+        void pioneerClient
+            .cliRuntimeThreadBindingGet({
+                workspace_id: activeWorkspaceId,
+                thread_id: visibleThreadId,
+            })
+            .then((response) => {
+                if (cancelled) {
+                    return;
+                }
+
+                const binding = response.binding ?? null;
+                setCodexThreadBinding(binding?.runtime_kind === 'codex' ? binding : null);
+            })
+            .catch(() => {
+                if (!cancelled) {
+                    setCodexThreadBinding(null);
+                }
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [activeWorkspaceId, connected, visibleThreadId, visibleTurnId]);
 
     if (!isDraftThread && !thread && !treeSnapshot) {
         return <ThreadState loading label={t('loadingThread')} />;
@@ -348,21 +480,26 @@ const ThreadScreen = ({ threadId }: ThreadScreenProps) => {
                 </View>
                 {visibleSnapshot ? (
                     <KeyboardStickyView offset={keyboardStickyOffset} style={styles.composerSticky}>
-                        <View ref={composerRef} onLayout={onComposerLayout}>
+                        <View ref={composerRef} onLayout={handleComposerAreaLayout}>
+                            <CLIRuntimePendingRequests requests={cliRuntimePendingRequests} />
                             <ThreadComposer
                                 value={draftText}
                                 placeholder={t('inputPlaceholder')}
                                 sendLabel={t('sendMessage')}
                                 stopLabel={t('stopTurn')}
+                                steerLabel="Steer turn"
                                 disabled={composerDisabled}
                                 sending={sending}
                                 canSend={canSend}
+                                canSteerTurn={canSteerCodexTurn}
+                                steering={steering}
                                 hasInFlightTurn={hasInFlightTurn}
                                 canStopTurn={canStopTurn}
                                 turnCancelling={turnCancelling}
                                 error={composerError}
-                                attachments={composerAttachments}
-                                capabilities={composerCapabilities}
+                                attachments={cliRuntimeSelected ? [] : composerAttachments}
+                                capabilities={cliRuntimeSelected ? [] : composerCapabilities}
+                                attachmentsEnabled={!cliRuntimeSelected}
                                 attachmentMenuAccessibilityLabel={t('composerAttachmentMenuTitle')}
                                 modelSelectionLabel={modelSelectionLabel}
                                 modelSelectionLoading={modelSelectionLoading}
@@ -374,8 +511,8 @@ const ThreadScreen = ({ threadId }: ThreadScreenProps) => {
                                 onOpenModelSelector={openModelSelector}
                                 onRemoveAttachment={removeAttachment}
                                 onRemoveCapability={removeCapability}
-                                onHeightChange={updateComposerHeight}
                                 onSend={handleSend}
+                                onSteerTurn={handleSteerTurn}
                                 onStopTurn={handleStopTurn}
                             />
                         </View>
@@ -461,5 +598,8 @@ const styles = StyleSheet.create((theme) => ({
         opacity: 0.7,
     },
 }));
+
+const errorMessage = (error: unknown) =>
+    error instanceof Error ? error.message : 'CLI runtime operation failed.';
 
 export default ThreadScreen;

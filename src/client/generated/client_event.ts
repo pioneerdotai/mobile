@@ -417,6 +417,31 @@ export type GatewayNotification =
       [k: string]: unknown;
     }
   | {
+      kind: 'cli_runtime_status_changed';
+      params: CLIRuntimeStatusChangedNotification;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'cli_runtime_account_updated';
+      params: CLIRuntimeAccountUpdatedNotification;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'cli_runtime_request_opened';
+      params: CLIRuntimeRequestOpenedNotification;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'cli_runtime_request_resolved';
+      params: CLIRuntimeRequestResolvedNotification;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'cli_runtime_apps_changed';
+      params: CLIRuntimeAppsChangedNotification;
+      [k: string]: unknown;
+    }
+  | {
       kind: 'unknown';
       params: UnknownGatewayNotification;
       [k: string]: unknown;
@@ -438,14 +463,16 @@ export type PromptManifestDiagnosticCode =
 export type PromptManifestHookPhase =
   | 'turn_pre_prompt_context'
   | 'turn_post_preflight_prompt_context'
-  | 'turn_pre_prompt_compile';
+  | 'turn_pre_prompt_compile'
+  | 'runtime_turn_pre_context';
 export type PromptManifestHookContributionKind =
   | 'prompt_context'
+  | 'thread_context'
   | 'prompt_section'
   | 'prompt_manifest_diagnostic'
   | 'runtime_failure';
 export type PromptManifestHookTruncation = 'none' | 'hook' | 'prompt' | 'hook_and_prompt' | 'unknown';
-export type PromptManifestProfile = 'assistant_full' | 'assistant_minimal' | 'assistant_none';
+export type PromptManifestProfile = 'assistant_full' | 'assistant_minimal' | 'assistant_none' | 'cli_runtime_codex';
 export type TurnStatus = 'InProgress' | 'Completed' | 'Failed' | 'Interrupted' | 'Blocked';
 export type ThreadAgentsDocStatus = 'draft' | 'active' | 'archived';
 export type TurnTimelineChangedReason =
@@ -481,6 +508,7 @@ export type TurnItem =
       id: string;
       markdown?: MarkdownDocument | null;
       markdownVersion?: number | null;
+      phase?: AgentMessagePhase;
       text: string;
       type: 'agentMessage';
       [k: string]: unknown;
@@ -778,6 +806,7 @@ export type MarkdownMarkKind =
       url: string;
       [k: string]: unknown;
     };
+export type AgentMessagePhase = 'final_answer' | 'commentary';
 export type SystemEventLevel = 'info' | 'warning' | 'error';
 export type TaskExecutorKind = 'agent' | 'tool' | 'workflow' | 'webhook' | 'system';
 export type TaskStatus =
@@ -1304,6 +1333,80 @@ export type MemoryCandidateStatus =
   | 'superseded'
   | 'merged_duplicate'
   | 'expired';
+export type RuntimeDiagnosticLevel = 'info' | 'warning' | 'error';
+export type CLIAgentRuntimeKind = 'codex' | 'claude';
+export type RuntimeStatus =
+  | {
+      state: 'disabled';
+      [k: string]: unknown;
+    }
+  | {
+      binary_path?: string | null;
+      state: 'missing_binary';
+      [k: string]: unknown;
+    }
+  | {
+      message: string;
+      state: 'spawn_failed';
+      [k: string]: unknown;
+    }
+  | {
+      state: 'initializing';
+      [k: string]: unknown;
+    }
+  | {
+      state: 'needs_auth';
+      [k: string]: unknown;
+    }
+  | {
+      state: 'ready';
+      [k: string]: unknown;
+    }
+  | {
+      message: string;
+      state: 'degraded';
+      [k: string]: unknown;
+    }
+  | {
+      minimum_version?: string | null;
+      state: 'unsupported_version';
+      version?: string | null;
+      [k: string]: unknown;
+    }
+  | {
+      message: string;
+      state: 'error';
+      [k: string]: unknown;
+    };
+export type CLIRuntimeRequestKind = 'command_approval' | 'file_change_approval' | 'user_input' | 'other';
+export type CLIRuntimeRequestResolution =
+  | {
+      status: 'approved';
+      [k: string]: unknown;
+    }
+  | {
+      reason?: string | null;
+      status: 'denied';
+      [k: string]: unknown;
+    }
+  | {
+      status: 'cancelled';
+      [k: string]: unknown;
+    }
+  | {
+      response?: unknown;
+      status: 'answered';
+      [k: string]: unknown;
+    }
+  | {
+      status: 'expired';
+      [k: string]: unknown;
+    }
+  | {
+      message: string;
+      status: 'error';
+      [k: string]: unknown;
+    };
 export type ClientEffect =
   | ('RefreshWorkspaceList' | 'RefreshGatewaySettings' | 'QueueSkillsRefresh' | 'EnqueueInFlightTurnsForResume')
   | {
@@ -2585,6 +2688,119 @@ export interface MemoryCandidate {
 export interface MemoryForgottenNotification {
   memory_ids?: string[];
   reason?: string | null;
+  [k: string]: unknown;
+}
+export interface CLIRuntimeStatusChangedNotification {
+  runtime: RuntimeSummary;
+  workspace_id: string;
+  [k: string]: unknown;
+}
+export interface RuntimeSummary {
+  account?: RuntimeAccountSnapshot | null;
+  binary_path?: string | null;
+  capabilities: RuntimeCapabilities;
+  debug_native_events_enabled?: boolean;
+  diagnostics?: RuntimeDiagnostic[];
+  display_name: string;
+  enabled: boolean;
+  home_path?: string | null;
+  kind: CLIAgentRuntimeKind;
+  models_refreshed_at_unix_ms?: number | null;
+  recent_stderr?: string[];
+  runtime_id: string;
+  shadow_home_path?: string | null;
+  status: RuntimeStatus;
+  version?: string | null;
+  [k: string]: unknown;
+}
+export interface RuntimeAccountSnapshot {
+  account_id?: string | null;
+  auth_method?: string | null;
+  authenticated: boolean;
+  display_name?: string | null;
+  email?: string | null;
+  plan?: string | null;
+  [k: string]: unknown;
+}
+export interface RuntimeCapabilities {
+  supports_approvals: boolean;
+  supports_apps: boolean;
+  supports_auth_management: boolean;
+  supports_command_approvals: boolean;
+  supports_compaction: boolean;
+  supports_diff_updates: boolean;
+  supports_file_change_approvals: boolean;
+  supports_fork: boolean;
+  supports_generated_schema_probe: boolean;
+  supports_goal: boolean;
+  supports_history_read: boolean;
+  supports_interrupt: boolean;
+  supports_model_list: boolean;
+  supports_resume: boolean;
+  supports_review: boolean;
+  supports_steer: boolean;
+  supports_thread_archive: boolean;
+  supports_threads: boolean;
+  supports_user_input_requests: boolean;
+  [k: string]: unknown;
+}
+export interface RuntimeDiagnostic {
+  code: string;
+  level: RuntimeDiagnosticLevel;
+  message: string;
+  [k: string]: unknown;
+}
+export interface CLIRuntimeAccountUpdatedNotification {
+  account?: RuntimeAccountSnapshot | null;
+  kind?: CLIAgentRuntimeKind | null;
+  runtime_id: string;
+  status: RuntimeStatus;
+  workspace_id: string;
+  [k: string]: unknown;
+}
+export interface CLIRuntimeRequestOpenedNotification {
+  item_id?: string | null;
+  request: CLIRuntimePendingRequest;
+  request_id: string;
+  runtime_id: string;
+  thread_id?: string | null;
+  turn_id?: string | null;
+  workspace_id: string;
+  [k: string]: unknown;
+}
+export interface CLIRuntimePendingRequest {
+  kind: CLIRuntimeRequestKind;
+  message?: string | null;
+  native_request_id?: string | null;
+  payload?: unknown;
+  title?: string | null;
+  [k: string]: unknown;
+}
+export interface CLIRuntimeRequestResolvedNotification {
+  item_id?: string | null;
+  request_id: string;
+  resolution: CLIRuntimeRequestResolution;
+  runtime_id: string;
+  thread_id?: string | null;
+  turn_id?: string | null;
+  workspace_id: string;
+  [k: string]: unknown;
+}
+export interface CLIRuntimeAppsChangedNotification {
+  apps: RuntimeAppInfo[];
+  refreshed_at_unix_ms?: number | null;
+  runtime_id: string;
+  workspace_id: string;
+  [k: string]: unknown;
+}
+export interface RuntimeAppInfo {
+  account_label?: string | null;
+  description?: string | null;
+  enabled?: boolean;
+  id: string;
+  name: string;
+  payload?: unknown;
+  status?: string | null;
   [k: string]: unknown;
 }
 export interface UnknownGatewayNotification {

@@ -1,3 +1,3 @@
 /* eslint-disable */
 
-export type ProviderFilter = 'All' | 'Connected';
+export type ProviderFilter = 'Api' | 'Connected' | 'Cli';

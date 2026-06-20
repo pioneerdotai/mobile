@@ -17,14 +17,16 @@ export type PromptManifestDiagnosticCode =
 export type PromptManifestHookPhase =
   | 'turn_pre_prompt_context'
   | 'turn_post_preflight_prompt_context'
-  | 'turn_pre_prompt_compile';
+  | 'turn_pre_prompt_compile'
+  | 'runtime_turn_pre_context';
 export type PromptManifestHookContributionKind =
   | 'prompt_context'
+  | 'thread_context'
   | 'prompt_section'
   | 'prompt_manifest_diagnostic'
   | 'runtime_failure';
 export type PromptManifestHookTruncation = 'none' | 'hook' | 'prompt' | 'hook_and_prompt' | 'unknown';
-export type PromptManifestProfile = 'assistant_full' | 'assistant_minimal' | 'assistant_none';
+export type PromptManifestProfile = 'assistant_full' | 'assistant_minimal' | 'assistant_none' | 'cli_runtime_codex';
 export type TurnStatus = 'InProgress' | 'Completed' | 'Failed' | 'Interrupted' | 'Blocked';
 
 export interface ThreadTreeLevelRequest {

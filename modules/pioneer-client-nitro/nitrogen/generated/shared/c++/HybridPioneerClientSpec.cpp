@@ -31,6 +31,13 @@ namespace margelo::nitro::pioneer::client {
       prototype.registerHybridMethod("workspaceCreateJson", &HybridPioneerClientSpec::workspaceCreateJson);
       prototype.registerHybridMethod("workspaceRenameJson", &HybridPioneerClientSpec::workspaceRenameJson);
       prototype.registerHybridMethod("providerListJson", &HybridPioneerClientSpec::providerListJson);
+      prototype.registerHybridMethod("cliRuntimeListJson", &HybridPioneerClientSpec::cliRuntimeListJson);
+      prototype.registerHybridMethod("cliRuntimeListModelsJson", &HybridPioneerClientSpec::cliRuntimeListModelsJson);
+      prototype.registerHybridMethod("cliRuntimeThreadBindingGetJson", &HybridPioneerClientSpec::cliRuntimeThreadBindingGetJson);
+      prototype.registerHybridMethod("cliRuntimeThreadCompactJson", &HybridPioneerClientSpec::cliRuntimeThreadCompactJson);
+      prototype.registerHybridMethod("cliRuntimeTurnSteerJson", &HybridPioneerClientSpec::cliRuntimeTurnSteerJson);
+      prototype.registerHybridMethod("cliRuntimeReviewStartJson", &HybridPioneerClientSpec::cliRuntimeReviewStartJson);
+      prototype.registerHybridMethod("cliRuntimeRequestRespondJson", &HybridPioneerClientSpec::cliRuntimeRequestRespondJson);
       prototype.registerHybridMethod("providerListModelsJson", &HybridPioneerClientSpec::providerListModelsJson);
       prototype.registerHybridMethod("providerModelDisplayJson", &HybridPioneerClientSpec::providerModelDisplayJson);
       prototype.registerHybridMethod("composerAttachmentFromPathJson", &HybridPioneerClientSpec::composerAttachmentFromPathJson);

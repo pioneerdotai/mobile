@@ -1,13 +1,50 @@
 import { pioneerClient } from '@/client';
 import type {
     ProviderListModelsResponse,
-    ProviderListResponse,
     ProviderModelInfo,
-    ProviderSummary,
+    RuntimeStatus,
+    RuntimeSummary,
 } from '@/client';
+import { cliRuntimeProviderKey, isCliRuntimeProvider } from './cli-runtime';
 
-export const listProviders = async (workspaceId: string): Promise<ProviderListResponse> => {
-    return pioneerClient.providerList({ workspace_id: workspaceId });
+export type ModelSelectorProvider = {
+    id: string;
+    label: string;
+    kind: 'api' | 'cliRuntime';
+};
+
+export const listProviders = async (workspaceId: string): Promise<ModelSelectorProvider[]> => {
+    const [apiProviders, cliRuntimes] = await Promise.allSettled([
+        pioneerClient.providerList({ workspace_id: workspaceId }),
+        pioneerClient.cliRuntimeList({ workspace_id: workspaceId }),
+    ]);
+
+    const rows: ModelSelectorProvider[] =
+        apiProviders.status === 'fulfilled'
+            ? apiProviders.value.providers.map((provider) => ({
+                  id: provider.name,
+                  label: provider.name,
+                  kind: 'api',
+              }))
+            : [];
+
+    if (cliRuntimes.status === 'fulfilled') {
+        rows.push(
+            ...cliRuntimes.value.runtimes
+                .filter(cliRuntimeVisibleInModelSelector)
+                .map((runtime) => ({
+                    id: cliRuntimeProviderKey(runtime.runtime_id),
+                    label: runtime.display_name,
+                    kind: 'cliRuntime' as const,
+                })),
+        );
+    }
+
+    if (apiProviders.status === 'rejected' && cliRuntimes.status === 'rejected') {
+        throw apiProviders.reason;
+    }
+
+    return rows;
 };
 
 export const listProviderModels = async (
@@ -20,16 +57,16 @@ export const listProviderModels = async (
 const normalizeQuery = (query: string): string => query.trim().toLowerCase();
 
 export const filterProviderRows = (
-    providers: ProviderSummary[],
+    providers: ModelSelectorProvider[],
     query: string,
-): ProviderSummary[] => {
+): ModelSelectorProvider[] => {
     const normalizedQuery = normalizeQuery(query);
 
     if (!normalizedQuery) {
         return providers;
     }
 
-    return providers.filter((provider) => provider.name.toLowerCase().includes(normalizedQuery));
+    return providers.filter((provider) => provider.label.toLowerCase().includes(normalizedQuery));
 };
 
 export const filterModelRows = (
@@ -50,3 +87,18 @@ export const filterModelRows = (
         );
     });
 };
+
+const cliRuntimeVisibleInModelSelector = (runtime: RuntimeSummary): boolean => {
+    return (
+        runtime.enabled &&
+        runtime.capabilities.supports_threads &&
+        runtime.capabilities.supports_model_list &&
+        runtimeReadyForModelSelector(runtime.status)
+    );
+};
+
+const runtimeReadyForModelSelector = (status: RuntimeStatus): boolean => {
+    return status.state === 'ready' || status.state === 'degraded';
+};
+
+export { isCliRuntimeProvider };

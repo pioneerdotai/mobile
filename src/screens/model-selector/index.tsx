@@ -7,7 +7,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { ChevronRight } from 'lucide-react-native';
 
-import type { ProviderModelInfo, ProviderSummary } from '@/client';
+import type { ProviderModelInfo } from '@/client';
 import Spinner from '@/components/feedback/spinner';
 import { Box } from '@/components/primitives/box';
 import { HStack } from '@/components/primitives/hstack';
@@ -22,6 +22,7 @@ import {
     filterProviderRows,
     listProviderModels,
     listProviders,
+    type ModelSelectorProvider,
 } from '@/services/providers/model-selector';
 import { useActiveThreadStore } from '@/stores/active-thread';
 import { useWorkspaceStore } from '@/stores/workspace';
@@ -44,7 +45,7 @@ const goBackToModelSelector = () => {
     }
 };
 
-const providerKeyExtractor = (provider: ProviderSummary): string => provider.name;
+const providerKeyExtractor = (provider: ModelSelectorProvider): string => provider.id;
 
 const modelKeyExtractor = (model: ProviderModelInfo): string => model.id;
 
@@ -110,7 +111,7 @@ export const ModelSelectorProviderScreen = () => {
     );
 
     const [query, setQuery] = useState('');
-    const [providers, setProviders] = useState<ProviderSummary[]>([]);
+    const [providers, setProviders] = useState<ModelSelectorProvider[]>([]);
     const [state, setState] = useState<LoadState>({ loading: false, error: null });
 
     useEffect(() => {
@@ -128,7 +129,7 @@ export const ModelSelectorProviderScreen = () => {
             void listProviders(activeWorkspaceId)
                 .then((response) => {
                     if (!cancelled) {
-                        setProviders(response.providers);
+                        setProviders(response);
                     }
                 })
                 .catch(() => {
@@ -153,14 +154,14 @@ export const ModelSelectorProviderScreen = () => {
     const rows = useMemo(() => filterProviderRows(providers, query), [providers, query]);
 
     const selectProvider = useCallback(
-        (provider: ProviderSummary) => {
-            setComposerModelSelectionFromUser(provider.name, null);
+        (provider: ModelSelectorProvider) => {
+            setComposerModelSelectionFromUser(provider.id, null);
             goBackToModelSelector();
         },
         [setComposerModelSelectionFromUser],
     );
 
-    const renderProvider = useCallback<ListRenderItem<ProviderSummary>>(
+    const renderProvider = useCallback<ListRenderItem<ModelSelectorProvider>>(
         ({ item, index }) => (
             <Box
                 style={[
@@ -171,7 +172,7 @@ export const ModelSelectorProviderScreen = () => {
             >
                 <ProviderRow
                     provider={item}
-                    selected={composerSelectedProvider === item.name}
+                    selected={composerSelectedProvider === item.id}
                     onPress={() => selectProvider(item)}
                 />
                 {index < rows.length - 1 ? <Box style={styles.listRowSeparator} /> : null}
@@ -457,7 +458,7 @@ const ProviderRow = ({
     selected,
     onPress,
 }: {
-    provider: ProviderSummary;
+    provider: ModelSelectorProvider;
     selected: boolean;
     onPress: () => void;
 }) => {
@@ -465,7 +466,7 @@ const ProviderRow = ({
         <Pressable accessibilityRole="button" onPress={onPress}>
             <HStack style={styles.listRow}>
                 <Text numberOfLines={1} style={styles.listRowTitle}>
-                    {provider.name}
+                    {provider.label}
                 </Text>
                 {selected ? <Check /> : null}
             </HStack>

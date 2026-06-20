@@ -66,6 +66,13 @@ namespace margelo::nitro::pioneer::client {
       virtual std::shared_ptr<Promise<std::string>> workspaceCreateJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> workspaceRenameJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> providerListJson(const std::string& inputJson) = 0;
+      virtual std::shared_ptr<Promise<std::string>> cliRuntimeListJson(const std::string& inputJson) = 0;
+      virtual std::shared_ptr<Promise<std::string>> cliRuntimeListModelsJson(const std::string& inputJson) = 0;
+      virtual std::shared_ptr<Promise<std::string>> cliRuntimeThreadBindingGetJson(const std::string& inputJson) = 0;
+      virtual std::shared_ptr<Promise<std::string>> cliRuntimeThreadCompactJson(const std::string& inputJson) = 0;
+      virtual std::shared_ptr<Promise<std::string>> cliRuntimeTurnSteerJson(const std::string& inputJson) = 0;
+      virtual std::shared_ptr<Promise<std::string>> cliRuntimeReviewStartJson(const std::string& inputJson) = 0;
+      virtual std::shared_ptr<Promise<std::string>> cliRuntimeRequestRespondJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> providerListModelsJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> providerModelDisplayJson(const std::string& inputJson) = 0;
       virtual std::string composerAttachmentFromPathJson(const std::string& inputJson) = 0;

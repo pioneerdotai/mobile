@@ -21,6 +21,7 @@ import {
     pickComposerFileAttachments,
     pickComposerMediaAttachments,
 } from '@/services/threads/composer-attachments';
+import { isCliRuntimeProvider } from '@/services/providers/cli-runtime';
 import { useActiveThreadStore } from '@/stores/active-thread';
 
 const ComposerAttachmentMenuSheet = () => {
@@ -30,12 +31,14 @@ const ComposerAttachmentMenuSheet = () => {
 
     const {
         showComposerAttachmentMenu,
+        composerSelectedProvider,
         setComposerAttachmentMenuOpen,
         setComposerAttachments,
         setComposerError,
     } = useActiveThreadStore(
         useShallow((state) => ({
             showComposerAttachmentMenu: state.showComposerAttachmentMenu,
+            composerSelectedProvider: state.composerSelectedProvider,
             setComposerAttachmentMenuOpen: state.setComposerAttachmentMenuOpen,
             setComposerAttachments: state.setComposerAttachments,
             setComposerError: state.setComposerError,
@@ -43,14 +46,19 @@ const ComposerAttachmentMenuSheet = () => {
     );
 
     useEffect(() => {
+        if (showComposerAttachmentMenu && isCliRuntimeProvider(composerSelectedProvider)) {
+            setComposerAttachmentMenuOpen(false);
+            return;
+        }
+
         if (bottomSheetRef.current) {
-            if (showComposerAttachmentMenu) {
+            if (showComposerAttachmentMenu && !isCliRuntimeProvider(composerSelectedProvider)) {
                 bottomSheetRef.current.present();
             } else {
                 bottomSheetRef.current.close();
             }
         }
-    }, [showComposerAttachmentMenu]);
+    }, [composerSelectedProvider, setComposerAttachmentMenuOpen, showComposerAttachmentMenu]);
 
     const close = useCallback(() => {
         setComposerAttachmentMenuOpen(false);
