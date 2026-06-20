@@ -13,6 +13,9 @@ export type ModelSelectorProvider = {
     kind: 'api' | 'cliRuntime';
 };
 
+const providerRowsCache = new Map<string, ModelSelectorProvider[]>();
+const providerDisplayNameCache = new Map<string, string | null>();
+
 export const listProviders = async (workspaceId: string): Promise<ModelSelectorProvider[]> => {
     const [apiProviders, cliRuntimes] = await Promise.allSettled([
         pioneerClient.providerList({ workspace_id: workspaceId }),
@@ -44,7 +47,35 @@ export const listProviders = async (workspaceId: string): Promise<ModelSelectorP
         throw apiProviders.reason;
     }
 
+    cacheProviderRows(workspaceId, rows);
+
     return rows;
+};
+
+export const providerDisplayName = async (
+    workspaceId: string,
+    providerId: string,
+): Promise<string | null> => {
+    const key = providerDisplayNameKey(workspaceId, providerId);
+    const cached = providerDisplayNameCache.get(key);
+
+    if (cached !== undefined) {
+        return cached;
+    }
+
+    const rows = providerRowsCache.get(workspaceId) ?? (await listProviders(workspaceId));
+    const label = rows.find((provider) => provider.id === providerId)?.label ?? null;
+
+    providerDisplayNameCache.set(key, label);
+
+    return label;
+};
+
+export const cachedProviderDisplayName = (
+    workspaceId: string,
+    providerId: string,
+): string | null | undefined => {
+    return providerDisplayNameCache.get(providerDisplayNameKey(workspaceId, providerId));
 };
 
 export const listProviderModels = async (
@@ -100,5 +131,19 @@ const cliRuntimeVisibleInModelSelector = (runtime: RuntimeSummary): boolean => {
 const runtimeReadyForModelSelector = (status: RuntimeStatus): boolean => {
     return status.state === 'ready' || status.state === 'degraded';
 };
+
+const cacheProviderRows = (workspaceId: string, rows: ModelSelectorProvider[]) => {
+    providerRowsCache.set(workspaceId, rows);
+
+    for (const provider of rows) {
+        providerDisplayNameCache.set(
+            providerDisplayNameKey(workspaceId, provider.id),
+            provider.label,
+        );
+    }
+};
+
+const providerDisplayNameKey = (workspaceId: string, providerId: string) =>
+    JSON.stringify([workspaceId, providerId]);
 
 export { isCliRuntimeProvider };

@@ -16,7 +16,10 @@ import { Pressable } from '@/components/primitives/pressable';
 import { ScrollView } from '@/components/primitives/scrollview';
 import { Text } from '@/components/primitives/text';
 import { VStack } from '@/components/primitives/vstack';
-import { useProviderModelDisplayName } from '@/hooks/use-provider-model-display-name';
+import {
+    useProviderDisplayName,
+    useProviderModelDisplayName,
+} from '@/hooks/use-provider-model-display-name';
 import {
     filterModelRows,
     filterProviderRows,
@@ -69,6 +72,8 @@ export const ModelSelectorHomeScreen = () => {
             composerSelectedProvider,
             composerSelectedModel,
         );
+    const { label: selectedProviderDisplayName, loading: selectedProviderDisplayNameLoading } =
+        useProviderDisplayName(activeWorkspaceId, composerSelectedProvider);
 
     return (
         <ScreenScroll>
@@ -76,9 +81,10 @@ export const ModelSelectorHomeScreen = () => {
                 <SelectorRow
                     label={t('modelSelectorProviderLabel')}
                     value={selectedLabel(
-                        composerSelectedProvider,
+                        selectedProviderDisplayName,
                         t('modelSelectorSelectProvider'),
                     )}
+                    loading={selectedProviderDisplayNameLoading}
                     selected={Boolean(composerSelectedProvider)}
                     onPress={() => router.push({ pathname: '/model-selector/provider' })}
                 />
