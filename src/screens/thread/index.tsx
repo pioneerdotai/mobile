@@ -216,11 +216,16 @@ const ThreadScreen = ({ threadId }: ThreadScreenProps) => {
     const lastGatewayEvent = useGatewayStore((state) => state.lastEvent);
     const lastGatewayEventSerial = useGatewayStore((state) => state.lastEventSerial);
     const applyCliRuntimeGatewayEvent = useCliRuntimeStore((state) => state.applyGatewayEvent);
-    const cliRuntimePendingRequests = useCliRuntimeStore((state) =>
-        state.pendingRequests.filter(
-            (request) =>
-                request.workspace_id === activeWorkspaceId && request.thread_id === visibleThreadId,
-        ),
+    const allCliRuntimePendingRequests = useCliRuntimeStore((state) => state.pendingRequests);
+
+    const cliRuntimePendingRequests = useMemo(
+        () =>
+            allCliRuntimePendingRequests.filter(
+                (request) =>
+                    request.workspace_id === activeWorkspaceId &&
+                    request.thread_id === visibleThreadId,
+            ),
+        [activeWorkspaceId, allCliRuntimePendingRequests, visibleThreadId],
     );
     const activeCodexThreadBinding =
         codexThreadBinding?.workspace_id === activeWorkspaceId &&

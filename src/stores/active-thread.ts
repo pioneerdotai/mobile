@@ -29,7 +29,6 @@ type ActiveThreadStoreState = {
     defaultComposerWorkspaceId: string | null;
     defaultComposerSelectionLoading: boolean;
     composerModelManuallySelected: boolean;
-    threadHeaderAction: (() => void) | null;
     setSnapshot: (snapshot: ClientActiveThreadSnapshot) => void;
     setLoading: (loading: boolean) => void;
     setError: (error: string | null) => void;
@@ -53,7 +52,6 @@ type ActiveThreadStoreState = {
         model: string | null,
     ) => void;
     syncComposerModelSelection: (provider: string | null, model: string | null) => void;
-    setThreadHeaderAction: (action: (() => void) | null) => void;
     reset: (composerModeContext?: ComposerModeContext) => void;
 };
 
@@ -85,7 +83,6 @@ export const useActiveThreadStore = create<ActiveThreadStoreState>((set) => ({
     defaultComposerWorkspaceId: null,
     defaultComposerSelectionLoading: true,
     composerModelManuallySelected: false,
-    threadHeaderAction: null,
 
     setSnapshot: (snapshot) => {
         set((state) => {
@@ -271,10 +268,6 @@ export const useActiveThreadStore = create<ActiveThreadStoreState>((set) => ({
         });
     },
 
-    setThreadHeaderAction: (threadHeaderAction) => {
-        set({ threadHeaderAction });
-    },
-
     reset: (composerModeContext) => {
         set((state) => ({
             snapshot: null,
@@ -293,7 +286,6 @@ export const useActiveThreadStore = create<ActiveThreadStoreState>((set) => ({
             composerSelectedProvider: state.defaultComposerProvider,
             composerSelectedModel: state.defaultComposerModel,
             composerModelManuallySelected: false,
-            threadHeaderAction: null,
         }));
     },
 }));

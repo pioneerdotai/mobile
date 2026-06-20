@@ -4,7 +4,6 @@ import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { Infinity as InfinityIcon, MessageCircle } from 'lucide-react-native';
 import { useShallow } from 'zustand/react/shallow';
 
-import { ActionsButton } from '@/components/buttons/actions';
 import { CollapseButton } from '@/components/buttons/collapse';
 import { HStack } from '@/components/primitives/hstack';
 import { Pressable } from '@/components/primitives/pressable';
@@ -18,11 +17,10 @@ const useThreadScreen = () => {
     const { theme } = useUnistyles();
     const { t } = useTranslation('threads');
 
-    const { selectedMode, setModeSwitcherOpen, threadHeaderAction } = useActiveThreadStore(
+    const { selectedMode, setModeSwitcherOpen } = useActiveThreadStore(
         useShallow((state) => ({
             selectedMode: state.composerSelectedMode,
             setModeSwitcherOpen: state.setComposerModeSwitcherOpen,
-            threadHeaderAction: state.threadHeaderAction,
         })),
     );
 
@@ -66,9 +64,6 @@ const useThreadScreen = () => {
                 backgroundColor: 'transparent',
             },
             headerLeft: () => <CollapseButton onPressHandler={handleBack} />,
-            headerRight: threadHeaderAction
-                ? () => <ActionsButton onPressHandler={threadHeaderAction} />
-                : undefined,
             cardStyle: {
                 ...options.cardStyle,
                 backgroundColor: theme.colors.background,
