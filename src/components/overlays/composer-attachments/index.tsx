@@ -45,20 +45,17 @@ const ComposerAttachmentMenuSheet = () => {
         })),
     );
 
-    useEffect(() => {
-        if (showComposerAttachmentMenu && isCliRuntimeProvider(composerSelectedProvider)) {
-            setComposerAttachmentMenuOpen(false);
-            return;
-        }
+    const cliRuntimeSelected = isCliRuntimeProvider(composerSelectedProvider);
 
+    useEffect(() => {
         if (bottomSheetRef.current) {
-            if (showComposerAttachmentMenu && !isCliRuntimeProvider(composerSelectedProvider)) {
+            if (showComposerAttachmentMenu) {
                 bottomSheetRef.current.present();
             } else {
                 bottomSheetRef.current.close();
             }
         }
-    }, [composerSelectedProvider, setComposerAttachmentMenuOpen, showComposerAttachmentMenu]);
+    }, [showComposerAttachmentMenu]);
 
     const close = useCallback(() => {
         setComposerAttachmentMenuOpen(false);
@@ -163,18 +160,27 @@ const ComposerAttachmentMenuSheet = () => {
                             onPress={pickFiles}
                         />
                     </HStack>
-                    <HStack style={styles.menuRow}>
-                        <MenuItem
-                            icon={<Zap size={theme.space(5)} color={theme.colors.typography} />}
-                            label={t('composerSkills')}
-                            onPress={openSkills}
-                        />
-                        <MenuItem
-                            icon={<McpIcon size={theme.space(5)} color={theme.colors.typography} />}
-                            label={t('composerMcp')}
-                            onPress={openMcp}
-                        />
-                    </HStack>
+                    {!cliRuntimeSelected ? (
+                        <HStack style={styles.menuRow}>
+                            <MenuItem
+                                icon={
+                                    <Zap size={theme.space(5)} color={theme.colors.typography} />
+                                }
+                                label={t('composerSkills')}
+                                onPress={openSkills}
+                            />
+                            <MenuItem
+                                icon={
+                                    <McpIcon
+                                        size={theme.space(5)}
+                                        color={theme.colors.typography}
+                                    />
+                                }
+                                label={t('composerMcp')}
+                                onPress={openMcp}
+                            />
+                        </HStack>
+                    ) : null}
                 </VStack>
             </BottomSheetScrollView>
         </BottomSheetModal>

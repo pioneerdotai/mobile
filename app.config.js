@@ -79,7 +79,7 @@ module.exports = {
         },
     },
     locales: {
-        en: './src/locale/translations/meta/es.json',
+        en: './src/locale/translations/meta/en.json',
         es: './src/locale/translations/meta/es.json',
         hi: './src/locale/translations/meta/hi.json',
         ru: './src/locale/translations/meta/ru.json',

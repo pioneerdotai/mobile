@@ -271,8 +271,8 @@ const ThreadScreen = ({ threadId }: ThreadScreenProps) => {
     const handleSend = useCallback(() => {
         const hasComposerPayload =
             draftText.trim().length > 0 ||
-            (!cliRuntimeSelected &&
-                (composerAttachments.length > 0 || composerCapabilities.length > 0));
+            composerAttachments.length > 0 ||
+            (!cliRuntimeSelected && composerCapabilities.length > 0);
 
         if (!hasComposerPayload) {
             return;
@@ -345,12 +345,8 @@ const ThreadScreen = ({ threadId }: ThreadScreenProps) => {
     }, [selectedModel, selectedProvider]);
 
     const openAttachmentMenu = useCallback(() => {
-        if (cliRuntimeSelected) {
-            return;
-        }
-
         useActiveThreadStore.getState().setComposerAttachmentMenuOpen(true);
-    }, [cliRuntimeSelected]);
+    }, []);
 
     const removeAttachment = useCallback(
         (index: number) => {
@@ -502,9 +498,9 @@ const ThreadScreen = ({ threadId }: ThreadScreenProps) => {
                                 canStopTurn={canStopTurn}
                                 turnCancelling={turnCancelling}
                                 error={composerError}
-                                attachments={cliRuntimeSelected ? [] : composerAttachments}
+                                attachments={composerAttachments}
                                 capabilities={cliRuntimeSelected ? [] : composerCapabilities}
-                                attachmentsEnabled={!cliRuntimeSelected}
+                                attachmentsEnabled
                                 attachmentMenuAccessibilityLabel={t('composerAttachmentMenuTitle')}
                                 modelSelectionLabel={modelSelectionLabel}
                                 modelSelectionLoading={modelSelectionLoading}

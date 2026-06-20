@@ -186,9 +186,7 @@ export const useActiveThreadStore = create<ActiveThreadStoreState>((set) => ({
             composerError: null,
             ...(isCliRuntimeProvider(composerSelectedProvider)
                 ? {
-                      composerAttachments: [],
                       composerCapabilities: [],
-                      showComposerAttachmentMenu: false,
                   }
                 : {}),
         });
@@ -251,6 +249,11 @@ export const useActiveThreadStore = create<ActiveThreadStoreState>((set) => ({
                 : {
                       composerSelectedProvider: defaultComposerProvider,
                       composerSelectedModel: defaultComposerModel,
+                      ...(isCliRuntimeProvider(defaultComposerProvider)
+                          ? {
+                                composerCapabilities: [],
+                            }
+                          : {}),
                   }),
         }));
     },
@@ -264,6 +267,11 @@ export const useActiveThreadStore = create<ActiveThreadStoreState>((set) => ({
             return {
                 composerSelectedProvider,
                 composerSelectedModel,
+                ...(isCliRuntimeProvider(composerSelectedProvider)
+                    ? {
+                          composerCapabilities: [],
+                      }
+                    : {}),
             };
         });
     },
