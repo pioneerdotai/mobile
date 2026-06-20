@@ -5,6 +5,7 @@ import type {
     ClientGatewayWsTimings,
     GatewayEndpoint,
 } from '@/client';
+import { captureClientDiagnosticsOnError } from '@/services/client-diagnostics';
 import { getGatewayAuthToken } from '@/services/gateway/registry';
 
 const DEFAULT_GATEWAY_WS_TIMINGS: ClientGatewayWsTimings = {
@@ -23,11 +24,13 @@ export const connectGatewayEndpoint = async (
         ? await getGatewayAuthToken(endpoint.auth_token_ref)
         : null;
 
-    return pioneerClient.gatewayConnect({
-        endpoint,
-        auth_token: authToken,
-        timings: DEFAULT_GATEWAY_WS_TIMINGS,
-    });
+    return captureClientDiagnosticsOnError('gateway_connect', () =>
+        pioneerClient.gatewayConnect({
+            endpoint,
+            auth_token: authToken,
+            timings: DEFAULT_GATEWAY_WS_TIMINGS,
+        }),
+    );
 };
 
 export const nextGatewayEvents = async (): Promise<ClientEvent[]> => {

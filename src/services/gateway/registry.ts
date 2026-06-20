@@ -1,6 +1,7 @@
 import * as SecureStore from 'expo-secure-store';
 
 import { PioneerClientNativeError, pioneerClient } from '@/client';
+import { captureClientDiagnosticsOnError } from '@/services/client-diagnostics';
 import type {
     ActivateGatewayRegistryPlan,
     AddAndActivateRemoteGatewayRegistryPlan,
@@ -181,11 +182,13 @@ export const validateRemoteGateway = async (
     token?: string | null,
 ): Promise<RemoteGatewayValidation> => {
     try {
-        const validation = await pioneerClient.gatewayValidateRemote({
-            address,
-            auth_token: token ?? null,
-            timeout_ms: REMOTE_GATEWAY_VALIDATION_TIMEOUT_MS,
-        });
+        const validation = await captureClientDiagnosticsOnError('gateway_validate_remote', () =>
+            pioneerClient.gatewayValidateRemote({
+                address,
+                auth_token: token ?? null,
+                timeout_ms: REMOTE_GATEWAY_VALIDATION_TIMEOUT_MS,
+            }),
+        );
 
         if (validation.state !== 'reachable') {
             throw new GatewayOperationError('unreachable');

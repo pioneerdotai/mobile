@@ -29,6 +29,7 @@ import type { ClientComposerSkillCapabilityFromRowRequest } from './generated/cl
 import type { ClientComposerSkillPickerRowsRequest } from './generated/client_composer_skill_picker_rows_request';
 import type { ClientComposerSkillToggleRequest } from './generated/client_composer_skill_toggle_request';
 import type { ClientComposerSkillToggleResult } from './generated/client_composer_skill_toggle_result';
+import type { ClientDiagnosticEvent } from './generated/client_diagnostic_event';
 import type { ClientEvent } from './generated/client_event';
 import type { ClientGatewayConnectRequest } from './generated/client_gateway_connect_request';
 import type { ClientGatewayConnectResult } from './generated/client_gateway_connect_result';
@@ -113,6 +114,7 @@ export type { ClientComposerSkillCapabilityFromRowRequest } from './generated/cl
 export type { ClientComposerSkillPickerRowsRequest } from './generated/client_composer_skill_picker_rows_request';
 export type { ClientComposerSkillToggleRequest } from './generated/client_composer_skill_toggle_request';
 export type { ClientComposerSkillToggleResult } from './generated/client_composer_skill_toggle_result';
+export type { ClientDiagnosticEvent } from './generated/client_diagnostic_event';
 export type { ClientEvent } from './generated/client_event';
 export type { ClientGatewayConnectRequest } from './generated/client_gateway_connect_request';
 export type { ClientGatewayConnectResult } from './generated/client_gateway_connect_result';
@@ -231,6 +233,12 @@ export const pioneerClient = {
                     platform: config.platform ?? Platform.OS,
                 }),
             ),
+        );
+    },
+
+    diagnosticsDrain(): ClientDiagnosticEvent[] {
+        return parsePioneerClientResponse<ClientDiagnosticEvent[]>(
+            getPioneerClientNitro().diagnosticsDrainJson(),
         );
     },
 

@@ -51,6 +51,7 @@ namespace margelo::nitro::pioneer::client {
       // Methods
       virtual std::string versionJson() = 0;
       virtual std::string initializeJson(const std::string& configJson) = 0;
+      virtual std::string diagnosticsDrainJson() = 0;
       virtual std::shared_ptr<Promise<std::string>> gatewayValidateRemoteJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> gatewayPlanAddRemoteJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> gatewayPlanAddAndActivateRemoteRegistryJson(const std::string& inputJson) = 0;

@@ -10,6 +10,7 @@ char* pioneer_client_ffi_version(void);
 PioneerClientFfi* pioneer_client_ffi_client_create(void);
 void pioneer_client_ffi_client_destroy(PioneerClientFfi* client);
 char* pioneer_client_ffi_client_initialize(PioneerClientFfi* client, const char* config_json);
+char* pioneer_client_ffi_diagnostics_drain(PioneerClientFfi* client);
 char* pioneer_client_ffi_gateway_validate_remote(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_gateway_plan_add_remote(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_gateway_plan_add_and_activate_remote_registry(PioneerClientFfi* client, const char* input_json);

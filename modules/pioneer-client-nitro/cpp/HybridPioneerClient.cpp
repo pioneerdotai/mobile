@@ -56,6 +56,10 @@ std::string HybridPioneerClient::initializeJson(const std::string& configJson) {
   return callWithClient(pioneer_client_ffi_client_initialize, configJson);
 }
 
+std::string HybridPioneerClient::diagnosticsDrainJson() {
+  return callWithClient(pioneer_client_ffi_diagnostics_drain);
+}
+
 std::shared_ptr<margelo::nitro::Promise<std::string>>
 HybridPioneerClient::gatewayValidateRemoteJson(const std::string& inputJson) {
   return callWithClientAsync(pioneer_client_ffi_gateway_validate_remote, inputJson);

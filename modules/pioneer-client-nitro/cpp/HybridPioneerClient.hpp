@@ -33,6 +33,7 @@ public:
 
   std::string versionJson() override;
   std::string initializeJson(const std::string& configJson) override;
+  std::string diagnosticsDrainJson() override;
   std::shared_ptr<margelo::nitro::Promise<std::string>> gatewayValidateRemoteJson(
       const std::string& inputJson) override;
   std::shared_ptr<margelo::nitro::Promise<std::string>> gatewayPlanAddRemoteJson(
