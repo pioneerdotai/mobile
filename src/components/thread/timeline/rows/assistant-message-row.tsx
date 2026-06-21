@@ -26,6 +26,7 @@ export const AssistantMessageRow = ({ row, expanded, onToggle }: AssistantMessag
     const hasText = row.text.trim().length > 0 || (row.markdown?.blocks?.length ?? 0) > 0;
     const iconSize = theme.space(4);
     const activityColor = theme.colors.textMuted;
+    const showActionRow = row.phase !== 'commentary';
 
     if (row.taskTimeline) {
         return (
@@ -76,14 +77,16 @@ export const AssistantMessageRow = ({ row, expanded, onToggle }: AssistantMessag
                     <ActivityIndicator size="small" color={activityColor} />
                 </Box>
             )}
-            <HStack style={styles.actionRow}>
-                {!!row.timestampLabel && (
-                    <Text numberOfLines={1} style={styles.timestamp}>
-                        {row.timestampLabel}
-                    </Text>
-                )}
-                <TimelineCopyButton value={row.text} />
-            </HStack>
+            {showActionRow && (
+                <HStack style={styles.actionRow}>
+                    {!!row.timestampLabel && (
+                        <Text numberOfLines={1} style={styles.timestamp}>
+                            {row.timestampLabel}
+                        </Text>
+                    )}
+                    <TimelineCopyButton value={row.text} />
+                </HStack>
+            )}
         </VStack>
     );
 };

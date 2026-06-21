@@ -366,6 +366,7 @@ const projectItemToRow = (item: ItemView, nowMs?: number): TimelineRow => {
                     item.partial_markdown ??
                     (turnItem.markdown as MarkdownDocument | null | undefined) ??
                     null,
+                phase: turnItem.phase ?? 'final_answer',
                 streaming: isRunningStatus(item.status),
                 taskTimeline: isTaskTimelineItem(item),
                 elapsedLabel: formatElapsed(item, nowMs),

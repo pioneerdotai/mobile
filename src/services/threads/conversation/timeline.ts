@@ -1,4 +1,5 @@
 import type {
+    AgentMessagePhase,
     ArtifactRef,
     MarkdownDocument,
 } from '@/client/generated/client_active_thread_snapshot';
@@ -34,6 +35,7 @@ export type TimelineRow =
           turnId: string;
           text: string;
           markdown: MarkdownDocument | null;
+          phase: AgentMessagePhase;
           streaming: boolean;
           taskTimeline: boolean;
           elapsedLabel: string | null;
