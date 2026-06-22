@@ -65,6 +65,7 @@
     "sendMessage": "Envoyer le message",
     "sendFailed": "Impossible d’envoyer le message.",
     "stopTurn": "Arrêter le tour",
+    "steerTurn": "Orienter le tour",
     "stopReason": "Tour arrêté par l’utilisateur.",
     "stopFailed": "Impossible d’arrêter le tour.",
     "modeAgentLabel": "Agent",

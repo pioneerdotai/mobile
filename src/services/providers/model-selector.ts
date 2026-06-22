@@ -2,19 +2,21 @@ import { pioneerClient } from '@/client';
 import type {
     ProviderListModelsResponse,
     ProviderModelInfo,
+    RuntimeModelInfo,
     RuntimeStatus,
     RuntimeSummary,
 } from '@/client';
-import { cliRuntimeProviderKey, isCliRuntimeProvider } from './cli-runtime';
+import {
+    cliRuntimeProviderKey,
+    isCliRuntimeProvider,
+    runtimeIdFromCliRuntimeProviderKey,
+} from './cli-runtime';
 
 export type ModelSelectorProvider = {
     id: string;
     label: string;
     kind: 'api' | 'cliRuntime';
 };
-
-const providerRowsCache = new Map<string, ModelSelectorProvider[]>();
-const providerDisplayNameCache = new Map<string, string | null>();
 
 export const listProviders = async (workspaceId: string): Promise<ModelSelectorProvider[]> => {
     const [apiProviders, cliRuntimes] = await Promise.allSettled([
@@ -47,8 +49,6 @@ export const listProviders = async (workspaceId: string): Promise<ModelSelectorP
         throw apiProviders.reason;
     }
 
-    cacheProviderRows(workspaceId, rows);
-
     return rows;
 };
 
@@ -56,33 +56,65 @@ export const providerDisplayName = async (
     workspaceId: string,
     providerId: string,
 ): Promise<string | null> => {
-    const key = providerDisplayNameKey(workspaceId, providerId);
-    const cached = providerDisplayNameCache.get(key);
-
-    if (cached !== undefined) {
-        return cached;
-    }
-
-    const rows = providerRowsCache.get(workspaceId) ?? (await listProviders(workspaceId));
-    const label = rows.find((provider) => provider.id === providerId)?.label ?? null;
-
-    providerDisplayNameCache.set(key, label);
-
-    return label;
-};
-
-export const cachedProviderDisplayName = (
-    workspaceId: string,
-    providerId: string,
-): string | null | undefined => {
-    return providerDisplayNameCache.get(providerDisplayNameKey(workspaceId, providerId));
+    const rows = await listProviders(workspaceId);
+    return rows.find((provider) => provider.id === providerId)?.label ?? null;
 };
 
 export const listProviderModels = async (
     workspaceId: string,
     provider: string,
 ): Promise<ProviderListModelsResponse> => {
+    const runtimeId = runtimeIdFromCliRuntimeProviderKey(provider);
+
+    if (runtimeId) {
+        const response = await pioneerClient.cliRuntimeListModels({
+            workspace_id: workspaceId,
+            runtime_id: runtimeId,
+        });
+
+        return {
+            provider,
+            models: response.models.map((model) => providerModelFromRuntimeModel(provider, model)),
+        };
+    }
+
     return pioneerClient.providerListModels({ workspace_id: workspaceId, provider });
+};
+
+const providerModelFromRuntimeModel = (
+    provider: string,
+    model: RuntimeModelInfo,
+): ProviderModelInfo => {
+    const inputModalities = model.input_modalities?.filter(Boolean) ?? [];
+    const outputModalities = model.output_modalities?.filter(Boolean) ?? [];
+
+    return {
+        id: model.id,
+        name: model.name ?? null,
+        description: model.description ?? null,
+        created: null,
+        provider,
+        owned_by: null,
+        limits: {
+            max_input_tokens: model.max_input_tokens ?? null,
+            max_output_tokens: model.max_output_tokens ?? null,
+            context_window: model.max_input_tokens ?? null,
+        },
+        capabilities: {
+            vision: model.supports_vision ?? null,
+            tool_calling: null,
+            json_output: null,
+            streaming: true,
+            thinking: model.supports_reasoning ?? null,
+            fine_tuning: null,
+            input_modalities: inputModalities.length > 0 ? inputModalities : null,
+            output_modalities: outputModalities.length > 0 ? outputModalities : null,
+        },
+        pricing: null,
+        active: model.active ?? true,
+        family: model.family ?? null,
+        lifecycle_status: null,
+    };
 };
 
 const normalizeQuery = (query: string): string => query.trim().toLowerCase();
@@ -112,11 +144,41 @@ export const filterModelRows = (
 
     return models.filter((model) => {
         const modelName = model.name?.toLowerCase() ?? '';
+        const modelDescription = model.description?.toLowerCase() ?? '';
 
         return (
-            model.id.toLowerCase().includes(normalizedQuery) || modelName.includes(normalizedQuery)
+            model.id.toLowerCase().includes(normalizedQuery) ||
+            modelName.includes(normalizedQuery) ||
+            modelDescription.includes(normalizedQuery)
         );
     });
+};
+
+export const modelRowDisplayName = (model: ProviderModelInfo): string => {
+    return nonEmptyTrimmed(model.name) ?? model.id;
+};
+
+export const modelRowSecondaryText = (model: ProviderModelInfo): string | null => {
+    const description = nonEmptyTrimmed(model.description);
+
+    if (description) {
+        return description;
+    }
+
+    const id = nonEmptyTrimmed(model.id);
+    const displayName = modelRowDisplayName(model).trim();
+
+    if (id && id.toLowerCase() !== displayName.toLowerCase()) {
+        return id;
+    }
+
+    return null;
+};
+
+const nonEmptyTrimmed = (value: string | null | undefined): string | null => {
+    const trimmed = value?.trim() ?? '';
+
+    return trimmed ? trimmed : null;
 };
 
 const cliRuntimeVisibleInModelSelector = (runtime: RuntimeSummary): boolean => {
@@ -131,19 +193,5 @@ const cliRuntimeVisibleInModelSelector = (runtime: RuntimeSummary): boolean => {
 const runtimeReadyForModelSelector = (status: RuntimeStatus): boolean => {
     return status.state === 'ready' || status.state === 'degraded';
 };
-
-const cacheProviderRows = (workspaceId: string, rows: ModelSelectorProvider[]) => {
-    providerRowsCache.set(workspaceId, rows);
-
-    for (const provider of rows) {
-        providerDisplayNameCache.set(
-            providerDisplayNameKey(workspaceId, provider.id),
-            provider.label,
-        );
-    }
-};
-
-const providerDisplayNameKey = (workspaceId: string, providerId: string) =>
-    JSON.stringify([workspaceId, providerId]);
 
 export { isCliRuntimeProvider };

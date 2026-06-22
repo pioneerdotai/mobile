@@ -65,6 +65,7 @@
     "sendMessage": "संदेश भेजें",
     "sendFailed": "संदेश नहीं भेजा जा सका.",
     "stopTurn": "टर्न रोकें",
+    "steerTurn": "टर्न निर्देशित करें",
     "stopReason": "यूज़र ने टर्न रोक दिया.",
     "stopFailed": "टर्न नहीं रोका जा सका.",
     "modeAgentLabel": "एजेंट",

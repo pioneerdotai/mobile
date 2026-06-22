@@ -92,7 +92,7 @@ const ThreadScreen = ({ threadId }: ThreadScreenProps) => {
     const thread =
         !isDraftThread && threadId ? (treeSnapshot?.threads_by_id[threadId] ?? null) : null;
 
-    const { connectionState } = useGateway();
+    const { connectionId, connectionState } = useGateway();
 
     const {
         snapshot,
@@ -126,9 +126,11 @@ const ThreadScreen = ({ threadId }: ThreadScreenProps) => {
     const composerRef = useRef<View>(null);
     const [draftText, setDraftText] = useState('');
     const [steering, setSteering] = useState(false);
-    const [codexThreadBinding, setCodexThreadBinding] = useState<CLIRuntimeThreadBinding | null>(
-        null,
-    );
+    const [cliRuntimeThreadBinding, setCliRuntimeThreadBinding] =
+        useState<CLIRuntimeThreadBinding | null>(null);
+    const [activeCliRuntimeSupportsSteer, setActiveCliRuntimeSupportsSteer] = useState<
+        boolean | null
+    >(null);
 
     const [composerHeight, setComposerHeight] = useState(THREAD_COMPOSER_MIN_INPUT_HEIGHT);
 
@@ -226,14 +228,16 @@ const ThreadScreen = ({ threadId }: ThreadScreenProps) => {
             ),
         [activeWorkspaceId, allCliRuntimePendingRequests, visibleThreadId],
     );
-    const activeCodexThreadBinding =
-        codexThreadBinding?.workspace_id === activeWorkspaceId &&
-        codexThreadBinding.thread_id === visibleThreadId
-            ? codexThreadBinding
+    const activeCliRuntimeThreadBinding =
+        cliRuntimeThreadBinding?.workspace_id === activeWorkspaceId &&
+        cliRuntimeThreadBinding.thread_id === visibleThreadId
+            ? cliRuntimeThreadBinding
             : null;
-    const canSteerCodexTurn = Boolean(
+    const activeCliRuntimeCanSteer = activeCliRuntimeSupportsSteer ?? false;
+    const canSteerCliRuntimeTurn = Boolean(
         connected &&
-        activeCodexThreadBinding &&
+        activeCliRuntimeThreadBinding &&
+        activeCliRuntimeCanSteer &&
         visibleThreadId &&
         visibleTurnId &&
         draftText.trim().length > 0 &&
@@ -302,7 +306,7 @@ const ThreadScreen = ({ threadId }: ThreadScreenProps) => {
             !activeWorkspaceId ||
             !visibleThreadId ||
             !visibleTurnId ||
-            !activeCodexThreadBinding
+            !activeCliRuntimeThreadBinding
         ) {
             return;
         }
@@ -313,7 +317,7 @@ const ThreadScreen = ({ threadId }: ThreadScreenProps) => {
         void pioneerClient
             .cliRuntimeTurnSteer({
                 workspace_id: activeWorkspaceId,
-                runtime_id: activeCodexThreadBinding.runtime_id,
+                runtime_id: activeCliRuntimeThreadBinding.runtime_id,
                 thread_id: visibleThreadId,
                 turn_id: visibleTurnId,
                 message,
@@ -327,7 +331,13 @@ const ThreadScreen = ({ threadId }: ThreadScreenProps) => {
             .finally(() => {
                 setSteering(false);
             });
-    }, [activeCodexThreadBinding, activeWorkspaceId, draftText, visibleThreadId, visibleTurnId]);
+    }, [
+        activeCliRuntimeThreadBinding,
+        activeWorkspaceId,
+        draftText,
+        visibleThreadId,
+        visibleTurnId,
+    ]);
 
     const updateDraftExpandedKeys = useCallback((_keys: string[]) => {}, []);
 
@@ -407,11 +417,11 @@ const ThreadScreen = ({ threadId }: ThreadScreenProps) => {
                 }
 
                 const binding = response.binding ?? null;
-                setCodexThreadBinding(binding?.runtime_kind === 'codex' ? binding : null);
+                setCliRuntimeThreadBinding(binding);
             })
             .catch(() => {
                 if (!cancelled) {
-                    setCodexThreadBinding(null);
+                    setCliRuntimeThreadBinding(null);
                 }
             });
 
@@ -419,6 +429,38 @@ const ThreadScreen = ({ threadId }: ThreadScreenProps) => {
             cancelled = true;
         };
     }, [activeWorkspaceId, connected, visibleThreadId, visibleTurnId]);
+
+    useEffect(() => {
+        let cancelled = false;
+        const runtimeId = activeCliRuntimeThreadBinding?.runtime_id ?? null;
+
+        if (!connected || !activeWorkspaceId || !runtimeId) {
+            setActiveCliRuntimeSupportsSteer(null);
+            return () => {
+                cancelled = true;
+            };
+        }
+
+        void pioneerClient
+            .cliRuntimeList({ workspace_id: activeWorkspaceId })
+            .then((response) => {
+                if (cancelled) {
+                    return;
+                }
+
+                const runtime = response.runtimes.find((item) => item.runtime_id === runtimeId);
+                setActiveCliRuntimeSupportsSteer(runtime?.capabilities.supports_steer ?? null);
+            })
+            .catch(() => {
+                if (!cancelled) {
+                    setActiveCliRuntimeSupportsSteer(null);
+                }
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [activeCliRuntimeThreadBinding?.runtime_id, activeWorkspaceId, connected, connectionId]);
 
     if (!isDraftThread && !thread && !treeSnapshot) {
         return <ThreadState loading label={t('loadingThread')} />;
@@ -487,11 +529,11 @@ const ThreadScreen = ({ threadId }: ThreadScreenProps) => {
                                 placeholder={t('inputPlaceholder')}
                                 sendLabel={t('sendMessage')}
                                 stopLabel={t('stopTurn')}
-                                steerLabel="Steer turn"
+                                steerLabel={t('steerTurn')}
                                 disabled={composerDisabled}
                                 sending={sending}
                                 canSend={canSend}
-                                canSteerTurn={canSteerCodexTurn}
+                                canSteerTurn={canSteerCliRuntimeTurn}
                                 steering={steering}
                                 hasInFlightTurn={hasInFlightTurn}
                                 canStopTurn={canStopTurn}

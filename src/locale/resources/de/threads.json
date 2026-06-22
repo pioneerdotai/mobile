@@ -65,6 +65,7 @@
     "sendMessage": "Nachricht senden",
     "sendFailed": "Nachricht konnte nicht gesendet werden.",
     "stopTurn": "Turn stoppen",
+    "steerTurn": "Turn steuern",
     "stopReason": "Turn wurde vom Benutzer gestoppt.",
     "stopFailed": "Turn konnte nicht gestoppt werden.",
     "modeAgentLabel": "Agent",

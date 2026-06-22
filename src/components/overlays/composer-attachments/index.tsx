@@ -163,9 +163,7 @@ const ComposerAttachmentMenuSheet = () => {
                     {!cliRuntimeSelected ? (
                         <HStack style={styles.menuRow}>
                             <MenuItem
-                                icon={
-                                    <Zap size={theme.space(5)} color={theme.colors.typography} />
-                                }
+                                icon={<Zap size={theme.space(5)} color={theme.colors.typography} />}
                                 label={t('composerSkills')}
                                 onPress={openSkills}
                             />

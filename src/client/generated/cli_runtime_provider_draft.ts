@@ -1,5 +1,6 @@
 /* eslint-disable */
 
+export type CLIAgentRuntimeKind = 'codex' | 'claude';
 export type CLIRuntimeProviderDraftMode =
   | 'Create'
   | {
@@ -21,6 +22,7 @@ export interface CLIRuntimeProviderDraft {
   enabled: boolean;
   home_path: string;
   id: string;
+  kind: CLIAgentRuntimeKind;
   mode: CLIRuntimeProviderDraftMode;
   shadow_home_path: string;
   [k: string]: unknown;

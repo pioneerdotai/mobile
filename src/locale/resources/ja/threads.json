@@ -65,6 +65,7 @@
     "sendMessage": "メッセージを送信",
     "sendFailed": "メッセージを送信できませんでした。",
     "stopTurn": "ターンを停止",
+    "steerTurn": "ターンを誘導",
     "stopReason": "ユーザーがターンを停止しました。",
     "stopFailed": "ターンを停止できませんでした。",
     "modeAgentLabel": "エージェント",

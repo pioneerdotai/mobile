@@ -65,6 +65,7 @@
     "sendMessage": "Enviar mensaje",
     "sendFailed": "No se pudo enviar el mensaje.",
     "stopTurn": "Detener turno",
+    "steerTurn": "Dirigir turno",
     "stopReason": "Turno detenido por el usuario.",
     "stopFailed": "No se pudo detener el turno.",
     "modeAgentLabel": "Agente",

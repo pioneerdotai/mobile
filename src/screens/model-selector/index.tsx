@@ -25,6 +25,8 @@ import {
     filterProviderRows,
     listProviderModels,
     listProviders,
+    modelRowDisplayName,
+    modelRowSecondaryText,
     type ModelSelectorProvider,
 } from '@/services/providers/model-selector';
 import { useActiveThreadStore } from '@/stores/active-thread';
@@ -491,7 +493,8 @@ const ModelRow = ({
     selected: boolean;
     onPress: () => void;
 }) => {
-    const displayName = model.name ?? model.id;
+    const displayName = modelRowDisplayName(model);
+    const secondaryText = modelRowSecondaryText(model);
 
     return (
         <Pressable accessibilityRole="button" onPress={onPress}>
@@ -500,6 +503,11 @@ const ModelRow = ({
                     <Text numberOfLines={1} style={styles.listRowTitle}>
                         {displayName}
                     </Text>
+                    {secondaryText ? (
+                        <Text numberOfLines={2} style={styles.modelDescription}>
+                            {secondaryText}
+                        </Text>
+                    ) : null}
                 </VStack>
                 {selected ? <Check /> : null}
             </HStack>

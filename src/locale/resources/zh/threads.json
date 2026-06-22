@@ -65,6 +65,7 @@
     "sendMessage": "发送消息",
     "sendFailed": "无法发送消息。",
     "stopTurn": "停止轮次",
+    "steerTurn": "引导轮次",
     "stopReason": "用户已停止该轮次。",
     "stopFailed": "无法停止该轮次。",
     "modeAgentLabel": "代理",

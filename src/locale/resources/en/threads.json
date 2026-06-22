@@ -65,6 +65,7 @@
     "sendMessage": "Send message",
     "sendFailed": "Failed to send message.",
     "stopTurn": "Stop turn",
+    "steerTurn": "Steer turn",
     "stopReason": "Turn stopped by user.",
     "stopFailed": "Failed to stop turn.",
     "modeAgentLabel": "Agent",
