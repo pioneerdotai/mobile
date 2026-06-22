@@ -1139,6 +1139,24 @@
         }
       ]
     },
+    "RunningTurnDisplay": {
+      "type": "object",
+      "properties": {
+        "started_at_unix_ms": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "int64"
+        },
+        "turn_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "turn_id"
+      ]
+    },
     "StorageOutputPolicy": {
       "oneOf": [
         {
@@ -1628,6 +1646,18 @@
           "additionalProperties": false,
           "required": [
             "CoalescedTools"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "RunningTurn": {
+              "$ref": "#/$defs/RunningTurnDisplay"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "RunningTurn"
           ]
         }
       ]

@@ -8,7 +8,7 @@ import {
     Terminal,
     TriangleAlert,
 } from 'lucide-react-native';
-import { ActivityIndicator, Linking } from 'react-native';
+import { Linking } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 
@@ -18,6 +18,7 @@ import { HStack } from '@/components/primitives/hstack';
 import { Pressable } from '@/components/primitives/pressable';
 import { Text } from '@/components/primitives/text';
 import { VStack } from '@/components/primitives/vstack';
+import Spinner from '@/components/feedback/spinner';
 
 import { BodyText } from './status';
 
@@ -39,7 +40,7 @@ export const ToolCallRow = ({
     const { theme } = useUnistyles();
     const { t } = useTranslation('threads');
 
-    const iconColor = theme.colors.textMuted;
+    const iconColor = theme.colors.typography;
     const isRunning = isRunningStatus(row.status);
     const hasDetail = !isRunning;
     const mcpServerIdToOpen =
@@ -72,7 +73,7 @@ export const ToolCallRow = ({
                 </HStack>
                 <HStack style={styles.runningRow}>
                     <HStack style={styles.runningLabel}>
-                        <ActivityIndicator size="small" color={iconColor} />
+                        <Spinner size={theme.space(4)} color={iconColor} />
                         <Text numberOfLines={1} style={styles.runningText}>
                             {row.finalStatus}
                         </Text>
@@ -210,12 +211,13 @@ const ToolTitle = ({
     iconSize: number;
     running: boolean;
 }) => {
+    const { theme } = useUnistyles();
     const { t } = useTranslation('threads');
 
     return (
         <HStack style={styles.titleWrap}>
             {running && row.toolKind === 'dynamicToolCall' ? (
-                <ActivityIndicator size="small" color={iconColor} />
+                <Spinner size={theme.space(4)} color={iconColor} />
             ) : (
                 renderToolIcon(row.toolKind, iconColor, iconSize)
             )}

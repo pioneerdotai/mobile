@@ -14,7 +14,6 @@ import {
     type Thread,
 } from '@/client';
 import Spinner from '@/components/feedback/spinner';
-import { CLIRuntimePendingRequests } from '@/components/thread/cli-runtime-pending-requests';
 import {
     ThreadComposer,
     THREAD_COMPOSER_MIN_INPUT_HEIGHT,
@@ -449,6 +448,7 @@ const ThreadScreen = ({ threadId }: ThreadScreenProps) => {
                             closedLabel={t('threadClosed')}
                             disconnectedLabel={t('disconnected')}
                             loadingLabel={t('loadingThread')}
+                            pendingRequests={cliRuntimePendingRequests}
                             contentTopInset={contentTopInset}
                             contentBottomInset={timelineContentBottomInset}
                             ListHeaderComponent={
@@ -482,7 +482,6 @@ const ThreadScreen = ({ threadId }: ThreadScreenProps) => {
                 {visibleSnapshot ? (
                     <KeyboardStickyView offset={keyboardStickyOffset} style={styles.composerSticky}>
                         <View ref={composerRef} onLayout={handleComposerAreaLayout}>
-                            <CLIRuntimePendingRequests requests={cliRuntimePendingRequests} />
                             <ThreadComposer
                                 value={draftText}
                                 placeholder={t('inputPlaceholder')}

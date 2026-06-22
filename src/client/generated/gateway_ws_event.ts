@@ -457,6 +457,11 @@ export type GatewayNotification =
       [k: string]: unknown;
     }
   | {
+      kind: 'gateway_remote_access_status_changed';
+      params: GatewayRemoteAccessStatusChangedNotification;
+      [k: string]: unknown;
+    }
+  | {
       kind: 'unknown';
       params: UnknownGatewayNotification;
       [k: string]: unknown;
@@ -1422,6 +1427,19 @@ export type CLIRuntimeRequestResolution =
       status: 'error';
       [k: string]: unknown;
     };
+export type GatewayRemoteAccessErrorKind =
+  | 'invalid_settings'
+  | 'missing_key'
+  | 'missing_binary'
+  | 'local_gateway_unavailable'
+  | 'relay_resolve_failed'
+  | 'relay_connect_failed'
+  | 'tunnel_auth_failed'
+  | 'process_exited'
+  | 'unsupported_transport'
+  | 'restart_limit_reached'
+  | 'io'
+  | 'unknown';
 
 export interface WorkspaceChangedNotification {
   kind: WorkspaceChangeKind;
@@ -2767,6 +2785,17 @@ export interface RuntimeAppInfo {
   name: string;
   payload?: unknown;
   status?: string | null;
+  [k: string]: unknown;
+}
+export interface GatewayRemoteAccessStatusChangedNotification {
+  status: GatewayRemoteAccessStatusSnapshot;
+  [k: string]: unknown;
+}
+export interface GatewayRemoteAccessStatusSnapshot {
+  error_kind?: GatewayRemoteAccessErrorKind | null;
+  message?: string | null;
+  state?: 'disabled' | 'starting' | 'connected' | 'reconnecting' | 'failed' | 'stopped';
+  updated_at_unix?: number | null;
   [k: string]: unknown;
 }
 export interface UnknownGatewayNotification {

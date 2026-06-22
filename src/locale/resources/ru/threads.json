@@ -113,6 +113,7 @@
     "composerMcpServers": "Серверы",
     "composerMcpTools": "Инструменты",
     "timelineWorked": "Выполнено",
+    "timelineRunning": "Работаю",
     "timelineThinking": "Думает",
     "timelineThought": "Мысль",
     "timelineSubagentAnswered": "Субагент ответил",

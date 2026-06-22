@@ -1,6 +1,19 @@
 /* eslint-disable */
 
 export type CLIAgentRuntimeKind = 'codex' | 'claude';
+export type GatewayRemoteAccessErrorKind =
+  | 'invalid_settings'
+  | 'missing_key'
+  | 'missing_binary'
+  | 'local_gateway_unavailable'
+  | 'relay_resolve_failed'
+  | 'relay_connect_failed'
+  | 'tunnel_auth_failed'
+  | 'process_exited'
+  | 'unsupported_transport'
+  | 'restart_limit_reached'
+  | 'io'
+  | 'unknown';
 
 export interface GatewaySettingsState {
   error?: string | null;
@@ -12,6 +25,7 @@ export interface GatewaySettingsSnapshot {
   cli_runtimes?: GatewayCliRuntimeSettings;
   general?: GatewayGeneralSettings;
   memory: GatewayMemorySettings;
+  remote_access?: GatewayRemoteAccessSettings;
   thread_episodic?: GatewayThreadEpisodicSettings;
   [k: string]: unknown;
 }
@@ -56,6 +70,22 @@ export interface GatewayMemoryModelSelection1 {
   model?: string | null;
   model_provider?: string | null;
   source?: 'thread' | 'custom';
+  [k: string]: unknown;
+}
+export interface GatewayRemoteAccessSettings {
+  enabled?: boolean;
+  has_key?: boolean;
+  server?: string | null;
+  service_name?: string | null;
+  status?: GatewayRemoteAccessStatusSnapshot;
+  transport?: 'tcp' | 'tls' | 'noise' | 'websocket';
+  [k: string]: unknown;
+}
+export interface GatewayRemoteAccessStatusSnapshot {
+  error_kind?: GatewayRemoteAccessErrorKind | null;
+  message?: string | null;
+  state?: 'disabled' | 'starting' | 'connected' | 'reconnecting' | 'failed' | 'stopped';
+  updated_at_unix?: number | null;
   [k: string]: unknown;
 }
 export interface GatewayThreadEpisodicSettings {

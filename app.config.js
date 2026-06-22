@@ -95,6 +95,7 @@ module.exports = {
         'expo-secure-store',
         'expo-document-picker',
         'expo-file-system',
+        'expo-image',
         [
             'expo-image-picker',
             {

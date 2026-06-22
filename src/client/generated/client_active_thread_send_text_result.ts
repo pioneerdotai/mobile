@@ -590,6 +590,9 @@ export type TimelineRowKind =
     }
   | {
       CoalescedTools: TimelineCoalescedToolsRow;
+    }
+  | {
+      RunningTurn: RunningTurnDisplay;
     };
 export type TimelineCoalescedToolsKind = 'CompletedTaskTools' | 'RepeatedTaskWait';
 export type ThreadMode = 'Chat' | 'Agent';
@@ -864,6 +867,11 @@ export interface TimelineCoalescedToolsRow {
   is_open: boolean;
   kind: TimelineCoalescedToolsKind;
   toggle_key: string;
+  [k: string]: unknown;
+}
+export interface RunningTurnDisplay {
+  started_at_unix_ms?: number | null;
+  turn_id: string;
   [k: string]: unknown;
 }
 export interface Thread {

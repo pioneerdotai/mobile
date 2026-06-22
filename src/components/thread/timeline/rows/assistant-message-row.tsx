@@ -1,4 +1,3 @@
-import { ActivityIndicator } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { ChevronDown, ChevronUp, MessageCircle } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
@@ -9,6 +8,7 @@ import { HStack } from '@/components/primitives/hstack';
 import { Pressable } from '@/components/primitives/pressable';
 import { Text } from '@/components/primitives/text';
 import { VStack } from '@/components/primitives/vstack';
+import Spinner from '@/components/feedback/spinner';
 
 import { MarkdownContent } from './markdown-content';
 import { TimelineCopyButton } from './timeline-copy-button';
@@ -70,13 +70,8 @@ export const AssistantMessageRow = ({ row, expanded, onToggle }: AssistantMessag
             {hasText ? (
                 <MarkdownContent text={row.text} document={row.markdown} />
             ) : row.streaming ? (
-                <ActivityIndicator color={activityColor} />
+                <Spinner color={activityColor} />
             ) : null}
-            {row.streaming && hasText && (
-                <Box style={styles.streamingIndicator}>
-                    <ActivityIndicator size="small" color={activityColor} />
-                </Box>
-            )}
             {showActionRow && (
                 <HStack style={styles.actionRow}>
                     {!!row.timestampLabel && (

@@ -1,4 +1,3 @@
-import { ActivityIndicator } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { ChevronDown, ChevronUp, Lightbulb } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
@@ -9,6 +8,7 @@ import { HStack } from '@/components/primitives/hstack';
 import { Pressable } from '@/components/primitives/pressable';
 import { Text } from '@/components/primitives/text';
 import { VStack } from '@/components/primitives/vstack';
+import Spinner from '@/components/feedback/spinner';
 
 import { MarkdownContent } from './markdown-content';
 
@@ -24,7 +24,7 @@ export const ReasoningRow = ({ row, expanded, onToggle }: ReasoningRowProps) => 
 
     const hasText = row.text.trim().length > 0 || (row.markdown?.blocks?.length ?? 0) > 0;
     const iconSize = theme.space(4);
-    const iconColor = theme.colors.textMuted;
+    const iconColor = theme.colors.typography;
 
     if (row.streaming) {
         return (
@@ -32,7 +32,7 @@ export const ReasoningRow = ({ row, expanded, onToggle }: ReasoningRowProps) => 
                 {hasText && <MarkdownContent text={row.text} document={row.markdown} />}
                 <HStack style={styles.runningRow}>
                     <HStack style={styles.headerLabel}>
-                        <ActivityIndicator size="small" color={iconColor} />
+                        <Spinner size={theme.space(4)} color={iconColor} />
                         <Text numberOfLines={1} style={styles.runningTitle}>
                             {t('timelineThinking')}
                         </Text>

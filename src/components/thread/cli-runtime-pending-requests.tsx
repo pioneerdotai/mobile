@@ -8,12 +8,8 @@ import { Input } from '@/components/primitives/input';
 import { Pressable } from '@/components/primitives/pressable';
 import { Text } from '@/components/primitives/text';
 import { VStack } from '@/components/primitives/vstack';
-import type { CLIRuntimePendingRequestEntry } from '@/stores/cli-runtime';
+import type { TimelinePendingRequest } from '@/services/threads/conversation/timeline';
 import { useCliRuntimeStore } from '@/stores/cli-runtime';
-
-type CLIRuntimePendingRequestsProps = {
-    requests: CLIRuntimePendingRequestEntry[];
-};
 
 type RequestDetail = {
     label: string;
@@ -29,25 +25,11 @@ type UserInputQuestion = {
     isSecret: boolean;
 };
 
-export const CLIRuntimePendingRequests = ({ requests }: CLIRuntimePendingRequestsProps) => {
-    if (requests.length === 0) {
-        return null;
-    }
-
-    return (
-        <VStack style={styles.container}>
-            {requests.map((request) => (
-                <CLIRuntimePendingRequestCard key={request.request_id} entry={request} />
-            ))}
-        </VStack>
-    );
-};
-
 type CLIRuntimePendingRequestCardProps = {
-    entry: CLIRuntimePendingRequestEntry;
+    entry: TimelinePendingRequest;
 };
 
-const CLIRuntimePendingRequestCard = ({ entry }: CLIRuntimePendingRequestCardProps) => {
+export const CLIRuntimePendingRequestCard = ({ entry }: CLIRuntimePendingRequestCardProps) => {
     const removePendingRequest = useCliRuntimeStore((state) => state.removePendingRequest);
     const [answers, setAnswers] = useState<Record<string, string>>({});
     const [fallbackAnswer, setFallbackAnswer] = useState('');
@@ -241,7 +223,7 @@ const RequestActions = ({
     onSubmitAnswer,
 }: {
     canSubmitAnswer: boolean;
-    kind: CLIRuntimePendingRequestEntry['request']['kind'];
+    kind: TimelinePendingRequest['request']['kind'];
     submitting: boolean;
     onAllow: () => void;
     onAllowForSession: () => void;
@@ -340,7 +322,7 @@ const ActionButton = ({
     </Pressable>
 );
 
-const requestDetails = (entry: CLIRuntimePendingRequestEntry): RequestDetail[] => {
+const requestDetails = (entry: TimelinePendingRequest): RequestDetail[] => {
     const payload = asRecord(entry.request.payload);
     if (!payload) {
         return [];
@@ -382,7 +364,7 @@ const compactDetails = (
         return value ? [{ label: detail.label, value, monospace: detail.monospace }] : [];
     });
 
-const requestKindTitle = (kind: CLIRuntimePendingRequestEntry['request']['kind']) => {
+const requestKindTitle = (kind: TimelinePendingRequest['request']['kind']) => {
     switch (kind) {
         case 'command_approval':
             return 'Command approval';
@@ -465,13 +447,7 @@ const asArray = (value: unknown): unknown[] => (Array.isArray(value) ? value : [
 const errorMessage = (error: unknown) =>
     error instanceof Error ? error.message : 'Failed to answer CLI request.';
 
-const styles = StyleSheet.create((theme, rt) => ({
-    container: {
-        paddingHorizontal: rt.insets.left + theme.space(4),
-        paddingRight: rt.insets.right + theme.space(4),
-        paddingBottom: theme.space(2),
-        gap: theme.space(2),
-    },
+const styles = StyleSheet.create((theme) => ({
     card: {
         gap: theme.space(2),
         borderRadius: theme.radius['2xl'],

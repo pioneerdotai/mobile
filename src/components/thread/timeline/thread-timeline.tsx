@@ -19,7 +19,8 @@ import type { LegendListRef } from '@legendapp/list/react-native';
 
 import type { ClientActiveThreadSnapshot } from '@/client';
 import { projectConversationToRows } from '@/services/threads/conversation/projector';
-import type { TimelineRow } from '@/services/threads/conversation/timeline';
+import type { TimelinePendingRequest, TimelineRow } from '@/services/threads/conversation/timeline';
+import { CLIRuntimePendingRequestCard } from '@/components/thread/cli-runtime-pending-requests';
 import { Box } from '@/components/primitives/box';
 import { Text } from '@/components/primitives/text';
 import Spinner from '@/components/feedback/spinner';
@@ -30,6 +31,7 @@ import {
     CommandExecutionRow,
     FileChangeRow,
     ReasoningRow,
+    RunningRow,
     SystemEventRow,
     TaskAnchorRow,
     ToolCallRow,
@@ -49,6 +51,7 @@ type ThreadTimelineProps = {
     closedLabel: string;
     disconnectedLabel: string;
     loadingLabel: string;
+    pendingRequests: TimelinePendingRequest[];
     contentTopInset?: number;
     contentBottomInset?: number;
     ListHeaderComponent?: ReactElement | null;
@@ -87,6 +90,7 @@ const ThreadTimelineContent = ({
     closedLabel,
     disconnectedLabel,
     loadingLabel,
+    pendingRequests,
     contentTopInset = 0,
     contentBottomInset = 0,
     ListHeaderComponent,
@@ -119,12 +123,13 @@ const ThreadTimelineContent = ({
             projectConversationToRows(conversation, {
                 expandedKeys: expandedRows,
                 nowMs: timelineNowMs,
+                pendingRequests,
             }),
-        [conversation, expandedRows, timelineNowMs],
+        [conversation, expandedRows, pendingRequests, timelineNowMs],
     );
 
     const rowCount = rows.length;
-
+    const hasRunningTimelineRow = useMemo(() => rows.some((row) => row.type === 'running'), [rows]);
     const activeTurnId = useMemo(
         () => activeProjectionTurnId(conversation.projection.turns),
         [conversation.projection.turns],
@@ -136,7 +141,8 @@ const ThreadTimelineContent = ({
             Boolean(turnId) ||
             Boolean(conversation.projection.pending_request_id) ||
             conversation.projection.composer_locked ||
-            hasLiveTimelineItems;
+            hasLiveTimelineItems ||
+            hasRunningTimelineRow;
 
         if (!hasActiveTurn) {
             const latestUserMessageIndex = latestAnchorableUserMessageIndex(rows);
@@ -167,6 +173,7 @@ const ThreadTimelineContent = ({
         conversation.projection.in_flight_turn_id,
         conversation.projection.pending_request_id,
         hasLiveTimelineItems,
+        hasRunningTimelineRow,
         rows,
     ]);
 
@@ -189,7 +196,7 @@ const ThreadTimelineContent = ({
     }, [expandedKeys, onExpandedKeysChange]);
 
     useEffect(() => {
-        if (!hasLiveTimelineItems) {
+        if (!hasLiveTimelineItems && !hasRunningTimelineRow) {
             return;
         }
 
@@ -200,7 +207,7 @@ const ThreadTimelineContent = ({
         return () => {
             clearInterval(timer);
         };
-    }, [hasLiveTimelineItems]);
+    }, [hasLiveTimelineItems, hasRunningTimelineRow]);
 
     const handleRefresh = useCallback(async () => {
         setRefreshing(true);
@@ -222,9 +229,10 @@ const ThreadTimelineContent = ({
         () => ({
             expandedRows,
             mcpServerIdByName,
+            pendingRequests,
             timelineNowMs,
         }),
-        [expandedRows, mcpServerIdByName, timelineNowMs],
+        [expandedRows, mcpServerIdByName, pendingRequests, timelineNowMs],
     );
 
     const emptyMessage = closed ? closedLabel : connected ? emptyLabel : disconnectedLabel;
@@ -427,6 +435,10 @@ const TimelineRowRenderer = ({
             return <WorkGroupRow row={row} expanded={expanded} onToggle={onToggleExpanded} />;
         case 'tool-group':
             return <ToolGroupRow row={row} expanded={expanded} onToggle={onToggleExpanded} />;
+        case 'running':
+            return <RunningRow row={row} />;
+        case 'cli-runtime-request':
+            return <CLIRuntimePendingRequestCard entry={row.entry} />;
         case 'artifact':
             return <ArtifactRow row={row} />;
         case 'unknown':
@@ -445,6 +457,9 @@ const defaultExpanded = (row: TimelineRow) => {
         case 'work-group':
         case 'tool-group':
             return row.expanded;
+        case 'running':
+        case 'cli-runtime-request':
+            return false;
         default:
             return false;
     }

@@ -1,5 +1,4 @@
 import { Check, ChevronDown, ChevronUp, FileCode, TriangleAlert } from 'lucide-react-native';
-import { ActivityIndicator } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 
@@ -9,6 +8,7 @@ import { Pressable } from '@/components/primitives/pressable';
 import { ScrollView } from '@/components/primitives/scrollview';
 import { Text } from '@/components/primitives/text';
 import { VStack } from '@/components/primitives/vstack';
+import Spinner from '@/components/feedback/spinner';
 
 import { BodyText } from './status';
 
@@ -28,7 +28,7 @@ export const FileChangeRow = ({ row, expanded, onToggle }: FileChangeRowProps) =
     const iconSize = theme.space(4);
     const smallIconSize = theme.space(3.5);
     const pathIconSize = theme.space(3);
-    const iconColor = theme.colors.textMuted;
+    const iconColor = theme.colors.typography;
 
     if (isRunning) {
         return (
@@ -36,7 +36,7 @@ export const FileChangeRow = ({ row, expanded, onToggle }: FileChangeRowProps) =
                 <FileChangeSummary row={row} iconColor={iconColor} iconSize={iconSize} />
                 <HStack style={styles.runningRow}>
                     <HStack style={styles.runningLabel}>
-                        <ActivityIndicator size="small" color={iconColor} />
+                        <Spinner size={theme.space(4)} color={iconColor} />
                         <Text numberOfLines={1} style={styles.runningText}>
                             {row.finalStatus}
                         </Text>

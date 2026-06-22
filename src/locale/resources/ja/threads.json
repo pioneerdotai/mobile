@@ -113,6 +113,7 @@
     "composerMcpServers": "サーバー",
     "composerMcpTools": "ツール",
     "timelineWorked": "完了",
+    "timelineRunning": "作業中",
     "timelineThinking": "思考中",
     "timelineThought": "思考",
     "timelineSubagentAnswered": "サブエージェントが回答しました",

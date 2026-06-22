@@ -11,7 +11,12 @@ import type {
 } from '@/client/generated/client_active_thread_snapshot';
 import i18n from '@/locale/i18n';
 
-import type { TimelineCapabilityRejection, TimelineRow, TimelineUserAttachment } from './timeline';
+import type {
+    TimelineCapabilityRejection,
+    TimelinePendingRequest,
+    TimelineRow,
+    TimelineUserAttachment,
+} from './timeline';
 
 const FILE_CHANGE_OUTPUT_LIMIT = 4_000;
 const DYNAMIC_TOOL_RESULT_LIMIT = 4_000;
@@ -19,6 +24,7 @@ const DYNAMIC_TOOL_RESULT_LIMIT = 4_000;
 type ProjectConversationRowsOptions = {
     expandedKeys?: ReadonlySet<string> | Readonly<Record<string, boolean>>;
     nowMs?: number;
+    pendingRequests?: readonly TimelinePendingRequest[];
 };
 
 type CoalescedToolsModel = Extract<TimelineRow, { type: 'tool-group' }>;
@@ -39,7 +45,8 @@ export const projectConversationToRows = (
     conversation: ClientActiveThreadSnapshot,
     options: ProjectConversationRowsOptions = {},
 ): TimelineRow[] => {
-    return projectClientConversationRows(conversation.projection, conversation.rows, options);
+    const rows = projectClientConversationRows(conversation.projection, conversation.rows, options);
+    return insertPendingRequestRows(rows, options.pendingRequests ?? []);
 };
 
 const projectClientConversationRows = (
@@ -53,6 +60,31 @@ const projectClientConversationRows = (
         .map((row) => projectClientConversationRow(projection, clientRows, itemsById, row, options))
         .filter((row): row is TimelineRow => row !== null);
 };
+
+const insertPendingRequestRows = (
+    rows: TimelineRow[],
+    pendingRequests: readonly TimelinePendingRequest[],
+): TimelineRow[] => {
+    if (pendingRequests.length === 0) {
+        return rows;
+    }
+
+    const requestRows = pendingRequests.map(projectPendingRequestToRow);
+    const runningIndex = rows.findIndex((row) => row.type === 'running');
+
+    if (runningIndex < 0) {
+        return [...rows, ...requestRows];
+    }
+
+    return [...rows.slice(0, runningIndex), ...requestRows, ...rows.slice(runningIndex)];
+};
+
+const projectPendingRequestToRow = (entry: TimelinePendingRequest): TimelineRow => ({
+    type: 'cli-runtime-request',
+    key: `timeline-cli-runtime-request::${entry.request_id}`,
+    turnId: entry.turn_id,
+    entry,
+});
 
 const projectClientConversationRow = (
     projection: ConversationViewState,
@@ -101,6 +133,21 @@ const projectClientConversationRow = (
             status: 'completed',
             expanded: expandedContains(options.expandedKeys, toggleKey),
             items: [],
+        };
+    }
+
+    if ('RunningTurn' in row.kind) {
+        const runningTurn = row.kind.RunningTurn;
+        const nowMs = options.nowMs ?? Date.now();
+        const startedAtUnixMs = runningTurn.started_at_unix_ms ?? null;
+        const elapsedMs = Math.max(0, nowMs - (startedAtUnixMs ?? nowMs));
+
+        return {
+            type: 'running',
+            key: row.key,
+            turnId: runningTurn.turn_id,
+            startedAtUnixMs,
+            elapsedLabel: elapsedMs >= 1_000 ? formatElapsedMs(elapsedMs) : null,
         };
     }
 

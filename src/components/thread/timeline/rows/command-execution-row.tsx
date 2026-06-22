@@ -1,5 +1,4 @@
 import { ChevronDown, ChevronUp, Terminal } from 'lucide-react-native';
-import { ActivityIndicator } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 
@@ -10,6 +9,7 @@ import { Pressable } from '@/components/primitives/pressable';
 import { ScrollView } from '@/components/primitives/scrollview';
 import { Text } from '@/components/primitives/text';
 import { VStack } from '@/components/primitives/vstack';
+import Spinner from '@/components/feedback/spinner';
 
 type CommandExecutionRowProps = {
     row: Extract<TimelineRow, { type: 'command-execution' }>;
@@ -25,7 +25,7 @@ export const CommandExecutionRow = ({ row, expanded, onToggle }: CommandExecutio
     const hasOutput = terminalText.trim().length > 0;
     const showTerminal = hasOutput && (expanded || row.streaming);
     const iconSize = theme.space(4);
-    const iconColor = theme.colors.textMuted;
+    const iconColor = theme.colors.typography;
 
     if (row.streaming) {
         return (
@@ -33,7 +33,7 @@ export const CommandExecutionRow = ({ row, expanded, onToggle }: CommandExecutio
                 {showTerminal && <TerminalBlock text={terminalText} />}
                 <HStack style={styles.runningRow}>
                     <HStack style={styles.titleWrap}>
-                        <ActivityIndicator size="small" color={iconColor} />
+                        <Spinner size={theme.space(4)} color={iconColor} />
                         <Text numberOfLines={1} style={styles.runningTitle}>
                             {t('timelineRunningCommand')}
                         </Text>

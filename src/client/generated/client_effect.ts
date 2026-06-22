@@ -1,7 +1,13 @@
 /* eslint-disable */
 
 export type ClientEffect =
-  | ('RefreshWorkspaceList' | 'RefreshGatewaySettings' | 'QueueSkillsRefresh' | 'EnqueueInFlightTurnsForResume')
+  | (
+      | 'RefreshWorkspaceList'
+      | 'RefreshGatewaySettings'
+      | 'RefreshProviderLists'
+      | 'QueueSkillsRefresh'
+      | 'EnqueueInFlightTurnsForResume'
+    )
   | {
       UnsubscribeThreads: {
         thread_ids: string[];

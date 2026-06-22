@@ -3,6 +3,7 @@ import type {
     ArtifactRef,
     MarkdownDocument,
 } from '@/client/generated/client_active_thread_snapshot';
+import type { CLIRuntimePendingRequest } from '@/client';
 
 export type TimelineUserAttachment = {
     id: string;
@@ -16,6 +17,16 @@ export type TimelineCapabilityRejection = {
     label: string;
     kind: string;
     message: string;
+};
+
+export type TimelinePendingRequest = {
+    workspace_id: string;
+    runtime_id: string;
+    request_id: string;
+    thread_id: string | null;
+    turn_id: string | null;
+    item_id: string | null;
+    request: CLIRuntimePendingRequest;
 };
 
 export type TimelineRow =
@@ -153,6 +164,19 @@ export type TimelineRow =
           status: 'completed';
           expanded: boolean;
           items: TimelineToolGroupItem[];
+      }
+    | {
+          type: 'running';
+          key: string;
+          turnId: string;
+          startedAtUnixMs: number | null;
+          elapsedLabel: string | null;
+      }
+    | {
+          type: 'cli-runtime-request';
+          key: string;
+          turnId: string | null;
+          entry: TimelinePendingRequest;
       }
     | {
           type: 'artifact';

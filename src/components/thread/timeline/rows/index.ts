@@ -4,6 +4,7 @@ export { CommandExecutionRow } from './command-execution-row';
 export { FileChangeRow } from './file-change-row';
 export { MarkdownContent } from './markdown-content';
 export { ReasoningRow } from './reasoning-row';
+export { RunningRow } from './running-row';
 export { SystemEventRow } from './system-event-row';
 export { TaskAnchorRow } from './task-anchor-row';
 export { ToolCallRow } from './tool-call-row';

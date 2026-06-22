@@ -113,6 +113,7 @@
     "composerMcpServers": "服务器",
     "composerMcpTools": "工具",
     "timelineWorked": "已完成",
+    "timelineRunning": "正在工作",
     "timelineThinking": "正在思考",
     "timelineThought": "思考",
     "timelineSubagentAnswered": "子代理已回复",

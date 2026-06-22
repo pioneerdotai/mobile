@@ -113,6 +113,7 @@
     "composerMcpServers": "सर्वर",
     "composerMcpTools": "टूल",
     "timelineWorked": "पूरा हुआ",
+    "timelineRunning": "काम कर रहा हूँ",
     "timelineThinking": "सोच रहा है",
     "timelineThought": "विचार",
     "timelineSubagentAnswered": "सब-एजेंट ने जवाब दिया",
