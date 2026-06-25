@@ -513,7 +513,8 @@ const styles = StyleSheet.create((theme, rt) => ({
     modelButtonEffortText: {
         maxWidth: theme.space(20),
         flexShrink: 0,
-        color: theme.colors.textMuted,
+        color: theme.colors.typography,
+        opacity: 0.6,
         fontSize: theme.fontSize.xs.fontSize,
         lineHeight: theme.fontSize.xs.lineHeight,
         fontWeight: theme.fontWeight.medium.fontWeight,
