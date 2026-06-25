@@ -2,15 +2,11 @@ import { pioneerClient } from '@/client';
 import type {
     ProviderListModelsResponse,
     ProviderModelInfo,
-    RuntimeModelInfo,
+    ReasoningEffortRow,
     RuntimeStatus,
     RuntimeSummary,
 } from '@/client';
-import {
-    cliRuntimeProviderKey,
-    isCliRuntimeProvider,
-    runtimeIdFromCliRuntimeProviderKey,
-} from './cli-runtime';
+import { cliRuntimeProviderKey, isCliRuntimeProvider } from './cli-runtime';
 
 export type ModelSelectorProvider = {
     id: string;
@@ -64,57 +60,47 @@ export const listProviderModels = async (
     workspaceId: string,
     provider: string,
 ): Promise<ProviderListModelsResponse> => {
-    const runtimeId = runtimeIdFromCliRuntimeProviderKey(provider);
-
-    if (runtimeId) {
-        const response = await pioneerClient.cliRuntimeListModels({
-            workspace_id: workspaceId,
-            runtime_id: runtimeId,
-        });
-
-        return {
-            provider,
-            models: response.models.map((model) => providerModelFromRuntimeModel(provider, model)),
-        };
-    }
-
     return pioneerClient.providerListModels({ workspace_id: workspaceId, provider });
 };
 
-const providerModelFromRuntimeModel = (
-    provider: string,
-    model: RuntimeModelInfo,
-): ProviderModelInfo => {
-    const inputModalities = model.input_modalities?.filter(Boolean) ?? [];
-    const outputModalities = model.output_modalities?.filter(Boolean) ?? [];
+export const resolveSelectedProviderModel = (
+    models: ProviderModelInfo[],
+    provider: string | null,
+    model: string | null,
+): ProviderModelInfo | null => {
+    if (!provider || !model) {
+        return null;
+    }
 
-    return {
-        id: model.id,
-        name: model.name ?? null,
-        description: model.description ?? null,
-        created: null,
-        provider,
-        owned_by: null,
-        limits: {
-            max_input_tokens: model.max_input_tokens ?? null,
-            max_output_tokens: model.max_output_tokens ?? null,
-            context_window: model.max_input_tokens ?? null,
-        },
-        capabilities: {
-            vision: model.supports_vision ?? null,
-            tool_calling: null,
-            json_output: null,
-            streaming: true,
-            thinking: model.supports_reasoning ?? null,
-            fine_tuning: null,
-            input_modalities: inputModalities.length > 0 ? inputModalities : null,
-            output_modalities: outputModalities.length > 0 ? outputModalities : null,
-        },
-        pricing: null,
-        active: model.active ?? true,
-        family: model.family ?? null,
-        lifecycle_status: null,
-    };
+    return models.find((row) => row.provider === provider && row.id === model) ?? null;
+};
+
+export const reasoningEffortRowsForModel = (
+    model: ProviderModelInfo | null | undefined,
+    selectedEffort: string | null,
+): ReasoningEffortRow[] => {
+    if (!model) {
+        return [];
+    }
+
+    return pioneerClient.reasoningEffortRows({
+        model,
+        selected_effort: selectedEffort,
+    }).rows;
+};
+
+export const reasoningEffortDisplayLabelForModel = (
+    model: ProviderModelInfo | null | undefined,
+    selectedEffort: string | null,
+): string | null => {
+    if (!selectedEffort?.trim()) {
+        return null;
+    }
+
+    return (
+        reasoningEffortRowsForModel(model, selectedEffort).find((row) => row.selected)?.label ??
+        null
+    );
 };
 
 const normalizeQuery = (query: string): string => query.trim().toLowerCase();

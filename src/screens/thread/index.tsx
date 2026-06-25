@@ -21,7 +21,10 @@ import {
 import { ThreadTimeline } from '@/components/thread/timeline/thread-timeline';
 import { useActiveThread } from '@/hooks/use-active-thread';
 import { useGateway } from '@/hooks/use-gateway';
-import { useProviderModelDisplayName } from '@/hooks/use-provider-model-display-name';
+import {
+    useProviderModelDisplayName,
+    useProviderModelReasoningEffortLabel,
+} from '@/hooks/use-provider-model-display-name';
 import { isCliRuntimeProvider } from '@/services/providers/cli-runtime';
 import { useActiveThreadStore } from '@/stores/active-thread';
 import { useCliRuntimeStore } from '@/stores/cli-runtime';
@@ -40,6 +43,7 @@ const EMPTY_MCP_SERVER_ID_BY_NAME: Readonly<Record<string, string>> = {};
 type ComposerModelSelection = {
     provider: string;
     model: string;
+    selectedReasoningEffort: string | null;
 };
 
 const createEmptyActiveThreadSnapshot = (
@@ -75,7 +79,9 @@ const modelSelectionFromThread = (
         return null;
     }
 
-    return { provider, model };
+    const selectedReasoningEffort = thread?.reasoning_effort?.trim() || null;
+
+    return { provider, model, selectedReasoningEffort };
 };
 
 const ThreadScreen = ({ threadId }: ThreadScreenProps) => {
@@ -109,6 +115,7 @@ const ThreadScreen = ({ threadId }: ThreadScreenProps) => {
         canStopTurn,
         composerSelectedProvider,
         composerSelectedModel,
+        composerSelectedReasoningEffort,
         defaultComposerSelectionLoading,
         composerModelManuallySelected,
         open,
@@ -187,6 +194,7 @@ const ThreadScreen = ({ threadId }: ThreadScreenProps) => {
 
     const activeThreadModelProvider = activeThreadModelSelection?.provider ?? null;
     const activeThreadModel = activeThreadModelSelection?.model ?? null;
+    const activeThreadReasoningEffort = activeThreadModelSelection?.selectedReasoningEffort ?? null;
     const shouldUseThreadModelSelection =
         Boolean(activeThreadModelSelection) && !composerModelManuallySelected;
     const shouldUseDraftComposerSelection =
@@ -201,15 +209,29 @@ const ThreadScreen = ({ threadId }: ThreadScreenProps) => {
         : composerModelManuallySelected || shouldUseDraftComposerSelection
           ? composerSelectedModel
           : null;
+    const selectedReasoningEffort = shouldUseThreadModelSelection
+        ? activeThreadReasoningEffort
+        : composerModelManuallySelected || shouldUseDraftComposerSelection
+          ? composerSelectedReasoningEffort
+          : null;
     const cliRuntimeSelected = isCliRuntimeProvider(selectedProvider);
     const { label: selectedModelDisplayName, loading: modelDisplayNameLoading } =
         useProviderModelDisplayName(activeWorkspaceId, selectedProvider, selectedModel);
+    const { label: selectedReasoningEffortLabel, loading: reasoningEffortLabelLoading } =
+        useProviderModelReasoningEffortLabel(
+            activeWorkspaceId,
+            selectedProvider,
+            selectedModel,
+            selectedReasoningEffort,
+        );
     const modelSelectionLoading =
         modelDisplayNameLoading ||
         (shouldUseDraftComposerSelection &&
             defaultComposerSelectionLoading &&
             (!selectedProvider || !selectedModel));
     const modelSelectionLabel = selectedModelDisplayName ?? t('modelSelectorSelectModel');
+    const modelSelectionEffortLabel =
+        modelSelectionLoading || reasoningEffortLabelLoading ? null : selectedReasoningEffortLabel;
     const composerDisabled = Boolean(
         !connected || closed || visibleSnapshot?.projection.composer_locked || sending,
     );
@@ -347,11 +369,15 @@ const ThreadScreen = ({ threadId }: ThreadScreenProps) => {
         if (selectedProvider && selectedModel) {
             useActiveThreadStore
                 .getState()
-                .syncComposerModelSelection(selectedProvider, selectedModel);
+                .syncComposerModelSelection(
+                    selectedProvider,
+                    selectedModel,
+                    selectedReasoningEffort,
+                );
         }
 
         router.push({ pathname: '/model-selector' });
-    }, [selectedModel, selectedProvider]);
+    }, [selectedModel, selectedProvider, selectedReasoningEffort]);
 
     const openAttachmentMenu = useCallback(() => {
         useActiveThreadStore.getState().setComposerAttachmentMenuOpen(true);
@@ -385,8 +411,17 @@ const ThreadScreen = ({ threadId }: ThreadScreenProps) => {
                 return;
             }
 
-            syncComposerModelSelection(activeThreadModelProvider, activeThreadModel);
-        }, [activeThreadModel, activeThreadModelProvider, syncComposerModelSelection]),
+            syncComposerModelSelection(
+                activeThreadModelProvider,
+                activeThreadModel,
+                activeThreadReasoningEffort,
+            );
+        }, [
+            activeThreadModel,
+            activeThreadModelProvider,
+            activeThreadReasoningEffort,
+            syncComposerModelSelection,
+        ]),
     );
 
     useEffect(() => {
@@ -544,6 +579,7 @@ const ThreadScreen = ({ threadId }: ThreadScreenProps) => {
                                 attachmentsEnabled
                                 attachmentMenuAccessibilityLabel={t('composerAttachmentMenuTitle')}
                                 modelSelectionLabel={modelSelectionLabel}
+                                modelSelectionEffortLabel={modelSelectionEffortLabel}
                                 modelSelectionLoading={modelSelectionLoading}
                                 modelSelectionAccessibilityLabel={t('modelSelectorOpen')}
                                 modelSelectionDisabled={modelSelectionDisabled}

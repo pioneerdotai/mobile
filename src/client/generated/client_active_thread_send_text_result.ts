@@ -885,6 +885,7 @@ export interface Thread {
   name?: string | null;
   origin_kind?: 'user' | 'task_run' | 'system';
   preview: string;
+  reasoning_effort?: string | null;
   sidebar_visibility?: 'visible' | 'hidden';
   status: ThreadStatus;
   turns: Turn[];

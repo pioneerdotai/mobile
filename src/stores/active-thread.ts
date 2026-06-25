@@ -24,8 +24,10 @@ type ActiveThreadStoreState = {
     composerModeManuallySelected: boolean;
     composerSelectedProvider: string | null;
     composerSelectedModel: string | null;
+    composerSelectedReasoningEffort: string | null;
     defaultComposerProvider: string | null;
     defaultComposerModel: string | null;
+    defaultComposerReasoningEffort: string | null;
     defaultComposerWorkspaceId: string | null;
     defaultComposerSelectionLoading: boolean;
     composerModelManuallySelected: boolean;
@@ -43,6 +45,7 @@ type ActiveThreadStoreState = {
     clearComposerPayload: () => void;
     setExpandedKeys: (keys: string[]) => void;
     setComposerModelSelectionFromUser: (provider: string | null, model: string | null) => void;
+    setComposerReasoningEffortFromUser: (effort: string | null) => void;
     beginDefaultComposerModelSelectionRefresh: (workspaceId: string) => void;
     completeDefaultComposerModelSelectionRefresh: (workspaceId: string) => void;
     resetDefaultComposerModelSelection: () => void;
@@ -50,8 +53,13 @@ type ActiveThreadStoreState = {
         workspaceId: string,
         provider: string | null,
         model: string | null,
+        reasoningEffort?: string | null,
     ) => void;
-    syncComposerModelSelection: (provider: string | null, model: string | null) => void;
+    syncComposerModelSelection: (
+        provider: string | null,
+        model: string | null,
+        reasoningEffort?: string | null,
+    ) => void;
     reset: (composerModeContext?: ComposerModeContext) => void;
 };
 
@@ -61,6 +69,12 @@ type ComposerModeContext = {
 };
 
 const DEFAULT_COMPOSER_MODE: ThreadMode = 'Agent';
+
+const normalizeReasoningEffort = (effort: string | null | undefined): string | null => {
+    const trimmed = effort?.trim();
+
+    return trimmed ? trimmed : null;
+};
 
 export const useActiveThreadStore = create<ActiveThreadStoreState>((set) => ({
     snapshot: null,
@@ -78,8 +92,10 @@ export const useActiveThreadStore = create<ActiveThreadStoreState>((set) => ({
     composerModeManuallySelected: false,
     composerSelectedProvider: null,
     composerSelectedModel: null,
+    composerSelectedReasoningEffort: null,
     defaultComposerProvider: null,
     defaultComposerModel: null,
+    defaultComposerReasoningEffort: null,
     defaultComposerWorkspaceId: null,
     defaultComposerSelectionLoading: true,
     composerModelManuallySelected: false,
@@ -179,17 +195,30 @@ export const useActiveThreadStore = create<ActiveThreadStoreState>((set) => ({
     },
 
     setComposerModelSelectionFromUser: (composerSelectedProvider, composerSelectedModel) => {
-        set({
-            composerSelectedProvider,
-            composerSelectedModel,
-            composerModelManuallySelected: true,
-            composerError: null,
-            ...(isCliRuntimeProvider(composerSelectedProvider)
-                ? {
-                      composerCapabilities: [],
-                  }
-                : {}),
+        set((state) => {
+            const modelSelectionChanged =
+                state.composerSelectedProvider !== composerSelectedProvider ||
+                state.composerSelectedModel !== composerSelectedModel;
+
+            return {
+                composerSelectedProvider,
+                composerSelectedModel,
+                composerSelectedReasoningEffort: modelSelectionChanged
+                    ? null
+                    : state.composerSelectedReasoningEffort,
+                composerModelManuallySelected: true,
+                composerError: null,
+                ...(isCliRuntimeProvider(composerSelectedProvider)
+                    ? {
+                          composerCapabilities: [],
+                      }
+                    : {}),
+            };
         });
+    },
+
+    setComposerReasoningEffortFromUser: (composerSelectedReasoningEffort) => {
+        set({ composerSelectedReasoningEffort });
     },
 
     beginDefaultComposerModelSelectionRefresh: (workspaceId) => {
@@ -203,6 +232,7 @@ export const useActiveThreadStore = create<ActiveThreadStoreState>((set) => ({
                     ? {
                           composerSelectedProvider: null,
                           composerSelectedModel: null,
+                          composerSelectedReasoningEffort: null,
                       }
                     : {}),
             };
@@ -225,8 +255,10 @@ export const useActiveThreadStore = create<ActiveThreadStoreState>((set) => ({
         set({
             composerSelectedProvider: null,
             composerSelectedModel: null,
+            composerSelectedReasoningEffort: null,
             defaultComposerProvider: null,
             defaultComposerModel: null,
+            defaultComposerReasoningEffort: null,
             defaultComposerWorkspaceId: null,
             defaultComposerSelectionLoading: true,
             composerModelManuallySelected: false,
@@ -238,27 +270,40 @@ export const useActiveThreadStore = create<ActiveThreadStoreState>((set) => ({
         defaultComposerWorkspaceId,
         defaultComposerProvider,
         defaultComposerModel,
+        defaultComposerReasoningEffort,
     ) => {
-        set((state) => ({
-            defaultComposerWorkspaceId,
-            defaultComposerProvider,
-            defaultComposerModel,
-            defaultComposerSelectionLoading: false,
-            ...(state.composerModelManuallySelected
-                ? {}
-                : {
-                      composerSelectedProvider: defaultComposerProvider,
-                      composerSelectedModel: defaultComposerModel,
-                      ...(isCliRuntimeProvider(defaultComposerProvider)
-                          ? {
-                                composerCapabilities: [],
-                            }
-                          : {}),
-                  }),
-        }));
+        set((state) => {
+            const normalizedReasoningEffort = normalizeReasoningEffort(
+                defaultComposerReasoningEffort,
+            );
+
+            return {
+                defaultComposerWorkspaceId,
+                defaultComposerProvider,
+                defaultComposerModel,
+                defaultComposerReasoningEffort: normalizedReasoningEffort,
+                defaultComposerSelectionLoading: false,
+                ...(state.composerModelManuallySelected
+                    ? {}
+                    : {
+                          composerSelectedProvider: defaultComposerProvider,
+                          composerSelectedModel: defaultComposerModel,
+                          composerSelectedReasoningEffort: normalizedReasoningEffort,
+                          ...(isCliRuntimeProvider(defaultComposerProvider)
+                              ? {
+                                    composerCapabilities: [],
+                                }
+                              : {}),
+                      }),
+            };
+        });
     },
 
-    syncComposerModelSelection: (composerSelectedProvider, composerSelectedModel) => {
+    syncComposerModelSelection: (
+        composerSelectedProvider,
+        composerSelectedModel,
+        composerSelectedReasoningEffort,
+    ) => {
         set((state) => {
             if (state.composerModelManuallySelected) {
                 return state;
@@ -267,6 +312,9 @@ export const useActiveThreadStore = create<ActiveThreadStoreState>((set) => ({
             return {
                 composerSelectedProvider,
                 composerSelectedModel,
+                composerSelectedReasoningEffort: normalizeReasoningEffort(
+                    composerSelectedReasoningEffort,
+                ),
                 ...(isCliRuntimeProvider(composerSelectedProvider)
                     ? {
                           composerCapabilities: [],
@@ -293,6 +341,7 @@ export const useActiveThreadStore = create<ActiveThreadStoreState>((set) => ({
             composerModeManuallySelected: false,
             composerSelectedProvider: state.defaultComposerProvider,
             composerSelectedModel: state.defaultComposerModel,
+            composerSelectedReasoningEffort: state.defaultComposerReasoningEffort,
             composerModelManuallySelected: false,
         }));
     },

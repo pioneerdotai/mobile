@@ -35,6 +35,7 @@ char* pioneer_client_ffi_cli_runtime_review_start(PioneerClientFfi* client, cons
 char* pioneer_client_ffi_cli_runtime_request_respond(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_provider_list_models(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_provider_model_display(PioneerClientFfi* client, const char* input_json);
+char* pioneer_client_ffi_reasoning_effort_rows(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_composer_attachment_from_path(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_composer_attachments_update(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_composer_skill_picker_rows(PioneerClientFfi* client, const char* input_json);

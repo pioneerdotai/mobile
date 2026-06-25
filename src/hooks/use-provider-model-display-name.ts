@@ -2,7 +2,13 @@ import { useEffect, useState } from 'react';
 
 import { pioneerClient } from '@/client';
 import { runtimeIdFromCliRuntimeProviderKey } from '@/services/providers/cli-runtime';
-import { isCliRuntimeProvider, providerDisplayName } from '@/services/providers/model-selector';
+import {
+    isCliRuntimeProvider,
+    listProviderModels,
+    providerDisplayName,
+    reasoningEffortDisplayLabelForModel,
+    resolveSelectedProviderModel,
+} from '@/services/providers/model-selector';
 import { useGatewayStore } from '@/stores/gateway';
 
 type DisplayNameState = {
@@ -16,6 +22,7 @@ type DisplayNameResult = {
 };
 
 const displayNameCache = new Map<string, string | null>();
+const reasoningEffortLabelCache = new Map<string, string | null>();
 
 const modelDisplayNameKey = (
     connectionId: number | null,
@@ -86,6 +93,84 @@ export const useProviderModelDisplayName = (
 
     if (displayNameCache.has(key)) {
         return { label: displayNameCache.get(key) ?? null, loading: false };
+    }
+
+    return { label: null, loading: true };
+};
+
+const reasoningEffortDisplayKey = (
+    connectionId: number | null,
+    workspaceId: string | null | undefined,
+    provider: string | null | undefined,
+    model: string | null | undefined,
+    effort: string | null | undefined,
+): string | null => {
+    const normalizedEffort = effort?.trim();
+
+    if (connectionId === null || !workspaceId || !provider || !model || !normalizedEffort) {
+        return null;
+    }
+
+    return JSON.stringify([connectionId, workspaceId, provider, model, normalizedEffort]);
+};
+
+export const useProviderModelReasoningEffortLabel = (
+    workspaceId: string | null | undefined,
+    provider: string | null | undefined,
+    model: string | null | undefined,
+    effort: string | null | undefined,
+): DisplayNameResult => {
+    const connectionId = useGatewayStore((state) => state.connectionId);
+    const key = reasoningEffortDisplayKey(connectionId, workspaceId, provider, model, effort);
+    const [state, setState] = useState<DisplayNameState | null>(null);
+
+    useEffect(() => {
+        let cancelled = false;
+
+        if (!key || !workspaceId || !provider || !model || !effort?.trim()) {
+            return () => {
+                cancelled = true;
+            };
+        }
+
+        void listProviderModels(workspaceId, provider)
+            .then((response) => {
+                if (cancelled) {
+                    return;
+                }
+
+                const selectedModel = resolveSelectedProviderModel(
+                    response.models,
+                    provider,
+                    model,
+                );
+                const label = reasoningEffortDisplayLabelForModel(selectedModel, effort);
+
+                reasoningEffortLabelCache.set(key, label);
+                setState({ key, label });
+            })
+            .catch(() => {
+                if (!cancelled) {
+                    reasoningEffortLabelCache.set(key, null);
+                    setState({ key, label: null });
+                }
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [effort, key, model, provider, workspaceId]);
+
+    if (!key) {
+        return { label: null, loading: false };
+    }
+
+    if (state?.key === key) {
+        return { label: state.label, loading: false };
+    }
+
+    if (reasoningEffortLabelCache.has(key)) {
+        return { label: reasoningEffortLabelCache.get(key) ?? null, loading: false };
     }
 
     return { label: null, loading: true };

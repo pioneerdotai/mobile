@@ -123,6 +123,7 @@ const useThreadTreeRefresh = () => {
                         requestWorkspaceId,
                         result.composer_model_selection?.provider ?? null,
                         result.composer_model_selection?.model ?? null,
+                        result.composer_model_selection?.selected_reasoning_effort ?? null,
                     );
             }
         } catch (caught) {

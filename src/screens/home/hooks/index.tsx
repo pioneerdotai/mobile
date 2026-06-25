@@ -114,6 +114,7 @@ const styles = StyleSheet.create((theme) => ({
         height: theme.space(3),
         justifyContent: 'center',
         width: theme.space(3),
+        paddingBottom: theme.space(0.5),
     },
     statusDot: (color: string) => ({
         backgroundColor: color,

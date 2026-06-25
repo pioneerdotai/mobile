@@ -10,6 +10,7 @@ import {
     openActiveThread,
     sendActiveThreadText,
 } from '@/services/threads/active';
+import { selectedReasoningEffortRequestFields } from '@/services/threads/reasoning-effort';
 import { isCliRuntimeProvider } from '@/services/providers/cli-runtime';
 import { useActiveThreadStore } from '@/stores/active-thread';
 import { useGatewayStore } from '@/stores/gateway';
@@ -84,6 +85,7 @@ export const useActiveThread = (
         composerSelectedMode,
         composerSelectedProvider,
         composerSelectedModel,
+        composerSelectedReasoningEffort,
         defaultComposerSelectionLoading,
         composerModelManuallySelected,
         reset,
@@ -109,6 +111,7 @@ export const useActiveThread = (
             composerSelectedMode: state.composerSelectedMode,
             composerSelectedProvider: state.composerSelectedProvider,
             composerSelectedModel: state.composerSelectedModel,
+            composerSelectedReasoningEffort: state.composerSelectedReasoningEffort,
             defaultComposerSelectionLoading: state.defaultComposerSelectionLoading,
             composerModelManuallySelected: state.composerModelManuallySelected,
             reset: state.reset,
@@ -302,6 +305,11 @@ export const useActiveThread = (
             const selectedProviderForSend = storeState.composerModelManuallySelected
                 ? storeState.composerSelectedProvider
                 : (currentSnapshot?.thread?.model_provider ?? thread?.model_provider ?? null);
+            const threadReasoningEffort =
+                currentSnapshot?.thread?.reasoning_effort ?? thread?.reasoning_effort ?? null;
+            const selectedReasoningEffortForSend = storeState.composerModelManuallySelected
+                ? storeState.composerSelectedReasoningEffort
+                : (threadReasoningEffort ?? storeState.composerSelectedReasoningEffort);
             const cliRuntimeSelected = isCliRuntimeProvider(selectedProviderForSend);
             const attachments = storeState.composerAttachments;
             const capabilities = cliRuntimeSelected ? [] : storeState.composerCapabilities;
@@ -365,6 +373,7 @@ export const useActiveThread = (
                     selected_provider: storeState.composerModelManuallySelected
                         ? storeState.composerSelectedProvider
                         : null,
+                    ...selectedReasoningEffortRequestFields(selectedReasoningEffortForSend),
                     selected_mode: storeState.composerSelectedMode,
                     attachments: attachmentsForSend,
                     capabilities,
@@ -536,6 +545,7 @@ export const useActiveThread = (
             canStopTurn,
             composerSelectedProvider,
             composerSelectedModel,
+            composerSelectedReasoningEffort,
             defaultComposerSelectionLoading,
             composerModelManuallySelected,
             open: refresh,
@@ -555,6 +565,7 @@ export const useActiveThread = (
             composerSelectedMode,
             composerSelectedModel,
             composerSelectedProvider,
+            composerSelectedReasoningEffort,
             defaultComposerSelectionLoading,
             connected,
             error,

@@ -49,6 +49,13 @@
       ],
       "default": null
     },
+    "selected_reasoning_effort": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "default": null
+    },
     "text": {
       "type": "string"
     },

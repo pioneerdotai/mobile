@@ -180,6 +180,10 @@ HybridPioneerClient::providerModelDisplayJson(const std::string& inputJson) {
   return callWithClientAsync(pioneer_client_ffi_provider_model_display, inputJson);
 }
 
+std::string HybridPioneerClient::reasoningEffortRowsJson(const std::string& inputJson) {
+  return callWithClient(pioneer_client_ffi_reasoning_effort_rows, inputJson);
+}
+
 std::string HybridPioneerClient::composerAttachmentFromPathJson(const std::string& inputJson) {
   return callWithClient(pioneer_client_ffi_composer_attachment_from_path, inputJson);
 }

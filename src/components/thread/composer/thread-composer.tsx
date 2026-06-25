@@ -49,6 +49,7 @@ type ThreadComposerProps = {
     attachmentsEnabled: boolean;
     attachmentMenuAccessibilityLabel: string;
     modelSelectionLabel: string;
+    modelSelectionEffortLabel?: string | null;
     modelSelectionLoading: boolean;
     modelSelectionAccessibilityLabel: string;
     modelSelectionDisabled: boolean;
@@ -88,6 +89,7 @@ export const ThreadComposer = ({
     attachmentsEnabled,
     attachmentMenuAccessibilityLabel,
     modelSelectionLabel,
+    modelSelectionEffortLabel,
     modelSelectionLoading,
     modelSelectionAccessibilityLabel,
     modelSelectionDisabled,
@@ -201,9 +203,19 @@ export const ThreadComposer = ({
                                             color={theme.colors.textMuted}
                                         />
                                     ) : (
-                                        <Text numberOfLines={1} style={styles.modelButtonText}>
-                                            {modelSelectionLabel}
-                                        </Text>
+                                        <HStack style={styles.modelButtonLabelWrap}>
+                                            <Text numberOfLines={1} style={styles.modelButtonText}>
+                                                {modelSelectionLabel}
+                                            </Text>
+                                            {modelSelectionEffortLabel ? (
+                                                <Text
+                                                    numberOfLines={1}
+                                                    style={styles.modelButtonEffortText}
+                                                >
+                                                    {modelSelectionEffortLabel}
+                                                </Text>
+                                            ) : null}
+                                        </HStack>
                                     )}
                                 </Pressable>
                             </HStack>
@@ -484,10 +496,24 @@ const styles = StyleSheet.create((theme, rt) => ({
     modelButtonPressed: {
         backgroundColor: theme.colors.surfaceMuted,
     },
+    modelButtonLabelWrap: {
+        minWidth: 0,
+        flexShrink: 1,
+        alignItems: 'center',
+        gap: theme.space(1),
+    },
     modelButtonText: {
         minWidth: 0,
         flexShrink: 1,
         color: theme.colors.typography,
+        fontSize: theme.fontSize.xs.fontSize,
+        lineHeight: theme.fontSize.xs.lineHeight,
+        fontWeight: theme.fontWeight.medium.fontWeight,
+    },
+    modelButtonEffortText: {
+        maxWidth: theme.space(20),
+        flexShrink: 0,
+        color: theme.colors.textMuted,
         fontSize: theme.fontSize.xs.fontSize,
         lineHeight: theme.fontSize.xs.lineHeight,
         fontWeight: theme.fontWeight.medium.fontWeight,

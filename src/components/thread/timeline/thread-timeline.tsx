@@ -177,20 +177,6 @@ const ThreadTimelineContent = ({
         rows,
     ]);
 
-    const anchoredEndSpace = useMemo(
-        () =>
-            anchorIndex === undefined
-                ? undefined
-                : {
-                      anchorIndex,
-                      anchorMaxSize:
-                          TIMELINE_ANCHOR_MAX_LINES * theme.fontSize.default.lineHeight +
-                          theme.space(4),
-                      anchorOffset: contentTopInset + theme.space(5),
-                  },
-        [anchorIndex, contentTopInset, theme],
-    );
-
     useEffect(() => {
         onExpandedKeysChange(expandedKeys);
     }, [expandedKeys, onExpandedKeysChange]);
@@ -256,7 +242,6 @@ const ThreadTimelineContent = ({
             <KeyboardAwareLegendList<TimelineRow>
                 ref={timelineRef}
                 alignItemsAtEnd
-                anchoredEndSpace={anchoredEndSpace}
                 contentInsetEndAdjustment={contentInsetEndAdjustment}
                 data={rows}
                 drawDistance={TIMELINE_DRAW_DISTANCE}

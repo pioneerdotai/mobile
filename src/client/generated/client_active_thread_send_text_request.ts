@@ -66,6 +66,7 @@ export interface ClientActiveThreadSendTextRequest {
   selected_mode?: ThreadMode | null;
   selected_model?: string | null;
   selected_provider?: string | null;
+  selected_reasoning_effort?: string | null;
   text: string;
   thread_id?: string | null;
   workspace_id?: string | null;

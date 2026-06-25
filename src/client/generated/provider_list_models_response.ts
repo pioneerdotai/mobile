@@ -1,5 +1,12 @@
 /* eslint-disable */
 
+export type ReasoningCapabilitySource =
+  | 'provider_metadata'
+  | 'cli_metadata'
+  | 'static_registry'
+  | 'config_override'
+  | 'unknown';
+
 export interface ProviderListModelsResponse {
   models: ProviderModelInfo[];
   provider: string;
@@ -25,10 +32,20 @@ export interface ProviderModelCapabilities {
   input_modalities?: string[] | null;
   json_output?: boolean | null;
   output_modalities?: string[] | null;
+  reasoning?: ProviderModelReasoningCapabilities | null;
   streaming?: boolean | null;
   thinking?: boolean | null;
   tool_calling?: boolean | null;
   vision?: boolean | null;
+  [k: string]: unknown;
+}
+export interface ProviderModelReasoningCapabilities {
+  default_effort?: string | null;
+  effort_options?: string[];
+  mandatory?: boolean | null;
+  source?: ReasoningCapabilitySource | null;
+  supported?: boolean | null;
+  supports_token_budget?: boolean | null;
   [k: string]: unknown;
 }
 export interface ProviderModelLimits {

@@ -80,6 +80,7 @@ public:
       const std::string& inputJson) override;
   std::shared_ptr<margelo::nitro::Promise<std::string>> providerModelDisplayJson(
       const std::string& inputJson) override;
+  std::string reasoningEffortRowsJson(const std::string& inputJson) override;
   std::string composerAttachmentFromPathJson(const std::string& inputJson) override;
   std::string composerAttachmentsUpdateJson(const std::string& inputJson) override;
   std::shared_ptr<margelo::nitro::Promise<std::string>> composerSkillPickerRowsJson(

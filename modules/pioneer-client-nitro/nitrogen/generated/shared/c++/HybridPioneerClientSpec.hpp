@@ -76,6 +76,7 @@ namespace margelo::nitro::pioneer::client {
       virtual std::shared_ptr<Promise<std::string>> cliRuntimeRequestRespondJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> providerListModelsJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> providerModelDisplayJson(const std::string& inputJson) = 0;
+      virtual std::string reasoningEffortRowsJson(const std::string& inputJson) = 0;
       virtual std::string composerAttachmentFromPathJson(const std::string& inputJson) = 0;
       virtual std::string composerAttachmentsUpdateJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> composerSkillPickerRowsJson(const std::string& inputJson) = 0;

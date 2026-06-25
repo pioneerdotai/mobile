@@ -61,6 +61,8 @@ import type { ProviderListParams } from './generated/provider_list_params';
 import type { ProviderListResponse } from './generated/provider_list_response';
 import type { ProviderModelDisplayKey } from './generated/provider_model_display_key';
 import type { ProviderModelDisplayResolution } from './generated/provider_model_display_resolution';
+import type { ReasoningEffortRowsRequest } from './generated/reasoning_effort_rows_request';
+import type { ReasoningEffortRowsResponse } from './generated/reasoning_effort_rows_response';
 import type { RemoteGatewayValidation } from './generated/remote_gateway_validation';
 import type { RemoteGatewayValidationRequest } from './generated/remote_gateway_validation_request';
 import type { SelectableSkillCapability } from './generated/selectable_skill_capability';
@@ -169,6 +171,9 @@ export type { ProviderListParams } from './generated/provider_list_params';
 export type { ProviderListResponse, ProviderSummary } from './generated/provider_list_response';
 export type { ProviderModelDisplayKey } from './generated/provider_model_display_key';
 export type { ProviderModelDisplayResolution } from './generated/provider_model_display_resolution';
+export type { ReasoningEffortRow } from './generated/reasoning_effort_row';
+export type { ReasoningEffortRowsRequest } from './generated/reasoning_effort_rows_request';
+export type { ReasoningEffortRowsResponse } from './generated/reasoning_effort_rows_response';
 export type { RemoteGatewayValidation } from './generated/remote_gateway_validation';
 export type { RemoteGatewayValidationRequest } from './generated/remote_gateway_validation_request';
 export type { SelectableSkillCapability } from './generated/selectable_skill_capability';
@@ -421,6 +426,12 @@ export const pioneerClient = {
     ): Promise<ProviderModelDisplayResolution> {
         return parsePioneerClientResponse<ProviderModelDisplayResolution>(
             await getPioneerClientNitro().providerModelDisplayJson(JSON.stringify(input)),
+        );
+    },
+
+    reasoningEffortRows(input: ReasoningEffortRowsRequest): ReasoningEffortRowsResponse {
+        return parsePioneerClientResponse<ReasoningEffortRowsResponse>(
+            getPioneerClientNitro().reasoningEffortRowsJson(JSON.stringify(input)),
         );
     },
 

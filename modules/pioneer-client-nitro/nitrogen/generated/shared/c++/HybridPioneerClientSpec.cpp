@@ -41,6 +41,7 @@ namespace margelo::nitro::pioneer::client {
       prototype.registerHybridMethod("cliRuntimeRequestRespondJson", &HybridPioneerClientSpec::cliRuntimeRequestRespondJson);
       prototype.registerHybridMethod("providerListModelsJson", &HybridPioneerClientSpec::providerListModelsJson);
       prototype.registerHybridMethod("providerModelDisplayJson", &HybridPioneerClientSpec::providerModelDisplayJson);
+      prototype.registerHybridMethod("reasoningEffortRowsJson", &HybridPioneerClientSpec::reasoningEffortRowsJson);
       prototype.registerHybridMethod("composerAttachmentFromPathJson", &HybridPioneerClientSpec::composerAttachmentFromPathJson);
       prototype.registerHybridMethod("composerAttachmentsUpdateJson", &HybridPioneerClientSpec::composerAttachmentsUpdateJson);
       prototype.registerHybridMethod("composerSkillPickerRowsJson", &HybridPioneerClientSpec::composerSkillPickerRowsJson);

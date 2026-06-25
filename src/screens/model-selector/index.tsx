@@ -7,7 +7,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { ChevronRight } from 'lucide-react-native';
 
-import type { ProviderModelInfo } from '@/client';
+import type { ProviderModelInfo, ReasoningEffortRow } from '@/client';
 import Spinner from '@/components/feedback/spinner';
 import { Box } from '@/components/primitives/box';
 import { HStack } from '@/components/primitives/hstack';
@@ -27,6 +27,8 @@ import {
     listProviders,
     modelRowDisplayName,
     modelRowSecondaryText,
+    reasoningEffortRowsForModel,
+    resolveSelectedProviderModel,
     type ModelSelectorProvider,
 } from '@/services/providers/model-selector';
 import { useActiveThreadStore } from '@/stores/active-thread';
@@ -36,6 +38,20 @@ import { stableOutlineWidth } from '@/helpers/styles';
 type LoadState = {
     loading: boolean;
     error: string | null;
+};
+
+type SelectedProviderModelState = {
+    workspaceId: string | null;
+    provider: string | null;
+    models: ProviderModelInfo[];
+    loading: boolean;
+    error: string | null;
+};
+
+type ReasoningEffortOption = {
+    effort: string | null;
+    label: string;
+    selected: boolean;
 };
 
 const selectedLabel = (value: string | null, fallback: string): string => {
@@ -54,20 +70,122 @@ const providerKeyExtractor = (provider: ModelSelectorProvider): string => provid
 
 const modelKeyExtractor = (model: ProviderModelInfo): string => model.id;
 
+const MODEL_SELECTOR_REASONING_EFFORT_ROUTE = '/model-selector/reasoning-effort' as Parameters<
+    typeof router.push
+>[0];
+
+const reasoningEffortKeyExtractor = (row: ReasoningEffortOption): string =>
+    row.effort ?? '__default__';
+
+const reasoningEffortOptionFromRow = (row: ReasoningEffortRow): ReasoningEffortOption => ({
+    effort: row.effort,
+    label: row.label,
+    selected: row.selected,
+});
+
+const useSelectedProviderModel = (
+    workspaceId: string | null,
+    provider: string | null,
+    model: string | null,
+) => {
+    const [state, setState] = useState<SelectedProviderModelState>({
+        workspaceId: null,
+        provider: null,
+        models: [],
+        loading: false,
+        error: null,
+    });
+
+    useEffect(() => {
+        let cancelled = false;
+
+        if (!workspaceId || !provider || !model) {
+            setState({
+                workspaceId: workspaceId ?? null,
+                provider,
+                models: [],
+                loading: false,
+                error: null,
+            });
+            return;
+        }
+
+        setState((current) => ({
+            workspaceId,
+            provider,
+            models:
+                current.workspaceId === workspaceId && current.provider === provider
+                    ? current.models
+                    : [],
+            loading: true,
+            error: null,
+        }));
+
+        void listProviderModels(workspaceId, provider)
+            .then((response) => {
+                if (!cancelled) {
+                    setState({
+                        workspaceId,
+                        provider,
+                        models: response.models,
+                        loading: false,
+                        error: null,
+                    });
+                }
+            })
+            .catch(() => {
+                if (!cancelled) {
+                    setState({
+                        workspaceId,
+                        provider,
+                        models: [],
+                        loading: false,
+                        error: 'load_failed',
+                    });
+                }
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [model, provider, workspaceId]);
+
+    const stateMatchesSelection = state.workspaceId === workspaceId && state.provider === provider;
+    const hasLookupTarget = Boolean(workspaceId && provider && model);
+
+    const selectedModel = useMemo(() => {
+        if (!stateMatchesSelection) {
+            return null;
+        }
+
+        return resolveSelectedProviderModel(state.models, provider, model);
+    }, [model, provider, state.models, stateMatchesSelection]);
+
+    return {
+        selectedModel,
+        loading: hasLookupTarget && (!stateMatchesSelection || state.loading),
+        error: stateMatchesSelection ? state.error : null,
+    };
+};
+
 export const ModelSelectorHomeScreen = () => {
     const { t } = useTranslation('threads');
 
     const activeWorkspaceId = useWorkspaceStore((state) => state.activeWorkspaceId);
 
-    const { composerSelectedProvider, composerSelectedModel, defaultComposerSelectionLoading } =
-        useActiveThreadStore(
-            useShallow((state) => ({
-                composerSelectedProvider: state.composerSelectedProvider,
-                composerSelectedModel: state.composerSelectedModel,
-                defaultComposerSelectionLoading: state.defaultComposerSelectionLoading,
-            })),
-        );
-
+    const {
+        composerSelectedProvider,
+        composerSelectedModel,
+        composerSelectedReasoningEffort,
+        defaultComposerSelectionLoading,
+    } = useActiveThreadStore(
+        useShallow((state) => ({
+            composerSelectedProvider: state.composerSelectedProvider,
+            composerSelectedModel: state.composerSelectedModel,
+            composerSelectedReasoningEffort: state.composerSelectedReasoningEffort,
+            defaultComposerSelectionLoading: state.defaultComposerSelectionLoading,
+        })),
+    );
     const { label: selectedModelDisplayName, loading: selectedModelDisplayNameLoading } =
         useProviderModelDisplayName(
             activeWorkspaceId,
@@ -76,6 +194,20 @@ export const ModelSelectorHomeScreen = () => {
         );
     const { label: selectedProviderDisplayName, loading: selectedProviderDisplayNameLoading } =
         useProviderDisplayName(activeWorkspaceId, composerSelectedProvider);
+
+    const { selectedModel } = useSelectedProviderModel(
+        activeWorkspaceId,
+        composerSelectedProvider,
+        composerSelectedModel,
+    );
+    const reasoningRows = useMemo(
+        () => reasoningEffortRowsForModel(selectedModel, composerSelectedReasoningEffort),
+        [composerSelectedReasoningEffort, selectedModel],
+    );
+    const selectedReasoningEffortRow = reasoningRows.find((row) => row.selected) ?? null;
+    const selectedReasoningEffortLabel =
+        selectedReasoningEffortRow?.label ?? t('modelSelectorReasoningDefault');
+    const showReasoningEffortRow = reasoningRows.length > 0;
 
     return (
         <ScreenScroll>
@@ -101,6 +233,17 @@ export const ModelSelectorHomeScreen = () => {
                     selected={Boolean(composerSelectedModel)}
                     onPress={() => router.push({ pathname: '/model-selector/model' })}
                 />
+                {showReasoningEffortRow ? (
+                    <>
+                        <Box style={styles.separator} />
+                        <SelectorRow
+                            label={t('modelSelectorReasoningLabel')}
+                            value={selectedReasoningEffortLabel}
+                            selected={Boolean(selectedReasoningEffortRow)}
+                            onPress={() => router.push(MODEL_SELECTOR_REASONING_EFFORT_ROUTE)}
+                        />
+                    </>
+                ) : null}
             </VStack>
         </ScreenScroll>
     );
@@ -357,6 +500,127 @@ export const ModelSelectorModelScreen = () => {
     );
 };
 
+export const ModelSelectorReasoningEffortScreen = () => {
+    const { t } = useTranslation('threads');
+    const activeWorkspaceId = useWorkspaceStore((state) => state.activeWorkspaceId);
+    const {
+        composerSelectedProvider,
+        composerSelectedModel,
+        composerSelectedReasoningEffort,
+        setComposerReasoningEffortFromUser,
+    } = useActiveThreadStore(
+        useShallow((state) => ({
+            composerSelectedProvider: state.composerSelectedProvider,
+            composerSelectedModel: state.composerSelectedModel,
+            composerSelectedReasoningEffort: state.composerSelectedReasoningEffort,
+            setComposerReasoningEffortFromUser: state.setComposerReasoningEffortFromUser,
+        })),
+    );
+
+    const {
+        selectedModel,
+        loading: selectedModelLoading,
+        error: selectedModelError,
+    } = useSelectedProviderModel(
+        activeWorkspaceId,
+        composerSelectedProvider,
+        composerSelectedModel,
+    );
+    const effortRows = useMemo(
+        () => reasoningEffortRowsForModel(selectedModel, composerSelectedReasoningEffort),
+        [composerSelectedReasoningEffort, selectedModel],
+    );
+    const rows = useMemo<ReasoningEffortOption[]>(() => {
+        if (effortRows.length === 0) {
+            return [];
+        }
+
+        return [
+            {
+                effort: null,
+                label: t('modelSelectorReasoningDefault'),
+                selected: !effortRows.some((row) => row.selected),
+            },
+            ...effortRows.map(reasoningEffortOptionFromRow),
+        ];
+    }, [effortRows, t]);
+
+    useEffect(() => {
+        if (!composerSelectedReasoningEffort || selectedModelLoading) {
+            return;
+        }
+
+        if (!selectedModel || effortRows.length === 0 || !effortRows.some((row) => row.selected)) {
+            setComposerReasoningEffortFromUser(null);
+        }
+    }, [
+        composerSelectedReasoningEffort,
+        effortRows,
+        selectedModel,
+        selectedModelLoading,
+        setComposerReasoningEffortFromUser,
+    ]);
+
+    const selectEffort = useCallback(
+        (row: ReasoningEffortOption) => {
+            setComposerReasoningEffortFromUser(row.effort);
+            goBackToModelSelector();
+        },
+        [setComposerReasoningEffortFromUser],
+    );
+
+    const renderReasoningEffort = useCallback<ListRenderItem<ReasoningEffortOption>>(
+        ({ item, index }) => (
+            <Box
+                style={[
+                    styles.listRowCard,
+                    index === 0 ? styles.listRowCardFirst : null,
+                    index === rows.length - 1 ? styles.listRowCardLast : null,
+                ]}
+            >
+                <ReasoningEffortOptionRow
+                    row={item}
+                    selected={item.selected}
+                    onPress={() => selectEffort(item)}
+                />
+                {index < rows.length - 1 ? <Box style={styles.listRowSeparator} /> : null}
+            </Box>
+        ),
+        [rows.length, selectEffort],
+    );
+
+    const missingModel = !composerSelectedProvider || !composerSelectedModel;
+
+    return (
+        <FlashList
+            alwaysBounceVertical={false}
+            contentContainerStyle={styles.listContent}
+            data={rows}
+            keyExtractor={reasoningEffortKeyExtractor}
+            keyboardShouldPersistTaps="handled"
+            ListEmptyComponent={
+                <ListState
+                    loading={!missingModel && selectedModelLoading}
+                    loadingLabel={t('modelSelectorLoadingReasoning')}
+                    error={selectedModelError ? t('modelSelectorModelsFailed') : null}
+                    empty={missingModel || (!selectedModelLoading && !selectedModelError)}
+                    emptyLabel={
+                        missingModel
+                            ? t('modelSelectorReasoningModelRequired')
+                            : t('modelSelectorNoReasoningEfforts')
+                    }
+                />
+            }
+            maintainVisibleContentPosition={{
+                disabled: true,
+            }}
+            renderItem={renderReasoningEffort}
+            showsVerticalScrollIndicator={false}
+            style={styles.screen}
+        />
+    );
+};
+
 const ScreenScroll = ({ children }: { children: ReactNode }) => {
     return (
         <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
@@ -509,6 +773,27 @@ const ModelRow = ({
                         </Text>
                     ) : null}
                 </VStack>
+                {selected ? <Check /> : null}
+            </HStack>
+        </Pressable>
+    );
+};
+
+const ReasoningEffortOptionRow = ({
+    row,
+    selected,
+    onPress,
+}: {
+    row: ReasoningEffortOption;
+    selected: boolean;
+    onPress: () => void;
+}) => {
+    return (
+        <Pressable accessibilityRole="button" onPress={onPress}>
+            <HStack style={styles.listRow}>
+                <Text numberOfLines={1} style={styles.listRowTitle}>
+                    {row.label}
+                </Text>
                 {selected ? <Check /> : null}
             </HStack>
         </Pressable>

@@ -51,6 +51,12 @@ export default function ModelSelectorStackLayout() {
                     title: t('modelSelectorModelTitle'),
                 }}
             />
+            <Stack.Screen
+                name="reasoning-effort"
+                options={{
+                    title: t('modelSelectorReasoningTitle'),
+                }}
+            />
         </Stack>
     );
 }
