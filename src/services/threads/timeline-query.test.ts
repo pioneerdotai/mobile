@@ -56,9 +56,9 @@ describe('mobile timeline query orchestration', () => {
 
         const filter = cancelSpy.mock.calls[0]?.[0];
         expect(filter?.predicate?.(query(timelineQueryKeys.threadPages('thread_b')))).toBe(true);
-        expect(filter?.predicate?.(query(timelineQueryKeys.turnWorkPages('thread_b', 'turn_b')))).toBe(
-            true,
-        );
+        expect(
+            filter?.predicate?.(query(timelineQueryKeys.turnWorkPages('thread_b', 'turn_b'))),
+        ).toBe(true);
         expect(filter?.predicate?.(query(timelineQueryKeys.threadPages('thread_a')))).toBe(false);
         expect(filter?.predicate?.(query(['other']))).toBe(false);
 

@@ -7,10 +7,7 @@ import {
     removeTimelineQueriesForThread,
 } from '@/services/threads/timeline-query';
 
-export const useTimelineQueryCancellation = (
-    threadId: string | null,
-    active: boolean,
-) => {
+export const useTimelineQueryCancellation = (threadId: string | null, active: boolean) => {
     const queryClient = useQueryClient();
     const previousThreadIdRef = useRef<string | null>(null);
 

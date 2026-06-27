@@ -255,12 +255,16 @@ const ThreadScreen = ({ threadId }: ThreadScreenProps) => {
             : null;
     const screenError = isDraftThread ? null : (error ?? semanticTimelineError);
 
-    const timelineLoading =
-        isDraftThread ||
-        threadTimelineBlocksQuery.hasLoadedPage ||
-        !threadTimelineBlocksQuery.isLoading
-            ? loading
-            : true;
+    const waitingForInitialTimelinePage = Boolean(
+        visibleSnapshot &&
+        !isDraftThread &&
+        !threadTimelineBlocksQuery.hasLoadedPage &&
+        threadTimelineBlocksQuery.isLoading &&
+        !screenError,
+    );
+    const showThreadLoader = Boolean(
+        (!visibleSnapshot && waitingForSnapshot) || waitingForInitialTimelinePage,
+    );
 
     const contentTopInset = theme.screenContentPadding('child').paddingTop;
 
@@ -646,14 +650,20 @@ const ThreadScreen = ({ threadId }: ThreadScreenProps) => {
                 textInputNativeID={THREAD_COMPOSER_INPUT_NATIVE_ID}
             >
                 <View style={styles.threadWrap}>
-                    {visibleSnapshot ? (
+                    {showThreadLoader ? (
+                        <ThreadState
+                            loading
+                            label={t('loadingThread')}
+                            color={theme.colors.typography}
+                        />
+                    ) : visibleSnapshot ? (
                         <ThreadTimeline
                             ref={timelineRef}
                             conversation={visibleSnapshot}
                             timelineIdentityKey={timelineIdentityKey}
                             rowsOverride={timelineRowsOverride}
                             activeTurnIdOverride={visibleTurnId}
-                            loading={timelineLoading}
+                            loading={false}
                             closed={closed}
                             connected={connected}
                             emptyLabel={t('threadEmpty')}
@@ -683,16 +693,13 @@ const ThreadScreen = ({ threadId }: ThreadScreenProps) => {
                         />
                     ) : (
                         <ThreadState
-                            loading={waitingForSnapshot}
-                            label={
-                                screenError ??
-                                (waitingForSnapshot ? t('loadingThread') : t('disconnected'))
-                            }
+                            loading={false}
+                            label={screenError ?? t('disconnected')}
                             color={theme.colors.typography}
                         />
                     )}
                 </View>
-                {visibleSnapshot ? (
+                {visibleSnapshot && !showThreadLoader ? (
                     <KeyboardStickyView offset={keyboardStickyOffset} style={styles.composerSticky}>
                         <View ref={composerRef} onLayout={handleComposerAreaLayout}>
                             <ThreadComposer
