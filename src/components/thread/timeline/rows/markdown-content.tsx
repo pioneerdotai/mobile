@@ -37,6 +37,7 @@ type MarkdownContentProps = {
     text: string;
     document?: MarkdownDocument | null;
     tone?: 'default' | 'muted' | 'inverted';
+    selectable?: boolean;
 };
 
 type MarkdownTextVariant = 'paragraph' | 'heading1' | 'heading2' | 'heading3' | 'heading';
@@ -44,29 +45,42 @@ type MarkdownBlockSpacing = 'none' | 'small' | 'large';
 
 const EMPTY_MARKDOWN_BLOCKS: MarkdownBlock[] = [];
 
-export const MarkdownContent = ({ text, document, tone = 'default' }: MarkdownContentProps) => {
+export const MarkdownContent = ({
+    text,
+    document,
+    tone = 'default',
+    selectable = false,
+}: MarkdownContentProps) => {
     const blocks = document?.blocks ?? EMPTY_MARKDOWN_BLOCKS;
 
     return useMemo(() => {
         if (blocks.length === 0) {
-            return renderInline({ text }, 'paragraph', tone, 'plain');
+            return renderInline({ text }, 'paragraph', tone, 'plain', selectable);
         }
 
         return (
             <VStack style={styles.document}>
                 {blocks.map((block, index) => (
                     <Fragment key={`block:${index}`}>
-                        {renderBlock(block, tone, `block:${index}`, blocks[index - 1], index)}
+                        {renderBlock(
+                            block,
+                            tone,
+                            selectable,
+                            `block:${index}`,
+                            blocks[index - 1],
+                            index,
+                        )}
                     </Fragment>
                 ))}
             </VStack>
         );
-    }, [blocks, text, tone]);
+    }, [blocks, selectable, text, tone]);
 };
 
 const renderBlock = (
     block: MarkdownBlock,
     tone: MarkdownContentProps['tone'],
+    selectable: boolean,
     keyPrefix: string,
     previous?: MarkdownBlock,
     index = 0,
@@ -79,7 +93,7 @@ const renderBlock = (
         case 'paragraph':
             return (
                 <Box style={blockStyle}>
-                    {renderInline(block as RuntimeInline, 'paragraph', tone, keyPrefix)}
+                    {renderInline(block as RuntimeInline, 'paragraph', tone, keyPrefix, selectable)}
                 </Box>
             );
         case 'heading': {
@@ -91,13 +105,16 @@ const renderBlock = (
                         headingVariant(heading.level),
                         tone,
                         keyPrefix,
+                        selectable,
                     )}
                 </Box>
             );
         }
         case 'list':
             return (
-                <Box style={blockStyle}>{renderList(block as RuntimeList, tone, keyPrefix)}</Box>
+                <Box style={blockStyle}>
+                    {renderList(block as RuntimeList, tone, selectable, keyPrefix)}
+                </Box>
             );
         case 'quote': {
             const quote = block as { blocks?: MarkdownBlock[] };
@@ -108,6 +125,7 @@ const renderBlock = (
                             {renderBlock(
                                 quoteBlock,
                                 tone,
+                                selectable,
                                 `${keyPrefix}:quote:${quoteIndex}`,
                                 quoteBlocks[quoteIndex - 1],
                                 quoteIndex,
@@ -134,7 +152,7 @@ const renderBlock = (
                             showsHorizontalScrollIndicator
                             contentContainerStyle={styles.codeScroller}
                         >
-                            <Text selectable style={styles.codeText}>
+                            <Text selectable={selectable} style={styles.codeText}>
                                 {normalizeMarkdownCodeText(code.text)}
                             </Text>
                         </ScrollView>
@@ -147,7 +165,7 @@ const renderBlock = (
         default:
             return (
                 <Box style={blockStyle}>
-                    {renderInline({ text: '' }, 'paragraph', tone, keyPrefix)}
+                    {renderInline({ text: '' }, 'paragraph', tone, keyPrefix, selectable)}
                 </Box>
             );
     }
@@ -156,6 +174,7 @@ const renderBlock = (
 const renderList = (
     list: RuntimeList,
     tone: MarkdownContentProps['tone'],
+    selectable: boolean,
     keyPrefix: string,
 ): ReactNode => {
     const items = list.items ?? [];
@@ -183,6 +202,7 @@ const renderList = (
                                     {renderBlock(
                                         block,
                                         tone,
+                                        selectable,
                                         `${keyPrefix}:item:${index}:block:${blockIndex}`,
                                         blocks[blockIndex - 1],
                                         blockIndex,
@@ -202,12 +222,22 @@ const renderInline = (
     variant: MarkdownTextVariant,
     tone: MarkdownContentProps['tone'],
     keyPrefix: string,
+    selectable: boolean,
 ): ReactNode => {
     const rawText = inline.text && inline.text.length > 0 ? inline.text : ' ';
     const segments = splitMarkedText(rawText, inline.marks ?? []);
+    const baseStyle = [styles.inlineBase, variantStyle(variant), toneStyle(tone)];
+
+    if (segments.length === 1 && segments[0]?.marks.length === 0) {
+        return (
+            <Text selectable={selectable} style={baseStyle}>
+                {rawText}
+            </Text>
+        );
+    }
 
     return (
-        <Text selectable style={[styles.inlineBase, variantStyle(variant), toneStyle(tone)]}>
+        <Text selectable={selectable} style={baseStyle}>
             {segments.map((segment, index) => (
                 <Text
                     key={`${keyPrefix}:segment:${index}`}
