@@ -104,6 +104,7 @@ export const installTimelineQueryDefaults = (queryClient: QueryClient) => {
         staleTime: TIMELINE_QUERY_STALE_TIME_MS,
         gcTime: TIMELINE_QUERY_GC_TIME_MS,
         refetchOnReconnect: true,
+        refetchOnMount: false,
         refetchOnWindowFocus: false,
     });
 };
@@ -126,6 +127,15 @@ export const cancelTimelineQueriesExceptThread = (
             const threadId = timelineQueryThreadId(query);
             return Boolean(threadId && threadId !== activeThreadId);
         },
+    });
+};
+
+export const removeTimelineQueriesForThread = (
+    queryClient: QueryClient,
+    threadId: string,
+): void => {
+    queryClient.removeQueries({
+        queryKey: timelineQueryKeys.thread(threadId),
     });
 };
 

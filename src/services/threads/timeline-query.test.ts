@@ -10,6 +10,7 @@ import {
     invalidateThreadTimelinePages,
     invalidateTimelineQueriesForThread,
     invalidateTurnWorkQueries,
+    removeTimelineQueriesForThread,
     timelineQueryKeyThreadId,
     timelineQueryKeys,
     timelineQueryRetry,
@@ -95,6 +96,17 @@ describe('mobile timeline query orchestration', () => {
         expect(invalidateSpy.mock.calls[2]?.[0]).toEqual({
             queryKey: timelineQueryKeys.turnWork('thread_a', 'turn_a'),
             refetchType: 'active',
+        });
+    });
+
+    it('removes all cached semantic pages for a closed thread viewport', () => {
+        const queryClient = new QueryClient();
+        const removeSpy = jest.spyOn(queryClient, 'removeQueries').mockImplementation(() => {});
+
+        removeTimelineQueriesForThread(queryClient, 'thread_a');
+
+        expect(removeSpy).toHaveBeenCalledWith({
+            queryKey: timelineQueryKeys.thread('thread_a'),
         });
     });
 
