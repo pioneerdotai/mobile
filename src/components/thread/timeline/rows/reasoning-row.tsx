@@ -29,7 +29,13 @@ export const ReasoningRow = ({ row, expanded, onToggle }: ReasoningRowProps) => 
     if (row.streaming) {
         return (
             <VStack style={styles.container}>
-                {hasText && <MarkdownContent text={row.text} document={row.markdown} />}
+                {hasText && (
+                    <MarkdownContent
+                        text={row.text}
+                        document={row.markdown}
+                        streaming={row.streaming}
+                    />
+                )}
                 <HStack style={styles.runningRow}>
                     <HStack style={styles.headerLabel}>
                         <Spinner size={theme.space(4)} color={iconColor} />

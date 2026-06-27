@@ -1,6 +1,7 @@
-import { Fragment, useMemo, type ReactNode } from 'react';
-import { type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
-import { StyleSheet } from 'react-native-unistyles';
+import { useMemo } from 'react';
+import { EnrichedMarkdownText, type MarkdownStyle } from 'react-native-enriched-markdown';
+import { StreamdownText } from 'react-native-streamdown';
+import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 
 import type {
     MarkdownBlock,
@@ -11,11 +12,6 @@ import type {
 } from '@/client/generated/client_active_thread_snapshot';
 
 import { normalizeMarkdownCodeText, splitMarkedText } from './markdown-rendering';
-import { Box } from '@/components/primitives/box';
-import { HStack } from '@/components/primitives/hstack';
-import { ScrollView } from '@/components/primitives/scrollview';
-import { Text } from '@/components/primitives/text';
-import { VStack } from '@/components/primitives/vstack';
 
 type RuntimeInline = MarkdownInline1 & {
     text?: string;
@@ -38,441 +34,391 @@ type MarkdownContentProps = {
     document?: MarkdownDocument | null;
     tone?: 'default' | 'muted' | 'inverted';
     selectable?: boolean;
+    streaming?: boolean;
 };
 
-type MarkdownTextVariant = 'paragraph' | 'heading1' | 'heading2' | 'heading3' | 'heading';
-type MarkdownBlockSpacing = 'none' | 'small' | 'large';
-
 const EMPTY_MARKDOWN_BLOCKS: MarkdownBlock[] = [];
+const MARKDOWN_FLAGS = {
+    latexMath: false,
+};
+const STREAMDOWN_REMEND_CONFIG = {
+    katex: false,
+};
 
 export const MarkdownContent = ({
     text,
     document,
     tone = 'default',
-    selectable = false,
+    selectable = true,
+    streaming = false,
 }: MarkdownContentProps) => {
-    const blocks = document?.blocks ?? EMPTY_MARKDOWN_BLOCKS;
+    const { theme } = useUnistyles();
+    const markdown = useMemo(
+        () => markdownSource(text, document, streaming),
+        [document, streaming, text],
+    );
+    const markdownStyle = useMemo(
+        () =>
+            timelineMarkdownStyle({
+                tone,
+                text: toneTextColor(tone, theme),
+                textMuted: theme.colors.textMuted,
+                border: theme.colors.border,
+                surfaceMuted: theme.colors.surfaceMuted,
+                infoText: theme.colors.infoText,
+                userBubbleForeground: theme.colors.userBubbleForeground,
+                fontSize: theme.fontSize,
+                fontWeight: theme.fontWeight,
+                radius: theme.radius,
+                space: theme.space,
+            }),
+        [theme, tone],
+    );
 
-    return useMemo(() => {
-        if (blocks.length === 0) {
-            return renderInline({ text }, 'paragraph', tone, 'plain', selectable);
-        }
-
+    if (streaming) {
         return (
-            <VStack style={styles.document}>
-                {blocks.map((block, index) => (
-                    <Fragment key={`block:${index}`}>
-                        {renderBlock(
-                            block,
-                            tone,
-                            selectable,
-                            `block:${index}`,
-                            blocks[index - 1],
-                            index,
-                        )}
-                    </Fragment>
-                ))}
-            </VStack>
+            <StreamdownText
+                allowTrailingMargin={false}
+                containerStyle={styles.document}
+                flavor="github"
+                markdown={markdown}
+                markdownStyle={markdownStyle}
+                md4cFlags={MARKDOWN_FLAGS}
+                remendConfig={STREAMDOWN_REMEND_CONFIG}
+                selectable={selectable}
+                selectionColor={theme.colors.infoText}
+                selectionHandleColor={theme.colors.infoText}
+                selectionMenuConfig={selectionMenuConfig}
+            />
         );
-    }, [blocks, selectable, text, tone]);
+    }
+
+    return (
+        <EnrichedMarkdownText
+            allowTrailingMargin={false}
+            containerStyle={styles.document}
+            flavor="github"
+            markdown={markdown}
+            markdownStyle={markdownStyle}
+            md4cFlags={MARKDOWN_FLAGS}
+            selectable={selectable}
+            selectionColor={theme.colors.infoText}
+            selectionHandleColor={theme.colors.infoText}
+            selectionMenuConfig={selectionMenuConfig}
+        />
+    );
 };
 
-const renderBlock = (
-    block: MarkdownBlock,
-    tone: MarkdownContentProps['tone'],
-    selectable: boolean,
-    keyPrefix: string,
-    previous?: MarkdownBlock,
-    index = 0,
-): ReactNode => {
-    const blockType = readBlockType(block);
-    const spacing = markdownBlockSpacing(previous, block, index);
-    const blockStyle = blockSpacingStyle(spacing);
+const selectionMenuConfig = {
+    copyAsMarkdown: true,
+    copyImageUrl: false,
+};
 
-    switch (blockType) {
+const markdownSource = (
+    text: string,
+    document: MarkdownDocument | null | undefined,
+    streaming: boolean,
+): string => {
+    if (streaming && text.trim().length > 0) {
+        return text;
+    }
+
+    const blocks = document?.blocks ?? EMPTY_MARKDOWN_BLOCKS;
+    if (blocks.length > 0) {
+        return serializeBlocks(blocks);
+    }
+
+    return text.trim().length > 0 ? text : ' ';
+};
+
+const serializeBlocks = (blocks: readonly MarkdownBlock[]): string => {
+    return (
+        blocks
+            .map((block) => serializeBlock(block))
+            .join('\n\n')
+            .trim() || ' '
+    );
+};
+
+const serializeBlock = (block: MarkdownBlock): string => {
+    switch (readBlockType(block)) {
         case 'paragraph':
-            return (
-                <Box style={blockStyle}>
-                    {renderInline(block as RuntimeInline, 'paragraph', tone, keyPrefix, selectable)}
-                </Box>
-            );
+            return serializeInline(block as RuntimeInline);
         case 'heading': {
             const heading = block as { content?: RuntimeInline; level?: number };
-            return (
-                <Box style={blockStyle}>
-                    {renderInline(
-                        heading.content ?? { text: '' },
-                        headingVariant(heading.level),
-                        tone,
-                        keyPrefix,
-                        selectable,
-                    )}
-                </Box>
-            );
+            const level = Math.max(1, Math.min(6, heading.level ?? 4));
+            return `${'#'.repeat(level)} ${serializeInline(heading.content ?? { text: '' })}`;
         }
         case 'list':
-            return (
-                <Box style={blockStyle}>
-                    {renderList(block as RuntimeList, tone, selectable, keyPrefix)}
-                </Box>
-            );
+            return serializeList(block as RuntimeList);
         case 'quote': {
             const quote = block as { blocks?: MarkdownBlock[] };
-            return (
-                <VStack style={[styles.quote, blockStyle]}>
-                    {(quote.blocks ?? []).map((quoteBlock, quoteIndex, quoteBlocks) => (
-                        <Fragment key={`${keyPrefix}:quote:${quoteIndex}`}>
-                            {renderBlock(
-                                quoteBlock,
-                                tone,
-                                selectable,
-                                `${keyPrefix}:quote:${quoteIndex}`,
-                                quoteBlocks[quoteIndex - 1],
-                                quoteIndex,
-                            )}
-                        </Fragment>
-                    ))}
-                </VStack>
-            );
+            return serializeBlocks(quote.blocks ?? EMPTY_MARKDOWN_BLOCKS)
+                .split('\n')
+                .map((line) => `> ${line}`)
+                .join('\n');
         }
         case 'code': {
             const code = block as { language?: string | null; text?: string };
-            return (
-                <VStack style={[styles.codeBlock, blockStyle]}>
-                    {!!code.language?.trim() && (
-                        <Text style={styles.codeLanguage}>{code.language.trim()}</Text>
-                    )}
-                    <ScrollView
-                        nestedScrollEnabled
-                        style={styles.codeVerticalScroller}
-                        contentContainerStyle={styles.codeVerticalContent}
-                    >
-                        <ScrollView
-                            horizontal
-                            showsHorizontalScrollIndicator
-                            contentContainerStyle={styles.codeScroller}
-                        >
-                            <Text selectable={selectable} style={styles.codeText}>
-                                {normalizeMarkdownCodeText(code.text)}
-                            </Text>
-                        </ScrollView>
-                    </ScrollView>
-                </VStack>
-            );
+            const language = code.language?.trim() ?? '';
+            return `\`\`\`${language}\n${normalizeMarkdownCodeText(code.text)}\n\`\`\``;
         }
         case 'rule':
-            return <Box style={[styles.rule, blockStyle]} />;
+            return '---';
         default:
-            return (
-                <Box style={blockStyle}>
-                    {renderInline({ text: '' }, 'paragraph', tone, keyPrefix, selectable)}
-                </Box>
-            );
+            return '';
     }
 };
 
-const renderList = (
-    list: RuntimeList,
-    tone: MarkdownContentProps['tone'],
-    selectable: boolean,
-    keyPrefix: string,
-): ReactNode => {
+const serializeList = (list: RuntimeList): string => {
     const items = list.items ?? [];
     const start = typeof list.start === 'number' ? list.start : 1;
 
-    return (
-        <VStack style={styles.list}>
-            {items.map((item, index) => {
-                const prefix =
-                    item.checked != null
-                        ? item.checked
-                            ? '[x]'
-                            : '[ ]'
-                        : list.ordered
-                          ? `${start + index}.`
-                          : '\u2022';
-                const blocks = item.blocks ?? [];
+    return items
+        .map((item, index) => {
+            const prefix =
+                item.checked != null
+                    ? item.checked
+                        ? '- [x]'
+                        : '- [ ]'
+                    : list.ordered
+                      ? `${start + index}.`
+                      : '-';
+            const content = serializeBlocks(item.blocks ?? EMPTY_MARKDOWN_BLOCKS)
+                .split('\n')
+                .map((line, lineIndex) => (lineIndex === 0 ? line : `  ${line}`))
+                .join('\n');
 
-                return (
-                    <HStack key={`${keyPrefix}:item:${index}`} style={styles.listItem}>
-                        <Text style={[styles.listPrefix, toneStyle(tone)]}>{prefix}</Text>
-                        <VStack style={styles.listContent}>
-                            {blocks.map((block, blockIndex) => (
-                                <Fragment key={`${keyPrefix}:item:${index}:block:${blockIndex}`}>
-                                    {renderBlock(
-                                        block,
-                                        tone,
-                                        selectable,
-                                        `${keyPrefix}:item:${index}:block:${blockIndex}`,
-                                        blocks[blockIndex - 1],
-                                        blockIndex,
-                                    )}
-                                </Fragment>
-                            ))}
-                        </VStack>
-                    </HStack>
-                );
-            })}
-        </VStack>
-    );
+            return `${prefix} ${content}`;
+        })
+        .join('\n');
 };
 
-const renderInline = (
-    inline: RuntimeInline,
-    variant: MarkdownTextVariant,
-    tone: MarkdownContentProps['tone'],
-    keyPrefix: string,
-    selectable: boolean,
-): ReactNode => {
+const serializeInline = (inline: RuntimeInline): string => {
     const rawText = inline.text && inline.text.length > 0 ? inline.text : ' ';
     const segments = splitMarkedText(rawText, inline.marks ?? []);
-    const baseStyle = [styles.inlineBase, variantStyle(variant), toneStyle(tone)];
 
-    if (segments.length === 1 && segments[0]?.marks.length === 0) {
-        return (
-            <Text selectable={selectable} style={baseStyle}>
-                {rawText}
-            </Text>
-        );
+    return segments.map(serializeSegment).join('');
+};
+
+const serializeSegment = (segment: { text: string; marks: MarkdownMark[] }): string => {
+    return segment.marks.reduce((value, mark) => applyMarkdownMark(value, mark), segment.text);
+};
+
+const applyMarkdownMark = (value: string, mark: MarkdownMark): string => {
+    switch (mark.kind.type) {
+        case 'bold':
+            return `**${value}**`;
+        case 'italic':
+            return `*${value}*`;
+        case 'strike':
+            return `~~${value}~~`;
+        case 'code':
+            return `\`${value.replace(/`/g, '\\`')}\``;
+        case 'link':
+            return `[${value}](${mark.kind.url})`;
     }
-
-    return (
-        <Text selectable={selectable} style={baseStyle}>
-            {segments.map((segment, index) => (
-                <Text
-                    key={`${keyPrefix}:segment:${index}`}
-                    style={[toneStyle(tone), segment.marks.map(markStyle)]}
-                >
-                    {segment.text}
-                </Text>
-            ))}
-        </Text>
-    );
 };
 
 const readBlockType = (block?: MarkdownBlock): string | undefined => {
     return (block as { type?: string } | undefined)?.type;
 };
 
-const headingVariant = (level?: number): MarkdownTextVariant => {
-    switch (level) {
-        case 1:
-            return 'heading1';
-        case 2:
-            return 'heading2';
-        case 3:
-            return 'heading3';
-        default:
-            return 'heading';
-    }
+type TimelineMarkdownStyleInput = {
+    tone: MarkdownContentProps['tone'];
+    text: string;
+    textMuted: string;
+    border: string;
+    surfaceMuted: string;
+    infoText: string;
+    userBubbleForeground: string;
+    fontSize: Record<string, { fontSize: number; lineHeight: number }>;
+    fontWeight: Record<string, { fontWeight: string | number }>;
+    radius: Record<string, number>;
+    space: (value: number) => number;
 };
 
-const markdownBlockSpacing = (
-    previous: MarkdownBlock | undefined,
-    current: MarkdownBlock,
-    index: number,
-): MarkdownBlockSpacing => {
-    if (index === 0) {
-        return 'none';
-    }
+const timelineMarkdownStyle = ({
+    tone,
+    text,
+    textMuted,
+    border,
+    surfaceMuted,
+    infoText,
+    userBubbleForeground,
+    fontSize,
+    fontWeight,
+    radius,
+    space,
+}: TimelineMarkdownStyleInput): MarkdownStyle => ({
+    paragraph: {
+        color: text,
+        fontSize: fontSize.default.fontSize,
+        lineHeight: fontSize.default.lineHeight,
+        marginTop: 0,
+        marginBottom: space(2),
+    },
+    h1: {
+        color: text,
+        fontSize: fontSize['2xl'].fontSize,
+        fontWeight: markdownFontWeight(fontWeight.bold),
+        lineHeight: fontSize['2xl'].lineHeight,
+        marginTop: space(5),
+        marginBottom: space(2),
+    },
+    h2: {
+        color: text,
+        fontSize: fontSize.xl.fontSize,
+        fontWeight: markdownFontWeight(fontWeight.bold),
+        lineHeight: fontSize.xl.lineHeight,
+        marginTop: space(5),
+        marginBottom: space(2),
+    },
+    h3: {
+        color: text,
+        fontSize: fontSize.lg.fontSize,
+        fontWeight: markdownFontWeight(fontWeight.semibold),
+        lineHeight: fontSize.lg.lineHeight,
+        marginTop: space(5),
+        marginBottom: space(2),
+    },
+    h4: {
+        color: text,
+        fontSize: fontSize.default.fontSize,
+        fontWeight: markdownFontWeight(fontWeight.semibold),
+        lineHeight: fontSize.default.lineHeight,
+        marginTop: space(5),
+        marginBottom: space(2),
+    },
+    h5: {
+        color: text,
+        fontSize: fontSize.default.fontSize,
+        fontWeight: markdownFontWeight(fontWeight.semibold),
+        lineHeight: fontSize.default.lineHeight,
+        marginTop: space(5),
+        marginBottom: space(2),
+    },
+    h6: {
+        color: textMuted,
+        fontSize: fontSize.sm.fontSize,
+        fontWeight: markdownFontWeight(fontWeight.semibold),
+        lineHeight: fontSize.sm.lineHeight,
+        marginTop: space(5),
+        marginBottom: space(2),
+    },
+    blockquote: {
+        backgroundColor: surfaceMuted,
+        borderColor: border,
+        borderWidth: 1,
+        color: tone === 'inverted' ? userBubbleForeground : textMuted,
+        fontSize: fontSize.default.fontSize,
+        gapWidth: space(3),
+        lineHeight: fontSize.default.lineHeight,
+        marginTop: 0,
+        marginBottom: space(2),
+    },
+    list: {
+        bulletColor: tone === 'inverted' ? userBubbleForeground : textMuted,
+        color: text,
+        fontSize: fontSize.default.fontSize,
+        gapWidth: space(2),
+        lineHeight: fontSize.default.lineHeight,
+        markerColor: tone === 'inverted' ? userBubbleForeground : textMuted,
+        markerFontWeight: markdownFontWeight(fontWeight.medium),
+        markerMinWidth: space(7),
+        marginLeft: 0,
+        marginTop: 0,
+        marginBottom: space(2),
+    },
+    codeBlock: {
+        backgroundColor: surfaceMuted,
+        borderColor: border,
+        borderRadius: radius.lg,
+        borderWidth: 1,
+        color: tone === 'inverted' ? userBubbleForeground : text,
+        fontFamily: 'Menlo',
+        fontSize: fontSize.sm.fontSize,
+        lineHeight: fontSize.sm.lineHeight,
+        marginTop: 0,
+        marginBottom: space(2),
+        padding: space(3),
+    },
+    code: {
+        backgroundColor: surfaceMuted,
+        color: tone === 'inverted' ? userBubbleForeground : text,
+        fontFamily: 'Menlo',
+        fontSize: fontSize.sm.fontSize,
+    },
+    link: {
+        color: tone === 'inverted' ? userBubbleForeground : infoText,
+        underline: true,
+    },
+    strong: {
+        color: text,
+        fontWeight: 'bold',
+    },
+    em: {
+        color: text,
+        fontStyle: 'italic',
+    },
+    strikethrough: {
+        color: textMuted,
+    },
+    underline: {
+        color: text,
+    },
+    thematicBreak: {
+        color: border,
+        height: space(0.25),
+        marginTop: space(5),
+        marginBottom: space(5),
+    },
+    table: {
+        borderColor: border,
+        borderRadius: radius.lg,
+        borderWidth: 1,
+        cellPaddingHorizontal: space(2),
+        cellPaddingVertical: space(1.5),
+        color: text,
+        fontSize: fontSize.sm.fontSize,
+        headerBackgroundColor: surfaceMuted,
+        headerTextColor: text,
+        lineHeight: fontSize.sm.lineHeight,
+        marginTop: 0,
+        marginBottom: space(2),
+        rowEvenBackgroundColor: 'transparent',
+        rowOddBackgroundColor: surfaceMuted,
+    },
+    taskList: {
+        borderColor: border,
+        checkedColor: infoText,
+        checkedStrikethrough: false,
+        checkedTextColor: textMuted,
+        checkmarkColor: tone === 'inverted' ? text : userBubbleForeground,
+    },
+});
 
-    if (readBlockType(previous) === 'rule' || readBlockType(current) === 'rule') {
-        return 'large';
-    }
-
-    if (readBlockType(current) === 'heading') {
-        return 'large';
-    }
-
-    return 'small';
-};
-
-const blockSpacingStyle = (spacing: MarkdownBlockSpacing): StyleProp<ViewStyle> => {
-    switch (spacing) {
-        case 'large':
-            return styles.blockSpacingLarge;
-        case 'small':
-            return styles.blockSpacingSmall;
-        case 'none':
-            return undefined;
-    }
-};
-
-const markStyle = (mark: MarkdownMark): StyleProp<TextStyle> => {
-    switch (mark.kind.type) {
-        case 'bold':
-            return styles.bold;
-        case 'italic':
-            return styles.italic;
-        case 'strike':
-            return styles.strike;
-        case 'code':
-            return styles.inlineCode;
-        case 'link':
-            return styles.link;
-    }
-};
-
-const variantStyle = (variant: MarkdownTextVariant): StyleProp<TextStyle> => {
-    switch (variant) {
-        case 'heading1':
-            return styles.heading1;
-        case 'heading2':
-            return styles.heading2;
-        case 'heading3':
-            return styles.heading3;
-        case 'heading':
-            return styles.heading;
-        case 'paragraph':
-            return styles.paragraph;
-    }
-};
-
-const toneStyle = (tone: MarkdownContentProps['tone']): StyleProp<TextStyle> => {
+const toneTextColor = (
+    tone: MarkdownContentProps['tone'],
+    theme: ReturnType<typeof useUnistyles>['theme'],
+): string => {
     switch (tone) {
         case 'muted':
-            return styles.mutedText;
+            return theme.colors.textMuted;
         case 'inverted':
-            return styles.invertedText;
+            return theme.colors.userBubbleForeground;
         case 'default':
-            return styles.defaultText;
+        default:
+            return theme.colors.text;
     }
 };
 
-const styles = StyleSheet.create((theme) => ({
+const markdownFontWeight = (value: { fontWeight: string | number }): string =>
+    String(value.fontWeight);
+
+const styles = StyleSheet.create(() => ({
     document: {
         width: '100%',
         maxWidth: '100%',
-    },
-    inlineBase: {
-        flexShrink: 1,
-    },
-    blockSpacingSmall: {
-        marginTop: theme.space(2),
-    },
-    blockSpacingLarge: {
-        marginTop: theme.space(5),
-    },
-    paragraph: {
-        fontSize: theme.fontSize.default.fontSize,
-        lineHeight: theme.fontSize.default.lineHeight,
-    },
-    heading1: {
-        fontSize: theme.fontSize['2xl'].fontSize,
-        lineHeight: theme.fontSize['2xl'].lineHeight,
-        fontWeight: theme.fontWeight.bold.fontWeight,
-    },
-    heading2: {
-        fontSize: theme.fontSize.xl.fontSize,
-        lineHeight: theme.fontSize.xl.lineHeight,
-        fontWeight: theme.fontWeight.bold.fontWeight,
-    },
-    heading3: {
-        fontSize: theme.fontSize.lg.fontSize,
-        lineHeight: theme.fontSize.lg.lineHeight,
-        fontWeight: theme.fontWeight.semibold.fontWeight,
-    },
-    heading: {
-        fontSize: theme.fontSize.default.fontSize,
-        lineHeight: theme.fontSize.default.lineHeight,
-        fontWeight: theme.fontWeight.semibold.fontWeight,
-    },
-    defaultText: {
-        color: theme.colors.text,
-    },
-    mutedText: {
-        color: theme.colors.textMuted,
-    },
-    invertedText: {
-        color: theme.colors.userBubbleForeground,
-    },
-    bold: {
-        fontWeight: theme.fontWeight.bold.fontWeight,
-    },
-    italic: {
-        fontStyle: 'italic',
-    },
-    strike: {
-        textDecorationLine: 'line-through',
-    },
-    inlineCode: {
-        backgroundColor: theme.colors.surfaceMuted,
-        color: theme.colors.text,
-        fontFamily: 'monospace',
-        fontSize: theme.fontSize.sm.fontSize,
-    },
-    link: {
-        color: theme.colors.infoText,
-        textDecorationLine: 'underline',
-    },
-    list: {
-        gap: theme.space(1.5),
-        width: '100%',
-    },
-    listItem: {
-        width: '100%',
-        alignItems: 'flex-start',
-        gap: theme.space(2),
-    },
-    listPrefix: {
-        width: theme.space(7),
-        textAlign: 'right',
-        fontSize: theme.fontSize.default.fontSize,
-        lineHeight: theme.fontSize.default.lineHeight,
-        opacity: 0.72,
-    },
-    listContent: {
-        flex: 1,
-        minWidth: 0,
-    },
-    quote: {
-        width: '100%',
-        maxWidth: '100%',
-        borderWidth: 1,
-        borderColor: theme.colors.border,
-        borderRadius: theme.radius.lg,
-        backgroundColor: theme.colors.surfaceMuted,
-        paddingHorizontal: theme.space(3),
-        paddingVertical: theme.space(2.5),
-    },
-    codeBlock: {
-        width: '100%',
-        maxWidth: '100%',
-        minWidth: 0,
-        borderWidth: 1,
-        borderColor: theme.colors.border,
-        borderRadius: theme.radius.lg,
-        backgroundColor: theme.colors.surfaceMuted,
-        overflow: 'hidden',
-        paddingTop: theme.space(2.5),
-        gap: theme.space(2),
-    },
-    codeLanguage: {
-        color: theme.colors.textMuted,
-        fontSize: theme.fontSize.xs.fontSize,
-        lineHeight: theme.fontSize.xs.lineHeight,
-        paddingHorizontal: theme.space(3),
-    },
-    codeVerticalScroller: {
-        maxHeight: theme.space(90),
-        maxWidth: '100%',
-    },
-    codeVerticalContent: {
-        minHeight: theme.space(9),
-    },
-    codeScroller: {
-        paddingHorizontal: theme.space(3),
-        paddingBottom: theme.space(3),
-    },
-    codeText: {
-        color: theme.colors.text,
-        fontFamily: 'Menlo',
-        fontSize: theme.fontSize.sm.fontSize,
-        lineHeight: theme.fontSize.sm.lineHeight,
-    },
-    rule: {
-        height: theme.space(0.25),
-        width: '100%',
-        backgroundColor: theme.colors.border,
     },
 }));

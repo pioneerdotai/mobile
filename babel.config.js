@@ -10,7 +10,14 @@ module.exports = (api) => {
                 },
             ],
             ['babel-plugin-react-compiler'],
-            ['react-native-worklets/plugin'],
+            [
+                'react-native-worklets/plugin',
+                {
+                    bundleMode: true,
+                    strictGlobal: true,
+                    workletizableModules: ['remend'],
+                },
+            ],
         ],
     };
 };

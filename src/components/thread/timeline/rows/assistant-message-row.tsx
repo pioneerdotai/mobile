@@ -68,7 +68,11 @@ export const AssistantMessageRow = ({ row, expanded, onToggle }: AssistantMessag
     return (
         <VStack style={[styles.container, row.streaming && styles.streamingContainer]}>
             {hasText ? (
-                <MarkdownContent text={row.text} document={row.markdown} />
+                <MarkdownContent
+                    text={row.text}
+                    document={row.markdown}
+                    streaming={row.streaming}
+                />
             ) : row.streaming ? (
                 <Spinner color={activityColor} />
             ) : null}
