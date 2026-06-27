@@ -18,7 +18,7 @@ import {
     timelineQueryKeys,
 } from '@/services/threads/timeline-query';
 
-const DEFAULT_TURN_WORK_PAGE_LIMIT = 100;
+const DEFAULT_TURN_WORK_PAGE_LIMIT = 30;
 const NEWEST_WORK_ANCHOR: TimelinePageAnchor = { kind: 'newest' };
 
 type TurnWorkItemsQueryOptions = {
