@@ -6,13 +6,13 @@ import {
 } from '@tanstack/react-query';
 
 import {
-    pioneerClient,
     PioneerClientNativeError,
     type TimelinePageAnchor,
     type TurnWorkBlock,
     type TurnWorkItem,
     type TurnWorkPageResponse,
 } from '@/client';
+import { requestTurnWorkPage } from '@/services/threads/timeline-page-requests';
 import {
     TIMELINE_FFI_ERROR_CODES,
     timelineQueryKeys,
@@ -77,7 +77,7 @@ export const useTurnWorkItemsQuery = ({
                 );
             }
 
-            const page = await pioneerClient.turnWorkPage({
+            const page = await requestTurnWorkPage({
                 threadId,
                 turnId,
                 anchor: pageParam,

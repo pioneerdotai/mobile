@@ -6,12 +6,12 @@ import {
 } from '@tanstack/react-query';
 
 import {
-    pioneerClient,
     PioneerClientNativeError,
     type ThreadTimelinePageResponse,
     type TimelineBlock,
     type TimelinePageAnchor,
 } from '@/client';
+import { requestThreadTimelinePage } from '@/services/threads/timeline-page-requests';
 import { TIMELINE_FFI_ERROR_CODES, timelineQueryKeys } from '@/services/threads/timeline-query';
 
 const DEFAULT_THREAD_TIMELINE_PAGE_LIMIT = 40;
@@ -59,7 +59,7 @@ export const useThreadTimelineBlocksQuery = ({
                 );
             }
 
-            const page = await pioneerClient.threadTimelinePage({
+            const page = await requestThreadTimelinePage({
                 threadId,
                 anchor: pageParam,
                 limit,
