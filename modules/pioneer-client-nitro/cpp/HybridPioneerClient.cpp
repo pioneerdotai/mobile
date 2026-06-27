@@ -240,6 +240,16 @@ std::string HybridPioneerClient::threadTreeLevelJson(const std::string& inputJso
 }
 
 std::shared_ptr<margelo::nitro::Promise<std::string>>
+HybridPioneerClient::threadTimelinePageJson(const std::string& inputJson) {
+  return callWithClientAsync(pioneer_client_ffi_thread_timeline_page, inputJson);
+}
+
+std::shared_ptr<margelo::nitro::Promise<std::string>>
+HybridPioneerClient::turnWorkPageJson(const std::string& inputJson) {
+  return callWithClientAsync(pioneer_client_ffi_turn_work_page, inputJson);
+}
+
+std::shared_ptr<margelo::nitro::Promise<std::string>>
 HybridPioneerClient::agentsDocGetJson(const std::string& inputJson) {
   return callWithClientAsync(pioneer_client_ffi_agents_doc_get, inputJson);
 }

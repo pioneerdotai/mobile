@@ -12,20 +12,34 @@ import {
     type CLIRuntimeThreadBinding,
     type ClientActiveThreadSnapshot,
     type Thread,
+    type TimelineBlock,
+    type TurnWorkBlock,
 } from '@/client';
 import Spinner from '@/components/feedback/spinner';
 import {
     ThreadComposer,
     THREAD_COMPOSER_MIN_INPUT_HEIGHT,
 } from '@/components/thread/composer/thread-composer';
-import { ThreadTimeline } from '@/components/thread/timeline/thread-timeline';
+import {
+    ThreadTimeline,
+    type TimelineTurnWorkBoundaryHint,
+    type TimelineViewportPrefetchPlan,
+} from '@/components/thread/timeline/thread-timeline';
 import { useActiveThread } from '@/hooks/use-active-thread';
 import { useGateway } from '@/hooks/use-gateway';
+import { useTimelineReconnectInvalidation } from '@/hooks/use-timeline-reconnect-invalidation';
+import { useThreadTimelineBlocksQuery } from '@/hooks/use-thread-timeline-blocks-query';
+import { useTimelineQueryCancellation } from '@/hooks/use-timeline-query-cancellation';
+import { useTurnWorkItemsQuery } from '@/hooks/use-turn-work-items-query';
 import {
     useProviderModelDisplayName,
     useProviderModelReasoningEffortLabel,
 } from '@/hooks/use-provider-model-display-name';
 import { isCliRuntimeProvider } from '@/services/providers/cli-runtime';
+import {
+    projectSemanticTimelineToRows,
+    type SemanticTurnWorkRange,
+} from '@/services/threads/semantic-projector';
 import { useActiveThreadStore } from '@/stores/active-thread';
 import { useCliRuntimeStore } from '@/stores/cli-runtime';
 import { useGatewayStore } from '@/stores/gateway';
@@ -39,6 +53,7 @@ type ThreadScreenProps = {
 const THREAD_COMPOSER_INPUT_NATIVE_ID = 'thread-composer-input';
 const STICKY_KEYBOARD_OFFSET_CLOSED = 0;
 const EMPTY_MCP_SERVER_ID_BY_NAME: Readonly<Record<string, string>> = {};
+const SEMANTIC_TURN_WORK_GROUP_PREFIX = 'semantic-turn-work-group::';
 
 type ComposerModelSelection = {
     provider: string;
@@ -94,6 +109,7 @@ const ThreadScreen = ({ threadId }: ThreadScreenProps) => {
     const treeSnapshot = useThreadTreeStore((state) => state.snapshot);
 
     const activeWorkspaceId = useWorkspaceStore((state) => state.activeWorkspaceId);
+    const expandedKeys = useActiveThreadStore((state) => state.expandedKeys);
 
     const thread =
         !isDraftThread && threadId ? (treeSnapshot?.threads_by_id[threadId] ?? null) : null;
@@ -138,6 +154,11 @@ const ThreadScreen = ({ threadId }: ThreadScreenProps) => {
     const [activeCliRuntimeSupportsSteer, setActiveCliRuntimeSupportsSteer] = useState<
         boolean | null
     >(null);
+    const [viewportPrefetchPlan, setViewportPrefetchPlan] =
+        useState<TimelineViewportPrefetchPlan | null>(null);
+    const [semanticWorkRangesByTurn, setSemanticWorkRangesByTurn] = useState<
+        Record<string, SemanticTurnWorkRange>
+    >({});
 
     const [composerHeight, setComposerHeight] = useState(THREAD_COMPOSER_MIN_INPUT_HEIGHT);
 
@@ -171,7 +192,55 @@ const ThreadScreen = ({ threadId }: ThreadScreenProps) => {
           ? snapshot
           : null;
     const visibleThreadId = visibleSnapshot?.thread_id ?? (!isDraftThread ? threadId : null);
+    const timelineIdentityKey = visibleThreadId ?? `draft:${activeWorkspaceId ?? 'none'}`;
     const visibleTurnId = visibleSnapshot?.projection.in_flight_turn_id ?? null;
+
+    useTimelineQueryCancellation(visibleThreadId, focused && !isDraftThread);
+    useTimelineReconnectInvalidation(visibleThreadId, focused && !isDraftThread);
+
+    const threadTimelineBlocksQuery = useThreadTimelineBlocksQuery({
+        threadId: visibleThreadId,
+        enabled: focused && connected && !isDraftThread,
+    });
+    const { refetch: refetchThreadTimelineBlocks } = threadTimelineBlocksQuery;
+    const threadTimelineBlocksQueryRef = useRef(threadTimelineBlocksQuery);
+    useEffect(() => {
+        threadTimelineBlocksQueryRef.current = threadTimelineBlocksQuery;
+    }, [threadTimelineBlocksQuery]);
+    const semanticTurnWorkQueryTargets = useMemo(
+        () =>
+            activeSemanticTurnWorkQueryTargets(
+                threadTimelineBlocksQuery.blocks,
+                expandedKeys,
+                visibleTurnId,
+            ),
+        [expandedKeys, threadTimelineBlocksQuery.blocks, visibleTurnId],
+    );
+    const semanticTimelineRows = useMemo(
+        () =>
+            visibleSnapshot && threadTimelineBlocksQuery.hasLoadedPage
+                ? projectSemanticTimelineToRows({
+                      snapshot: visibleSnapshot,
+                      blocks: threadTimelineBlocksQuery.blocks,
+                      expandedKeys,
+                      workRangesByTurn: semanticWorkRangesByTurn,
+                  })
+                : null,
+        [
+            expandedKeys,
+            semanticWorkRangesByTurn,
+            threadTimelineBlocksQuery.blocks,
+            threadTimelineBlocksQuery.hasLoadedPage,
+            visibleSnapshot,
+        ],
+    );
+    const timelineRowsOverride = isDraftThread
+        ? semanticTimelineRows
+        : (semanticTimelineRows ?? []);
+
+    useEffect(() => {
+        setSemanticWorkRangesByTurn({});
+    }, [visibleThreadId]);
 
     const closed = Boolean(
         visibleSnapshot?.thread?.status === 'Closed' || thread?.status === 'Closed',
@@ -180,9 +249,18 @@ const ThreadScreen = ({ threadId }: ThreadScreenProps) => {
     const waitingForSnapshot =
         !isDraftThread && (loading || (connectionState === 'Connected' && !error));
 
-    const screenError = isDraftThread ? null : error;
+    const semanticTimelineError =
+        threadTimelineBlocksQuery.error instanceof Error
+            ? threadTimelineBlocksQuery.error.message
+            : null;
+    const screenError = isDraftThread ? null : (error ?? semanticTimelineError);
 
-    const timelineLoading = isDraftThread ? false : loading;
+    const timelineLoading =
+        isDraftThread ||
+        threadTimelineBlocksQuery.hasLoadedPage ||
+        !threadTimelineBlocksQuery.isLoading
+            ? loading
+            : true;
 
     const contentTopInset = theme.screenContentPadding('child').paddingTop;
 
@@ -292,6 +370,48 @@ const ThreadScreen = ({ threadId }: ThreadScreenProps) => {
         },
         [onComposerLayout, updateComposerHeight],
     );
+
+    const refreshThreadTimeline = useCallback(async () => {
+        await Promise.all([open(), refetchThreadTimelineBlocks()]);
+    }, [open, refetchThreadTimelineBlocks]);
+
+    const handleTurnWorkRangeChange = useCallback(
+        (turnId: string, range: SemanticTurnWorkRange | null) => {
+            setSemanticWorkRangesByTurn((current) => {
+                if (range === null) {
+                    if (!(turnId in current)) {
+                        return current;
+                    }
+
+                    const next = { ...current };
+                    delete next[turnId];
+                    return next;
+                }
+
+                if (current[turnId] === range) {
+                    return current;
+                }
+
+                return {
+                    ...current,
+                    [turnId]: range,
+                };
+            });
+        },
+        [],
+    );
+
+    const handleViewportPrefetchPlanChange = useCallback((plan: TimelineViewportPrefetchPlan) => {
+        setViewportPrefetchPlan(plan);
+
+        const query = threadTimelineBlocksQueryRef.current;
+        if (plan.nearStart && query.hasNextPage && !query.isFetchingNextPage) {
+            void query.fetchNextPage();
+        }
+        if (plan.nearEnd && query.hasPreviousPage && !query.isFetchingPreviousPage) {
+            void query.fetchPreviousPage();
+        }
+    }, []);
 
     const handleSend = useCallback(() => {
         const hasComposerPayload =
@@ -507,6 +627,18 @@ const ThreadScreen = ({ threadId }: ThreadScreenProps) => {
 
     return (
         <View style={styles.container}>
+            {semanticTurnWorkQueryTargets.map((target) => (
+                <TurnWorkItemsQueryBridge
+                    key={target.work.turnId}
+                    threadId={visibleThreadId}
+                    enabled={focused && connected && !isDraftThread}
+                    expanded={target.expanded}
+                    liveVisible={target.liveVisible}
+                    boundaryHint={viewportPrefetchPlan?.turnWork[target.work.turnId] ?? null}
+                    onRangeChange={handleTurnWorkRangeChange}
+                    work={target.work}
+                />
+            ))}
             <KeyboardGestureArea
                 interpolator="ios"
                 offset={composerHeight}
@@ -518,6 +650,9 @@ const ThreadScreen = ({ threadId }: ThreadScreenProps) => {
                         <ThreadTimeline
                             ref={timelineRef}
                             conversation={visibleSnapshot}
+                            timelineIdentityKey={timelineIdentityKey}
+                            rowsOverride={timelineRowsOverride}
+                            activeTurnIdOverride={visibleTurnId}
                             loading={timelineLoading}
                             closed={closed}
                             connected={connected}
@@ -543,7 +678,8 @@ const ThreadScreen = ({ threadId }: ThreadScreenProps) => {
                             onExpandedKeysChange={
                                 isDraftThread ? updateDraftExpandedKeys : setExpandedKeys
                             }
-                            onRefresh={isDraftThread ? refreshDraftThread : open}
+                            onViewportPrefetchPlanChange={handleViewportPrefetchPlanChange}
+                            onRefresh={isDraftThread ? refreshDraftThread : refreshThreadTimeline}
                         />
                     ) : (
                         <ThreadState
@@ -599,6 +735,120 @@ const ThreadScreen = ({ threadId }: ThreadScreenProps) => {
             </KeyboardGestureArea>
         </View>
     );
+};
+
+type SemanticTurnWorkQueryTarget = {
+    work: TurnWorkBlock;
+    expanded: boolean;
+    liveVisible: boolean;
+};
+
+const TurnWorkItemsQueryBridge = ({
+    threadId,
+    enabled,
+    expanded,
+    liveVisible,
+    boundaryHint,
+    onRangeChange,
+    work,
+}: {
+    threadId: string | null;
+    enabled: boolean;
+    expanded: boolean;
+    liveVisible: boolean;
+    boundaryHint: TimelineTurnWorkBoundaryHint | null;
+    onRangeChange: (turnId: string, range: SemanticTurnWorkRange | null) => void;
+    work: TurnWorkBlock;
+}) => {
+    const workItemsQuery = useTurnWorkItemsQuery({
+        threadId,
+        turnId: work.turnId,
+        enabled,
+        expanded,
+        liveVisible,
+        work,
+    });
+    const workItemsQueryRef = useRef(workItemsQuery);
+    const lastBoundaryHintKeyRef = useRef<string | null>(null);
+    const workRange = useMemo<SemanticTurnWorkRange>(
+        () => ({
+            work: workItemsQuery.work,
+            items: workItemsQuery.items,
+            hasLoadedPage: workItemsQuery.hasLoadedPage,
+        }),
+        [workItemsQuery.hasLoadedPage, workItemsQuery.items, workItemsQuery.work],
+    );
+
+    useEffect(() => {
+        workItemsQueryRef.current = workItemsQuery;
+    }, [workItemsQuery]);
+
+    useEffect(() => {
+        onRangeChange(work.turnId, workRange);
+    }, [onRangeChange, work.turnId, workRange]);
+
+    useEffect(() => {
+        if (!boundaryHint?.visible || boundaryHint.key === lastBoundaryHintKeyRef.current) {
+            return;
+        }
+
+        lastBoundaryHintKeyRef.current = boundaryHint.key;
+        const query = workItemsQueryRef.current;
+        if (boundaryHint.nearStart && query.hasNextPage && !query.isFetchingNextPage) {
+            void query.fetchNextPage();
+        }
+        if (boundaryHint.nearEnd && query.hasPreviousPage && !query.isFetchingPreviousPage) {
+            void query.fetchPreviousPage();
+        }
+    }, [boundaryHint]);
+
+    return null;
+};
+
+const activeSemanticTurnWorkQueryTargets = (
+    blocks: readonly TimelineBlock[],
+    expandedKeys: readonly string[],
+    liveTurnId: string | null,
+): SemanticTurnWorkQueryTarget[] => {
+    const expandedTurnIds = new Set(
+        expandedKeys
+            .map(semanticTurnWorkTurnIdFromKey)
+            .filter((turnId): turnId is string => turnId !== null),
+    );
+    const targetsByTurnId = new Map<string, SemanticTurnWorkQueryTarget>();
+
+    for (const block of blocks) {
+        if (block.kind.kind !== 'turn_work') {
+            continue;
+        }
+
+        const work = block.kind.work;
+        const expanded = expandedTurnIds.has(work.turnId);
+        const protocolVisible =
+            work.presentation === 'expanded_live' ||
+            work.presentation === 'expanded_terminal_no_final';
+        const liveVisible = protocolVisible || work.turnId === liveTurnId;
+
+        if (!expanded && !liveVisible) {
+            continue;
+        }
+
+        targetsByTurnId.set(work.turnId, {
+            work,
+            expanded,
+            liveVisible,
+        });
+    }
+
+    return Array.from(targetsByTurnId.values());
+};
+
+const semanticTurnWorkTurnIdFromKey = (key: string): string | null => {
+    if (!key.startsWith(SEMANTIC_TURN_WORK_GROUP_PREFIX)) {
+        return null;
+    }
+
+    return key.slice(SEMANTIC_TURN_WORK_GROUP_PREFIX.length) || null;
 };
 
 const ThreadState = ({

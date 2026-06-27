@@ -6,6 +6,9 @@
     "pending_request_id": {
       "type": "string"
     },
+    "semantic_timeline_patch": {
+      "$ref": "#/$defs/SemanticTimelineCachePatch"
+    },
     "snapshot": {
       "$ref": "#/$defs/ClientActiveThreadSnapshot"
     },
@@ -20,7 +23,8 @@
     "thread_id",
     "turn_id",
     "pending_request_id",
-    "snapshot"
+    "snapshot",
+    "semantic_timeline_patch"
   ],
   "$defs": {
     "AgentMessagePhase": {
@@ -184,6 +188,44 @@
         "deleted",
         "missing_external_source",
         "failed"
+      ]
+    },
+    "ByteRange": {
+      "type": "object",
+      "properties": {
+        "end": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "start": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "start",
+        "end"
+      ]
+    },
+    "CLIRuntimePendingRequestStatus": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "answered",
+        "resolved",
+        "cancelled",
+        "expired"
+      ]
+    },
+    "CLIRuntimeRequestKind": {
+      "type": "string",
+      "enum": [
+        "command_approval",
+        "file_change_approval",
+        "user_input",
+        "other"
       ]
     },
     "ClientActiveThreadSnapshot": {
@@ -1157,6 +1199,60 @@
         "turn_id"
       ]
     },
+    "SemanticTimelineCachePatch": {
+      "type": "object",
+      "properties": {
+        "changed_blocks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TimelineBlock"
+          }
+        },
+        "changed_work_items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TurnWorkItem"
+          }
+        },
+        "removed_block_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "removed_work_items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SemanticTimelineRemovedWorkItem"
+          }
+        },
+        "thread_id": {
+          "type": "string"
+        },
+        "workspace_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "workspace_id",
+        "thread_id"
+      ]
+    },
+    "SemanticTimelineRemovedWorkItem": {
+      "type": "object",
+      "properties": {
+        "turn_id": {
+          "type": "string"
+        },
+        "work_item_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "turn_id",
+        "work_item_id"
+      ]
+    },
     "StorageOutputPolicy": {
       "oneOf": [
         {
@@ -1264,6 +1360,23 @@
         "manual",
         "external",
         "dependency"
+      ]
+    },
+    "TextElement": {
+      "type": "object",
+      "properties": {
+        "byte_range": {
+          "$ref": "#/$defs/ByteRange"
+        },
+        "placeholder": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "byte_range"
       ]
     },
     "Thread": {
@@ -1380,6 +1493,200 @@
         "Closed"
       ]
     },
+    "TimelineBlock": {
+      "type": "object",
+      "properties": {
+        "blockId": {
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/TimelineBlockKind"
+        },
+        "sortKey": {
+          "type": "string"
+        },
+        "startedAtUnixMs": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "int64"
+        },
+        "threadId": {
+          "type": "string"
+        },
+        "turnId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "updatedAtUnixMs": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "int64"
+        },
+        "workspaceId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "workspaceId",
+        "threadId",
+        "blockId",
+        "sortKey",
+        "kind"
+      ]
+    },
+    "TimelineBlockKind": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "attachments": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/UserMessageAttachment"
+              }
+            },
+            "inputs": {
+              "type": "array",
+              "default": [],
+              "items": {
+                "$ref": "#/$defs/UserInput"
+              }
+            },
+            "itemId": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "kind": {
+              "type": "string",
+              "const": "user_message"
+            },
+            "text": {
+              "type": "string",
+              "default": ""
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "turn_work"
+            },
+            "work": {
+              "$ref": "#/$defs/TurnWorkBlock"
+            }
+          },
+          "required": [
+            "kind",
+            "work"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "itemId": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "assistant_message"
+            },
+            "markdown": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/MarkdownDocument"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "status": {
+              "$ref": "#/$defs/TurnWorkItemStatus",
+              "default": "completed"
+            },
+            "text": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "itemId",
+            "text"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "turn_state"
+            },
+            "message": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "state": {
+              "$ref": "#/$defs/TurnWorkState"
+            }
+          },
+          "required": [
+            "kind",
+            "state"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "pending_request"
+            },
+            "message": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "requestId": {
+              "type": "string"
+            },
+            "requestKind": {
+              "$ref": "#/$defs/CLIRuntimeRequestKind"
+            },
+            "status": {
+              "$ref": "#/$defs/CLIRuntimePendingRequestStatus"
+            },
+            "title": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "kind",
+            "requestId",
+            "requestKind",
+            "status"
+          ]
+        }
+      ]
+    },
     "TimelineCoalescedToolsKind": {
       "type": "string",
       "enum": [
@@ -1410,6 +1717,17 @@
         "count",
         "is_open",
         "kind"
+      ]
+    },
+    "TimelineCursor": {
+      "type": "object",
+      "properties": {
+        "value": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "value"
       ]
     },
     "TimelineEntry": {
@@ -3370,6 +3688,22 @@
         }
       ]
     },
+    "TurnItemType": {
+      "type": "string",
+      "enum": [
+        "user_message",
+        "agent_message",
+        "reasoning",
+        "system_event",
+        "task",
+        "command_execution",
+        "file_change",
+        "web_search",
+        "web_fetch",
+        "download",
+        "dynamic_tool_call"
+      ]
+    },
     "TurnKind": {
       "type": "string",
       "enum": [
@@ -3526,6 +3860,105 @@
         "phase"
       ]
     },
+    "TurnWorkBlock": {
+      "type": "object",
+      "properties": {
+        "afterCursor": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TimelineCursor"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "beforeCursor": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TimelineCursor"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "completedAtUnixMs": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "int64"
+        },
+        "elapsedMs": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0
+        },
+        "firstWorkItemId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hasMoreAfter": {
+          "type": "boolean"
+        },
+        "hasMoreBefore": {
+          "type": "boolean"
+        },
+        "hiddenWorkCount": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "lastWorkItemId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "presentation": {
+          "$ref": "#/$defs/TurnWorkPresentation"
+        },
+        "startedAtUnixMs": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "int64"
+        },
+        "state": {
+          "$ref": "#/$defs/TurnWorkState"
+        },
+        "turnId": {
+          "type": "string"
+        },
+        "visibleWorkCount": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "workCount": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "turnId",
+        "presentation",
+        "state",
+        "workCount",
+        "visibleWorkCount",
+        "hiddenWorkCount",
+        "hasMoreBefore",
+        "hasMoreAfter"
+      ]
+    },
     "TurnWorkGroupRow": {
       "type": "object",
       "properties": {
@@ -3551,6 +3984,284 @@
         "toggle_key",
         "anchor_entry_id",
         "is_open"
+      ]
+    },
+    "TurnWorkItem": {
+      "type": "object",
+      "properties": {
+        "completedAtUnixMs": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "int64"
+        },
+        "item": {
+          "$ref": "#/$defs/TurnItem"
+        },
+        "itemId": {
+          "type": "string"
+        },
+        "itemType": {
+          "$ref": "#/$defs/TurnItemType"
+        },
+        "metadata": true,
+        "orderKey": {
+          "type": "string"
+        },
+        "startedAtUnixMs": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "int64"
+        },
+        "status": {
+          "$ref": "#/$defs/TurnWorkItemStatus"
+        },
+        "turnId": {
+          "type": "string"
+        },
+        "workItemId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "workItemId",
+        "itemId",
+        "turnId",
+        "orderKey",
+        "itemType",
+        "status",
+        "item"
+      ]
+    },
+    "TurnWorkItemStatus": {
+      "type": "string",
+      "enum": [
+        "running",
+        "completed",
+        "blocked",
+        "failed",
+        "cancelled"
+      ]
+    },
+    "TurnWorkPresentation": {
+      "type": "string",
+      "enum": [
+        "expanded_live",
+        "collapsed_after_final",
+        "expanded_terminal_no_final"
+      ]
+    },
+    "TurnWorkState": {
+      "type": "string",
+      "enum": [
+        "starting",
+        "running",
+        "waiting_for_approval",
+        "stalled",
+        "completed",
+        "blocked",
+        "failed",
+        "interrupted"
+      ]
+    },
+    "UserInput": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "text": {
+              "type": "string"
+            },
+            "textElements": {
+              "type": "array",
+              "default": [],
+              "items": {
+                "$ref": "#/$defs/TextElement"
+              }
+            },
+            "type": {
+              "type": "string",
+              "const": "text"
+            }
+          },
+          "required": [
+            "type",
+            "text"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "image"
+            },
+            "url": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "url"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "const": "localImage"
+            }
+          },
+          "required": [
+            "type",
+            "path"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "file"
+            },
+            "url": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "url"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "const": "localFile"
+            }
+          },
+          "required": [
+            "type",
+            "path"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "audio"
+            },
+            "url": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "url"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "const": "localAudio"
+            }
+          },
+          "required": [
+            "type",
+            "path"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "video"
+            },
+            "url": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "url"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "const": "localVideo"
+            }
+          },
+          "required": [
+            "type",
+            "path"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "artifactId": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "const": "artifact"
+            },
+            "versionId": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "type",
+            "artifactId"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "path": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "const": "mention"
+            }
+          },
+          "required": [
+            "type",
+            "name",
+            "path"
+          ]
+        }
       ]
     },
     "UserMessageAttachment": {

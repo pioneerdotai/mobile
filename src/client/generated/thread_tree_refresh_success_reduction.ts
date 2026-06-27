@@ -32,8 +32,8 @@ export type TurnStatus = 'InProgress' | 'Completed' | 'Failed' | 'Interrupted' |
 export interface ThreadTreeRefreshSuccessReduction {
   agents_docs: ThreadAgentsDocSummary[];
   drive_thread_start_queue: boolean;
-  ensure_thread_history_loaded?: string | null;
   ensure_thread_subscription?: ThreadTreeThreadAction | null;
+  ensure_thread_timeline_loaded?: string | null;
   folders: ThreadFolder[];
   placements: ThreadPlacement[];
   request_thread_start_if_needed: boolean;

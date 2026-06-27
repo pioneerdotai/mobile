@@ -92,6 +92,11 @@ export type GatewayNotification =
       [k: string]: unknown;
     }
   | {
+      kind: 'thread_timeline_blocks_changed';
+      params: ThreadTimelineBlocksChangedNotification;
+      [k: string]: unknown;
+    }
+  | {
       kind: 'turn_started';
       params: TurnStartedNotification;
       [k: string]: unknown;
@@ -112,8 +117,13 @@ export type GatewayNotification =
       [k: string]: unknown;
     }
   | {
-      kind: 'turn_timeline_changed';
-      params: TurnTimelineChangedNotification;
+      kind: 'turn_work_items_changed';
+      params: TurnWorkItemsChangedNotification;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'turn_work_state_changed';
+      params: TurnWorkStateChangedNotification;
       [k: string]: unknown;
     }
   | {
@@ -495,11 +505,17 @@ export type PromptManifestHookTruncation = 'none' | 'hook' | 'prompt' | 'hook_an
 export type PromptManifestProfile = 'assistant_full' | 'assistant_minimal' | 'assistant_none' | 'cli_runtime';
 export type TurnStatus = 'InProgress' | 'Completed' | 'Failed' | 'Interrupted' | 'Blocked';
 export type ThreadAgentsDocStatus = 'draft' | 'active' | 'archived';
-export type TurnTimelineChangedReason =
-  | 'parent_turn_changed'
-  | 'task_event_changed'
-  | 'child_turn_changed'
-  | 'collapse_state_hint_changed';
+export type TimelineChangeReason = 'backfill' | 'live_event' | 'state_changed' | 'page_invalidated';
+export type TurnWorkPresentation = 'expanded_live' | 'collapsed_after_final' | 'expanded_terminal_no_final';
+export type TurnWorkState =
+  | 'starting'
+  | 'running'
+  | 'waiting_for_approval'
+  | 'stalled'
+  | 'completed'
+  | 'blocked'
+  | 'failed'
+  | 'interrupted';
 export type ExecutionWindowStatus =
   | 'running'
   | 'exhausted'
@@ -1566,6 +1582,20 @@ export interface ThreadAgentsDocResolvedPayload {
   source_path?: string[];
   [k: string]: unknown;
 }
+export interface ThreadTimelineBlocksChangedNotification {
+  afterCursor?: TimelineCursor | null;
+  beforeCursor?: TimelineCursor | null;
+  changedBlockIds?: string[];
+  reason: TimelineChangeReason;
+  removedBlockIds?: string[];
+  threadId: string;
+  workspaceId: string;
+  [k: string]: unknown;
+}
+export interface TimelineCursor {
+  value: string;
+  [k: string]: unknown;
+}
 export interface TurnStartedNotification {
   thread_id: string;
   turn: Turn;
@@ -1601,15 +1631,41 @@ export interface TurnBlockedResumeMetadata {
   resume_requirements: string[];
   [k: string]: unknown;
 }
-export interface TurnTimelineChangedNotification {
-  childThreadId?: string | null;
-  childTurnId?: string | null;
-  reason: TurnTimelineChangedReason;
-  runId?: string | null;
-  taskId?: string | null;
+export interface TurnWorkItemsChangedNotification {
+  afterCursor?: TimelineCursor | null;
+  beforeCursor?: TimelineCursor | null;
+  changedWorkItemIds?: string[];
+  reason: TimelineChangeReason;
+  removedWorkItemIds?: string[];
   threadId: string;
   turnId: string;
   workspaceId: string;
+  [k: string]: unknown;
+}
+export interface TurnWorkStateChangedNotification {
+  reason: TimelineChangeReason;
+  threadId: string;
+  turnId: string;
+  work: TurnWorkBlock;
+  workspaceId: string;
+  [k: string]: unknown;
+}
+export interface TurnWorkBlock {
+  afterCursor?: TimelineCursor | null;
+  beforeCursor?: TimelineCursor | null;
+  completedAtUnixMs?: number | null;
+  elapsedMs?: number | null;
+  firstWorkItemId?: string | null;
+  hasMoreAfter: boolean;
+  hasMoreBefore: boolean;
+  hiddenWorkCount: number;
+  lastWorkItemId?: string | null;
+  presentation: TurnWorkPresentation;
+  startedAtUnixMs?: number | null;
+  state: TurnWorkState;
+  turnId: string;
+  visibleWorkCount: number;
+  workCount: number;
   [k: string]: unknown;
 }
 export interface TurnExecutionWindowStartedNotification {

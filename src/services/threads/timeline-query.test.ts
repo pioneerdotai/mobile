@@ -1,0 +1,132 @@
+import { describe, expect, it, jest } from '@jest/globals';
+import { QueryClient, type Query, type QueryKey } from '@tanstack/react-query';
+
+import { PioneerClientNativeError } from '@/client';
+
+import {
+    TIMELINE_FFI_ERROR_CODES,
+    cancelTimelineQueriesExceptThread,
+    cancelTimelineQueriesForThread,
+    invalidateThreadTimelinePages,
+    invalidateTimelineQueriesForThread,
+    invalidateTurnWorkQueries,
+    timelineQueryKeyThreadId,
+    timelineQueryKeys,
+    timelineQueryRetry,
+    timelineQueryRetryDelay,
+} from './timeline-query';
+
+jest.mock('@/client', () => ({
+    PioneerClientNativeError: class PioneerClientNativeError extends Error {
+        code: string | null;
+
+        constructor(message: string, code: string | null = null) {
+            super(message);
+            this.code = code;
+        }
+    },
+}));
+
+const query = (queryKey: QueryKey): Query => ({ queryKey }) as Query;
+
+describe('mobile timeline query orchestration', () => {
+    it('keeps turn work page keys stable across live work metadata updates', () => {
+        const threadKey = timelineQueryKeys.threadPages('thread_a');
+        const workKey = timelineQueryKeys.turnWorkPages('thread_a', 'turn_a');
+        const updatedWorkKey = timelineQueryKeys.turnWorkPages('thread_a', 'turn_a');
+
+        expect(timelineQueryKeyThreadId(threadKey)).toBe('thread_a');
+        expect(timelineQueryKeyThreadId(workKey)).toBe('thread_a');
+        expect(workKey).toContainEqual(
+            expect.objectContaining({
+                direction: 'turnWork',
+                threadId: 'thread_a',
+                turnId: 'turn_a',
+            }),
+        );
+        expect(updatedWorkKey).toEqual(workKey);
+    });
+
+    it('cancels stale timeline requests on thread switch by predicate', async () => {
+        const queryClient = new QueryClient();
+        const cancelSpy = jest.spyOn(queryClient, 'cancelQueries').mockResolvedValue(undefined);
+
+        await cancelTimelineQueriesExceptThread(queryClient, 'thread_a');
+
+        const filter = cancelSpy.mock.calls[0]?.[0];
+        expect(filter?.predicate?.(query(timelineQueryKeys.threadPages('thread_b')))).toBe(true);
+        expect(filter?.predicate?.(query(timelineQueryKeys.turnWorkPages('thread_b', 'turn_b')))).toBe(
+            true,
+        );
+        expect(filter?.predicate?.(query(timelineQueryKeys.threadPages('thread_a')))).toBe(false);
+        expect(filter?.predicate?.(query(['other']))).toBe(false);
+
+        await cancelTimelineQueriesForThread(queryClient, 'thread_a');
+        const threadFilter = cancelSpy.mock.calls[1]?.[0];
+        expect(threadFilter?.predicate?.(query(timelineQueryKeys.threadPages('thread_a')))).toBe(
+            true,
+        );
+        expect(threadFilter?.predicate?.(query(timelineQueryKeys.threadPages('thread_b')))).toBe(
+            false,
+        );
+    });
+
+    it('invalidates active semantic query slices without touching unrelated threads', async () => {
+        const queryClient = new QueryClient();
+        const invalidateSpy = jest
+            .spyOn(queryClient, 'invalidateQueries')
+            .mockResolvedValue(undefined);
+
+        await invalidateTimelineQueriesForThread(queryClient, 'thread_a');
+        await invalidateThreadTimelinePages(queryClient, 'thread_a');
+        await invalidateTurnWorkQueries(queryClient, 'thread_a', 'turn_a');
+        await invalidateTimelineQueriesForThread(queryClient, null);
+        await invalidateTurnWorkQueries(queryClient, 'thread_a', null);
+
+        expect(invalidateSpy).toHaveBeenCalledTimes(3);
+        expect(invalidateSpy.mock.calls[0]?.[0]).toEqual({
+            queryKey: timelineQueryKeys.thread('thread_a'),
+            refetchType: 'active',
+        });
+        expect(invalidateSpy.mock.calls[1]?.[0]).toEqual({
+            queryKey: timelineQueryKeys.threadPages('thread_a'),
+            refetchType: 'active',
+        });
+        expect(invalidateSpy.mock.calls[2]?.[0]).toEqual({
+            queryKey: timelineQueryKeys.turnWork('thread_a', 'turn_a'),
+            refetchType: 'active',
+        });
+    });
+
+    it('does not retry cancellation, stale cursor, or validation errors', () => {
+        expect(
+            timelineQueryRetry(
+                0,
+                new PioneerClientNativeError('cancelled', TIMELINE_FFI_ERROR_CODES.cancelled),
+            ),
+        ).toBe(false);
+        expect(
+            timelineQueryRetry(
+                0,
+                new PioneerClientNativeError('stale', TIMELINE_FFI_ERROR_CODES.staleCursor),
+            ),
+        ).toBe(false);
+        expect(
+            timelineQueryRetry(
+                0,
+                new PioneerClientNativeError('bad limit', TIMELINE_FFI_ERROR_CODES.validation),
+            ),
+        ).toBe(false);
+        expect(
+            timelineQueryRetry(
+                2,
+                new PioneerClientNativeError(
+                    'reconnect',
+                    TIMELINE_FFI_ERROR_CODES.reconnectRequired,
+                ),
+            ),
+        ).toBe(true);
+        expect(timelineQueryRetry(2, new Error('generic'))).toBe(false);
+        expect(timelineQueryRetryDelay(10)).toBe(4_000);
+    });
+});

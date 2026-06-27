@@ -49,6 +49,8 @@ char* pioneer_client_ffi_composer_filter_skill_rows(PioneerClientFfi* client, co
 char* pioneer_client_ffi_composer_filter_mcp_rows(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_thread_tree_refresh(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_thread_tree_level(PioneerClientFfi* client, const char* input_json);
+char* pioneer_client_ffi_thread_timeline_page(PioneerClientFfi* client, const char* input_json);
+char* pioneer_client_ffi_turn_work_page(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_agents_doc_get(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_agents_doc_save(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_agents_doc_archive(PioneerClientFfi* client, const char* input_json);

@@ -90,6 +90,8 @@ namespace margelo::nitro::pioneer::client {
       virtual std::string composerFilterMcpRowsJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> threadTreeRefreshJson(const std::string& inputJson) = 0;
       virtual std::string threadTreeLevelJson(const std::string& inputJson) = 0;
+      virtual std::shared_ptr<Promise<std::string>> threadTimelinePageJson(const std::string& inputJson) = 0;
+      virtual std::shared_ptr<Promise<std::string>> turnWorkPageJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> agentsDocGetJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> agentsDocSaveJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> agentsDocArchiveJson(const std::string& inputJson) = 0;

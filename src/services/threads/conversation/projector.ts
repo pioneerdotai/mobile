@@ -204,7 +204,7 @@ const expandedContains = (
     return (expandedKeys as Readonly<Record<string, boolean>>)[key] === true;
 };
 
-const formatElapsedMs = (elapsedMs: number): string => {
+export const formatElapsedMs = (elapsedMs: number): string => {
     const totalSeconds = Math.floor(elapsedMs / 1_000);
     const hours = Math.floor(totalSeconds / 3_600);
     const minutes = Math.floor((totalSeconds % 3_600) / 60);

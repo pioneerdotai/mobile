@@ -3,6 +3,7 @@ import {
     useCallback,
     useEffect,
     useMemo,
+    useRef,
     useState,
     type Ref,
     type ReactElement,
@@ -15,10 +16,13 @@ import Reanimated, {
 } from 'react-native-reanimated';
 import { useReanimatedKeyboardAnimation } from 'react-native-keyboard-controller';
 import { KeyboardAwareLegendList } from '@legendapp/list/keyboard';
-import type { LegendListRef } from '@legendapp/list/react-native';
+import type { LegendListRef, OnViewableItemsChanged } from '@legendapp/list/react-native';
 
 import type { ClientActiveThreadSnapshot } from '@/client';
-import { projectConversationToRows } from '@/services/threads/conversation/projector';
+import {
+    formatElapsedMs,
+    projectConversationToRows,
+} from '@/services/threads/conversation/projector';
 import type { TimelinePendingRequest, TimelineRow } from '@/services/threads/conversation/timeline';
 import { CLIRuntimePendingRequestCard } from '@/components/thread/cli-runtime-pending-requests';
 import { Box } from '@/components/primitives/box';
@@ -40,10 +44,20 @@ import {
     UserMessageRow,
     WorkGroupRow,
 } from './rows';
+import { viewportPrefetchPlan } from './viewport-prefetch';
+import type { TimelineViewportPrefetchPlan } from './viewport-prefetch';
 import { VStack } from '@/components/primitives/vstack';
+
+export type {
+    TimelineTurnWorkBoundaryHint,
+    TimelineViewportPrefetchPlan,
+} from './viewport-prefetch';
 
 type ThreadTimelineProps = {
     conversation: ClientActiveThreadSnapshot;
+    timelineIdentityKey: string;
+    rowsOverride?: TimelineRow[] | null;
+    activeTurnIdOverride?: string | null;
     loading: boolean;
     closed: boolean;
     connected: boolean;
@@ -61,6 +75,7 @@ type ThreadTimelineProps = {
     onOpenArtifact?: (artifactId: string) => void;
     onOpenMcpServer?: (serverId: string) => void;
     onExpandedKeysChange: (keys: string[]) => void;
+    onViewportPrefetchPlanChange?: (plan: TimelineViewportPrefetchPlan) => void;
     onRefresh: () => Promise<void>;
 };
 
@@ -70,6 +85,9 @@ const TIMELINE_ESTIMATED_ITEM_SIZE = 64;
 const TIMELINE_CONTENT_BOTTOM_PADDING_UNITS = 6;
 const TIMELINE_KEYBOARD_LIFT_BEHAVIOR = 'whenAtEnd';
 const TIMELINE_ANCHOR_MAX_LINES = 2;
+const TIMELINE_VIEWABILITY_CONFIG = {
+    itemVisiblePercentThreshold: 1,
+};
 
 export const ThreadTimeline = forwardRef<LegendListRef, ThreadTimelineProps>((props, ref) => {
     return <ThreadTimelineContent {...props} timelineRef={ref} />;
@@ -83,6 +101,9 @@ type ThreadTimelineContentProps = ThreadTimelineProps & {
 
 const ThreadTimelineContent = ({
     conversation,
+    timelineIdentityKey,
+    rowsOverride,
+    activeTurnIdOverride,
     loading,
     closed,
     connected,
@@ -100,13 +121,22 @@ const ThreadTimelineContent = ({
     onOpenArtifact,
     onOpenMcpServer,
     onExpandedKeysChange,
+    onViewportPrefetchPlanChange,
     onRefresh,
     timelineRef,
 }: ThreadTimelineContentProps) => {
-    const { theme } = useUnistyles();
     const [refreshing, setRefreshing] = useState(false);
     const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
     const [timelineNowMs, setTimelineNowMs] = useState(() => Date.now());
+    const lastViewportPrefetchPlanKeyRef = useRef<string | null>(null);
+    const viewportScrollIntentGenerationRef = useRef(0);
+    const consumedViewportScrollIntentGenerationRef = useRef(0);
+
+    useEffect(() => {
+        lastViewportPrefetchPlanKeyRef.current = null;
+        viewportScrollIntentGenerationRef.current = 0;
+        consumedViewportScrollIntentGenerationRef.current = 0;
+    }, [timelineIdentityKey]);
 
     const expandedKeys = useMemo(
         () => Object.keys(expandedRows).filter((key) => expandedRows[key]),
@@ -114,25 +144,33 @@ const ThreadTimelineContent = ({
     );
 
     const hasLiveTimelineItems = useMemo(
-        () => conversation.projection.items.some((item) => item.status === 'Running'),
-        [conversation],
+        () =>
+            rowsOverride
+                ? rowsOverride.some((row) => row.type === 'running' || timelineRowIsStreaming(row))
+                : conversation.projection.items.some((item) => item.status === 'Running'),
+        [conversation, rowsOverride],
     );
 
     const rows = useMemo(
         () =>
-            projectConversationToRows(conversation, {
-                expandedKeys: expandedRows,
-                nowMs: timelineNowMs,
-                pendingRequests,
-            }),
-        [conversation, expandedRows, pendingRequests, timelineNowMs],
+            rowsOverride
+                ? insertPendingRequestRows(
+                      hydrateRunningRowsElapsed(rowsOverride, timelineNowMs),
+                      pendingRequests,
+                  )
+                : projectConversationToRows(conversation, {
+                      expandedKeys: expandedRows,
+                      nowMs: timelineNowMs,
+                      pendingRequests,
+                  }),
+        [conversation, expandedRows, pendingRequests, rowsOverride, timelineNowMs],
     );
 
     const rowCount = rows.length;
     const hasRunningTimelineRow = useMemo(() => rows.some((row) => row.type === 'running'), [rows]);
     const activeTurnId = useMemo(
-        () => activeProjectionTurnId(conversation.projection.turns),
-        [conversation.projection.turns],
+        () => activeTurnIdOverride ?? activeProjectionTurnId(conversation.projection.turns),
+        [activeTurnIdOverride, conversation.projection.turns],
     );
 
     const anchorIndex = useMemo(() => {
@@ -211,6 +249,10 @@ const ThreadTimelineContent = ({
         }));
     }, []);
 
+    const markViewportScrollIntent = useCallback(() => {
+        viewportScrollIntentGenerationRef.current += 1;
+    }, []);
+
     const listExtraData = useMemo(
         () => ({
             expandedRows,
@@ -236,10 +278,37 @@ const ThreadTimelineContent = ({
         ),
         [expandedRows, mcpServerIdByName, onOpenArtifact, onOpenMcpServer, toggleExpandedRow],
     );
+    const handleViewableItemsChanged = useCallback<
+        NonNullable<OnViewableItemsChanged<TimelineRow>>
+    >(
+        (info) => {
+            if (!onViewportPrefetchPlanChange) {
+                return;
+            }
+            const scrollIntentGeneration = viewportScrollIntentGenerationRef.current;
+            if (scrollIntentGeneration <= consumedViewportScrollIntentGenerationRef.current) {
+                return;
+            }
+
+            const visibleIndices = info.viewableItems
+                .map((token) => token.index)
+                .filter((index) => index >= 0 && index < rows.length);
+            const plan = viewportPrefetchPlan(rows, visibleIndices, info.start, info.end);
+            if (!plan || plan.key === lastViewportPrefetchPlanKeyRef.current) {
+                return;
+            }
+
+            lastViewportPrefetchPlanKeyRef.current = plan.key;
+            consumedViewportScrollIntentGenerationRef.current = scrollIntentGeneration;
+            onViewportPrefetchPlanChange(plan);
+        },
+        [onViewportPrefetchPlanChange, rows],
+    );
 
     return (
         <Box style={styles.timelineRoot}>
             <KeyboardAwareLegendList<TimelineRow>
+                key={timelineIdentityKey}
                 ref={timelineRef}
                 alignItemsAtEnd
                 contentInsetEndAdjustment={contentInsetEndAdjustment}
@@ -260,6 +329,9 @@ const ThreadTimelineContent = ({
                 }}
                 maintainScrollAtEndThreshold={BOTTOM_FOLLOW_THRESHOLD_RATIO}
                 maintainVisibleContentPosition
+                onMomentumScrollBegin={markViewportScrollIntent}
+                onScrollBeginDrag={markViewportScrollIntent}
+                onViewableItemsChanged={handleViewableItemsChanged}
                 onRefresh={handleRefresh}
                 recycleItems
                 refreshing={refreshing}
@@ -268,6 +340,7 @@ const ThreadTimelineContent = ({
                 scrollEventThrottle={16}
                 showsVerticalScrollIndicator={false}
                 style={styles.timelineList}
+                viewabilityConfig={TIMELINE_VIEWABILITY_CONFIG}
                 contentContainerStyle={[
                     styles.content,
                     contentTopInset > 0 && { paddingTop: contentTopInset },
@@ -458,6 +531,58 @@ const isActiveStatus = (status: string) => {
         normalized.includes('pending')
     );
 };
+
+const timelineRowIsStreaming = (row: TimelineRow) => {
+    switch (row.type) {
+        case 'assistant-message':
+        case 'reasoning':
+        case 'command-execution':
+            return row.streaming;
+        case 'file-change':
+        case 'tool-call':
+            return isActiveStatus(row.status);
+        default:
+            return false;
+    }
+};
+
+const insertPendingRequestRows = (
+    rows: readonly TimelineRow[],
+    pendingRequests: readonly TimelinePendingRequest[],
+): TimelineRow[] => {
+    if (pendingRequests.length === 0) {
+        return [...rows];
+    }
+
+    const requestRows = pendingRequests.map(
+        (entry): TimelineRow => ({
+            type: 'cli-runtime-request',
+            key: `timeline-cli-runtime-request::${entry.request_id}`,
+            turnId: entry.turn_id,
+            entry,
+        }),
+    );
+    const runningIndex = rows.findIndex((row) => row.type === 'running');
+
+    if (runningIndex < 0) {
+        return [...rows, ...requestRows];
+    }
+
+    return [...rows.slice(0, runningIndex), ...requestRows, ...rows.slice(runningIndex)];
+};
+
+const hydrateRunningRowsElapsed = (rows: readonly TimelineRow[], nowMs: number): TimelineRow[] =>
+    rows.map((row) => {
+        if (row.type !== 'running') {
+            return row;
+        }
+
+        const startedAtUnixMs = row.startedAtUnixMs ?? null;
+        const elapsedMs = Math.max(0, nowMs - (startedAtUnixMs ?? nowMs));
+        const elapsedLabel = elapsedMs >= 1_000 ? formatElapsedMs(elapsedMs) : null;
+
+        return row.elapsedLabel === elapsedLabel ? row : { ...row, elapsedLabel };
+    });
 
 const findLastIndex = <T,>(items: readonly T[], predicate: (item: T) => boolean) => {
     for (let index = items.length - 1; index >= 0; index -= 1) {

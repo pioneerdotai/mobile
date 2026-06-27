@@ -9,6 +9,7 @@ import type { ClientActiveThreadCancelTurnRequest } from './generated/client_act
 import type { ClientActiveThreadCancelTurnResult } from './generated/client_active_thread_cancel_turn_result';
 import type { ClientActiveThreadClearResult } from './generated/client_active_thread_clear_result';
 import type { ClientActiveThreadEventRequest } from './generated/client_active_thread_event_request';
+import type { ClientActiveThreadEventResult } from './generated/client_active_thread_event_result';
 import type { ClientActiveThreadOpenRequest } from './generated/client_active_thread_open_request';
 import type { ClientActiveThreadSendTextRequest } from './generated/client_active_thread_send_text_request';
 import type { ClientActiveThreadSendTextResult } from './generated/client_active_thread_send_text_result';
@@ -71,12 +72,16 @@ import type { ClientThreadTreeLevel } from './generated/thread_tree_level';
 import type { ThreadTreeLevelRequest } from './generated/thread_tree_level_request';
 import type { ClientThreadTreeQueryData } from './generated/thread_tree_query_data';
 import type { ThreadTreeRefreshRequest } from './generated/thread_tree_refresh_request';
+import type { ThreadTimelinePageParams } from './generated/thread_timeline_page_params';
+import type { ThreadTimelinePageResponse } from './generated/thread_timeline_page_response';
 import type { ThreadAgentsDocArchiveParams } from './generated/thread_agents_doc_archive_params';
 import type { ThreadAgentsDocArchiveResponse } from './generated/thread_agents_doc_archive_response';
 import type { ThreadAgentsDocGetParams } from './generated/thread_agents_doc_get_params';
 import type { ThreadAgentsDocGetResponse } from './generated/thread_agents_doc_get_response';
 import type { ThreadAgentsDocSaveParams } from './generated/thread_agents_doc_save_params';
 import type { ThreadAgentsDocSaveResponse } from './generated/thread_agents_doc_save_response';
+import type { TurnWorkPageParams } from './generated/turn_work_page_params';
+import type { TurnWorkPageResponse } from './generated/turn_work_page_response';
 import type { UpdateRemoteGatewayRegistryPlan } from './generated/update_remote_gateway_registry_plan';
 import type { WorkspaceBootstrapRequest } from './generated/workspace_bootstrap_request';
 import type { WorkspaceBootstrapSuccessReduction } from './generated/workspace_bootstrap_success_reduction';
@@ -95,6 +100,7 @@ export type { ClientActiveThreadCancelTurnRequest } from './generated/client_act
 export type { ClientActiveThreadCancelTurnResult } from './generated/client_active_thread_cancel_turn_result';
 export type { ClientActiveThreadClearResult } from './generated/client_active_thread_clear_result';
 export type { ClientActiveThreadEventRequest } from './generated/client_active_thread_event_request';
+export type { ClientActiveThreadEventResult } from './generated/client_active_thread_event_result';
 export type { ClientActiveThreadOpenRequest } from './generated/client_active_thread_open_request';
 export type { ClientActiveThreadSendTextRequest } from './generated/client_active_thread_send_text_request';
 export type { ThreadMode } from './generated/client_active_thread_send_text_request';
@@ -190,6 +196,15 @@ export type {
     ThreadPlacement,
 } from './generated/thread_tree_query_data';
 export type { ThreadTreeRefreshRequest } from './generated/thread_tree_refresh_request';
+export type { ThreadTimelinePageParams } from './generated/thread_timeline_page_params';
+export type {
+    ThreadTimelinePageResponse,
+    TimelineBlock,
+    TimelineBlockKind,
+} from './generated/thread_timeline_page_response';
+export type { TimelineCursor } from './generated/timeline_cursor';
+export type { TimelinePageAnchor } from './generated/timeline_page_anchor';
+export type { TimelinePageInfo } from './generated/timeline_page_info';
 export type { ThreadAgentsDocArchiveParams } from './generated/thread_agents_doc_archive_params';
 export type { ThreadAgentsDocArchiveResponse } from './generated/thread_agents_doc_archive_response';
 export type { ThreadAgentsDocGetParams } from './generated/thread_agents_doc_get_params';
@@ -200,6 +215,16 @@ export type { ThreadAgentsDocSaveParams } from './generated/thread_agents_doc_sa
 export type { ThreadAgentsDocSaveReason } from './generated/thread_agents_doc_save_reason';
 export type { ThreadAgentsDocSaveResponse } from './generated/thread_agents_doc_save_response';
 export type { ThreadAgentsDocStatus } from './generated/thread_agents_doc_status';
+export type { TurnWorkBlock } from './generated/turn_work_block';
+export type { TurnWorkItem } from './generated/turn_work_item';
+export type { TurnWorkItemStatus } from './generated/turn_work_item_status';
+export type { TurnWorkPageParams } from './generated/turn_work_page_params';
+export type {
+    TurnWorkPageResponse,
+    TurnItem,
+} from './generated/turn_work_page_response';
+export type { TurnWorkPresentation } from './generated/turn_work_presentation';
+export type { TurnWorkState } from './generated/turn_work_state';
 export type { UpdateRemoteGatewayRegistryPlan } from './generated/update_remote_gateway_registry_plan';
 export type { WorkspaceBootstrapRequest } from './generated/workspace_bootstrap_request';
 export type { WorkspaceCreateRequest } from './generated/workspace_create_request';
@@ -527,6 +552,20 @@ export const pioneerClient = {
         );
     },
 
+    async threadTimelinePage(
+        input: ThreadTimelinePageParams,
+    ): Promise<ThreadTimelinePageResponse> {
+        return parsePioneerClientResponse<ThreadTimelinePageResponse>(
+            await getPioneerClientNitro().threadTimelinePageJson(JSON.stringify(input)),
+        );
+    },
+
+    async turnWorkPage(input: TurnWorkPageParams): Promise<TurnWorkPageResponse> {
+        return parsePioneerClientResponse<TurnWorkPageResponse>(
+            await getPioneerClientNitro().turnWorkPageJson(JSON.stringify(input)),
+        );
+    },
+
     async agentsDocGet(input: ThreadAgentsDocGetParams): Promise<ThreadAgentsDocGetResponse> {
         return parsePioneerClientResponse<ThreadAgentsDocGetResponse>(
             await getPioneerClientNitro().agentsDocGetJson(JSON.stringify(input)),
@@ -563,8 +602,8 @@ export const pioneerClient = {
 
     async activeThreadApplyEvent(
         input: ClientActiveThreadEventRequest,
-    ): Promise<ClientActiveThreadSnapshot> {
-        return parsePioneerClientResponse<ClientActiveThreadSnapshot>(
+    ): Promise<ClientActiveThreadEventResult> {
+        return parsePioneerClientResponse<ClientActiveThreadEventResult>(
             await getPioneerClientNitro().activeThreadApplyEventJson(JSON.stringify(input)),
         );
     },

@@ -4,6 +4,7 @@ import type {
     ClientActiveThreadCancelTurnResult,
     ClientActiveThreadClearResult,
     ClientActiveThreadEventRequest,
+    ClientActiveThreadEventResult,
     ClientActiveThreadOpenRequest,
     ClientActiveThreadSendTextRequest,
     ClientActiveThreadSendTextResult,
@@ -25,7 +26,7 @@ export const activeThreadSnapshot = (
 
 export const applyActiveThreadEvent = async (
     request: ClientActiveThreadEventRequest,
-): Promise<ClientActiveThreadSnapshot> => {
+): Promise<ClientActiveThreadEventResult> => {
     return pioneerClient.activeThreadApplyEvent(request);
 };
 

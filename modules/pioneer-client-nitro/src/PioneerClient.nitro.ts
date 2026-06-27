@@ -42,6 +42,8 @@ export interface PioneerClient extends HybridObject<{ ios: 'c++'; android: 'c++'
     composerFilterMcpRowsJson(inputJson: string): string;
     threadTreeRefreshJson(inputJson: string): Promise<string>;
     threadTreeLevelJson(inputJson: string): string;
+    threadTimelinePageJson(inputJson: string): Promise<string>;
+    turnWorkPageJson(inputJson: string): Promise<string>;
     agentsDocGetJson(inputJson: string): Promise<string>;
     agentsDocSaveJson(inputJson: string): Promise<string>;
     agentsDocArchiveJson(inputJson: string): Promise<string>;

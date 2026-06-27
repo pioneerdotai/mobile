@@ -1,8 +1,15 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useShallow } from 'zustand/react/shallow';
 
-import { pioneerClient, type ClientEvent, type Thread, type ThreadMode } from '@/client';
+import {
+    pioneerClient,
+    type ClientActiveThreadSnapshot,
+    type ClientEvent,
+    type Thread,
+    type ThreadMode,
+} from '@/client';
 import {
     activeThreadSnapshot,
     applyActiveThreadEvent,
@@ -11,6 +18,8 @@ import {
     sendActiveThreadText,
 } from '@/services/threads/active';
 import { selectedReasoningEffortRequestFields } from '@/services/threads/reasoning-effort';
+import { applySemanticTimelinePatchToCache } from '@/services/threads/semantic-cache-patch';
+import { invalidateTimelineQueriesForThread } from '@/services/threads/timeline-query';
 import { isCliRuntimeProvider } from '@/services/providers/cli-runtime';
 import { useActiveThreadStore } from '@/stores/active-thread';
 import { useGatewayStore } from '@/stores/gateway';
@@ -19,6 +28,20 @@ let openSequence = 0;
 
 const MODEL_SELECTION_REQUIRED_ERROR = 'model and provider must';
 const DEFAULT_COMPOSER_MODE: ThreadMode = 'Agent';
+
+const stripServerTimelineCache = (
+    snapshot: ClientActiveThreadSnapshot,
+): ClientActiveThreadSnapshot => {
+    return {
+        ...snapshot,
+        projection: {
+            ...snapshot.projection,
+            items: [],
+            timeline: [],
+        },
+        rows: [],
+    };
+};
 
 const errorMessage = (error: unknown, fallback: string): string => {
     if (error instanceof Error) {
@@ -60,7 +83,6 @@ const isTimelineEvent = (
         case 'item_tool_retry_resolved':
         case 'item_tool_retry_exhausted':
         case 'turn_tool_loop_budget_exceeded':
-        case 'turn_timeline_changed':
             return true;
         default:
             return false;
@@ -73,6 +95,7 @@ export const useActiveThread = (
     active = true,
 ) => {
     const { t } = useTranslation('threads');
+    const queryClient = useQueryClient();
 
     const {
         snapshot,
@@ -139,6 +162,15 @@ export const useActiveThread = (
     const activeThreadIdRef = useRef<string | null | undefined>(undefined);
     const threadRef = useRef<Thread | null>(null);
     const [turnCancelling, setTurnCancelling] = useState(false);
+    const sendTextMutation = useMutation({
+        mutationFn: sendActiveThreadText,
+    });
+    const cancelTurnMutation = useMutation({
+        mutationFn: cancelActiveThreadTurn,
+        onSuccess: (result) => {
+            void invalidateTimelineQueriesForThread(queryClient, result.snapshot.thread_id);
+        },
+    });
 
     const connected = connectionState === 'Connected' && connectionId !== null;
     const threadId = thread?.id ?? null;
@@ -175,7 +207,7 @@ export const useActiveThread = (
                     return;
                 }
 
-                setSnapshot(nextSnapshot);
+                setSnapshot(stripServerTimelineCache(nextSnapshot));
             } catch (caught) {
                 if (
                     openSequence === sequence &&
@@ -256,11 +288,10 @@ export const useActiveThread = (
             if (!isTimelineEvent(event)) {
                 return;
             }
-
             eventQueueRef.current = eventQueueRef.current
                 .catch(() => {})
                 .then(async () => {
-                    const nextSnapshot = await applyActiveThreadEvent({
+                    const result = await applyActiveThreadEvent({
                         event,
                         expanded_keys: useActiveThreadStore.getState().expandedKeys,
                     });
@@ -272,7 +303,11 @@ export const useActiveThread = (
                         return;
                     }
 
-                    setSnapshot(nextSnapshot);
+                    applySemanticTimelinePatchToCache(
+                        queryClient,
+                        result.semantic_timeline_patch,
+                    );
+                    setSnapshot(stripServerTimelineCache(result.snapshot));
                 })
                 .catch((caught) => {
                     if (
@@ -283,12 +318,21 @@ export const useActiveThread = (
                     }
                 });
         });
-    }, [active, connected, connectionId, setError, setSnapshot, subscribedThreadId, t]);
+    }, [
+        active,
+        connected,
+        connectionId,
+        queryClient,
+        setError,
+        setSnapshot,
+        subscribedThreadId,
+        t,
+    ]);
 
     const updateExpandedKeys = useCallback(
         (keys: string[]) => {
             setExpandedKeys(keys);
-            setSnapshot(activeThreadSnapshot({ expanded_keys: keys }));
+            setSnapshot(stripServerTimelineCache(activeThreadSnapshot({ expanded_keys: keys })));
         },
         [setExpandedKeys, setSnapshot],
     );
@@ -339,6 +383,10 @@ export const useActiveThread = (
                 currentSnapshot?.thread?.workspace_id ??
                 currentSnapshot?.workspace_id ??
                 null;
+            if (!requestWorkspaceId) {
+                setComposerError(t('sendFailed'));
+                return false;
+            }
             const requestThreadClosed =
                 thread?.status === 'Closed' || currentSnapshot?.thread?.status === 'Closed';
             if (
@@ -363,7 +411,7 @@ export const useActiveThread = (
             }
 
             try {
-                const result = await sendActiveThreadText({
+                const result = await sendTextMutation.mutateAsync({
                     thread_id: requestThreadId,
                     workspace_id: requestWorkspaceId,
                     text,
@@ -387,13 +435,14 @@ export const useActiveThread = (
                     return false;
                 }
 
+                applySemanticTimelinePatchToCache(queryClient, result.semantic_timeline_patch);
                 activeThreadIdRef.current = result.thread_id;
                 const latestSnapshot = useActiveThreadStore.getState().snapshot;
                 if (
                     !latestSnapshot ||
                     latestSnapshot.projection.revision <= result.snapshot.projection.revision
                 ) {
-                    setSnapshot(result.snapshot);
+                    setSnapshot(stripServerTimelineCache(result.snapshot));
                 }
                 clearComposerPayload();
                 return true;
@@ -423,7 +472,7 @@ export const useActiveThread = (
                         if (rejectedSnapshot.thread_id) {
                             activeThreadIdRef.current = rejectedSnapshot.thread_id;
                         }
-                        setSnapshot(rejectedSnapshot);
+                        setSnapshot(stripServerTimelineCache(rejectedSnapshot));
                     } catch {
                         // The native error is already surfaced through composerError.
                     }
@@ -447,9 +496,11 @@ export const useActiveThread = (
             setSending,
             setSnapshot,
             t,
+            queryClient,
             workspaceId,
             thread,
             active,
+            sendTextMutation,
         ],
     );
 
@@ -468,7 +519,7 @@ export const useActiveThread = (
         setComposerError(null);
 
         try {
-            const result = await cancelActiveThreadTurn({
+            const result = await cancelTurnMutation.mutateAsync({
                 reason: t('stopReason'),
                 expanded_keys: useActiveThreadStore.getState().expandedKeys,
             });
@@ -485,7 +536,7 @@ export const useActiveThread = (
                 !latestSnapshot ||
                 latestSnapshot.projection.revision <= result.snapshot.projection.revision
             ) {
-                setSnapshot(result.snapshot);
+                setSnapshot(stripServerTimelineCache(result.snapshot));
             }
 
             return result.cancelled;
@@ -499,7 +550,7 @@ export const useActiveThread = (
                     if (rejectedSnapshot.thread_id) {
                         activeThreadIdRef.current = rejectedSnapshot.thread_id;
                     }
-                    setSnapshot(rejectedSnapshot);
+                    setSnapshot(stripServerTimelineCache(rejectedSnapshot));
                 } catch {
                     // The native error is already surfaced through composerError.
                 }
@@ -509,7 +560,16 @@ export const useActiveThread = (
         } finally {
             setTurnCancelling(false);
         }
-    }, [active, connected, connectionId, setComposerError, setSnapshot, t, turnCancelling]);
+    }, [
+        active,
+        cancelTurnMutation,
+        connected,
+        connectionId,
+        setComposerError,
+        setSnapshot,
+        t,
+        turnCancelling,
+    ]);
 
     const snapshotThreadClosed = snapshot?.thread?.status === 'Closed';
     const hasInFlightTurn = Boolean(snapshot?.projection.in_flight_turn_id);

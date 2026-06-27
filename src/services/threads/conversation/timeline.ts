@@ -29,169 +29,175 @@ export type TimelinePendingRequest = {
     request: CLIRuntimePendingRequest;
 };
 
-export type TimelineRow =
-    | {
-          type: 'user-message';
-          key: string;
-          itemId: string;
-          turnId: string;
-          text: string;
-          attachments: TimelineUserAttachment[];
-          timestampLabel: string;
-      }
-    | {
-          type: 'assistant-message';
-          key: string;
-          itemId: string;
-          turnId: string;
-          text: string;
-          markdown: MarkdownDocument | null;
-          phase: AgentMessagePhase;
-          streaming: boolean;
-          taskTimeline: boolean;
-          elapsedLabel: string | null;
-          timestampLabel: string;
-      }
-    | {
-          type: 'reasoning';
-          key: string;
-          itemId: string;
-          turnId: string;
-          text: string;
-          markdown: MarkdownDocument | null;
-          collapsed: boolean;
-          streaming: boolean;
-          elapsedLabel: string | null;
-      }
-    | {
-          type: 'system-event';
-          key: string;
-          itemId: string;
-          turnId: string;
-          level: 'info' | 'warning' | 'error';
-          message: string;
-          code: string | null;
-          details: unknown;
-          label: string;
-          capabilityRejections: TimelineCapabilityRejection[];
-      }
-    | {
-          type: 'command-execution';
-          key: string;
-          itemId: string;
-          turnId: string;
-          status: string;
-          command: string;
-          cwd: string | null;
-          durationMs: number | null;
-          exitCode: number | null;
-          outputPreview: string;
-          terminalText: string;
-          timedOut: boolean | null;
-          truncated: boolean | null;
-          streaming: boolean;
-          elapsedLabel: string | null;
-      }
-    | {
-          type: 'file-change';
-          key: string;
-          itemId: string;
-          turnId: string;
-          status: string;
-          path: string;
-          paths: string[];
-          summary: string;
-          finalStatus: string;
-          successful: boolean;
-          elapsedLabel: string | null;
-          exitCode: number | null;
-          output: string;
-      }
-    | {
-          type: 'tool-call';
-          key: string;
-          itemId: string;
-          turnId: string;
-          status: string;
-          toolKind: 'webSearch' | 'webFetch' | 'download' | 'dynamicToolCall';
-          title: string;
-          detail: string;
-          finalStatus: string;
-          successful: boolean;
-          elapsedLabel: string | null;
-          argumentsText: string | null;
-          resultText: string | null;
-          url: string | null;
-          host: string | null;
-          statusCode: number | null;
-          resultCount: number | null;
-          results: TimelineWebResult[];
-          bytes: number | null;
-          path: string | null;
-          contentType: string | null;
-          mcpServerId: string | null;
-          mcpServerName: string | null;
-          mcpRawToolName: string | null;
-          mcpDetails: string | null;
-      }
-    | {
-          type: 'task-anchor';
-          key: string;
-          itemId: string;
-          turnId: string;
-          taskId: string;
-          title: string;
-          status: string;
-      }
-    | {
-          type: 'work-group';
-          key: string;
-          turnId: string;
-          anchorItemId: string;
-          anchorEntryId: string;
-          title: string;
-          elapsedMs: number | null;
-          elapsedLabel: string | null;
-          expanded: boolean;
-      }
-    | {
-          type: 'tool-group';
-          key: string;
-          turnId: string;
-          kind: 'completedTaskTools' | 'repeatedTaskWait';
-          title: string;
-          count: number;
-          status: 'completed';
-          expanded: boolean;
-          items: TimelineToolGroupItem[];
-      }
-    | {
-          type: 'running';
-          key: string;
-          turnId: string;
-          startedAtUnixMs: number | null;
-          elapsedLabel: string | null;
-      }
-    | {
-          type: 'cli-runtime-request';
-          key: string;
-          turnId: string | null;
-          entry: TimelinePendingRequest;
-      }
-    | {
-          type: 'artifact';
-          key: string;
-          artifactId: string;
-          displayName: string;
-          status: string;
-      }
-    | {
-          type: 'unknown';
-          key: string;
-          itemId?: string;
-          turnId?: string;
-          label: string;
-      };
+export type TimelineRowMeta = {
+    semanticWorkItem?: boolean;
+};
+
+export type TimelineRow = TimelineRowMeta &
+    (
+        | {
+              type: 'user-message';
+              key: string;
+              itemId: string;
+              turnId: string;
+              text: string;
+              attachments: TimelineUserAttachment[];
+              timestampLabel: string;
+          }
+        | {
+              type: 'assistant-message';
+              key: string;
+              itemId: string;
+              turnId: string;
+              text: string;
+              markdown: MarkdownDocument | null;
+              phase: AgentMessagePhase;
+              streaming: boolean;
+              taskTimeline: boolean;
+              elapsedLabel: string | null;
+              timestampLabel: string;
+          }
+        | {
+              type: 'reasoning';
+              key: string;
+              itemId: string;
+              turnId: string;
+              text: string;
+              markdown: MarkdownDocument | null;
+              collapsed: boolean;
+              streaming: boolean;
+              elapsedLabel: string | null;
+          }
+        | {
+              type: 'system-event';
+              key: string;
+              itemId: string;
+              turnId: string;
+              level: 'info' | 'warning' | 'error';
+              message: string;
+              code: string | null;
+              details: unknown;
+              label: string;
+              capabilityRejections: TimelineCapabilityRejection[];
+          }
+        | {
+              type: 'command-execution';
+              key: string;
+              itemId: string;
+              turnId: string;
+              status: string;
+              command: string;
+              cwd: string | null;
+              durationMs: number | null;
+              exitCode: number | null;
+              outputPreview: string;
+              terminalText: string;
+              timedOut: boolean | null;
+              truncated: boolean | null;
+              streaming: boolean;
+              elapsedLabel: string | null;
+          }
+        | {
+              type: 'file-change';
+              key: string;
+              itemId: string;
+              turnId: string;
+              status: string;
+              path: string;
+              paths: string[];
+              summary: string;
+              finalStatus: string;
+              successful: boolean;
+              elapsedLabel: string | null;
+              exitCode: number | null;
+              output: string;
+          }
+        | {
+              type: 'tool-call';
+              key: string;
+              itemId: string;
+              turnId: string;
+              status: string;
+              toolKind: 'webSearch' | 'webFetch' | 'download' | 'dynamicToolCall';
+              title: string;
+              detail: string;
+              finalStatus: string;
+              successful: boolean;
+              elapsedLabel: string | null;
+              argumentsText: string | null;
+              resultText: string | null;
+              url: string | null;
+              host: string | null;
+              statusCode: number | null;
+              resultCount: number | null;
+              results: TimelineWebResult[];
+              bytes: number | null;
+              path: string | null;
+              contentType: string | null;
+              mcpServerId: string | null;
+              mcpServerName: string | null;
+              mcpRawToolName: string | null;
+              mcpDetails: string | null;
+          }
+        | {
+              type: 'task-anchor';
+              key: string;
+              itemId: string;
+              turnId: string;
+              taskId: string;
+              title: string;
+              status: string;
+          }
+        | {
+              type: 'work-group';
+              key: string;
+              turnId: string;
+              anchorItemId: string;
+              anchorEntryId: string;
+              title: string;
+              elapsedMs: number | null;
+              elapsedLabel: string | null;
+              expanded: boolean;
+          }
+        | {
+              type: 'tool-group';
+              key: string;
+              turnId: string;
+              kind: 'completedTaskTools' | 'repeatedTaskWait';
+              title: string;
+              count: number;
+              status: 'completed';
+              expanded: boolean;
+              items: TimelineToolGroupItem[];
+          }
+        | {
+              type: 'running';
+              key: string;
+              turnId: string;
+              startedAtUnixMs: number | null;
+              elapsedLabel: string | null;
+          }
+        | {
+              type: 'cli-runtime-request';
+              key: string;
+              turnId: string | null;
+              entry: TimelinePendingRequest;
+          }
+        | {
+              type: 'artifact';
+              key: string;
+              artifactId: string;
+              displayName: string;
+              status: string;
+          }
+        | {
+              type: 'unknown';
+              key: string;
+              itemId?: string;
+              turnId?: string;
+              label: string;
+          }
+    );
 
 export type TimelineWebResult = {
     title: string;

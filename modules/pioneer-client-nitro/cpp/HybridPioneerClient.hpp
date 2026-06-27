@@ -97,6 +97,10 @@ public:
   std::shared_ptr<margelo::nitro::Promise<std::string>> threadTreeRefreshJson(
       const std::string& inputJson) override;
   std::string threadTreeLevelJson(const std::string& inputJson) override;
+  std::shared_ptr<margelo::nitro::Promise<std::string>> threadTimelinePageJson(
+      const std::string& inputJson) override;
+  std::shared_ptr<margelo::nitro::Promise<std::string>> turnWorkPageJson(
+      const std::string& inputJson) override;
   std::shared_ptr<margelo::nitro::Promise<std::string>> agentsDocGetJson(
       const std::string& inputJson) override;
   std::shared_ptr<margelo::nitro::Promise<std::string>> agentsDocSaveJson(

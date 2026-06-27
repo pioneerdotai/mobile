@@ -1,5 +1,191 @@
 /* eslint-disable */
 
+export type TimelineBlockKind =
+  | {
+      attachments?: UserMessageAttachment[];
+      inputs?: UserInput[];
+      itemId?: string | null;
+      kind: 'user_message';
+      text?: string;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'turn_work';
+      work: TurnWorkBlock;
+      [k: string]: unknown;
+    }
+  | {
+      itemId: string;
+      kind: 'assistant_message';
+      markdown?: MarkdownDocument | null;
+      status?: 'running' | 'completed' | 'blocked' | 'failed' | 'cancelled';
+      text: string;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'turn_state';
+      message?: string | null;
+      state: TurnWorkState;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'pending_request';
+      message?: string | null;
+      requestId: string;
+      requestKind: CLIRuntimeRequestKind;
+      status: CLIRuntimePendingRequestStatus;
+      title?: string | null;
+      [k: string]: unknown;
+    };
+export type UserMessageAttachment =
+  | {
+      type: 'image';
+      url: string;
+      [k: string]: unknown;
+    }
+  | {
+      path: string;
+      type: 'localImage';
+      [k: string]: unknown;
+    }
+  | {
+      type: 'file';
+      url: string;
+      [k: string]: unknown;
+    }
+  | {
+      path: string;
+      type: 'localFile';
+      [k: string]: unknown;
+    }
+  | {
+      type: 'audio';
+      url: string;
+      [k: string]: unknown;
+    }
+  | {
+      path: string;
+      type: 'localAudio';
+      [k: string]: unknown;
+    }
+  | {
+      type: 'video';
+      url: string;
+      [k: string]: unknown;
+    }
+  | {
+      path: string;
+      type: 'localVideo';
+      [k: string]: unknown;
+    }
+  | {
+      artifact: ArtifactRef;
+      type: 'artifact';
+      [k: string]: unknown;
+    }
+  | {
+      capability: TurnSkillCapabilitySummary;
+      type: 'skill';
+      [k: string]: unknown;
+    }
+  | {
+      capability: TurnMcpServerCapabilitySummary;
+      type: 'mcpServer';
+      [k: string]: unknown;
+    }
+  | {
+      capability: TurnMcpToolCapabilitySummary;
+      type: 'mcpTool';
+      [k: string]: unknown;
+    };
+export type ArtifactKind =
+  | 'file'
+  | 'text'
+  | 'image'
+  | 'audio'
+  | 'video'
+  | 'pdf'
+  | 'spreadsheet'
+  | 'archive'
+  | 'json'
+  | 'generated_image'
+  | 'screenshot'
+  | 'workspace_file'
+  | 'directory_manifest'
+  | 'unknown';
+export type ArtifactProjectionKind = 'plain_text' | 'thumbnail' | 'json_summary' | 'pdf_text';
+export type ArtifactProjectionStatus = 'pending' | 'ready' | 'failed' | 'stale';
+export type ArtifactStatus = 'ready' | 'pending' | 'quarantined' | 'deleted' | 'missing_external_source' | 'failed';
+export type McpScopeKind = 'workspace' | 'user';
+export type UserInput =
+  | {
+      text: string;
+      textElements?: TextElement[];
+      type: 'text';
+      [k: string]: unknown;
+    }
+  | {
+      type: 'image';
+      url: string;
+      [k: string]: unknown;
+    }
+  | {
+      path: string;
+      type: 'localImage';
+      [k: string]: unknown;
+    }
+  | {
+      type: 'file';
+      url: string;
+      [k: string]: unknown;
+    }
+  | {
+      path: string;
+      type: 'localFile';
+      [k: string]: unknown;
+    }
+  | {
+      type: 'audio';
+      url: string;
+      [k: string]: unknown;
+    }
+  | {
+      path: string;
+      type: 'localAudio';
+      [k: string]: unknown;
+    }
+  | {
+      type: 'video';
+      url: string;
+      [k: string]: unknown;
+    }
+  | {
+      path: string;
+      type: 'localVideo';
+      [k: string]: unknown;
+    }
+  | {
+      artifactId: string;
+      type: 'artifact';
+      versionId?: string | null;
+      [k: string]: unknown;
+    }
+  | {
+      name: string;
+      path: string;
+      type: 'mention';
+      [k: string]: unknown;
+    };
+export type TurnWorkPresentation = 'expanded_live' | 'collapsed_after_final' | 'expanded_terminal_no_final';
+export type TurnWorkState =
+  | 'starting'
+  | 'running'
+  | 'waiting_for_approval'
+  | 'stalled'
+  | 'completed'
+  | 'blocked'
+  | 'failed'
+  | 'interrupted';
 export type MarkdownBlock =
   | MarkdownInline
   | {
@@ -46,6 +232,8 @@ export type MarkdownMarkKind =
       url: string;
       [k: string]: unknown;
     };
+export type CLIRuntimeRequestKind = 'command_approval' | 'file_change_approval' | 'user_input' | 'other';
+export type CLIRuntimePendingRequestStatus = 'pending' | 'answered' | 'resolved' | 'cancelled' | 'expired';
 export type TurnItem =
   | {
       attachments?: UserMessageAttachment[];
@@ -230,86 +418,6 @@ export type TurnItem =
       type: 'dynamicToolCall';
       [k: string]: unknown;
     };
-export type UserMessageAttachment =
-  | {
-      type: 'image';
-      url: string;
-      [k: string]: unknown;
-    }
-  | {
-      path: string;
-      type: 'localImage';
-      [k: string]: unknown;
-    }
-  | {
-      type: 'file';
-      url: string;
-      [k: string]: unknown;
-    }
-  | {
-      path: string;
-      type: 'localFile';
-      [k: string]: unknown;
-    }
-  | {
-      type: 'audio';
-      url: string;
-      [k: string]: unknown;
-    }
-  | {
-      path: string;
-      type: 'localAudio';
-      [k: string]: unknown;
-    }
-  | {
-      type: 'video';
-      url: string;
-      [k: string]: unknown;
-    }
-  | {
-      path: string;
-      type: 'localVideo';
-      [k: string]: unknown;
-    }
-  | {
-      artifact: ArtifactRef;
-      type: 'artifact';
-      [k: string]: unknown;
-    }
-  | {
-      capability: TurnSkillCapabilitySummary;
-      type: 'skill';
-      [k: string]: unknown;
-    }
-  | {
-      capability: TurnMcpServerCapabilitySummary;
-      type: 'mcpServer';
-      [k: string]: unknown;
-    }
-  | {
-      capability: TurnMcpToolCapabilitySummary;
-      type: 'mcpTool';
-      [k: string]: unknown;
-    };
-export type ArtifactKind =
-  | 'file'
-  | 'text'
-  | 'image'
-  | 'audio'
-  | 'video'
-  | 'pdf'
-  | 'spreadsheet'
-  | 'archive'
-  | 'json'
-  | 'generated_image'
-  | 'screenshot'
-  | 'workspace_file'
-  | 'directory_manifest'
-  | 'unknown';
-export type ArtifactProjectionKind = 'plain_text' | 'thumbnail' | 'json_summary' | 'pdf_text';
-export type ArtifactProjectionStatus = 'pending' | 'ready' | 'failed' | 'stale';
-export type ArtifactStatus = 'ready' | 'pending' | 'quarantined' | 'deleted' | 'missing_external_source' | 'failed';
-export type McpScopeKind = 'workspace' | 'user';
 export type AgentMessagePhase = 'final_answer' | 'commentary';
 export type SystemEventLevel = 'info' | 'warning' | 'error';
 export type TaskExecutorKind = 'agent' | 'tool' | 'workflow' | 'webhook' | 'system';
@@ -574,6 +682,19 @@ export type ToolStoragePayload =
       kind: 'none';
       [k: string]: unknown;
     };
+export type TurnItemType =
+  | 'user_message'
+  | 'agent_message'
+  | 'reasoning'
+  | 'system_event'
+  | 'task'
+  | 'command_execution'
+  | 'file_change'
+  | 'web_search'
+  | 'web_fetch'
+  | 'download'
+  | 'dynamic_tool_call';
+export type TurnWorkItemStatus = 'running' | 'completed' | 'blocked' | 'failed' | 'cancelled';
 export type TimelineEntryStatus = 'Running' | 'Completed' | 'Blocked' | 'Failed' | 'Cancelled';
 export type TimelineOriginKind = 'parent_turn' | 'task_event' | 'child_turn';
 export type TimelineLane = 'parent' | 'task' | 'child_agent' | 'child_tool' | 'child_reasoning' | 'child_result';
@@ -625,71 +746,30 @@ export type TurnStatus = 'InProgress' | 'Completed' | 'Failed' | 'Interrupted' |
 
 export interface ClientActiveThreadSendTextResult {
   pending_request_id: string;
+  semantic_timeline_patch: SemanticTimelineCachePatch;
   snapshot: ClientActiveThreadSnapshot;
   thread_id: string;
   turn_id: string;
   [k: string]: unknown;
 }
-export interface ClientActiveThreadSnapshot {
-  history_loaded: boolean;
-  history_loading: boolean;
-  projection: ConversationViewState;
-  rows: TimelineRow[];
-  thread?: Thread | null;
-  thread_id?: string | null;
-  workspace_id?: string | null;
+export interface SemanticTimelineCachePatch {
+  changed_blocks?: TimelineBlock[];
+  changed_work_items?: TurnWorkItem[];
+  removed_block_ids?: string[];
+  removed_work_items?: SemanticTimelineRemovedWorkItem[];
+  thread_id: string;
+  workspace_id: string;
   [k: string]: unknown;
 }
-export interface ConversationViewState {
-  composer_locked: boolean;
-  in_flight_turn_id?: string | null;
-  items: ItemView[];
-  last_error?: string | null;
-  pending_request_id?: string | null;
-  phase_label: string;
-  revision: number;
-  timeline: TimelineEntry[];
-  turns: TurnView[];
-  [k: string]: unknown;
-}
-export interface ItemView {
-  completed_at_unix_ms?: number | null;
-  final_markdown?: MarkdownDocument | null;
-  final_text?: string | null;
-  id: string;
-  item: TurnItem;
-  item_type: string;
-  opaque_meta?: unknown;
-  partial_markdown?: MarkdownDocument | null;
-  partial_text: string;
-  started_at_unix_ms?: number | null;
-  status: TimelineEntryStatus;
-  timeline_origin?: TimelineOrigin | null;
-  turn_id: string;
-  updated_at_unix_ms?: number | null;
-  [k: string]: unknown;
-}
-export interface MarkdownDocument {
-  blocks?: MarkdownBlock[];
-  [k: string]: unknown;
-}
-export interface MarkdownInline {
-  type: 'paragraph';
-  [k: string]: unknown;
-}
-export interface MarkdownInline1 {
-  marks?: MarkdownMark[];
-  text: string;
-  [k: string]: unknown;
-}
-export interface MarkdownMark {
-  end: number;
-  kind: MarkdownMarkKind;
-  start: number;
-  [k: string]: unknown;
-}
-export interface MarkdownList {
-  type: 'list';
+export interface TimelineBlock {
+  blockId: string;
+  kind: TimelineBlockKind;
+  sortKey: string;
+  startedAtUnixMs?: number | null;
+  threadId: string;
+  turnId?: string | null;
+  updatedAtUnixMs?: number | null;
+  workspaceId: string;
   [k: string]: unknown;
 }
 export interface ArtifactRef {
@@ -735,6 +815,74 @@ export interface TurnMcpToolCapabilitySummary {
   rawToolName: string;
   scopeKind: McpScopeKind;
   serverName: string;
+  [k: string]: unknown;
+}
+export interface TextElement {
+  byte_range: ByteRange;
+  placeholder?: string | null;
+  [k: string]: unknown;
+}
+export interface ByteRange {
+  end: number;
+  start: number;
+  [k: string]: unknown;
+}
+export interface TurnWorkBlock {
+  afterCursor?: TimelineCursor | null;
+  beforeCursor?: TimelineCursor | null;
+  completedAtUnixMs?: number | null;
+  elapsedMs?: number | null;
+  firstWorkItemId?: string | null;
+  hasMoreAfter: boolean;
+  hasMoreBefore: boolean;
+  hiddenWorkCount: number;
+  lastWorkItemId?: string | null;
+  presentation: TurnWorkPresentation;
+  startedAtUnixMs?: number | null;
+  state: TurnWorkState;
+  turnId: string;
+  visibleWorkCount: number;
+  workCount: number;
+  [k: string]: unknown;
+}
+export interface TimelineCursor {
+  value: string;
+  [k: string]: unknown;
+}
+export interface MarkdownDocument {
+  blocks?: MarkdownBlock[];
+  [k: string]: unknown;
+}
+export interface MarkdownInline {
+  type: 'paragraph';
+  [k: string]: unknown;
+}
+export interface MarkdownInline1 {
+  marks?: MarkdownMark[];
+  text: string;
+  [k: string]: unknown;
+}
+export interface MarkdownMark {
+  end: number;
+  kind: MarkdownMarkKind;
+  start: number;
+  [k: string]: unknown;
+}
+export interface MarkdownList {
+  type: 'list';
+  [k: string]: unknown;
+}
+export interface TurnWorkItem {
+  completedAtUnixMs?: number | null;
+  item: TurnItem;
+  itemId: string;
+  itemType: TurnItemType;
+  metadata?: unknown;
+  orderKey: string;
+  startedAtUnixMs?: number | null;
+  status: TurnWorkItemStatus;
+  turnId: string;
+  workItemId: string;
   [k: string]: unknown;
 }
 export interface ToolOutputSummary {
@@ -809,6 +957,50 @@ export interface WebSearchResultItem {
 export interface WebFetchLink {
   text: string;
   url: string;
+  [k: string]: unknown;
+}
+export interface SemanticTimelineRemovedWorkItem {
+  turn_id: string;
+  work_item_id: string;
+  [k: string]: unknown;
+}
+export interface ClientActiveThreadSnapshot {
+  history_loaded: boolean;
+  history_loading: boolean;
+  projection: ConversationViewState;
+  rows: TimelineRow[];
+  thread?: Thread | null;
+  thread_id?: string | null;
+  workspace_id?: string | null;
+  [k: string]: unknown;
+}
+export interface ConversationViewState {
+  composer_locked: boolean;
+  in_flight_turn_id?: string | null;
+  items: ItemView[];
+  last_error?: string | null;
+  pending_request_id?: string | null;
+  phase_label: string;
+  revision: number;
+  timeline: TimelineEntry[];
+  turns: TurnView[];
+  [k: string]: unknown;
+}
+export interface ItemView {
+  completed_at_unix_ms?: number | null;
+  final_markdown?: MarkdownDocument | null;
+  final_text?: string | null;
+  id: string;
+  item: TurnItem;
+  item_type: string;
+  opaque_meta?: unknown;
+  partial_markdown?: MarkdownDocument | null;
+  partial_text: string;
+  started_at_unix_ms?: number | null;
+  status: TimelineEntryStatus;
+  timeline_origin?: TimelineOrigin | null;
+  turn_id: string;
+  updated_at_unix_ms?: number | null;
   [k: string]: unknown;
 }
 export interface TimelineOrigin {

@@ -1,6 +1,7 @@
 import 'react-native-reanimated';
 
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
@@ -27,6 +28,7 @@ import WorkspaceSwitcherSheet from '@/components/overlays/workspace';
 import ComposerAttachmentMenuSheet from '@/components/overlays/composer-attachments';
 import ThreadModeSwitcherSheet from '@/components/overlays/thread-mode';
 import { initializeSentry, isSentryEnabled, Sentry } from '@/services/sentry';
+import { pioneerQueryClient } from '@/services/query/client';
 
 export const unstable_settings = {
     initialRouteName: '(tabs)',
@@ -110,10 +112,12 @@ const RootLayout = () => {
 
     return (
         <GestureHandlerRootView style={styles.root}>
-            <AppSystemBars />
-            <KeyboardProvider>
-                <RootContent />
-            </KeyboardProvider>
+            <QueryClientProvider client={pioneerQueryClient}>
+                <AppSystemBars />
+                <KeyboardProvider>
+                    <RootContent />
+                </KeyboardProvider>
+            </QueryClientProvider>
         </GestureHandlerRootView>
     );
 };

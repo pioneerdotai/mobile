@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { StyleSheet } from 'react-native-unistyles';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { pioneerClient, type CLIRuntimeRequestResolution } from '@/client';
 import { Box } from '@/components/primitives/box';
@@ -9,6 +10,10 @@ import { Pressable } from '@/components/primitives/pressable';
 import { Text } from '@/components/primitives/text';
 import { VStack } from '@/components/primitives/vstack';
 import type { TimelinePendingRequest } from '@/services/threads/conversation/timeline';
+import {
+    invalidateTimelineQueriesForThread,
+    invalidateTurnWorkQueries,
+} from '@/services/threads/timeline-query';
 import { useCliRuntimeStore } from '@/stores/cli-runtime';
 
 type RequestDetail = {
@@ -30,40 +35,46 @@ type CLIRuntimePendingRequestCardProps = {
 };
 
 export const CLIRuntimePendingRequestCard = ({ entry }: CLIRuntimePendingRequestCardProps) => {
+    const queryClient = useQueryClient();
     const removePendingRequest = useCliRuntimeStore((state) => state.removePendingRequest);
     const [answers, setAnswers] = useState<Record<string, string>>({});
     const [fallbackAnswer, setFallbackAnswer] = useState('');
-    const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const respondMutation = useMutation({
+        mutationFn: (resolution: CLIRuntimeRequestResolution) =>
+            pioneerClient.cliRuntimeRequestRespond({
+                workspace_id: entry.workspace_id,
+                runtime_id: entry.runtime_id,
+                request_id: entry.request_id,
+                resolution,
+            }),
+        onSuccess: () => {
+            removePendingRequest(entry.request_id);
+            void invalidateTimelineQueriesForThread(queryClient, entry.thread_id);
+            void invalidateTurnWorkQueries(queryClient, entry.thread_id, entry.turn_id);
+        },
+    });
 
     const title = entry.request.title?.trim() || requestKindTitle(entry.request.kind);
     const message = entry.request.message?.trim() || null;
     const details = useMemo(() => requestDetails(entry), [entry]);
     const questions = useMemo(() => userInputQuestions(entry.request.payload), [entry]);
     const userInput = entry.request.kind === 'user_input';
+    const submitting = respondMutation.isPending;
     const canSubmitAnswer =
         !submitting && (questions.length > 0 || fallbackAnswer.trim().length > 0);
 
     const respond = useCallback(
         async (resolution: CLIRuntimeRequestResolution) => {
-            setSubmitting(true);
             setError(null);
 
             try {
-                await pioneerClient.cliRuntimeRequestRespond({
-                    workspace_id: entry.workspace_id,
-                    runtime_id: entry.runtime_id,
-                    request_id: entry.request_id,
-                    resolution,
-                });
-                removePendingRequest(entry.request_id);
+                await respondMutation.mutateAsync(resolution);
             } catch (requestError) {
                 setError(errorMessage(requestError));
-            } finally {
-                setSubmitting(false);
             }
         },
-        [entry, removePendingRequest],
+        [respondMutation],
     );
 
     const answerQuestion = useCallback((id: string, value: string) => {
