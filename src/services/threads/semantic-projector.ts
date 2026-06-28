@@ -15,7 +15,7 @@ import type {
 } from '@/client/generated/client_active_thread_snapshot';
 
 import { projectConversationToRows } from './conversation/projector';
-import type { TimelineRow } from './conversation/timeline';
+import type { TimelinePendingRequest, TimelineRow } from './conversation/timeline';
 
 const SEMANTIC_TURN_WORK_GROUP_PREFIX = 'semantic-turn-work-group::';
 
@@ -36,6 +36,7 @@ type SemanticTimelineRowsInput = {
 type MutableSemanticProjection = {
     projection: ConversationViewState;
     rows: ClientTimelineRow[];
+    pendingRequests: TimelinePendingRequest[];
     workItemRowKeys: Set<string>;
 };
 
@@ -68,6 +69,7 @@ export const projectSemanticTimelineToRows = ({
                 pushTurnStateRow(semantic, block, insertedRunningRows);
                 break;
             case 'pending_request':
+                pushPendingRequestBlock(semantic, block);
                 break;
         }
 
@@ -102,7 +104,7 @@ export const projectSemanticTimelineToRows = ({
     return projectConversationToRows(semanticSnapshot, {
         expandedKeys: expandedKeyRecord(expandedKeys),
         nowMs,
-        pendingRequests: [],
+        pendingRequests: semantic.pendingRequests,
     }).map((row) => {
         const taggedRow = semantic.workItemRowKeys.has(row.key)
             ? { ...row, semanticWorkItem: true }
@@ -132,8 +134,25 @@ const createMutableSemanticProjection = (
         turns: snapshot.projection.turns,
     },
     rows: [],
+    pendingRequests: [],
     workItemRowKeys: new Set(),
 });
+
+const pushPendingRequestBlock = (semantic: MutableSemanticProjection, block: TimelineBlock) => {
+    if (block.kind.kind !== 'pending_request' || block.kind.status !== 'pending') {
+        return;
+    }
+
+    semantic.pendingRequests.push({
+        workspace_id: block.workspaceId,
+        runtime_id: block.kind.runtimeId,
+        request_id: block.kind.requestId,
+        thread_id: block.threadId,
+        turn_id: block.turnId ?? null,
+        item_id: block.kind.itemId ?? null,
+        request: block.kind.request,
+    });
+};
 
 const pushUserBlock = (semantic: MutableSemanticProjection, block: TimelineBlock) => {
     if (block.kind.kind !== 'user_message') {

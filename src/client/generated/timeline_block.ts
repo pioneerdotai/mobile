@@ -29,12 +29,12 @@ export type TimelineBlockKind =
       [k: string]: unknown;
     }
   | {
+      itemId?: string | null;
       kind: 'pending_request';
-      message?: string | null;
+      request: CLIRuntimePendingRequest;
       requestId: string;
-      requestKind: CLIRuntimeRequestKind;
+      runtimeId: string;
       status: CLIRuntimePendingRequestStatus;
-      title?: string | null;
       [k: string]: unknown;
     };
 export type UserMessageAttachment =
@@ -344,5 +344,13 @@ export interface MarkdownMark {
 }
 export interface MarkdownList {
   type: 'list';
+  [k: string]: unknown;
+}
+export interface CLIRuntimePendingRequest {
+  kind: CLIRuntimeRequestKind;
+  message?: string | null;
+  native_request_id?: string | null;
+  payload?: unknown;
+  title?: string | null;
   [k: string]: unknown;
 }

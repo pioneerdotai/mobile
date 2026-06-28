@@ -158,6 +158,50 @@ describe('mobile semantic timeline projector', () => {
             startedAtUnixMs: 1_000,
         });
     });
+
+    it('projects pending request blocks into actionable CLI runtime request rows', () => {
+        const rows = projectSemanticTimelineToRows({
+            snapshot: snapshot(),
+            blocks: [
+                userBlock('001'),
+                workBlock('002', {
+                    presentation: 'expanded_live',
+                    state: 'blocked',
+                    workCount: 1,
+                    visibleWorkCount: 1,
+                }),
+                pendingRequestBlock('003'),
+            ],
+            expandedKeys: [],
+            workRangesByTurn: {},
+            nowMs: 10_000,
+        });
+
+        const requestRow = rows.find((row) => row.type === 'cli-runtime-request');
+
+        expect(requestRow).toMatchObject({
+            key: 'timeline-cli-runtime-request::request_a',
+            turnId: 'turn_a',
+            entry: {
+                workspace_id: 'workspace_a',
+                runtime_id: 'codex',
+                request_id: 'request_a',
+                thread_id: 'thread_a',
+                turn_id: 'turn_a',
+                item_id: 'native_item_a',
+                request: {
+                    kind: 'command_approval',
+                    title: 'Run command',
+                    message: 'Approve command',
+                    native_request_id: 'native_request_a',
+                    payload: {
+                        command: 'echo ok',
+                        cwd: '/tmp/project',
+                    },
+                },
+            },
+        });
+    });
 });
 
 const userBlock = (sortKey: string): TimelineBlock => ({
@@ -190,6 +234,33 @@ const assistantBlock = (sortKey: string): TimelineBlock => ({
         itemId: `assistant_${sortKey}`,
         text: 'final **markdown**',
         markdown,
+    },
+});
+
+const pendingRequestBlock = (sortKey: string): TimelineBlock => ({
+    workspaceId: 'workspace_a',
+    threadId: 'thread_a',
+    blockId: `block_pending_${sortKey}`,
+    turnId: 'turn_a',
+    sortKey,
+    startedAtUnixMs: 4,
+    updatedAtUnixMs: 4,
+    kind: {
+        kind: 'pending_request',
+        runtimeId: 'codex',
+        requestId: 'request_a',
+        status: 'pending',
+        itemId: 'native_item_a',
+        request: {
+            kind: 'command_approval',
+            title: 'Run command',
+            message: 'Approve command',
+            native_request_id: 'native_request_a',
+            payload: {
+                command: 'echo ok',
+                cwd: '/tmp/project',
+            },
+        },
     },
 });
 

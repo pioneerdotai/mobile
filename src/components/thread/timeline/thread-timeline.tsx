@@ -554,14 +554,28 @@ const insertPendingRequestRows = (
         return [...rows];
     }
 
-    const requestRows = pendingRequests.map(
-        (entry): TimelineRow => ({
-            type: 'cli-runtime-request',
-            key: `timeline-cli-runtime-request::${entry.request_id}`,
-            turnId: entry.turn_id,
-            entry,
-        }),
+    const existingRequestKeys = new Set(
+        rows.filter((row) => row.type === 'cli-runtime-request').map((row) => row.key),
     );
+    const requestRows = pendingRequests.flatMap((entry): TimelineRow[] => {
+        const key = `timeline-cli-runtime-request::${entry.request_id}`;
+        if (existingRequestKeys.has(key)) {
+            return [];
+        }
+
+        return [
+            {
+                type: 'cli-runtime-request',
+                key,
+                turnId: entry.turn_id,
+                entry,
+            },
+        ];
+    });
+    if (requestRows.length === 0) {
+        return [...rows];
+    }
+
     const runningIndex = rows.findIndex((row) => row.type === 'running');
 
     if (runningIndex < 0) {
