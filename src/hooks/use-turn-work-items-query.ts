@@ -13,9 +13,12 @@ import {
     type TurnWorkPageResponse,
 } from '@/client';
 import { requestTurnWorkPage } from '@/services/threads/timeline-page-requests';
-import { TIMELINE_FFI_ERROR_CODES, timelineQueryKeys } from '@/services/threads/timeline-query';
+import {
+    DEFAULT_TURN_WORK_PAGE_LIMIT,
+    TIMELINE_FFI_ERROR_CODES,
+    timelineQueryKeys,
+} from '@/services/threads/timeline-query';
 
-const DEFAULT_TURN_WORK_PAGE_LIMIT = 30;
 const NEWEST_WORK_ANCHOR: TimelinePageAnchor = { kind: 'newest' };
 
 type TurnWorkItemsQueryOptions = {

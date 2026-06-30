@@ -4,6 +4,8 @@ import { PioneerClientNativeError, type TimelinePageAnchor } from '@/client';
 
 export const TIMELINE_QUERY_STALE_TIME_MS = 2_000;
 export const TIMELINE_QUERY_GC_TIME_MS = 10 * 60 * 1_000;
+export const DEFAULT_THREAD_TIMELINE_PAGE_LIMIT = 12;
+export const DEFAULT_TURN_WORK_PAGE_LIMIT = 30;
 
 export const TIMELINE_FFI_ERROR_CODES = {
     cancelled: 'pioneer_timeline_cancelled',

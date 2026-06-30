@@ -12,9 +12,12 @@ import {
     type TimelinePageAnchor,
 } from '@/client';
 import { requestThreadTimelinePage } from '@/services/threads/timeline-page-requests';
-import { TIMELINE_FFI_ERROR_CODES, timelineQueryKeys } from '@/services/threads/timeline-query';
+import {
+    DEFAULT_THREAD_TIMELINE_PAGE_LIMIT,
+    TIMELINE_FFI_ERROR_CODES,
+    timelineQueryKeys,
+} from '@/services/threads/timeline-query';
 
-const DEFAULT_THREAD_TIMELINE_PAGE_LIMIT = 12;
 const NEWEST_TIMELINE_ANCHOR: TimelinePageAnchor = { kind: 'newest' };
 
 type ThreadTimelineBlocksQueryOptions = {

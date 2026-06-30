@@ -8,7 +8,11 @@ import type {
     TurnWorkItem,
     TurnWorkPageResponse,
 } from '@/client';
-import { timelineQueryKeys } from '@/services/threads/timeline-query';
+import {
+    DEFAULT_THREAD_TIMELINE_PAGE_LIMIT,
+    DEFAULT_TURN_WORK_PAGE_LIMIT,
+    timelineQueryKeys,
+} from '@/services/threads/timeline-query';
 
 type SemanticTimelineCachePatch = ClientActiveThreadEventResult['semantic_timeline_patch'];
 type ThreadTimelineData = InfiniteData<ThreadTimelinePageResponse, unknown>;
@@ -57,7 +61,14 @@ export const applySemanticTimelinePatchToCache = (
     }
 
     if (changedWorkItems.length > 0 || removedWorkItems.length > 0) {
-        applyTurnWorkItemsPatch(queryClient, patch.thread_id, changedWorkItems, removedWorkItems);
+        applyTurnWorkItemsPatch(
+            queryClient,
+            patch.workspace_id,
+            patch.thread_id,
+            changedWorkItems,
+            removedWorkItems,
+            workBlocksByTurn,
+        );
     }
 };
 
@@ -68,36 +79,46 @@ const applyThreadBlockPatch = (
     changedBlocks: readonly TimelineBlock[],
     removedBlockIds: readonly string[],
 ) => {
-    queryClient.setQueryData<ThreadTimelineData>(
-        timelineQueryKeys.threadPages(threadId),
-        (data) => {
-            const page = data?.pages[0] ?? emptyThreadTimelinePage(workspaceId, threadId);
-            const pageParams = data?.pageParams?.length ? data.pageParams : [{ kind: 'newest' }];
-            const removed = new Set(removedBlockIds);
-            const byId = new Map(
-                (page.blocks ?? [])
-                    .filter((block) => !removed.has(block.blockId))
-                    .map((block) => [block.blockId, block]),
-            );
+    const updateThreadTimelineData = (data: ThreadTimelineData | undefined): ThreadTimelineData => {
+        const page = data?.pages[0] ?? emptyThreadTimelinePage(workspaceId, threadId);
+        const pageParams = data?.pageParams?.length ? data.pageParams : [{ kind: 'newest' }];
+        const removed = new Set(removedBlockIds);
+        const byId = new Map(
+            (page.blocks ?? [])
+                .filter((block) => !removed.has(block.blockId))
+                .map((block) => [block.blockId, block]),
+        );
 
-            for (const block of changedBlocks) {
-                byId.set(block.blockId, block);
-            }
+        for (const block of changedBlocks) {
+            byId.set(block.blockId, block);
+        }
 
-            return {
-                pages: [
-                    {
-                        ...page,
-                        workspaceId: page.workspaceId || workspaceId,
-                        threadId,
-                        blocks: sortBlocks(Array.from(byId.values())),
-                    },
-                    ...(data?.pages.slice(1) ?? []),
-                ],
-                pageParams,
-            };
-        },
+        return {
+            pages: [
+                {
+                    ...page,
+                    workspaceId: page.workspaceId || workspaceId,
+                    threadId,
+                    blocks: sortBlocks(Array.from(byId.values())),
+                },
+                ...(data?.pages.slice(1) ?? []),
+            ],
+            pageParams,
+        };
+    };
+
+    queryClient.setQueriesData<ThreadTimelineData>(
+        { queryKey: timelineQueryKeys.threadPages(threadId) },
+        updateThreadTimelineData,
     );
+
+    const defaultQueryKey = timelineQueryKeys.threadPagesForLimit(
+        threadId,
+        DEFAULT_THREAD_TIMELINE_PAGE_LIMIT,
+    );
+    if (!queryClient.getQueryData<ThreadTimelineData>(defaultQueryKey)) {
+        queryClient.setQueryData<ThreadTimelineData>(defaultQueryKey, updateThreadTimelineData);
+    }
 };
 
 const applyTurnWorkStatePatch = (
@@ -126,9 +147,11 @@ const applyTurnWorkStatePatch = (
 
 const applyTurnWorkItemsPatch = (
     queryClient: QueryClient,
+    workspaceId: string,
     threadId: string,
     changedItems: readonly TurnWorkItem[],
     removedItems: readonly RemovedWorkItem[],
+    workBlocksByTurn: ReadonlyMap<string, TurnWorkBlock>,
 ) => {
     const turnIds = new Set([
         ...changedItems.map((item) => item.turnId),
@@ -136,49 +159,71 @@ const applyTurnWorkItemsPatch = (
     ]);
 
     for (const turnId of turnIds) {
-        queryClient.setQueriesData<TurnWorkData>(
-            { queryKey: timelineQueryKeys.turnWork(threadId, turnId) },
-            (data) => {
-                if (!data) {
+        const updateTurnWorkData = (data: TurnWorkData | undefined): TurnWorkData | undefined => {
+            if (!data) {
+                const work = workBlocksByTurn.get(turnId);
+                if (!work) {
                     return data;
                 }
 
-                const removed = new Set(
-                    removedItems
-                        .filter((item) => item.turn_id === turnId)
-                        .map((item) => item.work_item_id),
-                );
-                const changedForTurn = changedItems.filter((item) => item.turnId === turnId);
-                const targetPageByWorkItemId = new Map<string, number>();
-                data.pages.forEach((page, pageIndex) => {
-                    for (const item of page.items ?? []) {
-                        targetPageByWorkItemId.set(item.workItemId, pageIndex);
-                    }
-                });
-
-                return {
-                    ...data,
-                    pages: data.pages.map((page, pageIndex) => {
-                        const byId = new Map(
-                            (page.items ?? [])
-                                .filter((item) => !removed.has(item.workItemId))
-                                .map((item) => [item.workItemId, item]),
-                        );
-                        for (const item of changedForTurn) {
-                            const targetPage = targetPageByWorkItemId.get(item.workItemId) ?? 0;
-                            if (targetPage === pageIndex) {
-                                byId.set(item.workItemId, item);
-                            }
-                        }
-
-                        return {
-                            ...page,
-                            items: sortWorkItems(Array.from(byId.values())),
-                        };
-                    }),
+                data = {
+                    pages: [emptyTurnWorkPage(workspaceId, threadId, turnId, work)],
+                    pageParams: [{ kind: 'newest' }],
                 };
-            },
+            }
+
+            const removed = new Set(
+                removedItems
+                    .filter((item) => item.turn_id === turnId)
+                    .map((item) => item.work_item_id),
+            );
+            const changedForTurn = changedItems.filter((item) => item.turnId === turnId);
+            const targetPageByWorkItemId = new Map<string, number>();
+            data.pages.forEach((page, pageIndex) => {
+                for (const item of page.items ?? []) {
+                    targetPageByWorkItemId.set(item.workItemId, pageIndex);
+                }
+            });
+
+            return {
+                ...data,
+                pages: data.pages.map((page, pageIndex) => {
+                    const byId = new Map(
+                        (page.items ?? [])
+                            .filter((item) => !removed.has(item.workItemId))
+                            .map((item) => [item.workItemId, item]),
+                    );
+                    for (const item of changedForTurn) {
+                        const targetPage = targetPageByWorkItemId.get(item.workItemId) ?? 0;
+                        if (targetPage === pageIndex) {
+                            byId.set(item.workItemId, item);
+                        }
+                    }
+
+                    return {
+                        ...page,
+                        items: sortWorkItems(Array.from(byId.values())),
+                    };
+                }),
+            };
+        };
+
+        queryClient.setQueriesData<TurnWorkData>(
+            { queryKey: timelineQueryKeys.turnWork(threadId, turnId) },
+            updateTurnWorkData,
         );
+
+        const defaultQueryKey = timelineQueryKeys.turnWorkPagesForLimit(
+            threadId,
+            turnId,
+            DEFAULT_TURN_WORK_PAGE_LIMIT,
+        );
+        if (
+            workBlocksByTurn.has(turnId) &&
+            !queryClient.getQueryData<TurnWorkData>(defaultQueryKey)
+        ) {
+            queryClient.setQueryData<TurnWorkData>(defaultQueryKey, updateTurnWorkData);
+        }
     }
 };
 
@@ -190,6 +235,21 @@ const emptyThreadTimelinePage = (
     threadId,
     projectionVersion: 0,
     blocks: [],
+    page: emptyPageInfo,
+});
+
+const emptyTurnWorkPage = (
+    workspaceId: string,
+    threadId: string,
+    turnId: string,
+    work: TurnWorkBlock,
+): TurnWorkPageResponse => ({
+    workspaceId,
+    threadId,
+    turnId,
+    projectionVersion: 0,
+    work,
+    items: [],
     page: emptyPageInfo,
 });
 
