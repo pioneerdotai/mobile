@@ -456,7 +456,7 @@ const ThreadScreen = ({ threadId, parentThreadId = null, taskTitle = null }: Thr
             }
 
             router.push({
-                pathname: '/thread/[threadId]',
+                pathname: '/thread/child/[threadId]',
                 params: {
                     threadId: row.childThreadId,
                     parentThreadId: visibleThreadId,

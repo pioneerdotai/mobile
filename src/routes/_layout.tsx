@@ -241,7 +241,14 @@ const ThreadTreeController = () => {
 const RootStack = () => {
     const { options } = useScreen();
 
-    const thread = useThreadScreen();
+    const draftThread = useThreadScreen();
+    const threadModalOptions = {
+        presentation: 'card' as const,
+        animationTypeForReplace: 'pop' as const,
+        cardOverlayEnabled: false,
+        animation: 'slide_from_bottom' as const,
+        headerShown: false,
+    };
 
     return (
         <BottomSheetModalProvider>
@@ -252,8 +259,8 @@ const RootStack = () => {
                 }}
             >
                 <Stack.Screen name="(tabs)" />
-                <Stack.Screen {...thread} />
-                <Stack.Screen name="thread/[threadId]" options={thread.options} />
+                <Stack.Screen {...draftThread} />
+                <Stack.Screen name="thread" options={threadModalOptions} />
                 <Stack.Screen
                     name="agents-doc"
                     options={{

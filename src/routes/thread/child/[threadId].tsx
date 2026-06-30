@@ -10,13 +10,14 @@ const normalizeRouteParam = (value: string | string[] | undefined): string | nul
     return normalized ? normalized : null;
 };
 
-const ExistingThreadRoute = () => {
+const ChildThreadRoute = () => {
     const { options } = useThreadScreen({ navigation: 'stack' });
     const params = useLocalSearchParams<{
         threadId?: string | string[];
         parentThreadId?: string | string[];
         taskTitle?: string | string[];
     }>();
+
     return (
         <>
             <Stack.Screen options={options} />
@@ -29,4 +30,4 @@ const ExistingThreadRoute = () => {
     );
 };
 
-export default ExistingThreadRoute;
+export default ChildThreadRoute;

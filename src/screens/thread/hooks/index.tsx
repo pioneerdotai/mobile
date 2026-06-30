@@ -1,7 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
-import { ChevronLeft, Infinity as InfinityIcon, MessageCircle } from 'lucide-react-native';
+import { Infinity as InfinityIcon, MessageCircle } from 'lucide-react-native';
 import { useShallow } from 'zustand/react/shallow';
 
 import { CollapseButton } from '@/components/buttons/collapse';
@@ -11,34 +11,61 @@ import { Text } from '@/components/primitives/text';
 import { useScreen } from '@/hooks/use-screen';
 import { isCliRuntimeProvider } from '@/services/providers/cli-runtime';
 import { useActiveThreadStore } from '@/stores/active-thread';
+import { useGatewayStore } from '@/stores/gateway';
 import { Platform } from 'react-native';
 
-const useThreadScreen = () => {
+type ThreadScreenNavigation = 'modal' | 'stack';
+
+type UseThreadScreenOptions = {
+    navigation?: ThreadScreenNavigation;
+};
+
+const useThreadScreen = ({ navigation = 'modal' }: UseThreadScreenOptions = {}) => {
     const { options } = useScreen();
     const { theme } = useUnistyles();
     const { t } = useTranslation('threads');
     const params = useLocalSearchParams<{
         parentThreadId?: string | string[];
-        taskTitle?: string | string[];
     }>();
     const parentThreadId = normalizeRouteParam(params.parentThreadId);
-    const taskTitle = normalizeRouteParam(params.taskTitle);
     const isTaskChildThread = Boolean(parentThreadId);
 
-    const { selectedMode, selectedProvider, selectedModel, setModeSwitcherOpen } =
-        useActiveThreadStore(
-            useShallow((state) => ({
-                selectedMode: state.composerSelectedMode,
-                selectedProvider: state.composerSelectedProvider,
-                selectedModel: state.composerSelectedModel,
-                setModeSwitcherOpen: state.setComposerModeSwitcherOpen,
-            })),
-        );
+    const {
+        selectedMode,
+        selectedProvider,
+        selectedModel,
+        snapshot,
+        sending,
+        setModeSwitcherOpen,
+    } = useActiveThreadStore(
+        useShallow((state) => ({
+            selectedMode: state.composerSelectedMode,
+            selectedProvider: state.composerSelectedProvider,
+            selectedModel: state.composerSelectedModel,
+            snapshot: state.snapshot,
+            sending: state.sending,
+            setModeSwitcherOpen: state.setComposerModeSwitcherOpen,
+        })),
+    );
+    const { connectionId, connectionState } = useGatewayStore(
+        useShallow((state) => ({
+            connectionId: state.connectionId,
+            connectionState: state.connectionState,
+        })),
+    );
 
     const showModeSwitcher = Boolean(
         selectedProvider?.trim() &&
         selectedModel?.trim() &&
         !isCliRuntimeProvider(selectedProvider),
+    );
+    const modeSwitcherDisabled = Boolean(
+        isTaskChildThread ||
+        connectionState !== 'Connected' ||
+        connectionId === null ||
+        snapshot?.thread?.status === 'Closed' ||
+        snapshot?.projection.composer_locked ||
+        sending,
     );
 
     const handleBack = () => {
@@ -48,10 +75,14 @@ const useThreadScreen = () => {
 
     const handleTaskBack = () => {
         if (parentThreadId) {
-            router.replace({
-                pathname: '/thread/[threadId]',
-                params: { threadId: parentThreadId },
-            });
+            if (router.canGoBack()) {
+                router.back();
+            } else {
+                router.replace({
+                    pathname: '/thread/[threadId]',
+                    params: { threadId: parentThreadId },
+                });
+            }
             return;
         }
 
@@ -59,14 +90,14 @@ const useThreadScreen = () => {
     };
 
     const openModeSwitcher = () => {
+        if (modeSwitcherDisabled) {
+            return;
+        }
+
         setModeSwitcherOpen(true);
     };
 
     const modeTitle = () => {
-        if (isTaskChildThread) {
-            return <Text style={styles.modeTitleText}>{taskTitle ?? t('modeAgentLabel')}</Text>;
-        }
-
         if (!showModeSwitcher) {
             return null;
         }
@@ -75,8 +106,10 @@ const useThreadScreen = () => {
         const label = selectedMode === 'Agent' ? t('modeAgentLabel') : t('modeChatLabel');
 
         return (
-            <Pressable onPress={openModeSwitcher}>
-                <HStack style={styles.modeTitle}>
+            <Pressable disabled={modeSwitcherDisabled} onPress={openModeSwitcher}>
+                <HStack
+                    style={[styles.modeTitle, modeSwitcherDisabled && styles.modeTitleDisabled]}
+                >
                     <Icon size={theme.space(4.5)} color={theme.colors.typography} />
                     <Text style={styles.modeTitleText}>{label}</Text>
                 </HStack>
@@ -91,20 +124,21 @@ const useThreadScreen = () => {
             presentation: 'card' as const,
             animationTypeForReplace: 'pop' as const,
             cardOverlayEnabled: false,
-            animation: 'slide_from_bottom' as const,
             headerMode: 'screen' as const,
             headerShown: true,
             headerTitle: modeTitle,
             headerTransparent: true,
+            animation:
+                navigation === 'stack'
+                    ? ('slide_from_right' as const)
+                    : ('slide_from_bottom' as const),
             headerStyle: {
                 ...options.headerStyle,
                 backgroundColor: 'transparent',
             },
             headerLeft: () =>
                 isTaskChildThread ? (
-                    <Pressable onPress={handleTaskBack} style={styles.backButton}>
-                        <ChevronLeft size={theme.space(7)} color={theme.colors.typography} />
-                    </Pressable>
+                    <CollapseButton icon="left" onPressHandler={handleTaskBack} />
                 ) : (
                     <CollapseButton onPressHandler={handleBack} />
                 ),
@@ -134,11 +168,8 @@ const styles = StyleSheet.create((theme) => ({
             },
         }),
     },
-    backButton: {
-        width: theme.space(12),
-        height: theme.space(12),
-        alignItems: 'center',
-        justifyContent: 'center',
+    modeTitleDisabled: {
+        opacity: 0.6,
     },
 }));
 

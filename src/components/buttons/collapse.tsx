@@ -1,11 +1,12 @@
 import { useUnistyles, StyleSheet } from 'react-native-unistyles';
-import { ChevronDown } from 'lucide-react-native';
+import { ChevronDown, ChevronLeft } from 'lucide-react-native';
 
 import { Pressable } from '../primitives/pressable';
 import { Box } from '../primitives/box';
 
 interface CollapseButtonProps {
     onPressHandler: () => void;
+    icon?: 'down' | 'left';
 }
 
 const styles = StyleSheet.create((theme) => ({
@@ -22,13 +23,14 @@ const styles = StyleSheet.create((theme) => ({
     },
 }));
 
-const CollapseButton = ({ onPressHandler }: CollapseButtonProps) => {
+const CollapseButton = ({ onPressHandler, icon = 'down' }: CollapseButtonProps) => {
     const { theme, rt } = useUnistyles();
+    const Icon = icon === 'left' ? ChevronLeft : ChevronDown;
 
     return (
         <Pressable onPress={onPressHandler}>
             <Box style={styles.container}>
-                <ChevronDown
+                <Icon
                     style={styles.icon}
                     size={theme.space(7)}
                     color={rt.themeName === 'dark' ? theme.colors.neutral[950] : theme.colors.white}
