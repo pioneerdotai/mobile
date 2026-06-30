@@ -9,6 +9,7 @@ import { HStack } from '@/components/primitives/hstack';
 import { Pressable } from '@/components/primitives/pressable';
 import { Text } from '@/components/primitives/text';
 import { useScreen } from '@/hooks/use-screen';
+import { isCliRuntimeProvider } from '@/services/providers/cli-runtime';
 import { useActiveThreadStore } from '@/stores/active-thread';
 import { Platform } from 'react-native';
 
@@ -24,11 +25,20 @@ const useThreadScreen = () => {
     const taskTitle = normalizeRouteParam(params.taskTitle);
     const isTaskChildThread = Boolean(parentThreadId);
 
-    const { selectedMode, setModeSwitcherOpen } = useActiveThreadStore(
-        useShallow((state) => ({
-            selectedMode: state.composerSelectedMode,
-            setModeSwitcherOpen: state.setComposerModeSwitcherOpen,
-        })),
+    const { selectedMode, selectedProvider, selectedModel, setModeSwitcherOpen } =
+        useActiveThreadStore(
+            useShallow((state) => ({
+                selectedMode: state.composerSelectedMode,
+                selectedProvider: state.composerSelectedProvider,
+                selectedModel: state.composerSelectedModel,
+                setModeSwitcherOpen: state.setComposerModeSwitcherOpen,
+            })),
+        );
+
+    const showModeSwitcher = Boolean(
+        selectedProvider?.trim() &&
+        selectedModel?.trim() &&
+        !isCliRuntimeProvider(selectedProvider),
     );
 
     const handleBack = () => {
@@ -55,6 +65,10 @@ const useThreadScreen = () => {
     const modeTitle = () => {
         if (isTaskChildThread) {
             return <Text style={styles.modeTitleText}>{taskTitle ?? t('modeAgentLabel')}</Text>;
+        }
+
+        if (!showModeSwitcher) {
+            return null;
         }
 
         const Icon = selectedMode === 'Agent' ? InfinityIcon : MessageCircle;
