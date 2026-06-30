@@ -3,7 +3,7 @@ import type {
     ArtifactRef,
     MarkdownDocument,
 } from '@/client/generated/client_active_thread_snapshot';
-import type { CLIRuntimePendingRequest } from '@/client';
+import type { PendingRequest } from '@/client/generated/pending_request';
 
 export type TimelineUserAttachment = {
     id: string;
@@ -20,13 +20,9 @@ export type TimelineCapabilityRejection = {
 };
 
 export type TimelinePendingRequest = {
-    workspace_id: string;
-    runtime_id: string;
-    request_id: string;
     thread_id: string | null;
     turn_id: string | null;
-    item_id: string | null;
-    request: CLIRuntimePendingRequest;
+    request: PendingRequest;
 };
 
 export type TimelineRowMeta = {
@@ -145,8 +141,17 @@ export type TimelineRow = TimelineRowMeta &
               itemId: string;
               turnId: string;
               taskId: string;
+              runId: string | null;
+              childThreadId: string | null;
+              childTurnId: string | null;
+              agentRole: string | null;
+              depth: number;
+              maxDepth: number;
               title: string;
               status: string;
+              progressPreview: string | null;
+              resultPreview: string | null;
+              errorPreview: string | null;
           }
         | {
               type: 'work-group';
@@ -178,7 +183,7 @@ export type TimelineRow = TimelineRowMeta &
               elapsedLabel: string | null;
           }
         | {
-              type: 'cli-runtime-request';
+              type: 'pending-request';
               key: string;
               turnId: string | null;
               entry: TimelinePendingRequest;

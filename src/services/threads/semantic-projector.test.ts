@@ -1,14 +1,14 @@
-import { describe, expect, it, jest } from '@jest/globals';
+import { describe, expect, it, mock } from 'bun:test';
 
-import type { TimelineBlock, TurnWorkBlock, TurnWorkItem } from '@/client';
+import type { TimelineBlock } from '@/client/generated/timeline_block';
+import type { TurnWorkBlock } from '@/client/generated/turn_work_block';
+import type { TurnWorkItem } from '@/client/generated/turn_work_item';
 import type {
     ClientActiveThreadSnapshot,
     MarkdownDocument,
 } from '@/client/generated/client_active_thread_snapshot';
 
-import { projectSemanticTimelineToRows } from './semantic-projector';
-
-jest.mock('@/locale/i18n', () => ({
+mock.module('@/locale/i18n', () => ({
     __esModule: true,
     default: {
         t: (key: string, options?: Record<string, unknown>) =>
@@ -16,7 +16,11 @@ jest.mock('@/locale/i18n', () => ({
     },
 }));
 
-const snapshot = (): ClientActiveThreadSnapshot =>
+const { projectSemanticTimelineToRows } = await import('./semantic-projector');
+
+const snapshot = (
+    projectionOverrides: Partial<ClientActiveThreadSnapshot['projection']> = {},
+): ClientActiveThreadSnapshot =>
     ({
         history_loaded: true,
         history_loading: false,
@@ -30,6 +34,7 @@ const snapshot = (): ClientActiveThreadSnapshot =>
             revision: 0,
             timeline: [],
             turns: [],
+            ...projectionOverrides,
         },
         rows: [],
     }) as unknown as ClientActiveThreadSnapshot;
@@ -159,7 +164,34 @@ describe('mobile semantic timeline projector', () => {
         });
     });
 
-    it('projects pending request blocks into actionable CLI runtime request rows', () => {
+    it('hydrates running row from active snapshot before the live work block arrives', () => {
+        const rows = projectSemanticTimelineToRows({
+            snapshot: snapshot({
+                composer_locked: true,
+                in_flight_turn_id: 'turn_a',
+                turns: [
+                    {
+                        id: 'turn_a',
+                        phase: 'Running',
+                        started_at_unix_ms: 1_000,
+                        completed_at_unix_ms: null,
+                        error: null,
+                    },
+                ],
+            }),
+            blocks: [userBlock('001')],
+            expandedKeys: [],
+            workRangesByTurn: {},
+            nowMs: 10_000,
+        });
+
+        expect(rows.find((row) => row.type === 'running')).toMatchObject({
+            turnId: 'turn_a',
+            startedAtUnixMs: 1_000,
+        });
+    });
+
+    it('projects pending request blocks into actionable pending request rows', () => {
         const rows = projectSemanticTimelineToRows({
             snapshot: snapshot(),
             blocks: [
@@ -177,26 +209,40 @@ describe('mobile semantic timeline projector', () => {
             nowMs: 10_000,
         });
 
-        const requestRow = rows.find((row) => row.type === 'cli-runtime-request');
+        const requestRow = rows.find((row) => row.type === 'pending-request');
 
         expect(requestRow).toMatchObject({
-            key: 'timeline-cli-runtime-request::request_a',
+            key: 'timeline-pending-request::request_a',
             turnId: 'turn_a',
             entry: {
-                workspace_id: 'workspace_a',
-                runtime_id: 'codex',
-                request_id: 'request_a',
                 thread_id: 'thread_a',
                 turn_id: 'turn_a',
-                item_id: 'native_item_a',
                 request: {
+                    workspace_id: 'workspace_a',
+                    request_id: 'request_a',
+                    thread_id: 'thread_a',
+                    turn_id: 'turn_a',
+                    item_id: 'native_item_a',
+                    origin: {
+                        origin: 'cli_runtime',
+                        runtime_id: 'codex',
+                    },
                     kind: 'command_approval',
                     title: 'Run command',
                     message: 'Approve command',
                     native_request_id: 'native_request_a',
                     payload: {
-                        command: 'echo ok',
-                        cwd: '/tmp/project',
+                        source: 'cli_runtime',
+                        request: {
+                            kind: 'command_approval',
+                            title: 'Run command',
+                            message: 'Approve command',
+                            native_request_id: 'native_request_a',
+                            payload: {
+                                command: 'echo ok',
+                                cwd: '/tmp/project',
+                            },
+                        },
                     },
                 },
             },

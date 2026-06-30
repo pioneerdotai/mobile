@@ -89,3 +89,19 @@ describe('active thread reasoning effort state', () => {
         expect(useActiveThreadStore.getState().composerSelectedReasoningEffort).toBe('high');
     });
 });
+
+describe('active thread permission mode state', () => {
+    beforeEach(() => {
+        resetStore();
+    });
+
+    it('defaults permission mode to full access and resets explicit selections', () => {
+        expect(useActiveThreadStore.getState().composerSelectedPermissionMode).toBe('full_access');
+
+        useActiveThreadStore.getState().setComposerPermissionMode('supervised');
+        expect(useActiveThreadStore.getState().composerSelectedPermissionMode).toBe('supervised');
+
+        useActiveThreadStore.getState().reset();
+        expect(useActiveThreadStore.getState().composerSelectedPermissionMode).toBe('full_access');
+    });
+});

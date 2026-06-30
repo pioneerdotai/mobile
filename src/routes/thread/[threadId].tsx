@@ -9,8 +9,18 @@ const normalizeRouteParam = (value: string | string[] | undefined): string | nul
 };
 
 const ExistingThreadRoute = () => {
-    const params = useLocalSearchParams<{ threadId?: string | string[] }>();
-    return <ThreadScreen threadId={normalizeRouteParam(params.threadId)} />;
+    const params = useLocalSearchParams<{
+        threadId?: string | string[];
+        parentThreadId?: string | string[];
+        taskTitle?: string | string[];
+    }>();
+    return (
+        <ThreadScreen
+            threadId={normalizeRouteParam(params.threadId)}
+            parentThreadId={normalizeRouteParam(params.parentThreadId)}
+            taskTitle={normalizeRouteParam(params.taskTitle)}
+        />
+    );
 };
 
 export default ExistingThreadRoute;

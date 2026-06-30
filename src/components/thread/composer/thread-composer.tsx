@@ -1,24 +1,35 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { Platform, type LayoutChangeEvent } from 'react-native';
 import { KeyboardController } from 'react-native-keyboard-controller';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import {
     ArrowUp,
     Check,
+    ChevronDown,
     File,
     FileAudio,
     FileVideo,
     Image,
     Loader,
+    ShieldAlert,
+    ShieldCheck,
+    ShieldX,
     MessageSquarePlus,
+    Pencil,
     Plus,
     Square,
     TriangleAlert,
+    Unlock,
     X,
     Zap,
 } from 'lucide-react-native';
 
-import type { ComposerAttachment, ComposerCapability } from '@/client';
+import type {
+    ComposerAttachment,
+    ComposerCapability,
+    ComposerPermissionModeOption,
+    TurnPermissionMode,
+} from '@/client';
 import { McpIcon } from '@/components/icons/mcp-icon';
 import { Box } from '@/components/primitives/box';
 import { VStack } from '@/components/primitives/vstack';
@@ -53,6 +64,8 @@ type ThreadComposerProps = {
     modelSelectionLoading: boolean;
     modelSelectionAccessibilityLabel: string;
     modelSelectionDisabled: boolean;
+    permissionModeOptions: ComposerPermissionModeOption[];
+    selectedPermissionMode: TurnPermissionMode;
     inputNativeID?: string;
     onChangeText: (text: string) => void;
     onSend: () => void;
@@ -60,6 +73,7 @@ type ThreadComposerProps = {
     onStopTurn: () => void;
     onOpenAttachmentMenu: () => void;
     onOpenModelSelector: () => void;
+    onOpenPermissionModeSelector: () => void;
     onRemoveAttachment: (index: number) => void;
     onRemoveCapability: (index: number) => void;
     onHeightChange?: (height: number) => void;
@@ -93,6 +107,8 @@ export const ThreadComposer = ({
     modelSelectionLoading,
     modelSelectionAccessibilityLabel,
     modelSelectionDisabled,
+    permissionModeOptions,
+    selectedPermissionMode,
     inputNativeID,
     onChangeText,
     onSend,
@@ -100,6 +116,7 @@ export const ThreadComposer = ({
     onStopTurn,
     onOpenAttachmentMenu,
     onOpenModelSelector,
+    onOpenPermissionModeSelector,
     onRemoveAttachment,
     onRemoveCapability,
     onHeightChange,
@@ -116,6 +133,19 @@ export const ThreadComposer = ({
     const actionColor = rt.themeName === 'dark' ? theme.colors.neutral[950] : theme.colors.white;
     const hasChips = attachmentsEnabled && (attachments.length > 0 || capabilities.length > 0);
     const steerDisabled = !canSteerTurn || disabled || steering;
+    const permissionSelectionDisabled = disabled || sending || hasInFlightTurn;
+    const selectedPermissionOption = useMemo(
+        () =>
+            permissionModeOptions.find((option) => option.mode === selectedPermissionMode) ??
+            permissionModeOptions[permissionModeOptions.length - 1] ?? {
+                mode: 'full_access' as const,
+                label: 'Full access',
+                description: 'Allow commands and edits without prompts.',
+            },
+        [permissionModeOptions, selectedPermissionMode],
+    );
+
+    const PermissionIcon = permissionModeIcon(selectedPermissionOption.mode);
 
     const handleLayout = useCallback(
         (event: LayoutChangeEvent) => {
@@ -131,6 +161,16 @@ export const ThreadComposer = ({
 
         onOpenAttachmentMenu();
     }, [onOpenAttachmentMenu]);
+
+    const openPermissionModeSelector = useCallback(() => {
+        if (permissionSelectionDisabled) {
+            return;
+        }
+        if (KeyboardController.isVisible()) {
+            void KeyboardController.dismiss();
+        }
+        onOpenPermissionModeSelector();
+    }, [onOpenPermissionModeSelector, permissionSelectionDisabled]);
 
     return (
         <Box onLayout={handleLayout} style={styles.container}>
@@ -186,6 +226,33 @@ export const ThreadComposer = ({
                                 ) : null}
                                 <Pressable
                                     accessibilityRole="button"
+                                    accessibilityLabel={selectedPermissionOption.description}
+                                    disabled={permissionSelectionDisabled}
+                                    onPress={openPermissionModeSelector}
+                                    style={({ pressed }) => [
+                                        styles.permissionButton,
+                                        permissionSelectionDisabled
+                                            ? styles.modelButtonDisabled
+                                            : null,
+                                        pressed && !permissionSelectionDisabled
+                                            ? styles.modelButtonPressed
+                                            : null,
+                                    ]}
+                                >
+                                    <HStack style={styles.permissionButtonContent}>
+                                        <PermissionIcon
+                                            size={theme.space(4.5)}
+                                            color={theme.colors.typography}
+                                        />
+                                        <ChevronDown
+                                            size={theme.space(4.5)}
+                                            opacity={0.6}
+                                            color={theme.colors.typography}
+                                        />
+                                    </HStack>
+                                </Pressable>
+                                <Pressable
+                                    accessibilityRole="button"
                                     accessibilityLabel={modelSelectionAccessibilityLabel}
                                     disabled={modelSelectionDisabled}
                                     onPress={onOpenModelSelector}
@@ -215,6 +282,11 @@ export const ThreadComposer = ({
                                                     {modelSelectionEffortLabel}
                                                 </Text>
                                             ) : null}
+                                            <ChevronDown
+                                                size={theme.space(4.5)}
+                                                opacity={0.6}
+                                                color={theme.colors.typography}
+                                            />
                                         </HStack>
                                     )}
                                 </Pressable>
@@ -273,6 +345,17 @@ export const ThreadComposer = ({
             </Box>
         </Box>
     );
+};
+
+const permissionModeIcon = (mode: TurnPermissionMode) => {
+    switch (mode) {
+        case 'supervised':
+            return ShieldX;
+        case 'auto_accept_edits':
+            return ShieldAlert;
+        case 'full_access':
+            return ShieldCheck;
+    }
 };
 
 type ComposerChipRailProps = {
@@ -495,6 +578,29 @@ const styles = StyleSheet.create((theme, rt) => ({
     },
     modelButtonPressed: {
         backgroundColor: theme.colors.surfaceMuted,
+    },
+    permissionButton: {
+        minWidth: 0,
+        flexShrink: 1,
+        maxWidth: theme.space(42),
+        height: theme.space(8),
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: theme.space(2),
+        borderRadius: theme.radius.full,
+    },
+    permissionButtonContent: {
+        minWidth: 0,
+        alignItems: 'center',
+        gap: theme.space(1),
+    },
+    permissionButtonText: {
+        minWidth: 0,
+        flexShrink: 1,
+        color: theme.colors.typography,
+        fontSize: theme.fontSize.xs.fontSize,
+        lineHeight: theme.fontSize.xs.lineHeight,
+        fontWeight: theme.fontWeight.medium.fontWeight,
     },
     modelButtonLabelWrap: {
         minWidth: 0,

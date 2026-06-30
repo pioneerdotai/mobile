@@ -1,9 +1,8 @@
-import type {
-    ClientActiveThreadSnapshot,
-    TimelineBlock,
-    TurnWorkBlock,
-    TurnWorkItem,
-} from '@/client';
+import type { ClientActiveThreadSnapshot } from '@/client/generated/client_active_thread_snapshot';
+import type { PendingRequest } from '@/client/generated/pending_request';
+import type { TimelineBlock } from '@/client/generated/timeline_block';
+import type { TurnWorkBlock } from '@/client/generated/turn_work_block';
+import type { TurnWorkItem } from '@/client/generated/turn_work_item';
 import type {
     ConversationViewState,
     ItemView,
@@ -90,6 +89,16 @@ export const projectSemanticTimelineToRows = ({
         }
     });
 
+    const inFlightTurnId = snapshot.projection.in_flight_turn_id ?? null;
+    if (inFlightTurnId && !insertedRunningRows.has(inFlightTurnId)) {
+        pushRunningRow(
+            semantic,
+            inFlightTurnId,
+            snapshot.projection.turns.find((turn) => turn.id === inFlightTurnId)
+                ?.started_at_unix_ms ?? null,
+        );
+    }
+
     const semanticSnapshot: ClientActiveThreadSnapshot = {
         ...snapshot,
         history_loaded: true,
@@ -144,14 +153,36 @@ const pushPendingRequestBlock = (semantic: MutableSemanticProjection, block: Tim
     }
 
     semantic.pendingRequests.push({
+        thread_id: block.threadId,
+        turn_id: block.turnId ?? null,
+        request: pendingRequestFromBlock(block),
+    });
+};
+
+const pendingRequestFromBlock = (block: TimelineBlock): PendingRequest => {
+    if (block.kind.kind !== 'pending_request') {
+        throw new Error('expected pending request block');
+    }
+
+    return {
         workspace_id: block.workspaceId,
-        runtime_id: block.kind.runtimeId,
         request_id: block.kind.requestId,
         thread_id: block.threadId,
         turn_id: block.turnId ?? null,
         item_id: block.kind.itemId ?? null,
-        request: block.kind.request,
-    });
+        origin: {
+            origin: 'cli_runtime',
+            runtime_id: block.kind.runtimeId,
+        },
+        kind: block.kind.request.kind,
+        title: block.kind.request.title ?? null,
+        message: block.kind.request.message ?? null,
+        native_request_id: block.kind.request.native_request_id ?? null,
+        payload: {
+            source: 'cli_runtime',
+            request: block.kind.request,
+        },
+    };
 };
 
 const pushUserBlock = (semantic: MutableSemanticProjection, block: TimelineBlock) => {

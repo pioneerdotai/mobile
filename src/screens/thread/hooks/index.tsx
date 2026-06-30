@@ -1,7 +1,7 @@
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
-import { Infinity as InfinityIcon, MessageCircle } from 'lucide-react-native';
+import { ChevronLeft, Infinity as InfinityIcon, MessageCircle } from 'lucide-react-native';
 import { useShallow } from 'zustand/react/shallow';
 
 import { CollapseButton } from '@/components/buttons/collapse';
@@ -16,6 +16,13 @@ const useThreadScreen = () => {
     const { options } = useScreen();
     const { theme } = useUnistyles();
     const { t } = useTranslation('threads');
+    const params = useLocalSearchParams<{
+        parentThreadId?: string | string[];
+        taskTitle?: string | string[];
+    }>();
+    const parentThreadId = normalizeRouteParam(params.parentThreadId);
+    const taskTitle = normalizeRouteParam(params.taskTitle);
+    const isTaskChildThread = Boolean(parentThreadId);
 
     const { selectedMode, setModeSwitcherOpen } = useActiveThreadStore(
         useShallow((state) => ({
@@ -29,11 +36,27 @@ const useThreadScreen = () => {
         else router.navigate('/home');
     };
 
+    const handleTaskBack = () => {
+        if (parentThreadId) {
+            router.replace({
+                pathname: '/thread/[threadId]',
+                params: { threadId: parentThreadId },
+            });
+            return;
+        }
+
+        handleBack();
+    };
+
     const openModeSwitcher = () => {
         setModeSwitcherOpen(true);
     };
 
     const modeTitle = () => {
+        if (isTaskChildThread) {
+            return <Text style={styles.modeTitleText}>{taskTitle ?? t('modeAgentLabel')}</Text>;
+        }
+
         const Icon = selectedMode === 'Agent' ? InfinityIcon : MessageCircle;
         const label = selectedMode === 'Agent' ? t('modeAgentLabel') : t('modeChatLabel');
 
@@ -63,7 +86,14 @@ const useThreadScreen = () => {
                 ...options.headerStyle,
                 backgroundColor: 'transparent',
             },
-            headerLeft: () => <CollapseButton onPressHandler={handleBack} />,
+            headerLeft: () =>
+                isTaskChildThread ? (
+                    <Pressable onPress={handleTaskBack} style={styles.backButton}>
+                        <ChevronLeft size={theme.space(7)} color={theme.colors.typography} />
+                    </Pressable>
+                ) : (
+                    <CollapseButton onPressHandler={handleBack} />
+                ),
             cardStyle: {
                 ...options.cardStyle,
                 backgroundColor: theme.colors.background,
@@ -90,6 +120,18 @@ const styles = StyleSheet.create((theme) => ({
             },
         }),
     },
+    backButton: {
+        width: theme.space(12),
+        height: theme.space(12),
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
 }));
+
+const normalizeRouteParam = (value: string | string[] | undefined): string | null => {
+    const raw = Array.isArray(value) ? value[0] : value;
+    const normalized = raw?.trim();
+    return normalized ? normalized : null;
+};
 
 export { useThreadScreen };

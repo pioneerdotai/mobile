@@ -109,6 +109,7 @@ export const useActiveThread = (
         composerSelectedProvider,
         composerSelectedModel,
         composerSelectedReasoningEffort,
+        composerSelectedPermissionMode,
         defaultComposerSelectionLoading,
         composerModelManuallySelected,
         reset,
@@ -135,6 +136,7 @@ export const useActiveThread = (
             composerSelectedProvider: state.composerSelectedProvider,
             composerSelectedModel: state.composerSelectedModel,
             composerSelectedReasoningEffort: state.composerSelectedReasoningEffort,
+            composerSelectedPermissionMode: state.composerSelectedPermissionMode,
             defaultComposerSelectionLoading: state.defaultComposerSelectionLoading,
             composerModelManuallySelected: state.composerModelManuallySelected,
             reset: state.reset,
@@ -303,10 +305,7 @@ export const useActiveThread = (
                         return;
                     }
 
-                    applySemanticTimelinePatchToCache(
-                        queryClient,
-                        result.semantic_timeline_patch,
-                    );
+                    applySemanticTimelinePatchToCache(queryClient, result.semantic_timeline_patch);
                     setSnapshot(stripServerTimelineCache(result.snapshot));
                 })
                 .catch((caught) => {
@@ -423,6 +422,7 @@ export const useActiveThread = (
                         : null,
                     ...selectedReasoningEffortRequestFields(selectedReasoningEffortForSend),
                     selected_mode: storeState.composerSelectedMode,
+                    permission_mode: storeState.composerSelectedPermissionMode,
                     attachments: attachmentsForSend,
                     capabilities,
                     expanded_keys: useActiveThreadStore.getState().expandedKeys,
@@ -606,6 +606,7 @@ export const useActiveThread = (
             composerSelectedProvider,
             composerSelectedModel,
             composerSelectedReasoningEffort,
+            composerSelectedPermissionMode,
             defaultComposerSelectionLoading,
             composerModelManuallySelected,
             open: refresh,
@@ -626,6 +627,7 @@ export const useActiveThread = (
             composerSelectedModel,
             composerSelectedProvider,
             composerSelectedReasoningEffort,
+            composerSelectedPermissionMode,
             defaultComposerSelectionLoading,
             connected,
             error,

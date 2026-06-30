@@ -136,12 +136,41 @@ const presentationMessage = (
             });
         case 'turn_tool_loop_budget_exceeded':
             return t('timelineToolCallLimitReached');
+        case 'turn_permission_audit':
+            return permissionAuditMessage(row, t);
         case 'turn_blocked_resumable':
             return row.message;
         case 'turn_failed':
             return isRecoveryFailureMessage(row.message)
                 ? t('timelineRecoveryFailed')
                 : row.message;
+        default:
+            return row.message;
+    }
+};
+
+const permissionAuditMessage = (
+    row: Extract<TimelineRow, { type: 'system-event' }>,
+    t: (key: string, options?: Record<string, unknown>) => string,
+): string => {
+    const decision = detailString(row.details, 'decision');
+    const eventKind = detailString(row.details, 'event_kind');
+
+    if (eventKind === 'approval_requested') {
+        return t('timelinePermissionApprovalRequested');
+    }
+
+    switch (decision) {
+        case 'deny':
+            return t('timelinePermissionDenied');
+        case 'cancelled':
+            return t('timelinePermissionCancelled');
+        case 'expired':
+            return t('timelinePermissionExpired');
+        case 'allow':
+        case 'allow_once':
+        case 'allow_for_turn':
+            return t('timelinePermissionApproved');
         default:
             return row.message;
     }

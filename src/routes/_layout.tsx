@@ -27,6 +27,7 @@ import GatewaySwitcherSheet from '@/components/overlays/gateway';
 import WorkspaceSwitcherSheet from '@/components/overlays/workspace';
 import ComposerAttachmentMenuSheet from '@/components/overlays/composer-attachments';
 import ThreadModeSwitcherSheet from '@/components/overlays/thread-mode';
+import ThreadPermissionModeSwitcherSheet from '@/components/overlays/thread-permission';
 import { initializeSentry, isSentryEnabled, Sentry } from '@/services/sentry';
 import { pioneerQueryClient } from '@/services/query/client';
 
@@ -295,6 +296,7 @@ const RootStack = () => {
             <WorkspaceSwitcherSheet />
             <ComposerAttachmentMenuSheet />
             <ThreadModeSwitcherSheet />
+            <ThreadPermissionModeSwitcherSheet />
         </BottomSheetModalProvider>
     );
 };

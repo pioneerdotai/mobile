@@ -2,7 +2,13 @@ import { useCallback, useMemo, useState } from 'react';
 import { StyleSheet } from 'react-native-unistyles';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
-import { pioneerClient, type CLIRuntimeRequestResolution } from '@/client';
+import {
+    pioneerClient,
+    type PendingRequestAvailableAction,
+    type PendingRequestDetailRow,
+    type PendingRequestResolution,
+    type PendingRequestUserInputQuestion,
+} from '@/client';
 import { Box } from '@/components/primitives/box';
 import { HStack } from '@/components/primitives/hstack';
 import { Input } from '@/components/primitives/input';
@@ -14,58 +20,51 @@ import {
     invalidateTimelineQueriesForThread,
     invalidateTurnWorkQueries,
 } from '@/services/threads/timeline-query';
-import { useCliRuntimeStore } from '@/stores/cli-runtime';
 
-type RequestDetail = {
-    label: string;
-    value: string;
-    monospace?: boolean;
-};
-
-type UserInputQuestion = {
-    id: string;
-    header: string | null;
-    question: string;
-    options: string[];
-    isSecret: boolean;
-};
-
-type CLIRuntimePendingRequestCardProps = {
+type PendingRequestCardProps = {
     entry: TimelinePendingRequest;
 };
 
-export const CLIRuntimePendingRequestCard = ({ entry }: CLIRuntimePendingRequestCardProps) => {
+export const PendingRequestCard = ({ entry }: PendingRequestCardProps) => {
     const queryClient = useQueryClient();
-    const removePendingRequest = useCliRuntimeStore((state) => state.removePendingRequest);
     const [answers, setAnswers] = useState<Record<string, string>>({});
     const [fallbackAnswer, setFallbackAnswer] = useState('');
     const [error, setError] = useState<string | null>(null);
     const respondMutation = useMutation({
-        mutationFn: (resolution: CLIRuntimeRequestResolution) =>
-            pioneerClient.cliRuntimeRequestRespond({
-                workspace_id: entry.workspace_id,
-                runtime_id: entry.runtime_id,
-                request_id: entry.request_id,
+        mutationFn: async (resolution: PendingRequestResolution) => {
+            const plan = pioneerClient.pendingRequestResponsePlan({
+                request: entry.request,
                 resolution,
-            }),
+            });
+
+            switch (plan.action.target) {
+                case 'cli_runtime':
+                    return pioneerClient.cliRuntimeRequestRespond(plan.action.params);
+                case 'native_permission_gate':
+                    return pioneerClient.turnPermissionRequestRespond(plan.action.params);
+            }
+        },
         onSuccess: () => {
-            removePendingRequest(entry.request_id);
             void invalidateTimelineQueriesForThread(queryClient, entry.thread_id);
             void invalidateTurnWorkQueries(queryClient, entry.thread_id, entry.turn_id);
         },
     });
 
-    const title = entry.request.title?.trim() || requestKindTitle(entry.request.kind);
-    const message = entry.request.message?.trim() || null;
-    const details = useMemo(() => requestDetails(entry), [entry]);
-    const questions = useMemo(() => userInputQuestions(entry.request.payload), [entry]);
-    const userInput = entry.request.kind === 'user_input';
+    const presentation = useMemo(
+        () => pioneerClient.pendingRequestPresentation({ request: entry.request }).presentation,
+        [entry.request],
+    );
+    const title = presentation.title.trim() || 'Approval request';
+    const message = presentation.message?.trim() || null;
+    const details = presentation.details;
+    const questions = presentation.user_input_questions;
+    const userInput = presentation.actions.some((action) => action.kind === 'answer');
     const submitting = respondMutation.isPending;
     const canSubmitAnswer =
         !submitting && (questions.length > 0 || fallbackAnswer.trim().length > 0);
 
     const respond = useCallback(
-        async (resolution: CLIRuntimeRequestResolution) => {
+        async (resolution: PendingRequestResolution) => {
             setError(null);
 
             try {
@@ -89,20 +88,20 @@ export const CLIRuntimePendingRequestCard = ({ entry }: CLIRuntimePendingRequest
             }, {});
 
             void respond({
-                status: 'answered',
+                resolution: 'answered',
                 response: { answers: responseAnswers },
             });
             return;
         }
 
-        void respond({ status: 'answered', response: fallbackAnswer });
+        void respond({ resolution: 'answered', response: fallbackAnswer });
     }, [answers, fallbackAnswer, questions, respond]);
 
     return (
         <VStack style={styles.card}>
             <VStack style={styles.heading}>
                 <Text numberOfLines={1} style={styles.eyebrow}>
-                    CLI request
+                    {presentation.origin_label}
                 </Text>
                 <Text numberOfLines={2} style={styles.title}>
                     {title}
@@ -125,25 +124,17 @@ export const CLIRuntimePendingRequestCard = ({ entry }: CLIRuntimePendingRequest
             ) : null}
             {error ? <Text style={styles.error}>{error}</Text> : null}
             <RequestActions
-                kind={entry.request.kind}
+                actions={presentation.actions}
                 submitting={submitting}
                 canSubmitAnswer={canSubmitAnswer}
-                onAllow={() => void respond({ status: 'approved' })}
-                onAllowForSession={() =>
-                    void respond({
-                        status: 'answered',
-                        response: { decision: 'allow_for_session' },
-                    })
-                }
-                onCancel={() => void respond({ status: 'cancelled' })}
-                onDeny={() => void respond({ status: 'denied', reason: null })}
+                onRespond={(resolution) => void respond(resolution)}
                 onSubmitAnswer={submitAnswer}
             />
         </VStack>
     );
 };
 
-const RequestDetailRow = ({ detail }: { detail: RequestDetail }) => (
+const RequestDetailRow = ({ detail }: { detail: PendingRequestDetailRow }) => (
     <VStack style={styles.detailRow}>
         <Text style={styles.detailLabel}>{detail.label}</Text>
         <Box style={styles.detailValueWrap}>
@@ -166,7 +157,7 @@ const UserInputFields = ({
     onFallbackAnswer,
 }: {
     fallbackAnswer: string;
-    questions: UserInputQuestion[];
+    questions: PendingRequestUserInputQuestion[];
     submitting: boolean;
     values: Record<string, string>;
     onAnswer: (id: string, value: string) => void;
@@ -194,12 +185,14 @@ const UserInputFields = ({
                         <HStack style={styles.optionRow}>
                             {question.options.map((option) => (
                                 <ActionButton
-                                    key={option}
-                                    label={option}
+                                    key={option.label}
+                                    label={option.label}
                                     disabled={submitting}
-                                    onPress={() => onAnswer(question.id, option)}
+                                    onPress={() => onAnswer(question.id, option.label)}
                                     variant={
-                                        values[question.id] === option ? 'primary' : 'secondary'
+                                        values[question.id] === option.label
+                                            ? 'primary'
+                                            : 'secondary'
                                     }
                                 />
                             ))}
@@ -212,7 +205,7 @@ const UserInputFields = ({
                         onChangeText={(value) => onAnswer(question.id, value)}
                         style={styles.answerInput}
                     />
-                    {question.isSecret ? (
+                    {question.is_secret ? (
                         <Text style={styles.secretNote}>
                             This answer will be sent only to the active CLI runtime.
                         </Text>
@@ -224,80 +217,71 @@ const UserInputFields = ({
 };
 
 const RequestActions = ({
+    actions,
     canSubmitAnswer,
-    kind,
     submitting,
-    onAllow,
-    onAllowForSession,
-    onCancel,
-    onDeny,
+    onRespond,
     onSubmitAnswer,
 }: {
+    actions: PendingRequestAvailableAction[];
     canSubmitAnswer: boolean;
-    kind: TimelinePendingRequest['request']['kind'];
     submitting: boolean;
-    onAllow: () => void;
-    onAllowForSession: () => void;
-    onCancel: () => void;
-    onDeny: () => void;
+    onRespond: (resolution: PendingRequestResolution) => void;
     onSubmitAnswer: () => void;
-}) => {
-    if (kind === 'user_input') {
-        return (
-            <HStack style={styles.actionRow}>
-                <ActionButton
-                    label="Cancel turn"
-                    disabled={submitting}
-                    onPress={onCancel}
-                    variant="danger"
-                />
-                <ActionButton
-                    label="Answer"
-                    disabled={!canSubmitAnswer}
-                    onPress={onSubmitAnswer}
-                    variant="primary"
-                />
-            </HStack>
-        );
-    }
-
-    if (kind === 'other') {
-        return (
-            <HStack style={styles.actionRow}>
-                <ActionButton
-                    label="Cancel turn"
-                    disabled={submitting}
-                    onPress={onCancel}
-                    variant="danger"
-                />
-                <ActionButton
-                    label="Allow"
-                    disabled={submitting}
-                    onPress={onAllow}
-                    variant="primary"
-                />
-            </HStack>
-        );
-    }
-
-    return (
-        <HStack style={styles.actionRow}>
+}) => (
+    <HStack style={styles.actionRow}>
+        {actions.map((action) => (
             <ActionButton
-                label="Cancel turn"
-                disabled={submitting}
-                onPress={onCancel}
-                variant="danger"
+                key={action.kind}
+                label={actionLabel(action)}
+                disabled={
+                    action.kind === 'answer'
+                        ? !canSubmitAnswer
+                        : submitting || action.resolution == null
+                }
+                onPress={() => {
+                    if (action.kind === 'answer') {
+                        onSubmitAnswer();
+                        return;
+                    }
+                    if (action.resolution) {
+                        onRespond(action.resolution);
+                    }
+                }}
+                variant={actionVariant(action)}
             />
-            <ActionButton label="Deny" disabled={submitting} onPress={onDeny} variant="secondary" />
-            <ActionButton
-                label="Allow for session"
-                disabled={submitting}
-                onPress={onAllowForSession}
-                variant="secondary"
-            />
-            <ActionButton label="Allow" disabled={submitting} onPress={onAllow} variant="primary" />
-        </HStack>
-    );
+        ))}
+    </HStack>
+);
+
+const actionLabel = (action: PendingRequestAvailableAction) => {
+    switch (action.kind) {
+        case 'cancel_turn':
+            return 'Cancel turn';
+        case 'deny':
+            return 'Deny';
+        case 'allow':
+            return 'Allow';
+        case 'allow_for_turn':
+            return 'Allow for turn';
+        case 'answer':
+            return 'Answer';
+    }
+};
+
+const actionVariant = (
+    action: PendingRequestAvailableAction,
+): 'danger' | 'primary' | 'secondary' => {
+    switch (action.kind) {
+        case 'cancel_turn':
+            return 'danger';
+        case 'allow':
+        case 'answer':
+            return 'primary';
+        case 'deny':
+        case 'allow_for_turn':
+            return 'secondary';
+    }
 };
 
 const ActionButton = ({
@@ -333,130 +317,8 @@ const ActionButton = ({
     </Pressable>
 );
 
-const requestDetails = (entry: TimelinePendingRequest): RequestDetail[] => {
-    const payload = asRecord(entry.request.payload);
-    if (!payload) {
-        return [];
-    }
-
-    if (entry.request.kind === 'command_approval') {
-        return compactDetails([
-            {
-                label: 'Command',
-                value: stringField(payload, 'command') ?? commandFromArgv(payload),
-                monospace: true,
-            },
-            { label: 'Directory', value: stringField(payload, 'cwd'), monospace: true },
-            { label: 'Reason', value: stringField(payload, 'reason') },
-        ]);
-    }
-
-    if (entry.request.kind === 'file_change_approval') {
-        return compactDetails([
-            { label: 'Root', value: stringField(payload, 'grantRoot'), monospace: true },
-            {
-                label: 'Files',
-                value: stringArrayField(payload, 'changedFiles')?.join('\n'),
-                monospace: true,
-            },
-            { label: 'Reason', value: stringField(payload, 'reason') },
-            { label: 'Diff', value: diffPreviewText(payload), monospace: true },
-        ]);
-    }
-
-    return [];
-};
-
-const compactDetails = (
-    details: { label: string; value?: string | null; monospace?: boolean }[],
-): RequestDetail[] =>
-    details.flatMap((detail) => {
-        const value = detail.value?.trim();
-        return value ? [{ label: detail.label, value, monospace: detail.monospace }] : [];
-    });
-
-const requestKindTitle = (kind: TimelinePendingRequest['request']['kind']) => {
-    switch (kind) {
-        case 'command_approval':
-            return 'Command approval';
-        case 'file_change_approval':
-            return 'File change approval';
-        case 'user_input':
-            return 'Input requested';
-        case 'other':
-            return 'CLI runtime request';
-    }
-};
-
-const userInputQuestions = (payload: unknown): UserInputQuestion[] => {
-    const record = asRecord(payload);
-    const questions = asArray(record?.questions);
-
-    return questions.map((value, index) => {
-        const question = asRecord(value);
-        const id = stringField(question, 'id') ?? `question_${index + 1}`;
-        const header = stringField(question, 'header');
-        const questionText = stringField(question, 'question') ?? header ?? id;
-        const options = asArray(question?.options)
-            .map((option) => stringField(asRecord(option), 'label'))
-            .filter((label): label is string => Boolean(label));
-
-        return {
-            id,
-            header,
-            question: questionText,
-            options,
-            isSecret: booleanField(question, 'isSecret') ?? false,
-        };
-    });
-};
-
-const stringField = (payload: Record<string, unknown> | null | undefined, key: string) => {
-    const value = payload?.[key];
-
-    return typeof value === 'string' && value.trim() ? value : null;
-};
-
-const booleanField = (payload: Record<string, unknown> | null | undefined, key: string) => {
-    const value = payload?.[key];
-
-    return typeof value === 'boolean' ? value : null;
-};
-
-const stringArrayField = (payload: Record<string, unknown>, key: string) => {
-    const value = payload[key];
-
-    return Array.isArray(value)
-        ? value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
-        : null;
-};
-
-const commandFromArgv = (payload: Record<string, unknown>) => {
-    const argv = payload.argv;
-
-    if (!Array.isArray(argv)) {
-        return null;
-    }
-
-    const command = argv.filter((item): item is string => typeof item === 'string').join(' ');
-    return command.trim() ? command : null;
-};
-
-const diffPreviewText = (payload: Record<string, unknown>) => {
-    const diffPreview = asRecord(payload.diffPreview);
-
-    return stringField(diffPreview, 'text');
-};
-
-const asRecord = (value: unknown): Record<string, unknown> | null =>
-    value && typeof value === 'object' && !Array.isArray(value)
-        ? (value as Record<string, unknown>)
-        : null;
-
-const asArray = (value: unknown): unknown[] => (Array.isArray(value) ? value : []);
-
 const errorMessage = (error: unknown) =>
-    error instanceof Error ? error.message : 'Failed to answer CLI request.';
+    error instanceof Error ? error.message : 'Failed to answer request.';
 
 const styles = StyleSheet.create((theme) => ({
     card: {

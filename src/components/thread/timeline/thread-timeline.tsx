@@ -24,7 +24,7 @@ import {
     projectConversationToRows,
 } from '@/services/threads/conversation/projector';
 import type { TimelinePendingRequest, TimelineRow } from '@/services/threads/conversation/timeline';
-import { CLIRuntimePendingRequestCard } from '@/components/thread/cli-runtime-pending-requests';
+import { PendingRequestCard } from '@/components/thread/cli-runtime-pending-requests';
 import { Box } from '@/components/primitives/box';
 import { Text } from '@/components/primitives/text';
 import Spinner from '@/components/feedback/spinner';
@@ -74,6 +74,7 @@ type ThreadTimelineProps = {
     mcpServerIdByName: Readonly<Record<string, string>>;
     onOpenArtifact?: (artifactId: string) => void;
     onOpenMcpServer?: (serverId: string) => void;
+    onOpenTaskThread?: (row: Extract<TimelineRow, { type: 'task-anchor' }>) => void;
     onExpandedKeysChange: (keys: string[]) => void;
     onViewportPrefetchPlanChange?: (plan: TimelineViewportPrefetchPlan) => void;
     onRefresh: () => Promise<void>;
@@ -120,6 +121,7 @@ const ThreadTimelineContent = ({
     mcpServerIdByName,
     onOpenArtifact,
     onOpenMcpServer,
+    onOpenTaskThread,
     onExpandedKeysChange,
     onViewportPrefetchPlanChange,
     onRefresh,
@@ -273,10 +275,18 @@ const ThreadTimelineContent = ({
                 mcpServerIdByName={mcpServerIdByName}
                 onOpenArtifact={onOpenArtifact}
                 onOpenMcpServer={onOpenMcpServer}
+                onOpenTaskThread={onOpenTaskThread}
                 onToggleExpanded={() => toggleExpandedRow(item)}
             />
         ),
-        [expandedRows, mcpServerIdByName, onOpenArtifact, onOpenMcpServer, toggleExpandedRow],
+        [
+            expandedRows,
+            mcpServerIdByName,
+            onOpenArtifact,
+            onOpenMcpServer,
+            onOpenTaskThread,
+            toggleExpandedRow,
+        ],
     );
     const handleViewableItemsChanged = useCallback<
         NonNullable<OnViewableItemsChanged<TimelineRow>>
@@ -422,6 +432,7 @@ const TimelineRowContainer = ({
     mcpServerIdByName,
     onOpenArtifact,
     onOpenMcpServer,
+    onOpenTaskThread,
     onToggleExpanded,
 }: {
     row: TimelineRow;
@@ -429,6 +440,7 @@ const TimelineRowContainer = ({
     mcpServerIdByName: Readonly<Record<string, string>>;
     onOpenArtifact?: (artifactId: string) => void;
     onOpenMcpServer?: (serverId: string) => void;
+    onOpenTaskThread?: (row: Extract<TimelineRow, { type: 'task-anchor' }>) => void;
     onToggleExpanded: () => void;
 }) => {
     return (
@@ -439,6 +451,7 @@ const TimelineRowContainer = ({
                 mcpServerIdByName={mcpServerIdByName}
                 onOpenArtifact={onOpenArtifact}
                 onOpenMcpServer={onOpenMcpServer}
+                onOpenTaskThread={onOpenTaskThread}
                 onToggleExpanded={onToggleExpanded}
             />
         </Box>
@@ -451,6 +464,7 @@ const TimelineRowRenderer = ({
     mcpServerIdByName,
     onOpenArtifact,
     onOpenMcpServer,
+    onOpenTaskThread,
     onToggleExpanded,
 }: {
     row: TimelineRow;
@@ -458,6 +472,7 @@ const TimelineRowRenderer = ({
     mcpServerIdByName: Readonly<Record<string, string>>;
     onOpenArtifact?: (artifactId: string) => void;
     onOpenMcpServer?: (serverId: string) => void;
+    onOpenTaskThread?: (row: Extract<TimelineRow, { type: 'task-anchor' }>) => void;
     onToggleExpanded: () => void;
 }) => {
     switch (row.type) {
@@ -488,15 +503,15 @@ const TimelineRowRenderer = ({
                 />
             );
         case 'task-anchor':
-            return <TaskAnchorRow row={row} />;
+            return <TaskAnchorRow row={row} onOpenTaskThread={onOpenTaskThread} />;
         case 'work-group':
             return <WorkGroupRow row={row} expanded={expanded} onToggle={onToggleExpanded} />;
         case 'tool-group':
             return <ToolGroupRow row={row} expanded={expanded} onToggle={onToggleExpanded} />;
         case 'running':
             return <RunningRow row={row} />;
-        case 'cli-runtime-request':
-            return <CLIRuntimePendingRequestCard entry={row.entry} />;
+        case 'pending-request':
+            return <PendingRequestCard entry={row.entry} />;
         case 'artifact':
             return <ArtifactRow row={row} />;
         case 'unknown':
@@ -516,7 +531,7 @@ const defaultExpanded = (row: TimelineRow) => {
         case 'tool-group':
             return row.expanded;
         case 'running':
-        case 'cli-runtime-request':
+        case 'pending-request':
             return false;
         default:
             return false;
@@ -555,17 +570,17 @@ const insertPendingRequestRows = (
     }
 
     const existingRequestKeys = new Set(
-        rows.filter((row) => row.type === 'cli-runtime-request').map((row) => row.key),
+        rows.filter((row) => row.type === 'pending-request').map((row) => row.key),
     );
     const requestRows = pendingRequests.flatMap((entry): TimelineRow[] => {
-        const key = `timeline-cli-runtime-request::${entry.request_id}`;
+        const key = `timeline-pending-request::${entry.request.request_id}`;
         if (existingRequestKeys.has(key)) {
             return [];
         }
 
         return [
             {
-                type: 'cli-runtime-request',
+                type: 'pending-request',
                 key,
                 turnId: entry.turn_id,
                 entry,

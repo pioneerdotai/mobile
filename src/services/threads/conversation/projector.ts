@@ -80,8 +80,8 @@ const insertPendingRequestRows = (
 };
 
 const projectPendingRequestToRow = (entry: TimelinePendingRequest): TimelineRow => ({
-    type: 'cli-runtime-request',
-    key: `timeline-cli-runtime-request::${entry.request_id}`,
+    type: 'pending-request',
+    key: `timeline-pending-request::${entry.request.request_id}`,
     turnId: entry.turn_id,
     entry,
 });
@@ -454,8 +454,18 @@ const projectItemToRow = (item: ItemView, nowMs?: number): TimelineRow => {
                 itemId: item.id,
                 turnId: item.turn_id,
                 taskId: turnItem.taskId,
+                runId: turnItem.runId ?? null,
+                childThreadId: turnItem.childThreadId ?? null,
+                childTurnId: turnItem.childTurnId ?? null,
+                agentRole: turnItem.agentRole ?? null,
+                depth: turnItem.depth ?? 0,
+                maxDepth: turnItem.maxDepth ?? 0,
                 title: turnItem.title,
                 status: turnItem.status,
+                progressPreview:
+                    typeof turnItem.progressPreview === 'string' ? turnItem.progressPreview : null,
+                resultPreview: turnItem.resultPreview ?? null,
+                errorPreview: turnItem.errorPreview ?? null,
             };
         case 'commandExecution': {
             const command = commandLineFromCommandExecution(turnItem);
@@ -761,6 +771,8 @@ const systemEventLabel = (level: string, code: string | null, details: unknown):
             return tt('timelineRecovery');
         case 'turn_tool_loop_budget_exceeded':
             return systemLevelLabel(level);
+        case 'turn_permission_audit':
+            return tt('timelinePermissions');
         case 'turn_failed':
             return systemLevelLabel(level);
         default:

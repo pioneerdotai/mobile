@@ -5,6 +5,7 @@ import type {
     ComposerAttachment,
     ComposerCapability,
     ThreadMode,
+    TurnPermissionMode,
 } from '@/client';
 import { isCliRuntimeProvider } from '@/services/providers/cli-runtime';
 
@@ -18,6 +19,7 @@ type ActiveThreadStoreState = {
     composerCapabilities: ComposerCapability[];
     showComposerAttachmentMenu: boolean;
     showComposerModeSwitcher: boolean;
+    showComposerPermissionModeSwitcher: boolean;
     expandedKeys: string[];
     composerModeThreadId: string | null;
     composerSelectedMode: ThreadMode;
@@ -25,6 +27,7 @@ type ActiveThreadStoreState = {
     composerSelectedProvider: string | null;
     composerSelectedModel: string | null;
     composerSelectedReasoningEffort: string | null;
+    composerSelectedPermissionMode: TurnPermissionMode;
     defaultComposerProvider: string | null;
     defaultComposerModel: string | null;
     defaultComposerReasoningEffort: string | null;
@@ -40,12 +43,14 @@ type ActiveThreadStoreState = {
     setComposerCapabilities: (capabilities: ComposerCapability[]) => void;
     setComposerAttachmentMenuOpen: (open: boolean) => void;
     setComposerModeSwitcherOpen: (open: boolean) => void;
+    setComposerPermissionModeSwitcherOpen: (open: boolean) => void;
     setComposerMode: (mode: ThreadMode) => void;
     syncComposerMode: (threadId: string | null, mode: ThreadMode) => void;
     clearComposerPayload: () => void;
     setExpandedKeys: (keys: string[]) => void;
     setComposerModelSelectionFromUser: (provider: string | null, model: string | null) => void;
     setComposerReasoningEffortFromUser: (effort: string | null) => void;
+    setComposerPermissionMode: (mode: TurnPermissionMode) => void;
     beginDefaultComposerModelSelectionRefresh: (workspaceId: string) => void;
     completeDefaultComposerModelSelectionRefresh: (workspaceId: string) => void;
     resetDefaultComposerModelSelection: () => void;
@@ -69,6 +74,7 @@ type ComposerModeContext = {
 };
 
 const DEFAULT_COMPOSER_MODE: ThreadMode = 'Agent';
+const DEFAULT_COMPOSER_PERMISSION_MODE: TurnPermissionMode = 'full_access';
 
 const normalizeReasoningEffort = (effort: string | null | undefined): string | null => {
     const trimmed = effort?.trim();
@@ -86,6 +92,7 @@ export const useActiveThreadStore = create<ActiveThreadStoreState>((set) => ({
     composerCapabilities: [],
     showComposerAttachmentMenu: false,
     showComposerModeSwitcher: false,
+    showComposerPermissionModeSwitcher: false,
     expandedKeys: [],
     composerModeThreadId: null,
     composerSelectedMode: DEFAULT_COMPOSER_MODE,
@@ -93,6 +100,7 @@ export const useActiveThreadStore = create<ActiveThreadStoreState>((set) => ({
     composerSelectedProvider: null,
     composerSelectedModel: null,
     composerSelectedReasoningEffort: null,
+    composerSelectedPermissionMode: DEFAULT_COMPOSER_PERMISSION_MODE,
     defaultComposerProvider: null,
     defaultComposerModel: null,
     defaultComposerReasoningEffort: null,
@@ -151,6 +159,10 @@ export const useActiveThreadStore = create<ActiveThreadStoreState>((set) => ({
 
     setComposerModeSwitcherOpen: (showComposerModeSwitcher) => {
         set({ showComposerModeSwitcher });
+    },
+
+    setComposerPermissionModeSwitcherOpen: (showComposerPermissionModeSwitcher) => {
+        set({ showComposerPermissionModeSwitcher });
     },
 
     setComposerMode: (composerSelectedMode) => {
@@ -221,6 +233,13 @@ export const useActiveThreadStore = create<ActiveThreadStoreState>((set) => ({
         set({ composerSelectedReasoningEffort });
     },
 
+    setComposerPermissionMode: (composerSelectedPermissionMode) => {
+        set({
+            composerSelectedPermissionMode,
+            composerError: null,
+        });
+    },
+
     beginDefaultComposerModelSelectionRefresh: (workspaceId) => {
         set((state) => {
             const workspaceChanged = state.defaultComposerWorkspaceId !== workspaceId;
@@ -256,6 +275,7 @@ export const useActiveThreadStore = create<ActiveThreadStoreState>((set) => ({
             composerSelectedProvider: null,
             composerSelectedModel: null,
             composerSelectedReasoningEffort: null,
+            composerSelectedPermissionMode: DEFAULT_COMPOSER_PERMISSION_MODE,
             defaultComposerProvider: null,
             defaultComposerModel: null,
             defaultComposerReasoningEffort: null,
@@ -335,6 +355,7 @@ export const useActiveThreadStore = create<ActiveThreadStoreState>((set) => ({
             composerCapabilities: [],
             showComposerAttachmentMenu: false,
             showComposerModeSwitcher: false,
+            showComposerPermissionModeSwitcher: false,
             expandedKeys: [],
             composerModeThreadId: composerModeContext?.threadId ?? null,
             composerSelectedMode: composerModeContext?.mode ?? DEFAULT_COMPOSER_MODE,
@@ -342,6 +363,7 @@ export const useActiveThreadStore = create<ActiveThreadStoreState>((set) => ({
             composerSelectedProvider: state.defaultComposerProvider,
             composerSelectedModel: state.defaultComposerModel,
             composerSelectedReasoningEffort: state.defaultComposerReasoningEffort,
+            composerSelectedPermissionMode: DEFAULT_COMPOSER_PERMISSION_MODE,
             composerModelManuallySelected: false,
         }));
     },
