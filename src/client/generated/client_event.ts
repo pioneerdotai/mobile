@@ -112,6 +112,16 @@ export type GatewayNotification =
       [k: string]: unknown;
     }
   | {
+      kind: 'turn_permission_request_opened';
+      params: TurnPermissionRequestOpenedNotification;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'turn_permission_request_resolved';
+      params: TurnPermissionRequestResolvedNotification;
+      [k: string]: unknown;
+    }
+  | {
       kind: 'turn_execution_window_started';
       params: TurnExecutionWindowStartedNotification;
       [k: string]: unknown;
@@ -464,6 +474,14 @@ export type GatewayNotification =
 export type WorkspaceChangeKind = 'created' | 'updated' | 'current_changed';
 export type ThreadMode = 'Chat' | 'Agent';
 export type ThreadStatus = 'Active' | 'Idle' | 'Closed';
+export type PermissionBehavior = 'allow' | 'ask' | 'deny';
+export type TurnPermissionMode = 'full_access' | 'auto_accept_edits' | 'supervised';
+export type TurnPermissionProfileSource =
+  | 'composer'
+  | 'defaulted'
+  | 'inherited_from_parent_turn'
+  | 'task_permission_cap'
+  | 'system';
 export type PromptManifestDiagnosticCode =
   | 'missing_file'
   | 'file_read_error'
@@ -501,6 +519,30 @@ export type TurnWorkState =
   | 'blocked'
   | 'failed'
   | 'interrupted';
+export type TurnPermissionActionKind =
+  | 'file_read'
+  | 'file_write'
+  | 'shell_command'
+  | 'network'
+  | 'mcp_read'
+  | 'mcp_write_or_unknown'
+  | 'dynamic_skill_tool'
+  | 'computer_use'
+  | 'task_subagent'
+  | 'internal'
+  | 'unknown';
+export type TurnPermissionDecisionReason =
+  | 'full_access'
+  | 'policy_allows_action'
+  | 'policy_requires_approval'
+  | 'policy_denies_action'
+  | 'cached_approval'
+  | 'user_approved'
+  | 'user_denied'
+  | 'cancelled'
+  | 'expired'
+  | 'unknown_action_default';
+export type TurnPermissionApprovalResolution = 'allow_once' | 'allow_for_turn' | 'deny' | 'cancelled' | 'expired';
 export type ExecutionWindowStatus =
   | 'running'
   | 'exhausted'
@@ -562,6 +604,7 @@ export type TurnItem =
       maxDepth: number;
       nextFireAt?: number | null;
       parentTaskId?: string | null;
+      progressPreview?: string | null;
       resultPreview?: string | null;
       rootTaskId?: string | null;
       runId?: string | null;
@@ -1538,9 +1581,32 @@ export interface Turn {
   error?: string | null;
   id: string;
   origin?: 'user' | 'scheduled_task' | 'detached_task' | 'attached_task';
+  permission_profile: TurnPermissionProfileSnapshot;
   prompt_manifest?: PromptManifest | null;
   status: TurnStatus;
   turn_kind?: 'conversation' | 'task_run';
+  [k: string]: unknown;
+}
+export interface TurnPermissionProfileSnapshot {
+  effective_policy: ToolPermissionPolicySnapshot;
+  mode: TurnPermissionMode;
+  source: TurnPermissionProfileSource;
+  [k: string]: unknown;
+}
+export interface ToolPermissionPolicySnapshot {
+  allowed_paths?: string[];
+  allowed_tools?: string[];
+  computer_use: PermissionBehavior;
+  default_behavior: PermissionBehavior;
+  denied_tools?: string[];
+  dynamic_skill_tool: PermissionBehavior;
+  file_read: PermissionBehavior;
+  file_write: PermissionBehavior;
+  mcp_read: PermissionBehavior;
+  mcp_write_or_unknown: PermissionBehavior;
+  network: PermissionBehavior;
+  shell_command: PermissionBehavior;
+  task_subagent: PermissionBehavior;
   [k: string]: unknown;
 }
 export interface PromptManifest {
@@ -1706,6 +1772,37 @@ export interface TurnWorkBlock {
   turnId: string;
   visibleWorkCount: number;
   workCount: number;
+  [k: string]: unknown;
+}
+export interface TurnPermissionRequestOpenedNotification {
+  request: TurnPermissionApprovalRequest;
+  [k: string]: unknown;
+}
+export interface TurnPermissionApprovalRequest {
+  action: TurnPermissionActionKind;
+  details?: TurnPermissionApprovalRequestDetail[];
+  reason: TurnPermissionDecisionReason;
+  request_id: string;
+  scope_hash: string;
+  summary?: string | null;
+  thread_id: string;
+  tool_name: string;
+  turn_id: string;
+  workspace_id: string;
+  [k: string]: unknown;
+}
+export interface TurnPermissionApprovalRequestDetail {
+  label: string;
+  monospace?: boolean;
+  value: string;
+  [k: string]: unknown;
+}
+export interface TurnPermissionRequestResolvedNotification {
+  request_id: string;
+  resolution: TurnPermissionApprovalResolution;
+  thread_id: string;
+  turn_id: string;
+  workspace_id: string;
   [k: string]: unknown;
 }
 export interface TurnExecutionWindowStartedNotification {
@@ -2500,6 +2597,7 @@ export interface TaskAgentSpec {
   maxDepth: number;
   model?: string | null;
   modelProvider?: string | null;
+  permissionCap?: TurnPermissionProfileCap | null;
   prompt: TaskAgentPrompt;
   resultContract?: TaskAgentResultContract | null;
   reviewPolicy?: TaskAgentReviewPolicy | null;
@@ -2542,6 +2640,11 @@ export interface TaskAgentInputReference {
 export interface TaskAgentInputVariable {
   name: string;
   value: TaskValue;
+  [k: string]: unknown;
+}
+export interface TurnPermissionProfileCap {
+  effective_policy: ToolPermissionPolicySnapshot;
+  mode: TurnPermissionMode;
   [k: string]: unknown;
 }
 export interface TaskAgentPrompt {

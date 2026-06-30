@@ -45,6 +45,7 @@ export type TurnItem =
       maxDepth: number;
       nextFireAt?: number | null;
       parentTaskId?: string | null;
+      progressPreview?: string | null;
       resultPreview?: string | null;
       rootTaskId?: string | null;
       runId?: string | null;

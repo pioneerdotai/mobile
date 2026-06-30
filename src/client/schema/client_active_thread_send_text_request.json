@@ -24,6 +24,9 @@
         "type": "string"
       }
     },
+    "permission_mode": {
+      "$ref": "#/$defs/TurnPermissionMode"
+    },
     "selected_mode": {
       "anyOf": [
         {
@@ -76,7 +79,8 @@
   },
   "additionalProperties": false,
   "required": [
-    "text"
+    "text",
+    "permission_mode"
   ],
   "$defs": {
     "ArtifactKind": {
@@ -429,6 +433,14 @@
       "enum": [
         "Chat",
         "Agent"
+      ]
+    },
+    "TurnPermissionMode": {
+      "type": "string",
+      "enum": [
+        "full_access",
+        "auto_accept_edits",
+        "supervised"
       ]
     }
   }

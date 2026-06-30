@@ -267,6 +267,13 @@
         "history_loading": {
           "type": "boolean"
         },
+        "pending_requests": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/PendingRequest"
+          }
+        },
         "projection": {
           "$ref": "#/$defs/ConversationViewState"
         },
@@ -335,6 +342,13 @@
             "string",
             "null"
           ]
+        },
+        "permission_audit": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/PermissionAuditDisplayItem"
+          }
         },
         "phase_label": {
           "type": "string"
@@ -921,6 +935,255 @@
         "user"
       ]
     },
+    "PendingRequest": {
+      "type": "object",
+      "properties": {
+        "item_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "kind": {
+          "$ref": "#/$defs/PendingRequestKind"
+        },
+        "message": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "native_request_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "origin": {
+          "$ref": "#/$defs/PendingRequestOrigin"
+        },
+        "payload": {
+          "$ref": "#/$defs/PendingRequestPayload"
+        },
+        "request_id": {
+          "type": "string"
+        },
+        "thread_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "title": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "turn_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "workspace_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "workspace_id",
+        "request_id",
+        "origin",
+        "kind",
+        "payload"
+      ]
+    },
+    "PendingRequestKind": {
+      "type": "string",
+      "enum": [
+        "command_approval",
+        "file_change_approval",
+        "user_input",
+        "other"
+      ]
+    },
+    "PendingRequestOrigin": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "origin": {
+              "type": "string",
+              "const": "cli_runtime"
+            },
+            "runtime_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "origin",
+            "runtime_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "origin": {
+              "type": "string",
+              "const": "native_permission_gate"
+            }
+          },
+          "required": [
+            "origin"
+          ]
+        }
+      ]
+    },
+    "PendingRequestPayload": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "request": {
+              "$ref": "#/$defs/CLIRuntimePendingRequest"
+            },
+            "source": {
+              "type": "string",
+              "const": "cli_runtime"
+            }
+          },
+          "required": [
+            "source",
+            "request"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "request": {
+              "$ref": "#/$defs/TurnPermissionApprovalRequest"
+            },
+            "source": {
+              "type": "string",
+              "const": "native_permission_gate"
+            }
+          },
+          "required": [
+            "source",
+            "request"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "payload": true,
+            "source": {
+              "type": "string",
+              "const": "other"
+            }
+          },
+          "required": [
+            "source"
+          ]
+        }
+      ]
+    },
+    "PermissionAuditDisplayItem": {
+      "type": "object",
+      "properties": {
+        "action_kind": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cached": {
+          "type": "boolean",
+          "default": false
+        },
+        "created_at_unix_ms": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "decision": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TurnPermissionAuditDecision"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "event_kind": {
+          "$ref": "#/$defs/TurnPermissionAuditEventKind"
+        },
+        "id": {
+          "type": "string"
+        },
+        "item_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "profile_mode": {
+          "$ref": "#/$defs/TurnPermissionMode"
+        },
+        "profile_source": {
+          "$ref": "#/$defs/TurnPermissionProfileSource"
+        },
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "request_scope_hash": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "timeline_item_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "tool_call_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "tool_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "turn_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "turn_id",
+        "created_at_unix_ms",
+        "event_kind",
+        "profile_mode",
+        "profile_source"
+      ]
+    },
+    "PermissionBehavior": {
+      "type": "string",
+      "enum": [
+        "allow",
+        "ask",
+        "deny"
+      ]
+    },
     "PromptManifest": {
       "type": "object",
       "properties": {
@@ -1214,6 +1477,16 @@
     "RunningTurnDisplay": {
       "type": "object",
       "properties": {
+        "permission_profile": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TurnPermissionProfileSnapshot"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "started_at_unix_ms": {
           "type": [
             "integer",
@@ -2452,6 +2725,71 @@
         "truncated"
       ]
     },
+    "ToolPermissionPolicySnapshot": {
+      "type": "object",
+      "properties": {
+        "allowed_paths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "allowed_tools": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "computer_use": {
+          "$ref": "#/$defs/PermissionBehavior"
+        },
+        "default_behavior": {
+          "$ref": "#/$defs/PermissionBehavior"
+        },
+        "denied_tools": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "dynamic_skill_tool": {
+          "$ref": "#/$defs/PermissionBehavior"
+        },
+        "file_read": {
+          "$ref": "#/$defs/PermissionBehavior"
+        },
+        "file_write": {
+          "$ref": "#/$defs/PermissionBehavior"
+        },
+        "mcp_read": {
+          "$ref": "#/$defs/PermissionBehavior"
+        },
+        "mcp_write_or_unknown": {
+          "$ref": "#/$defs/PermissionBehavior"
+        },
+        "network": {
+          "$ref": "#/$defs/PermissionBehavior"
+        },
+        "shell_command": {
+          "$ref": "#/$defs/PermissionBehavior"
+        },
+        "task_subagent": {
+          "$ref": "#/$defs/PermissionBehavior"
+        }
+      },
+      "required": [
+        "default_behavior",
+        "file_read",
+        "file_write",
+        "shell_command",
+        "network",
+        "mcp_read",
+        "mcp_write_or_unknown",
+        "dynamic_skill_tool",
+        "computer_use",
+        "task_subagent"
+      ]
+    },
     "ToolRecoveryIdempotencyMode": {
       "type": "string",
       "enum": [
@@ -2691,6 +3029,9 @@
           "$ref": "#/$defs/TurnOrigin",
           "default": "user"
         },
+        "permission_profile": {
+          "$ref": "#/$defs/TurnPermissionProfileSnapshot"
+        },
         "prompt_manifest": {
           "anyOf": [
             {
@@ -2711,7 +3052,8 @@
       },
       "required": [
         "id",
-        "status"
+        "status",
+        "permission_profile"
       ]
     },
     "TurnBlockedResumeMetadata": {
@@ -2940,6 +3282,12 @@
               "format": "int64"
             },
             "parentTaskId": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "progressPreview": {
               "type": [
                 "string",
                 "null"
@@ -3798,6 +4146,166 @@
         "attached_task"
       ]
     },
+    "TurnPermissionActionKind": {
+      "type": "string",
+      "enum": [
+        "file_read",
+        "file_write",
+        "shell_command",
+        "network",
+        "mcp_read",
+        "mcp_write_or_unknown",
+        "dynamic_skill_tool",
+        "computer_use",
+        "task_subagent",
+        "internal",
+        "unknown"
+      ]
+    },
+    "TurnPermissionApprovalRequest": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "$ref": "#/$defs/TurnPermissionActionKind"
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TurnPermissionApprovalRequestDetail"
+          }
+        },
+        "reason": {
+          "$ref": "#/$defs/TurnPermissionDecisionReason"
+        },
+        "request_id": {
+          "type": "string"
+        },
+        "scope_hash": {
+          "type": "string"
+        },
+        "summary": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "thread_id": {
+          "type": "string"
+        },
+        "tool_name": {
+          "type": "string"
+        },
+        "turn_id": {
+          "type": "string"
+        },
+        "workspace_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "request_id",
+        "workspace_id",
+        "thread_id",
+        "turn_id",
+        "tool_name",
+        "action",
+        "scope_hash",
+        "reason"
+      ]
+    },
+    "TurnPermissionApprovalRequestDetail": {
+      "type": "object",
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "monospace": {
+          "type": "boolean",
+          "default": false
+        },
+        "value": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "label",
+        "value"
+      ]
+    },
+    "TurnPermissionAuditDecision": {
+      "type": "string",
+      "enum": [
+        "allow",
+        "ask",
+        "deny",
+        "allow_once",
+        "allow_for_turn",
+        "cancelled",
+        "expired"
+      ]
+    },
+    "TurnPermissionAuditEventKind": {
+      "type": "string",
+      "enum": [
+        "profile_selected",
+        "approval_requested",
+        "approval_resolved",
+        "decision_allowed",
+        "decision_denied"
+      ]
+    },
+    "TurnPermissionDecisionReason": {
+      "type": "string",
+      "enum": [
+        "full_access",
+        "policy_allows_action",
+        "policy_requires_approval",
+        "policy_denies_action",
+        "cached_approval",
+        "user_approved",
+        "user_denied",
+        "cancelled",
+        "expired",
+        "unknown_action_default"
+      ]
+    },
+    "TurnPermissionMode": {
+      "type": "string",
+      "enum": [
+        "full_access",
+        "auto_accept_edits",
+        "supervised"
+      ]
+    },
+    "TurnPermissionProfileSnapshot": {
+      "type": "object",
+      "properties": {
+        "effective_policy": {
+          "$ref": "#/$defs/ToolPermissionPolicySnapshot"
+        },
+        "mode": {
+          "$ref": "#/$defs/TurnPermissionMode"
+        },
+        "source": {
+          "$ref": "#/$defs/TurnPermissionProfileSource"
+        }
+      },
+      "required": [
+        "mode",
+        "source",
+        "effective_policy"
+      ]
+    },
+    "TurnPermissionProfileSource": {
+      "type": "string",
+      "enum": [
+        "composer",
+        "defaulted",
+        "inherited_from_parent_turn",
+        "task_permission_cap",
+        "system"
+      ]
+    },
     "TurnPhase": {
       "type": "string",
       "enum": [
@@ -3861,6 +4369,16 @@
         },
         "id": {
           "type": "string"
+        },
+        "permission_profile": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TurnPermissionProfileSnapshot"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "phase": {
           "$ref": "#/$defs/TurnPhase"

@@ -13,6 +13,8 @@ export interface TaskWaitReviewDisplayItem {
   diagnostics: string[];
   extraction_error_preview?: string | null;
   max_revision_rounds?: number | null;
+  permission_mode?: string | null;
+  permission_source?: string | null;
   remaining_revision_rounds?: number | null;
   result_preview?: string | null;
   review_mode?: string | null;

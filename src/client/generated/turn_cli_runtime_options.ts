@@ -1,7 +1,6 @@
 /* eslint-disable */
 
 export interface TurnCLIRuntimeOptions {
-  approval_policy?: string | null;
   effort?: string | null;
   personality?: string | null;
   sandbox?: unknown;

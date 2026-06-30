@@ -26,9 +26,13 @@ export interface PioneerClient extends HybridObject<{ ios: 'c++'; android: 'c++'
     cliRuntimeTurnSteerJson(inputJson: string): Promise<string>;
     cliRuntimeReviewStartJson(inputJson: string): Promise<string>;
     cliRuntimeRequestRespondJson(inputJson: string): Promise<string>;
+    turnPermissionRequestRespondJson(inputJson: string): Promise<string>;
+    pendingRequestResponsePlanJson(inputJson: string): string;
+    pendingRequestPresentationJson(inputJson: string): string;
     providerListModelsJson(inputJson: string): Promise<string>;
     providerModelDisplayJson(inputJson: string): Promise<string>;
     reasoningEffortRowsJson(inputJson: string): string;
+    composerPermissionModeOptionsJson(): string;
     composerAttachmentFromPathJson(inputJson: string): string;
     composerAttachmentsUpdateJson(inputJson: string): string;
     composerSkillPickerRowsJson(inputJson: string): Promise<string>;

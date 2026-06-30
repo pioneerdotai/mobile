@@ -26,6 +26,10 @@ import type { ClientComposerMcpPickerRowsRequest } from './generated/client_comp
 import type { ClientComposerMcpPickerRowsResult } from './generated/client_composer_mcp_picker_rows_result';
 import type { ClientComposerMcpToggleRequest } from './generated/client_composer_mcp_toggle_request';
 import type { ClientComposerMcpToggleResult } from './generated/client_composer_mcp_toggle_result';
+import type { ClientPendingRequestResponsePlanRequest } from './generated/client_pending_request_response_plan_request';
+import type { ClientPendingRequestResponsePlanResult } from './generated/client_pending_request_response_plan_result';
+import type { ClientPendingRequestPresentationRequest } from './generated/client_pending_request_presentation_request';
+import type { ClientPendingRequestPresentationResult } from './generated/client_pending_request_presentation_result';
 import type { ClientComposerSkillCapabilityFromRowRequest } from './generated/client_composer_skill_capability_from_row_request';
 import type { ClientComposerSkillPickerRowsRequest } from './generated/client_composer_skill_picker_rows_request';
 import type { ClientComposerSkillToggleRequest } from './generated/client_composer_skill_toggle_request';
@@ -50,6 +54,7 @@ import type { CLIRuntimeTurnSteerParams } from './generated/cli_runtime_turn_ste
 import type { CLIRuntimeTurnSteerResponse } from './generated/cli_runtime_turn_steer_response';
 import type { ComposerAttachment } from './generated/composer_attachment';
 import type { ComposerCapability } from './generated/composer_capability';
+import type { ComposerPermissionModeOption } from './generated/composer_permission_mode_option';
 import type { DeleteRemoteGatewayRegistryPlan } from './generated/delete_remote_gateway_registry_plan';
 import type { PlanActivateGatewayRequest } from './generated/plan_activate_gateway_request';
 import type { PlanAddRemoteGatewayRequest } from './generated/plan_add_remote_gateway_request';
@@ -82,6 +87,8 @@ import type { ThreadAgentsDocSaveParams } from './generated/thread_agents_doc_sa
 import type { ThreadAgentsDocSaveResponse } from './generated/thread_agents_doc_save_response';
 import type { TurnWorkPageParams } from './generated/turn_work_page_params';
 import type { TurnWorkPageResponse } from './generated/turn_work_page_response';
+import type { TurnPermissionRequestRespondParams } from './generated/turn_permission_request_respond_params';
+import type { TurnPermissionRequestRespondResponse } from './generated/turn_permission_request_respond_response';
 import type { UpdateRemoteGatewayRegistryPlan } from './generated/update_remote_gateway_registry_plan';
 import type { WorkspaceBootstrapRequest } from './generated/workspace_bootstrap_request';
 import type { WorkspaceBootstrapSuccessReduction } from './generated/workspace_bootstrap_success_reduction';
@@ -118,6 +125,11 @@ export type { ClientComposerMcpPickerRowsRequest } from './generated/client_comp
 export type { ClientComposerMcpPickerRowsResult } from './generated/client_composer_mcp_picker_rows_result';
 export type { ClientComposerMcpToggleRequest } from './generated/client_composer_mcp_toggle_request';
 export type { ClientComposerMcpToggleResult } from './generated/client_composer_mcp_toggle_result';
+export type { ClientPendingRequestResponseAction } from './generated/client_pending_request_response_action';
+export type { ClientPendingRequestResponsePlanRequest } from './generated/client_pending_request_response_plan_request';
+export type { ClientPendingRequestResponsePlanResult } from './generated/client_pending_request_response_plan_result';
+export type { ClientPendingRequestPresentationRequest } from './generated/client_pending_request_presentation_request';
+export type { ClientPendingRequestPresentationResult } from './generated/client_pending_request_presentation_result';
 export type { ClientComposerSkillCapabilityFromRowRequest } from './generated/client_composer_skill_capability_from_row_request';
 export type { ClientComposerSkillPickerRowsRequest } from './generated/client_composer_skill_picker_rows_request';
 export type { ClientComposerSkillToggleRequest } from './generated/client_composer_skill_toggle_request';
@@ -155,6 +167,10 @@ export type { ComposerAttachmentKind } from './generated/composer_attachment_kin
 export type { ComposerAttachmentUploadState } from './generated/composer_attachment_upload_state';
 export type { ComposerCapability } from './generated/composer_capability';
 export type { ComposerCapabilityKind } from './generated/composer_capability_kind';
+export type {
+    ComposerPermissionModeOption,
+    TurnPermissionMode,
+} from './generated/composer_permission_mode_option';
 export type { ClientGatewayWsTimings } from './generated/client_gateway_ws_timings';
 export type { DeleteRemoteGatewayRegistryPlan } from './generated/delete_remote_gateway_registry_plan';
 export type { GatewayAuthTokenWrite } from './generated/gateway_auth_token_write';
@@ -175,6 +191,18 @@ export type {
 } from './generated/provider_list_models_response';
 export type { ProviderListParams } from './generated/provider_list_params';
 export type { ProviderListResponse, ProviderSummary } from './generated/provider_list_response';
+export type { PendingRequest } from './generated/pending_request';
+export type { PendingRequestActionKind } from './generated/pending_request_action_kind';
+export type { PendingRequestAvailableAction } from './generated/pending_request_available_action';
+export type { PendingRequestDetailRow } from './generated/pending_request_detail_row';
+export type { PendingRequestDetailStyle } from './generated/pending_request_detail_style';
+export type { PendingRequestKind } from './generated/pending_request_kind';
+export type { PendingRequestOrigin } from './generated/pending_request_origin';
+export type { PendingRequestPayload } from './generated/pending_request_payload';
+export type { PendingRequestPresentation } from './generated/pending_request_presentation';
+export type { PendingRequestResolution } from './generated/pending_request_resolution';
+export type { PendingRequestUserInputOption } from './generated/pending_request_user_input_option';
+export type { PendingRequestUserInputQuestion } from './generated/pending_request_user_input_question';
 export type { ProviderModelDisplayKey } from './generated/provider_model_display_key';
 export type { ProviderModelDisplayResolution } from './generated/provider_model_display_resolution';
 export type { ReasoningEffortRow } from './generated/reasoning_effort_row';
@@ -219,10 +247,13 @@ export type { TurnWorkBlock } from './generated/turn_work_block';
 export type { TurnWorkItem } from './generated/turn_work_item';
 export type { TurnWorkItemStatus } from './generated/turn_work_item_status';
 export type { TurnWorkPageParams } from './generated/turn_work_page_params';
-export type {
-    TurnWorkPageResponse,
-    TurnItem,
-} from './generated/turn_work_page_response';
+export type { TurnWorkPageResponse, TurnItem } from './generated/turn_work_page_response';
+export type { TurnPermissionApprovalRequest } from './generated/turn_permission_approval_request';
+export type { TurnPermissionApprovalResolution } from './generated/turn_permission_approval_resolution';
+export type { TurnPermissionRequestOpenedNotification } from './generated/turn_permission_request_opened_notification';
+export type { TurnPermissionRequestResolvedNotification } from './generated/turn_permission_request_resolved_notification';
+export type { TurnPermissionRequestRespondParams } from './generated/turn_permission_request_respond_params';
+export type { TurnPermissionRequestRespondResponse } from './generated/turn_permission_request_respond_response';
 export type { TurnWorkPresentation } from './generated/turn_work_presentation';
 export type { TurnWorkState } from './generated/turn_work_state';
 export type { UpdateRemoteGatewayRegistryPlan } from './generated/update_remote_gateway_registry_plan';
@@ -440,6 +471,30 @@ export const pioneerClient = {
         );
     },
 
+    async turnPermissionRequestRespond(
+        input: TurnPermissionRequestRespondParams,
+    ): Promise<TurnPermissionRequestRespondResponse> {
+        return parsePioneerClientResponse<TurnPermissionRequestRespondResponse>(
+            await getPioneerClientNitro().turnPermissionRequestRespondJson(JSON.stringify(input)),
+        );
+    },
+
+    pendingRequestResponsePlan(
+        input: ClientPendingRequestResponsePlanRequest,
+    ): ClientPendingRequestResponsePlanResult {
+        return parsePioneerClientResponse<ClientPendingRequestResponsePlanResult>(
+            getPioneerClientNitro().pendingRequestResponsePlanJson(JSON.stringify(input)),
+        );
+    },
+
+    pendingRequestPresentation(
+        input: ClientPendingRequestPresentationRequest,
+    ): ClientPendingRequestPresentationResult {
+        return parsePioneerClientResponse<ClientPendingRequestPresentationResult>(
+            getPioneerClientNitro().pendingRequestPresentationJson(JSON.stringify(input)),
+        );
+    },
+
     async providerListModels(input: ProviderListModelsParams): Promise<ProviderListModelsResponse> {
         return parsePioneerClientResponse<ProviderListModelsResponse>(
             await getPioneerClientNitro().providerListModelsJson(JSON.stringify(input)),
@@ -457,6 +512,12 @@ export const pioneerClient = {
     reasoningEffortRows(input: ReasoningEffortRowsRequest): ReasoningEffortRowsResponse {
         return parsePioneerClientResponse<ReasoningEffortRowsResponse>(
             getPioneerClientNitro().reasoningEffortRowsJson(JSON.stringify(input)),
+        );
+    },
+
+    composerPermissionModeOptions(): ComposerPermissionModeOption[] {
+        return parsePioneerClientResponse<ComposerPermissionModeOption[]>(
+            getPioneerClientNitro().composerPermissionModeOptionsJson(),
         );
     },
 
@@ -552,9 +613,7 @@ export const pioneerClient = {
         );
     },
 
-    async threadTimelinePage(
-        input: ThreadTimelinePageParams,
-    ): Promise<ThreadTimelinePageResponse> {
+    async threadTimelinePage(input: ThreadTimelinePageParams): Promise<ThreadTimelinePageResponse> {
         return parsePioneerClientResponse<ThreadTimelinePageResponse>(
             await getPioneerClientNitro().threadTimelinePageJson(JSON.stringify(input)),
         );

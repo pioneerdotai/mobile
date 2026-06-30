@@ -171,6 +171,19 @@ HybridPioneerClient::cliRuntimeRequestRespondJson(const std::string& inputJson) 
 }
 
 std::shared_ptr<margelo::nitro::Promise<std::string>>
+HybridPioneerClient::turnPermissionRequestRespondJson(const std::string& inputJson) {
+  return callWithClientAsync(pioneer_client_ffi_turn_permission_request_respond, inputJson);
+}
+
+std::string HybridPioneerClient::pendingRequestResponsePlanJson(const std::string& inputJson) {
+  return callWithClient(pioneer_client_ffi_pending_request_response_plan, inputJson);
+}
+
+std::string HybridPioneerClient::pendingRequestPresentationJson(const std::string& inputJson) {
+  return callWithClient(pioneer_client_ffi_pending_request_presentation, inputJson);
+}
+
+std::shared_ptr<margelo::nitro::Promise<std::string>>
 HybridPioneerClient::providerListModelsJson(const std::string& inputJson) {
   return callWithClientAsync(pioneer_client_ffi_provider_list_models, inputJson);
 }
@@ -182,6 +195,10 @@ HybridPioneerClient::providerModelDisplayJson(const std::string& inputJson) {
 
 std::string HybridPioneerClient::reasoningEffortRowsJson(const std::string& inputJson) {
   return callWithClient(pioneer_client_ffi_reasoning_effort_rows, inputJson);
+}
+
+std::string HybridPioneerClient::composerPermissionModeOptionsJson() {
+  return callWithClient(pioneer_client_ffi_composer_permission_mode_options);
 }
 
 std::string HybridPioneerClient::composerAttachmentFromPathJson(const std::string& inputJson) {

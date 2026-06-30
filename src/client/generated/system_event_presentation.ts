@@ -12,6 +12,7 @@ export type SystemEventLabel =
       | 'Checkpoint'
       | 'Continued'
       | 'Paused'
+      | 'Permissions'
     )
   | {
       Level: SystemEventLevel;

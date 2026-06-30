@@ -39,9 +39,13 @@ namespace margelo::nitro::pioneer::client {
       prototype.registerHybridMethod("cliRuntimeTurnSteerJson", &HybridPioneerClientSpec::cliRuntimeTurnSteerJson);
       prototype.registerHybridMethod("cliRuntimeReviewStartJson", &HybridPioneerClientSpec::cliRuntimeReviewStartJson);
       prototype.registerHybridMethod("cliRuntimeRequestRespondJson", &HybridPioneerClientSpec::cliRuntimeRequestRespondJson);
+      prototype.registerHybridMethod("turnPermissionRequestRespondJson", &HybridPioneerClientSpec::turnPermissionRequestRespondJson);
+      prototype.registerHybridMethod("pendingRequestResponsePlanJson", &HybridPioneerClientSpec::pendingRequestResponsePlanJson);
+      prototype.registerHybridMethod("pendingRequestPresentationJson", &HybridPioneerClientSpec::pendingRequestPresentationJson);
       prototype.registerHybridMethod("providerListModelsJson", &HybridPioneerClientSpec::providerListModelsJson);
       prototype.registerHybridMethod("providerModelDisplayJson", &HybridPioneerClientSpec::providerModelDisplayJson);
       prototype.registerHybridMethod("reasoningEffortRowsJson", &HybridPioneerClientSpec::reasoningEffortRowsJson);
+      prototype.registerHybridMethod("composerPermissionModeOptionsJson", &HybridPioneerClientSpec::composerPermissionModeOptionsJson);
       prototype.registerHybridMethod("composerAttachmentFromPathJson", &HybridPioneerClientSpec::composerAttachmentFromPathJson);
       prototype.registerHybridMethod("composerAttachmentsUpdateJson", &HybridPioneerClientSpec::composerAttachmentsUpdateJson);
       prototype.registerHybridMethod("composerSkillPickerRowsJson", &HybridPioneerClientSpec::composerSkillPickerRowsJson);

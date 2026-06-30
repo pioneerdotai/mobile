@@ -61,6 +61,7 @@ export type McpScopeKind = 'workspace' | 'user';
 export interface ComposerDraft {
   attachments: ComposerAttachment[];
   capabilities: ComposerCapability[];
+  permission_mode?: 'full_access' | 'auto_accept_edits' | 'supervised';
   text: string;
   [k: string]: unknown;
 }

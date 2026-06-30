@@ -57,12 +57,14 @@ export type ComposerCapabilityKind =
       };
     };
 export type McpScopeKind = 'workspace' | 'user';
+export type TurnPermissionMode = 'full_access' | 'auto_accept_edits' | 'supervised';
 export type ThreadMode = 'Chat' | 'Agent';
 
 export interface ClientActiveThreadSendTextRequest {
   attachments?: ComposerAttachment[];
   capabilities?: ComposerCapability[];
   expanded_keys?: string[];
+  permission_mode: TurnPermissionMode;
   selected_mode?: ThreadMode | null;
   selected_model?: string | null;
   selected_provider?: string | null;

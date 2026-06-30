@@ -1,5 +1,56 @@
 /* eslint-disable */
 
+export type PendingRequestKind = 'command_approval' | 'file_change_approval' | 'user_input' | 'other';
+export type PendingRequestOrigin =
+  | {
+      origin: 'cli_runtime';
+      runtime_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      origin: 'native_permission_gate';
+      [k: string]: unknown;
+    };
+export type PendingRequestPayload =
+  | {
+      request: CLIRuntimePendingRequest;
+      source: 'cli_runtime';
+      [k: string]: unknown;
+    }
+  | {
+      request: TurnPermissionApprovalRequest;
+      source: 'native_permission_gate';
+      [k: string]: unknown;
+    }
+  | {
+      payload?: unknown;
+      source: 'other';
+      [k: string]: unknown;
+    };
+export type CLIRuntimeRequestKind = 'command_approval' | 'file_change_approval' | 'user_input' | 'other';
+export type TurnPermissionActionKind =
+  | 'file_read'
+  | 'file_write'
+  | 'shell_command'
+  | 'network'
+  | 'mcp_read'
+  | 'mcp_write_or_unknown'
+  | 'dynamic_skill_tool'
+  | 'computer_use'
+  | 'task_subagent'
+  | 'internal'
+  | 'unknown';
+export type TurnPermissionDecisionReason =
+  | 'full_access'
+  | 'policy_allows_action'
+  | 'policy_requires_approval'
+  | 'policy_denies_action'
+  | 'cached_approval'
+  | 'user_approved'
+  | 'user_denied'
+  | 'cancelled'
+  | 'expired'
+  | 'unknown_action_default';
 export type MarkdownBlock =
   | MarkdownInline
   | {
@@ -91,6 +142,7 @@ export type TurnItem =
       maxDepth: number;
       nextFireAt?: number | null;
       parentTaskId?: string | null;
+      progressPreview?: string | null;
       resultPreview?: string | null;
       rootTaskId?: string | null;
       runId?: string | null;
@@ -577,6 +629,28 @@ export type ToolStoragePayload =
 export type TimelineEntryStatus = 'Running' | 'Completed' | 'Blocked' | 'Failed' | 'Cancelled';
 export type TimelineOriginKind = 'parent_turn' | 'task_event' | 'child_turn';
 export type TimelineLane = 'parent' | 'task' | 'child_agent' | 'child_tool' | 'child_reasoning' | 'child_result';
+export type TurnPermissionAuditDecision =
+  | 'allow'
+  | 'ask'
+  | 'deny'
+  | 'allow_once'
+  | 'allow_for_turn'
+  | 'cancelled'
+  | 'expired';
+export type TurnPermissionAuditEventKind =
+  | 'profile_selected'
+  | 'approval_requested'
+  | 'approval_resolved'
+  | 'decision_allowed'
+  | 'decision_denied';
+export type TurnPermissionMode = 'full_access' | 'auto_accept_edits' | 'supervised';
+export type TurnPermissionProfileSource =
+  | 'composer'
+  | 'defaulted'
+  | 'inherited_from_parent_turn'
+  | 'task_permission_cap'
+  | 'system';
+export type PermissionBehavior = 'allow' | 'ask' | 'deny';
 export type TurnPhase = 'Starting' | 'Running' | 'Completing' | 'Completed' | 'Blocked' | 'Failed' | 'Cancelled';
 export type TimelineRowKind =
   | {
@@ -626,11 +700,53 @@ export type TurnStatus = 'InProgress' | 'Completed' | 'Failed' | 'Interrupted' |
 export interface ClientActiveThreadSnapshot {
   history_loaded: boolean;
   history_loading: boolean;
+  pending_requests?: PendingRequest[];
   projection: ConversationViewState;
   rows: TimelineRow[];
   thread?: Thread | null;
   thread_id?: string | null;
   workspace_id?: string | null;
+  [k: string]: unknown;
+}
+export interface PendingRequest {
+  item_id?: string | null;
+  kind: PendingRequestKind;
+  message?: string | null;
+  native_request_id?: string | null;
+  origin: PendingRequestOrigin;
+  payload: PendingRequestPayload;
+  request_id: string;
+  thread_id?: string | null;
+  title?: string | null;
+  turn_id?: string | null;
+  workspace_id: string;
+  [k: string]: unknown;
+}
+export interface CLIRuntimePendingRequest {
+  kind: CLIRuntimeRequestKind;
+  message?: string | null;
+  native_request_id?: string | null;
+  payload?: unknown;
+  title?: string | null;
+  [k: string]: unknown;
+}
+export interface TurnPermissionApprovalRequest {
+  action: TurnPermissionActionKind;
+  details?: TurnPermissionApprovalRequestDetail[];
+  reason: TurnPermissionDecisionReason;
+  request_id: string;
+  scope_hash: string;
+  summary?: string | null;
+  thread_id: string;
+  tool_name: string;
+  turn_id: string;
+  workspace_id: string;
+  [k: string]: unknown;
+}
+export interface TurnPermissionApprovalRequestDetail {
+  label: string;
+  monospace?: boolean;
+  value: string;
   [k: string]: unknown;
 }
 export interface ConversationViewState {
@@ -639,6 +755,7 @@ export interface ConversationViewState {
   items: ItemView[];
   last_error?: string | null;
   pending_request_id?: string | null;
+  permission_audit?: PermissionAuditDisplayItem[];
   phase_label: string;
   revision: number;
   timeline: TimelineEntry[];
@@ -817,6 +934,24 @@ export interface TimelineOrigin {
   taskId?: string | null;
   [k: string]: unknown;
 }
+export interface PermissionAuditDisplayItem {
+  action_kind?: string | null;
+  cached?: boolean;
+  created_at_unix_ms: number;
+  decision?: TurnPermissionAuditDecision | null;
+  event_kind: TurnPermissionAuditEventKind;
+  id: string;
+  item_id?: string | null;
+  profile_mode: TurnPermissionMode;
+  profile_source: TurnPermissionProfileSource;
+  reason?: string | null;
+  request_scope_hash?: string | null;
+  timeline_item_id?: string | null;
+  tool_call_id?: string | null;
+  tool_name?: string | null;
+  turn_id: string;
+  [k: string]: unknown;
+}
 export interface TimelineEntry {
   id: string;
   item_id: string;
@@ -828,9 +963,32 @@ export interface TurnView {
   completed_at_unix_ms?: number | null;
   error?: string | null;
   id: string;
+  permission_profile?: TurnPermissionProfileSnapshot | null;
   phase: TurnPhase;
   resume?: TurnBlockedResumeMetadata | null;
   started_at_unix_ms?: number | null;
+  [k: string]: unknown;
+}
+export interface TurnPermissionProfileSnapshot {
+  effective_policy: ToolPermissionPolicySnapshot;
+  mode: TurnPermissionMode;
+  source: TurnPermissionProfileSource;
+  [k: string]: unknown;
+}
+export interface ToolPermissionPolicySnapshot {
+  allowed_paths?: string[];
+  allowed_tools?: string[];
+  computer_use: PermissionBehavior;
+  default_behavior: PermissionBehavior;
+  denied_tools?: string[];
+  dynamic_skill_tool: PermissionBehavior;
+  file_read: PermissionBehavior;
+  file_write: PermissionBehavior;
+  mcp_read: PermissionBehavior;
+  mcp_write_or_unknown: PermissionBehavior;
+  network: PermissionBehavior;
+  shell_command: PermissionBehavior;
+  task_subagent: PermissionBehavior;
   [k: string]: unknown;
 }
 export interface TurnBlockedResumeMetadata {
@@ -863,6 +1021,7 @@ export interface TimelineCoalescedToolsRow {
   [k: string]: unknown;
 }
 export interface RunningTurnDisplay {
+  permission_profile?: TurnPermissionProfileSnapshot | null;
   started_at_unix_ms?: number | null;
   turn_id: string;
   [k: string]: unknown;
@@ -890,6 +1049,7 @@ export interface Turn {
   error?: string | null;
   id: string;
   origin?: 'user' | 'scheduled_task' | 'detached_task' | 'attached_task';
+  permission_profile: TurnPermissionProfileSnapshot;
   prompt_manifest?: PromptManifest | null;
   status: TurnStatus;
   turn_kind?: 'conversation' | 'task_run';

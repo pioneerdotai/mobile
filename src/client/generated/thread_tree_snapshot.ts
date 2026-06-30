@@ -3,6 +3,14 @@
 export type ThreadAgentsDocStatus = 'draft' | 'active' | 'archived';
 export type ThreadMode = 'Chat' | 'Agent';
 export type ThreadStatus = 'Active' | 'Idle' | 'Closed';
+export type PermissionBehavior = 'allow' | 'ask' | 'deny';
+export type TurnPermissionMode = 'full_access' | 'auto_accept_edits' | 'supervised';
+export type TurnPermissionProfileSource =
+  | 'composer'
+  | 'defaulted'
+  | 'inherited_from_parent_turn'
+  | 'task_permission_cap'
+  | 'system';
 export type PromptManifestDiagnosticCode =
   | 'missing_file'
   | 'file_read_error'
@@ -99,9 +107,32 @@ export interface Turn {
   error?: string | null;
   id: string;
   origin?: 'user' | 'scheduled_task' | 'detached_task' | 'attached_task';
+  permission_profile: TurnPermissionProfileSnapshot;
   prompt_manifest?: PromptManifest | null;
   status: TurnStatus;
   turn_kind?: 'conversation' | 'task_run';
+  [k: string]: unknown;
+}
+export interface TurnPermissionProfileSnapshot {
+  effective_policy: ToolPermissionPolicySnapshot;
+  mode: TurnPermissionMode;
+  source: TurnPermissionProfileSource;
+  [k: string]: unknown;
+}
+export interface ToolPermissionPolicySnapshot {
+  allowed_paths?: string[];
+  allowed_tools?: string[];
+  computer_use: PermissionBehavior;
+  default_behavior: PermissionBehavior;
+  denied_tools?: string[];
+  dynamic_skill_tool: PermissionBehavior;
+  file_read: PermissionBehavior;
+  file_write: PermissionBehavior;
+  mcp_read: PermissionBehavior;
+  mcp_write_or_unknown: PermissionBehavior;
+  network: PermissionBehavior;
+  shell_command: PermissionBehavior;
+  task_subagent: PermissionBehavior;
   [k: string]: unknown;
 }
 export interface PromptManifest {
