@@ -30,8 +30,7 @@ type McpCapabilityDisplayRow =
     | { type: 'tool'; row: SelectableMcpCapability };
 
 type McpDisplayRow =
-    | { type: 'section'; id: 'servers' | 'tools'; title: string }
-    | McpCapabilityDisplayRow;
+    { type: 'section'; id: 'servers' | 'tools'; title: string } | McpCapabilityDisplayRow;
 
 const mcpKeyExtractor = (row: McpDisplayRow): string =>
     row.type === 'section' ? `section:${row.id}` : `${row.type}:${row.row.key}`;

@@ -13,10 +13,7 @@ import {
     type TurnWorkPageResponse,
 } from '@/client';
 import { requestTurnWorkPage } from '@/services/threads/timeline-page-requests';
-import {
-    TIMELINE_FFI_ERROR_CODES,
-    timelineQueryKeys,
-} from '@/services/threads/timeline-query';
+import { TIMELINE_FFI_ERROR_CODES, timelineQueryKeys } from '@/services/threads/timeline-query';
 
 const DEFAULT_TURN_WORK_PAGE_LIMIT = 30;
 const NEWEST_WORK_ANCHOR: TimelinePageAnchor = { kind: 'newest' };
@@ -35,7 +32,19 @@ type TurnWorkItemsQueryOptions = {
 type TurnWorkItemsQueryResult = UseInfiniteQueryResult<
     InfiniteData<TurnWorkPageResponse, TimelinePageAnchor>,
     Error
-> & {
+>;
+
+type TurnWorkItemsQueryControls = Pick<
+    TurnWorkItemsQueryResult,
+    | 'hasNextPage'
+    | 'isFetchingNextPage'
+    | 'fetchNextPage'
+    | 'hasPreviousPage'
+    | 'isFetchingPreviousPage'
+    | 'fetchPreviousPage'
+>;
+
+type TurnWorkItemsResult = TurnWorkItemsQueryControls & {
     items: TurnWorkItem[];
     pages: TurnWorkPageResponse[];
     work: TurnWorkBlock | null;
@@ -51,19 +60,20 @@ export const useTurnWorkItemsQuery = ({
     limit = DEFAULT_TURN_WORK_PAGE_LIMIT,
     work,
     initialAnchor = NEWEST_WORK_ANCHOR,
-}: TurnWorkItemsQueryOptions): TurnWorkItemsQueryResult => {
+}: TurnWorkItemsQueryOptions): TurnWorkItemsResult => {
     const queryEnabled = enabled && Boolean(threadId && turnId && (expanded || liveVisible));
 
     const query = useInfiniteQuery<
         TurnWorkPageResponse,
         Error,
         InfiniteData<TurnWorkPageResponse, TimelinePageAnchor>,
-        ReturnType<typeof timelineQueryKeys.turnWorkPages>,
+        ReturnType<typeof timelineQueryKeys.turnWorkPagesForLimit>,
         TimelinePageAnchor
     >({
-        queryKey: timelineQueryKeys.turnWorkPages(
+        queryKey: timelineQueryKeys.turnWorkPagesForLimit(
             threadId ?? '__inactive_thread__',
             turnId ?? '__inactive_turn__',
+            limit,
         ),
         enabled: queryEnabled,
         initialPageParam: initialAnchor,
@@ -107,8 +117,22 @@ export const useTurnWorkItemsQuery = ({
     const items = useMemo(() => flattenTurnWorkItems(pages), [pages]);
     const latestWork = pages.at(-1)?.work ?? work ?? null;
 
+    const {
+        fetchNextPage,
+        fetchPreviousPage,
+        hasNextPage,
+        hasPreviousPage,
+        isFetchingNextPage,
+        isFetchingPreviousPage,
+    } = query;
+
     return {
-        ...query,
+        fetchNextPage,
+        fetchPreviousPage,
+        hasNextPage,
+        hasPreviousPage,
+        isFetchingNextPage,
+        isFetchingPreviousPage,
         items,
         pages,
         work: latestWork,
@@ -116,9 +140,7 @@ export const useTurnWorkItemsQuery = ({
     };
 };
 
-export const flattenTurnWorkItems = (
-    pages: readonly TurnWorkPageResponse[],
-): TurnWorkItem[] => {
+export const flattenTurnWorkItems = (pages: readonly TurnWorkPageResponse[]): TurnWorkItem[] => {
     const itemsById = new Map<string, TurnWorkItem>();
 
     for (const page of pages) {
@@ -127,9 +149,10 @@ export const flattenTurnWorkItems = (
         }
     }
 
-    return Array.from(itemsById.values()).sort((left, right) =>
-        left.orderKey.localeCompare(right.orderKey) ||
-        left.workItemId.localeCompare(right.workItemId),
+    return Array.from(itemsById.values()).sort(
+        (left, right) =>
+            left.orderKey.localeCompare(right.orderKey) ||
+            left.workItemId.localeCompare(right.workItemId),
     );
 };
 

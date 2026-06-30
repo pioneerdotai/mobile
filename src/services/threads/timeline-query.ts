@@ -40,6 +40,13 @@ export const timelineQueryKeys = {
             'pages',
             timelineKeyMeta({ threadId, direction: 'topLevel' }),
         ] as const,
+    threadPagesForLimit: (threadId: string, limit: number | null) =>
+        [
+            ...timelineQueryKeys.threadPages(threadId),
+            timelinePageRequestMeta({
+                limit,
+            }),
+        ] as const,
     threadPage: (threadId: string, request: TimelinePageRequestMeta = {}) =>
         [
             ...timelineQueryKeys.threadPages(threadId),
@@ -59,6 +66,13 @@ export const timelineQueryKeys = {
             ...timelineQueryKeys.turnWork(threadId, turnId),
             'pages',
             timelineKeyMeta({ threadId, turnId, direction: 'turnWork' }),
+        ] as const,
+    turnWorkPagesForLimit: (threadId: string, turnId: string, limit: number | null) =>
+        [
+            ...timelineQueryKeys.turnWorkPages(threadId, turnId),
+            timelinePageRequestMeta({
+                limit,
+            }),
         ] as const,
     turnWorkPage: (threadId: string, turnId: string, request: TimelinePageRequestMeta = {}) =>
         [

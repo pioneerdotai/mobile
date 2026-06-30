@@ -44,7 +44,6 @@ type SelectedProviderModelState = {
     workspaceId: string | null;
     provider: string | null;
     models: ProviderModelInfo[];
-    loading: boolean;
     error: string | null;
 };
 
@@ -92,7 +91,6 @@ const useSelectedProviderModel = (
         workspaceId: null,
         provider: null,
         models: [],
-        loading: false,
         error: null,
     });
 
@@ -100,26 +98,8 @@ const useSelectedProviderModel = (
         let cancelled = false;
 
         if (!workspaceId || !provider || !model) {
-            setState({
-                workspaceId: workspaceId ?? null,
-                provider,
-                models: [],
-                loading: false,
-                error: null,
-            });
             return;
         }
-
-        setState((current) => ({
-            workspaceId,
-            provider,
-            models:
-                current.workspaceId === workspaceId && current.provider === provider
-                    ? current.models
-                    : [],
-            loading: true,
-            error: null,
-        }));
 
         void listProviderModels(workspaceId, provider)
             .then((response) => {
@@ -128,7 +108,6 @@ const useSelectedProviderModel = (
                         workspaceId,
                         provider,
                         models: response.models,
-                        loading: false,
                         error: null,
                     });
                 }
@@ -139,7 +118,6 @@ const useSelectedProviderModel = (
                         workspaceId,
                         provider,
                         models: [],
-                        loading: false,
                         error: 'load_failed',
                     });
                 }
@@ -163,7 +141,7 @@ const useSelectedProviderModel = (
 
     return {
         selectedModel,
-        loading: hasLookupTarget && (!stateMatchesSelection || state.loading),
+        loading: hasLookupTarget && !stateMatchesSelection,
         error: stateMatchesSelection ? state.error : null,
     };
 };

@@ -15,11 +15,9 @@ import {
     ShieldCheck,
     ShieldX,
     MessageSquarePlus,
-    Pencil,
     Plus,
     Square,
     TriangleAlert,
-    Unlock,
     X,
     Zap,
 } from 'lucide-react-native';
@@ -145,8 +143,6 @@ export const ThreadComposer = ({
         [permissionModeOptions, selectedPermissionMode],
     );
 
-    const PermissionIcon = permissionModeIcon(selectedPermissionOption.mode);
-
     const handleLayout = useCallback(
         (event: LayoutChangeEvent) => {
             onHeightChange?.(event.nativeEvent.layout.height);
@@ -240,7 +236,8 @@ export const ThreadComposer = ({
                                     ]}
                                 >
                                     <HStack style={styles.permissionButtonContent}>
-                                        <PermissionIcon
+                                        <PermissionModeIcon
+                                            mode={selectedPermissionOption.mode}
                                             size={theme.space(4.5)}
                                             color={theme.colors.typography}
                                         />
@@ -347,14 +344,22 @@ export const ThreadComposer = ({
     );
 };
 
-const permissionModeIcon = (mode: TurnPermissionMode) => {
+const PermissionModeIcon = ({
+    mode,
+    size,
+    color,
+}: {
+    mode: TurnPermissionMode;
+    size: number;
+    color: string;
+}) => {
     switch (mode) {
         case 'supervised':
-            return ShieldX;
+            return <ShieldX size={size} color={color} />;
         case 'auto_accept_edits':
-            return ShieldAlert;
+            return <ShieldAlert size={size} color={color} />;
         case 'full_access':
-            return ShieldCheck;
+            return <ShieldCheck size={size} color={color} />;
     }
 };
 

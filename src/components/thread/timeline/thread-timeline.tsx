@@ -57,7 +57,6 @@ type ThreadTimelineProps = {
     conversation: ClientActiveThreadSnapshot;
     timelineIdentityKey: string;
     rowsOverride?: TimelineRow[] | null;
-    activeTurnIdOverride?: string | null;
     loading: boolean;
     closed: boolean;
     connected: boolean;
@@ -85,7 +84,6 @@ const TIMELINE_DRAW_DISTANCE = 640;
 const TIMELINE_ESTIMATED_ITEM_SIZE = 64;
 const TIMELINE_CONTENT_BOTTOM_PADDING_UNITS = 6;
 const TIMELINE_KEYBOARD_LIFT_BEHAVIOR = 'whenAtEnd';
-const TIMELINE_ANCHOR_MAX_LINES = 2;
 const TIMELINE_VIEWABILITY_CONFIG = {
     itemVisiblePercentThreshold: 1,
 };
@@ -104,7 +102,6 @@ const ThreadTimelineContent = ({
     conversation,
     timelineIdentityKey,
     rowsOverride,
-    activeTurnIdOverride,
     loading,
     closed,
     connected,
@@ -170,52 +167,6 @@ const ThreadTimelineContent = ({
 
     const rowCount = rows.length;
     const hasRunningTimelineRow = useMemo(() => rows.some((row) => row.type === 'running'), [rows]);
-    const activeTurnId = useMemo(
-        () => activeTurnIdOverride ?? activeProjectionTurnId(conversation.projection.turns),
-        [activeTurnIdOverride, conversation.projection.turns],
-    );
-
-    const anchorIndex = useMemo(() => {
-        const turnId = conversation.projection.in_flight_turn_id ?? activeTurnId;
-        const hasActiveTurn =
-            Boolean(turnId) ||
-            Boolean(conversation.projection.pending_request_id) ||
-            conversation.projection.composer_locked ||
-            hasLiveTimelineItems ||
-            hasRunningTimelineRow;
-
-        if (!hasActiveTurn) {
-            const latestUserMessageIndex = latestAnchorableUserMessageIndex(rows);
-
-            return latestUserMessageIndex >= 0 ? latestUserMessageIndex : undefined;
-        }
-
-        if (turnId) {
-            const userMessageIndex = rows.findIndex(
-                (row) => row.type === 'user-message' && row.turnId === turnId,
-            );
-
-            if (userMessageIndex >= 0) {
-                return userMessageIndex;
-            }
-
-            const turnIndex = rows.findIndex((row) => timelineRowTurnId(row) === turnId);
-
-            return turnIndex >= 0 ? turnIndex : undefined;
-        }
-
-        const latestUserMessageIndex = latestAnchorableUserMessageIndex(rows);
-
-        return latestUserMessageIndex >= 0 ? latestUserMessageIndex : undefined;
-    }, [
-        activeTurnId,
-        conversation.projection.composer_locked,
-        conversation.projection.in_flight_turn_id,
-        conversation.projection.pending_request_id,
-        hasLiveTimelineItems,
-        hasRunningTimelineRow,
-        rows,
-    ]);
 
     useEffect(() => {
         onExpandedKeysChange(expandedKeys);
@@ -612,52 +563,6 @@ const hydrateRunningRowsElapsed = (rows: readonly TimelineRow[], nowMs: number):
 
         return row.elapsedLabel === elapsedLabel ? row : { ...row, elapsedLabel };
     });
-
-const findLastIndex = <T,>(items: readonly T[], predicate: (item: T) => boolean) => {
-    for (let index = items.length - 1; index >= 0; index -= 1) {
-        if (predicate(items[index]!)) {
-            return index;
-        }
-    }
-
-    return -1;
-};
-
-const activeProjectionTurnId = (turns: ClientActiveThreadSnapshot['projection']['turns']) => {
-    const activeTurn = findLast(
-        turns,
-        (turn) =>
-            turn.phase === 'Starting' || turn.phase === 'Running' || turn.phase === 'Completing',
-    );
-
-    return activeTurn?.id ?? null;
-};
-
-const latestAnchorableUserMessageIndex = (rows: readonly TimelineRow[]) => {
-    const latestUserMessageIndex = findLastIndex(rows, (row) => row.type === 'user-message');
-
-    if (latestUserMessageIndex < 0) {
-        return -1;
-    }
-
-    const hasAssistantAfterLatestUser = rows
-        .slice(latestUserMessageIndex + 1)
-        .some((row) => row.type === 'assistant-message');
-
-    return hasAssistantAfterLatestUser ? -1 : latestUserMessageIndex;
-};
-
-const findLast = <T,>(items: readonly T[], predicate: (item: T) => boolean) => {
-    for (let index = items.length - 1; index >= 0; index -= 1) {
-        if (predicate(items[index]!)) {
-            return items[index]!;
-        }
-    }
-
-    return null;
-};
-
-const timelineRowTurnId = (row: TimelineRow) => ('turnId' in row ? row.turnId : null);
 
 const styles = StyleSheet.create((theme) => ({
     timelineRoot: {

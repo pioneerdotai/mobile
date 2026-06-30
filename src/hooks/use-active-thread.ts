@@ -164,10 +164,10 @@ export const useActiveThread = (
     const activeThreadIdRef = useRef<string | null | undefined>(undefined);
     const threadRef = useRef<Thread | null>(null);
     const [turnCancelling, setTurnCancelling] = useState(false);
-    const sendTextMutation = useMutation({
+    const { mutateAsync: sendActiveThreadTextAsync } = useMutation({
         mutationFn: sendActiveThreadText,
     });
-    const cancelTurnMutation = useMutation({
+    const { mutateAsync: cancelActiveThreadTurnAsync } = useMutation({
         mutationFn: cancelActiveThreadTurn,
         onSuccess: (result) => {
             void invalidateTimelineQueriesForThread(queryClient, result.snapshot.thread_id);
@@ -410,7 +410,7 @@ export const useActiveThread = (
             }
 
             try {
-                const result = await sendTextMutation.mutateAsync({
+                const result = await sendActiveThreadTextAsync({
                     thread_id: requestThreadId,
                     workspace_id: requestWorkspaceId,
                     text,
@@ -497,10 +497,10 @@ export const useActiveThread = (
             setSnapshot,
             t,
             queryClient,
+            sendActiveThreadTextAsync,
             workspaceId,
             thread,
             active,
-            sendTextMutation,
         ],
     );
 
@@ -519,7 +519,7 @@ export const useActiveThread = (
         setComposerError(null);
 
         try {
-            const result = await cancelTurnMutation.mutateAsync({
+            const result = await cancelActiveThreadTurnAsync({
                 reason: t('stopReason'),
                 expanded_keys: useActiveThreadStore.getState().expandedKeys,
             });
@@ -562,7 +562,7 @@ export const useActiveThread = (
         }
     }, [
         active,
-        cancelTurnMutation,
+        cancelActiveThreadTurnAsync,
         connected,
         connectionId,
         setComposerError,

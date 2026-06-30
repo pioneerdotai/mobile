@@ -1,9 +1,5 @@
-import type { ClientActiveThreadSnapshot } from '@/client/generated/client_active_thread_snapshot';
-import type { PendingRequest } from '@/client/generated/pending_request';
-import type { TimelineBlock } from '@/client/generated/timeline_block';
-import type { TurnWorkBlock } from '@/client/generated/turn_work_block';
-import type { TurnWorkItem } from '@/client/generated/turn_work_item';
 import type {
+    ClientActiveThreadSnapshot,
     ConversationViewState,
     ItemView,
     MarkdownDocument,
@@ -12,6 +8,10 @@ import type {
     TimelineRow as ClientTimelineRow,
     TurnItem as LegacyTurnItem,
 } from '@/client/generated/client_active_thread_snapshot';
+import type { PendingRequest } from '@/client/generated/pending_request';
+import type { TimelineBlock } from '@/client/generated/timeline_block';
+import type { TurnWorkBlock } from '@/client/generated/turn_work_block';
+import type { TurnWorkItem } from '@/client/generated/turn_work_item';
 
 import { projectConversationToRows } from './conversation/projector';
 import type { TimelinePendingRequest, TimelineRow } from './conversation/timeline';

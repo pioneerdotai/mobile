@@ -42,7 +42,6 @@ import {
 } from '@/services/threads/semantic-projector';
 import type { TimelineRow } from '@/services/threads/conversation/timeline';
 import { useActiveThreadStore } from '@/stores/active-thread';
-import { useGatewayStore } from '@/stores/gateway';
 import { useThreadTreeStore } from '@/stores/thread-tree';
 import { useWorkspaceStore } from '@/stores/workspace';
 
@@ -56,11 +55,23 @@ const THREAD_COMPOSER_INPUT_NATIVE_ID = 'thread-composer-input';
 const STICKY_KEYBOARD_OFFSET_CLOSED = 0;
 const EMPTY_MCP_SERVER_ID_BY_NAME: Readonly<Record<string, string>> = {};
 const SEMANTIC_TURN_WORK_GROUP_PREFIX = 'semantic-turn-work-group::';
+const EMPTY_SEMANTIC_WORK_RANGES: Readonly<Record<string, SemanticTurnWorkRange>> = {};
 
 type ComposerModelSelection = {
     provider: string;
     model: string;
     selectedReasoningEffort: string | null;
+};
+
+type SemanticWorkRangesState = {
+    threadId: string | null;
+    ranges: Record<string, SemanticTurnWorkRange>;
+};
+
+type CliRuntimeSupportsSteerState = {
+    workspaceId: string | null;
+    runtimeId: string;
+    supportsSteer: boolean | null;
 };
 
 const createEmptyActiveThreadSnapshot = (
@@ -107,6 +118,7 @@ const ThreadScreen = ({ threadId, parentThreadId = null, taskTitle = null }: Thr
 
     const isDraftThread = threadId === null;
     const [focused, setFocused] = useState(false);
+    const [taskChildThreadFallbackTimestamp] = useState(() => Math.floor(Date.now() / 1000));
 
     const treeSnapshot = useThreadTreeStore((state) => state.snapshot);
 
@@ -124,7 +136,6 @@ const ThreadScreen = ({ threadId, parentThreadId = null, taskTitle = null }: Thr
             return null;
         }
 
-        const now = Math.floor(Date.now() / 1000);
         return {
             ...parentThread,
             id: threadId,
@@ -134,10 +145,17 @@ const ThreadScreen = ({ threadId, parentThreadId = null, taskTitle = null }: Thr
             sidebar_visibility: 'hidden',
             status: 'Active',
             turns: [],
-            created_at: parentThread.created_at ?? now,
-            updated_at: parentThread.updated_at ?? now,
+            created_at: parentThread.created_at ?? taskChildThreadFallbackTimestamp,
+            updated_at: parentThread.updated_at ?? taskChildThreadFallbackTimestamp,
         };
-    }, [isDraftThread, parentThread, parentThreadId, taskTitle, threadId]);
+    }, [
+        isDraftThread,
+        parentThread,
+        parentThreadId,
+        taskChildThreadFallbackTimestamp,
+        taskTitle,
+        threadId,
+    ]);
     const activeThread = thread ?? taskChildThread;
     const isTaskChildThread = Boolean(!isDraftThread && threadId && parentThreadId);
 
@@ -182,14 +200,16 @@ const ThreadScreen = ({ threadId, parentThreadId = null, taskTitle = null }: Thr
     const [steering, setSteering] = useState(false);
     const [cliRuntimeThreadBinding, setCliRuntimeThreadBinding] =
         useState<CLIRuntimeThreadBinding | null>(null);
-    const [activeCliRuntimeSupportsSteer, setActiveCliRuntimeSupportsSteer] = useState<
-        boolean | null
-    >(null);
+    const [activeCliRuntimeSupportsSteerLookup, setActiveCliRuntimeSupportsSteerLookup] =
+        useState<CliRuntimeSupportsSteerState | null>(null);
     const [viewportPrefetchPlan, setViewportPrefetchPlan] =
         useState<TimelineViewportPrefetchPlan | null>(null);
-    const [semanticWorkRangesByTurn, setSemanticWorkRangesByTurn] = useState<
-        Record<string, SemanticTurnWorkRange>
-    >({});
+    const [semanticWorkRangesState, setSemanticWorkRangesState] = useState<SemanticWorkRangesState>(
+        {
+            threadId: null,
+            ranges: {},
+        },
+    );
 
     const [composerHeight, setComposerHeight] = useState(THREAD_COMPOSER_MIN_INPUT_HEIGHT);
 
@@ -226,6 +246,10 @@ const ThreadScreen = ({ threadId, parentThreadId = null, taskTitle = null }: Thr
     const visibleThreadId = visibleSnapshot?.thread_id ?? (!isDraftThread ? threadId : null);
     const timelineIdentityKey = visibleThreadId ?? `draft:${activeWorkspaceId ?? 'none'}`;
     const visibleTurnId = visibleSnapshot?.projection.in_flight_turn_id ?? null;
+    const semanticWorkRangesByTurn =
+        semanticWorkRangesState.threadId === visibleThreadId
+            ? semanticWorkRangesState.ranges
+            : EMPTY_SEMANTIC_WORK_RANGES;
 
     useTimelineQueryCancellation(visibleThreadId, focused && !isDraftThread);
     useTimelineReconnectInvalidation(visibleThreadId, focused && !isDraftThread);
@@ -269,10 +293,6 @@ const ThreadScreen = ({ threadId, parentThreadId = null, taskTitle = null }: Thr
     const timelineRowsOverride = isDraftThread
         ? semanticTimelineRows
         : (semanticTimelineRows ?? []);
-
-    useEffect(() => {
-        setSemanticWorkRangesByTurn({});
-    }, [visibleThreadId]);
 
     const closed = Boolean(
         visibleSnapshot?.thread?.status === 'Closed' || activeThread?.status === 'Closed',
@@ -369,6 +389,12 @@ const ThreadScreen = ({ threadId, parentThreadId = null, taskTitle = null }: Thr
         cliRuntimeThreadBinding.thread_id === visibleThreadId
             ? cliRuntimeThreadBinding
             : null;
+    const activeCliRuntimeId = activeCliRuntimeThreadBinding?.runtime_id ?? null;
+    const activeCliRuntimeSupportsSteer =
+        activeCliRuntimeSupportsSteerLookup?.workspaceId === activeWorkspaceId &&
+        activeCliRuntimeSupportsSteerLookup.runtimeId === activeCliRuntimeId
+            ? activeCliRuntimeSupportsSteerLookup.supportsSteer
+            : null;
     const activeCliRuntimeCanSteer = activeCliRuntimeSupportsSteer ?? false;
     const canSteerCliRuntimeTurn = Boolean(
         connected &&
@@ -413,28 +439,39 @@ const ThreadScreen = ({ threadId, parentThreadId = null, taskTitle = null }: Thr
 
     const handleTurnWorkRangeChange = useCallback(
         (turnId: string, range: SemanticTurnWorkRange | null) => {
-            setSemanticWorkRangesByTurn((current) => {
+            setSemanticWorkRangesState((current) => {
+                const currentRanges =
+                    current.threadId === visibleThreadId
+                        ? current.ranges
+                        : EMPTY_SEMANTIC_WORK_RANGES;
+
                 if (range === null) {
-                    if (!(turnId in current)) {
+                    if (!(turnId in currentRanges)) {
                         return current;
                     }
 
-                    const next = { ...current };
+                    const next = { ...currentRanges };
                     delete next[turnId];
-                    return next;
+                    return {
+                        threadId: visibleThreadId,
+                        ranges: next,
+                    };
                 }
 
-                if (current[turnId] === range) {
+                if (current.threadId === visibleThreadId && currentRanges[turnId] === range) {
                     return current;
                 }
 
                 return {
-                    ...current,
-                    [turnId]: range,
+                    threadId: visibleThreadId,
+                    ranges: {
+                        ...currentRanges,
+                        [turnId]: range,
+                    },
                 };
             });
         },
-        [],
+        [visibleThreadId],
     );
 
     const handleViewportPrefetchPlanChange = useCallback((plan: TimelineViewportPrefetchPlan) => {
@@ -637,10 +674,8 @@ const ThreadScreen = ({ threadId, parentThreadId = null, taskTitle = null }: Thr
 
     useEffect(() => {
         let cancelled = false;
-        const runtimeId = activeCliRuntimeThreadBinding?.runtime_id ?? null;
 
-        if (!connected || !activeWorkspaceId || !runtimeId) {
-            setActiveCliRuntimeSupportsSteer(null);
+        if (!connected || !activeWorkspaceId || !activeCliRuntimeId) {
             return () => {
                 cancelled = true;
             };
@@ -653,19 +688,29 @@ const ThreadScreen = ({ threadId, parentThreadId = null, taskTitle = null }: Thr
                     return;
                 }
 
-                const runtime = response.runtimes.find((item) => item.runtime_id === runtimeId);
-                setActiveCliRuntimeSupportsSteer(runtime?.capabilities.supports_steer ?? null);
+                const runtime = response.runtimes.find(
+                    (item) => item.runtime_id === activeCliRuntimeId,
+                );
+                setActiveCliRuntimeSupportsSteerLookup({
+                    workspaceId: activeWorkspaceId,
+                    runtimeId: activeCliRuntimeId,
+                    supportsSteer: runtime?.capabilities.supports_steer ?? null,
+                });
             })
             .catch(() => {
                 if (!cancelled) {
-                    setActiveCliRuntimeSupportsSteer(null);
+                    setActiveCliRuntimeSupportsSteerLookup({
+                        workspaceId: activeWorkspaceId,
+                        runtimeId: activeCliRuntimeId,
+                        supportsSteer: null,
+                    });
                 }
             });
 
         return () => {
             cancelled = true;
         };
-    }, [activeCliRuntimeThreadBinding?.runtime_id, activeWorkspaceId, connected, connectionId]);
+    }, [activeCliRuntimeId, activeWorkspaceId, connected, connectionId]);
 
     if (!isDraftThread && !activeThread && !treeSnapshot) {
         return <ThreadState loading label={t('loadingThread')} />;
@@ -708,7 +753,6 @@ const ThreadScreen = ({ threadId, parentThreadId = null, taskTitle = null }: Thr
                             conversation={visibleSnapshot}
                             timelineIdentityKey={timelineIdentityKey}
                             rowsOverride={timelineRowsOverride}
-                            activeTurnIdOverride={visibleTurnId}
                             loading={false}
                             closed={closed}
                             connected={connected}

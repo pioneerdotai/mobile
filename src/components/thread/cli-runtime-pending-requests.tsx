@@ -30,7 +30,7 @@ export const PendingRequestCard = ({ entry }: PendingRequestCardProps) => {
     const [answers, setAnswers] = useState<Record<string, string>>({});
     const [fallbackAnswer, setFallbackAnswer] = useState('');
     const [error, setError] = useState<string | null>(null);
-    const respondMutation = useMutation({
+    const { mutateAsync: respondToPendingRequest, isPending: submitting } = useMutation({
         mutationFn: async (resolution: PendingRequestResolution) => {
             const plan = pioneerClient.pendingRequestResponsePlan({
                 request: entry.request,
@@ -59,7 +59,6 @@ export const PendingRequestCard = ({ entry }: PendingRequestCardProps) => {
     const details = presentation.details;
     const questions = presentation.user_input_questions;
     const userInput = presentation.actions.some((action) => action.kind === 'answer');
-    const submitting = respondMutation.isPending;
     const canSubmitAnswer =
         !submitting && (questions.length > 0 || fallbackAnswer.trim().length > 0);
 
@@ -68,12 +67,12 @@ export const PendingRequestCard = ({ entry }: PendingRequestCardProps) => {
             setError(null);
 
             try {
-                await respondMutation.mutateAsync(resolution);
+                await respondToPendingRequest(resolution);
             } catch (requestError) {
                 setError(errorMessage(requestError));
             }
         },
-        [respondMutation],
+        [respondToPendingRequest],
     );
 
     const answerQuestion = useCallback((id: string, value: string) => {

@@ -30,12 +30,7 @@ type ProjectConversationRowsOptions = {
 type CoalescedToolsModel = Extract<TimelineRow, { type: 'tool-group' }>;
 
 type TimelineItemStatus =
-    | 'pending'
-    | 'streaming'
-    | 'completed'
-    | 'failed'
-    | 'cancelled'
-    | 'unknown';
+    'pending' | 'streaming' | 'completed' | 'failed' | 'cancelled' | 'unknown';
 
 const tt = (key: string, options?: Record<string, unknown>): string => {
     return String(i18n.t(`threads:${key}`, options));

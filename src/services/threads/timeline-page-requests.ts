@@ -29,13 +29,11 @@ export const requestThreadTimelinePage = ({
         return existing;
     }
 
-    const promise = pioneerClient
-        .threadTimelinePage({ threadId, anchor, limit })
-        .finally(() => {
-            if (inFlightThreadTimelinePages.get(key) === promise) {
-                inFlightThreadTimelinePages.delete(key);
-            }
-        });
+    const promise = pioneerClient.threadTimelinePage({ threadId, anchor, limit }).finally(() => {
+        if (inFlightThreadTimelinePages.get(key) === promise) {
+            inFlightThreadTimelinePages.delete(key);
+        }
+    });
 
     inFlightThreadTimelinePages.set(key, promise);
     return promise;
@@ -53,13 +51,11 @@ export const requestTurnWorkPage = ({
         return existing;
     }
 
-    const promise = pioneerClient
-        .turnWorkPage({ threadId, turnId, anchor, limit })
-        .finally(() => {
-            if (inFlightTurnWorkPages.get(key) === promise) {
-                inFlightTurnWorkPages.delete(key);
-            }
-        });
+    const promise = pioneerClient.turnWorkPage({ threadId, turnId, anchor, limit }).finally(() => {
+        if (inFlightTurnWorkPages.get(key) === promise) {
+            inFlightTurnWorkPages.delete(key);
+        }
+    });
 
     inFlightTurnWorkPages.set(key, promise);
     return promise;

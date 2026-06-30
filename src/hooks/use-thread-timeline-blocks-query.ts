@@ -27,7 +27,22 @@ type ThreadTimelineBlocksQueryOptions = {
 type ThreadTimelineBlocksQueryResult = UseInfiniteQueryResult<
     InfiniteData<ThreadTimelinePageResponse, TimelinePageAnchor>,
     Error
-> & {
+>;
+
+type ThreadTimelineBlocksQueryControls = Pick<
+    ThreadTimelineBlocksQueryResult,
+    | 'error'
+    | 'isLoading'
+    | 'refetch'
+    | 'hasNextPage'
+    | 'isFetchingNextPage'
+    | 'fetchNextPage'
+    | 'hasPreviousPage'
+    | 'isFetchingPreviousPage'
+    | 'fetchPreviousPage'
+>;
+
+type ThreadTimelineBlocksResult = ThreadTimelineBlocksQueryControls & {
     blocks: TimelineBlock[];
     pages: ThreadTimelinePageResponse[];
     hasLoadedPage: boolean;
@@ -38,15 +53,15 @@ export const useThreadTimelineBlocksQuery = ({
     enabled,
     limit = DEFAULT_THREAD_TIMELINE_PAGE_LIMIT,
     initialAnchor = NEWEST_TIMELINE_ANCHOR,
-}: ThreadTimelineBlocksQueryOptions): ThreadTimelineBlocksQueryResult => {
+}: ThreadTimelineBlocksQueryOptions): ThreadTimelineBlocksResult => {
     const query = useInfiniteQuery<
         ThreadTimelinePageResponse,
         Error,
         InfiniteData<ThreadTimelinePageResponse, TimelinePageAnchor>,
-        ReturnType<typeof timelineQueryKeys.threadPages>,
+        ReturnType<typeof timelineQueryKeys.threadPagesForLimit>,
         TimelinePageAnchor
     >({
-        queryKey: timelineQueryKeys.threadPages(threadId ?? '__inactive_thread__'),
+        queryKey: timelineQueryKeys.threadPagesForLimit(threadId ?? '__inactive_thread__', limit),
         enabled: enabled && Boolean(threadId),
         initialPageParam: initialAnchor,
         queryFn: async ({ pageParam, signal }) => {
@@ -87,8 +102,28 @@ export const useThreadTimelineBlocksQuery = ({
     const pages = useMemo(() => query.data?.pages ?? [], [query.data?.pages]);
     const blocks = useMemo(() => flattenThreadTimelineBlocks(pages), [pages]);
 
+    const {
+        error,
+        fetchNextPage,
+        fetchPreviousPage,
+        hasNextPage,
+        hasPreviousPage,
+        isFetchingNextPage,
+        isFetchingPreviousPage,
+        isLoading,
+        refetch,
+    } = query;
+
     return {
-        ...query,
+        error,
+        fetchNextPage,
+        fetchPreviousPage,
+        hasNextPage,
+        hasPreviousPage,
+        isFetchingNextPage,
+        isFetchingPreviousPage,
+        isLoading,
+        refetch,
         blocks,
         pages,
         hasLoadedPage: pages.length > 0,
@@ -106,8 +141,9 @@ export const flattenThreadTimelineBlocks = (
         }
     }
 
-    return Array.from(blocksById.values()).sort((left, right) =>
-        left.sortKey.localeCompare(right.sortKey) || left.blockId.localeCompare(right.blockId),
+    return Array.from(blocksById.values()).sort(
+        (left, right) =>
+            left.sortKey.localeCompare(right.sortKey) || left.blockId.localeCompare(right.blockId),
     );
 };
 
