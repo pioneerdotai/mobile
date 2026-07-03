@@ -287,7 +287,10 @@ export type { VoiceSessionFinalizeParams } from './generated/voice_session_final
 export type { VoiceSessionFinalizeResponse } from './generated/voice_session_finalize_response';
 export type { VoiceSessionOutcome } from './generated/voice_session_outcome';
 export type { VoiceSessionResultNotification } from './generated/voice_session_result_notification';
-export type { VoiceSessionStartParams } from './generated/voice_session_start_params';
+export type {
+    VoiceSessionStartContext,
+    VoiceSessionStartParams,
+} from './generated/voice_session_start_params';
 export type { VoiceSessionStartResponse } from './generated/voice_session_start_response';
 export type { VoiceStatus } from './generated/voice_status';
 export type { VoiceStatusParams } from './generated/voice_status_params';

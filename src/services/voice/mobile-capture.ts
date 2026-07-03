@@ -3,6 +3,7 @@ import { AudioManager, AudioRecorder } from 'react-native-audio-api';
 import {
     pioneerClient,
     type VoiceAudioFormat,
+    type VoiceSessionStartContext,
     type VoiceStatus,
     type VoiceTurnContext,
 } from '@/client';
@@ -47,7 +48,7 @@ export type MobileVoiceCaptureCallbacks = {
 
 export type StartMobileVoiceCaptureParams = {
     workspaceId: string;
-    prepareContext: () => Promise<VoiceTurnContext>;
+    startContext: VoiceSessionStartContext;
     callbacks?: MobileVoiceCaptureCallbacks;
 };
 
@@ -77,7 +78,7 @@ export const voiceStatusUnavailableMessage = (status: VoiceStatus | null | undef
 
 export const startMobileVoiceCapture = async ({
     workspaceId,
-    prepareContext,
+    startContext,
     callbacks,
 }: StartMobileVoiceCaptureParams): Promise<MobileVoiceCaptureSession> => {
     const status = await pioneerClient.voiceStatus({ workspace_id: workspaceId });
@@ -92,18 +93,10 @@ export const startMobileVoiceCapture = async ({
     await ensureInputDevice();
     await activateRecordingSession();
 
-    let context: VoiceTurnContext;
-    try {
-        context = await prepareContext();
-    } catch (error) {
-        await deactivateRecordingSession();
-        throw error;
-    }
-
     let sessionId: string;
     try {
         const response = await pioneerClient.voiceSessionStart({
-            context,
+            context: startContext,
             audio_format: MOBILE_VOICE_AUDIO_FORMAT,
         });
         sessionId = response.session_id;
@@ -116,7 +109,7 @@ export const startMobileVoiceCapture = async ({
         );
     }
 
-    const session = new MobileVoiceCaptureSession(sessionId, context.turn_id, callbacks);
+    const session = new MobileVoiceCaptureSession(sessionId, startContext, callbacks);
     try {
         await session.start();
     } catch (error) {
@@ -129,6 +122,7 @@ export const startMobileVoiceCapture = async ({
 
 export class MobileVoiceCaptureSession {
     readonly sessionId: string;
+    readonly startContext: VoiceSessionStartContext;
     readonly turnId: string;
     private readonly callbacks?: MobileVoiceCaptureCallbacks;
     private recorder: AudioRecorder | null = null;
@@ -137,9 +131,14 @@ export class MobileVoiceCaptureSession {
     private chunkError: MobileVoiceCaptureError | null = null;
     private lastLevelUpdateUnixMs = 0;
 
-    constructor(sessionId: string, turnId: string, callbacks?: MobileVoiceCaptureCallbacks) {
+    constructor(
+        sessionId: string,
+        startContext: VoiceSessionStartContext,
+        callbacks?: MobileVoiceCaptureCallbacks,
+    ) {
         this.sessionId = sessionId;
-        this.turnId = turnId;
+        this.startContext = { ...startContext };
+        this.turnId = startContext.turn_id;
         this.callbacks = callbacks;
     }
 
@@ -180,7 +179,7 @@ export class MobileVoiceCaptureSession {
         }
     }
 
-    async commit(): Promise<void> {
+    async commit(prepareContext: () => Promise<VoiceTurnContext>): Promise<void> {
         if (this.ending) {
             return;
         }
@@ -190,19 +189,32 @@ export class MobileVoiceCaptureSession {
         await this.stopRecorder();
         this.callbacks?.onLevel?.(0);
 
-        if (chunkError) {
-            await this.cancelGatewaySession('mobile_chunk_send_failed');
-            throw chunkError;
-        }
-
         try {
-            await pioneerClient.voiceSessionFinalize({ session_id: this.sessionId });
-        } catch (error) {
-            throw new MobileVoiceCaptureError(
-                'finalize_failed',
-                errorMessage(error),
-                errorOptions(error),
-            );
+            if (chunkError) {
+                await this.cancelGatewaySession('mobile_chunk_send_failed');
+                throw chunkError;
+            }
+
+            let context: VoiceTurnContext;
+            try {
+                context = await prepareContext();
+            } catch (error) {
+                await this.cancelGatewaySession('mobile_prepare_failed').catch(() => null);
+                throw error;
+            }
+
+            try {
+                await pioneerClient.voiceSessionFinalize({
+                    session_id: this.sessionId,
+                    context,
+                });
+            } catch (error) {
+                throw new MobileVoiceCaptureError(
+                    'finalize_failed',
+                    errorMessage(error),
+                    errorOptions(error),
+                );
+            }
         } finally {
             await deactivateRecordingSession();
         }

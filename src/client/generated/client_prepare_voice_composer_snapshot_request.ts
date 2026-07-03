@@ -69,6 +69,7 @@ export interface ClientPrepareVoiceComposerSnapshotRequest {
   selected_provider?: string | null;
   selected_reasoning_effort?: string | null;
   thread_id?: string | null;
+  turn_id?: string | null;
   workspace_id?: string | null;
 }
 export interface ComposerAttachment {

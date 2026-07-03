@@ -7,12 +7,15 @@ import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useKeyboardChatComposerInset } from '@legendapp/list/keyboard';
 import type { LegendListRef } from '@legendapp/list/react-native';
 import { useQueryClient } from '@tanstack/react-query';
+import { customAlphabet } from 'nanoid';
 
 import {
     pioneerClient,
     type ClientActiveThreadSnapshot,
     type CLIRuntimeThreadBinding,
     type ComposerAttachment,
+    type PreparedVoiceComposerSnapshot,
+    type VoiceSessionStartContext,
     type Thread,
     type TimelineBlock,
     type TurnWorkBlock,
@@ -73,6 +76,9 @@ const STICKY_KEYBOARD_OFFSET_CLOSED = 0;
 const EMPTY_MCP_SERVER_ID_BY_NAME: Readonly<Record<string, string>> = {};
 const SEMANTIC_TURN_WORK_GROUP_PREFIX = 'semantic-turn-work-group::';
 const EMPTY_SEMANTIC_WORK_RANGES: Readonly<Record<string, SemanticTurnWorkRange>> = {};
+const VOICE_TURN_ID_LEN = 21;
+const VOICE_TURN_ID_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890';
+const generateVoiceTurnId = customAlphabet(VOICE_TURN_ID_ALPHABET, VOICE_TURN_ID_LEN);
 
 type ComposerModelSelection = {
     provider: string;
@@ -94,6 +100,31 @@ type CliRuntimeSupportsSteerState = {
 type VoiceCommitPendingTurn = {
     threadId: string;
     turnId: string;
+};
+
+const applyVoiceUploadedAttachmentArtifacts = (
+    attachments: ComposerAttachment[],
+    uploadedArtifacts: PreparedVoiceComposerSnapshot['uploaded_attachment_artifacts'],
+): ComposerAttachment[] => {
+    let changed = false;
+    const nextAttachments = attachments.map((attachment, index) => {
+        const artifact = uploadedArtifacts[index];
+        if (!artifact) {
+            return attachment;
+        }
+
+        changed = true;
+        return {
+            ...attachment,
+            upload_state: {
+                Uploaded: {
+                    artifact,
+                },
+            },
+        };
+    });
+
+    return changed ? nextAttachments : attachments;
 };
 
 const modelSelectionFromThread = (
@@ -199,7 +230,6 @@ const ThreadScreen = ({
     const voiceReleaseIntentRef = useRef<'commit' | 'cancel' | null>(null);
     const voiceOwnedSessionIdsRef = useRef<Set<string>>(new Set());
     const voiceOwnedTurnIdsRef = useRef<Set<string>>(new Set());
-    const voiceOriginalAttachmentsRef = useRef<ComposerAttachment[] | null>(null);
 
     const keyboardOffset = rt.insets.bottom;
     const timelineContentBottomInset = composerHeight;
@@ -493,11 +523,6 @@ const ThreadScreen = ({
 
     useEffect(() => {
         return () => {
-            const originalAttachments = voiceOriginalAttachmentsRef.current;
-            voiceOriginalAttachmentsRef.current = null;
-            if (originalAttachments) {
-                setComposerAttachments(originalAttachments);
-            }
             voiceMountedRef.current = false;
             voiceReleaseIntentRef.current = 'cancel';
             const session = voiceSessionRef.current;
@@ -506,7 +531,7 @@ const ThreadScreen = ({
                 void session.cancel('mobile_screen_unmounted').catch(() => null);
             }
         };
-    }, [setComposerAttachments]);
+    }, []);
 
     const updateComposerHeight = useCallback((height: number) => {
         const nextHeight = Math.max(height, THREAD_COMPOSER_MIN_INPUT_HEIGHT);
@@ -549,14 +574,6 @@ const ThreadScreen = ({
             }
         }
     }, [activeWorkspaceId, connected]);
-
-    const restoreVoiceOriginalAttachments = useCallback(() => {
-        const originalAttachments = voiceOriginalAttachmentsRef.current;
-        voiceOriginalAttachmentsRef.current = null;
-        if (originalAttachments) {
-            setComposerAttachments(originalAttachments);
-        }
-    }, [setComposerAttachments]);
 
     useEffect(() => {
         let cancelled = false;
@@ -712,86 +729,80 @@ const ThreadScreen = ({
         [t],
     );
 
-    const prepareVoiceContext = useCallback(async (): Promise<VoiceTurnContext> => {
-        const storeState = useActiveThreadStore.getState();
-        const currentSnapshot = storeState.snapshot;
-        const hasCompleteComposerModelSelection = Boolean(
-            storeState.composerSelectedProvider && storeState.composerSelectedModel,
-        );
-        const selectedProviderForVoice = hasCompleteComposerModelSelection
-            ? storeState.composerSelectedProvider
-            : null;
-        const selectedModelForVoice = hasCompleteComposerModelSelection
-            ? storeState.composerSelectedModel
-            : null;
-        const selectedReasoningEffortForVoice = hasCompleteComposerModelSelection
-            ? storeState.composerSelectedReasoningEffort
-            : null;
-        const requestThreadId = visibleThreadId ?? currentSnapshot?.thread_id ?? null;
-        const requestWorkspaceId =
-            activeWorkspaceId ??
-            activeThread?.workspace_id ??
-            currentSnapshot?.thread?.workspace_id ??
-            currentSnapshot?.workspace_id ??
-            null;
+    const prepareVoiceContext = useCallback(
+        async (scope: VoiceSessionStartContext): Promise<VoiceTurnContext> => {
+            const storeState = useActiveThreadStore.getState();
+            const hasCompleteComposerModelSelection = Boolean(
+                storeState.composerSelectedProvider && storeState.composerSelectedModel,
+            );
+            const selectedProviderForVoice = hasCompleteComposerModelSelection
+                ? storeState.composerSelectedProvider
+                : null;
+            const selectedModelForVoice = hasCompleteComposerModelSelection
+                ? storeState.composerSelectedModel
+                : null;
+            const selectedReasoningEffortForVoice = hasCompleteComposerModelSelection
+                ? storeState.composerSelectedReasoningEffort
+                : null;
 
-        if (!requestThreadId || !requestWorkspaceId) {
-            throw new Error(t('voiceFailed'));
-        }
+            const voiceCliRuntimeSelected = isCliRuntimeProvider(selectedProviderForVoice);
+            const attachments = storeState.composerAttachments;
+            const capabilities = voiceCliRuntimeSelected ? [] : storeState.composerCapabilities;
+            const attachmentsForVoice =
+                attachments.length > 0
+                    ? pioneerClient.composerAttachmentsUpdate({
+                          attachments,
+                          action: 'MarkPendingUploading',
+                      })
+                    : attachments;
 
-        const voiceCliRuntimeSelected = isCliRuntimeProvider(selectedProviderForVoice);
-        const attachments = storeState.composerAttachments;
-        const capabilities = voiceCliRuntimeSelected ? [] : storeState.composerCapabilities;
-        const attachmentsForVoice =
-            attachments.length > 0
-                ? pioneerClient.composerAttachmentsUpdate({
-                      attachments,
-                      action: 'MarkPendingUploading',
-                  })
-                : attachments;
-
-        if (attachmentsForVoice !== attachments) {
-            voiceOriginalAttachmentsRef.current = attachments;
-            setComposerAttachments(attachmentsForVoice);
-        }
-
-        try {
-            const snapshot = await pioneerClient.prepareVoiceComposerSnapshot({
-                thread_id: requestThreadId,
-                workspace_id: requestWorkspaceId,
-                selected_model: selectedModelForVoice,
-                selected_provider: selectedProviderForVoice,
-                ...selectedReasoningEffortRequestFields(selectedReasoningEffortForVoice),
-                selected_mode: composerSelectedMode,
-                permission_mode: composerSelectedPermissionMode,
-                attachments: attachmentsForVoice,
-                capabilities,
-            });
-
-            return snapshot.context;
-        } catch (prepareError) {
-            if (attachmentsForVoice.length > 0) {
-                const message = voiceComposerErrorMessage(prepareError);
-                voiceOriginalAttachmentsRef.current = null;
-                setComposerAttachments(
-                    pioneerClient.composerAttachmentsUpdate({
-                        attachments: useActiveThreadStore.getState().composerAttachments,
-                        action: { MarkUploadingFailed: { error: message } },
-                    }),
-                );
+            if (attachmentsForVoice !== attachments) {
+                setComposerAttachments(attachmentsForVoice);
             }
-            throw prepareError;
-        }
-    }, [
-        activeThread?.workspace_id,
-        activeWorkspaceId,
-        composerSelectedMode,
-        composerSelectedPermissionMode,
-        setComposerAttachments,
-        t,
-        visibleThreadId,
-        voiceComposerErrorMessage,
-    ]);
+
+            try {
+                const snapshot = await pioneerClient.prepareVoiceComposerSnapshot({
+                    thread_id: scope.thread_id,
+                    workspace_id: scope.workspace_id,
+                    turn_id: scope.turn_id,
+                    selected_model: selectedModelForVoice,
+                    selected_provider: selectedProviderForVoice,
+                    ...selectedReasoningEffortRequestFields(selectedReasoningEffortForVoice),
+                    selected_mode: composerSelectedMode,
+                    permission_mode: composerSelectedPermissionMode,
+                    attachments: attachmentsForVoice,
+                    capabilities,
+                });
+
+                const uploadedAttachments = applyVoiceUploadedAttachmentArtifacts(
+                    attachmentsForVoice,
+                    snapshot.uploaded_attachment_artifacts,
+                );
+                if (uploadedAttachments !== attachmentsForVoice) {
+                    setComposerAttachments(uploadedAttachments);
+                }
+
+                return snapshot.context;
+            } catch (prepareError) {
+                if (attachmentsForVoice.length > 0) {
+                    const message = voiceComposerErrorMessage(prepareError);
+                    setComposerAttachments(
+                        pioneerClient.composerAttachmentsUpdate({
+                            attachments: useActiveThreadStore.getState().composerAttachments,
+                            action: { MarkUploadingFailed: { error: message } },
+                        }),
+                    );
+                }
+                throw prepareError;
+            }
+        },
+        [
+            composerSelectedMode,
+            composerSelectedPermissionMode,
+            setComposerAttachments,
+            voiceComposerErrorMessage,
+        ],
+    );
 
     const finishVoiceCapture = useCallback(
         (intent: 'commit' | 'cancel') => {
@@ -814,20 +825,17 @@ const ThreadScreen = ({
             }
 
             const operation =
-                intent === 'commit' ? session.commit() : session.cancel('mobile_release_cancel');
+                intent === 'commit'
+                    ? session.commit(() => prepareVoiceContext(session.startContext))
+                    : session.cancel('mobile_release_cancel');
 
             void operation
-                .then(() => {
-                    if (voiceMountedRef.current && intent === 'cancel') {
-                        restoreVoiceOriginalAttachments();
-                    }
-                })
+                .then(() => undefined)
                 .catch((captureError) => {
                     if (voiceMountedRef.current) {
                         if (intent === 'commit') {
                             setVoiceCommitPendingTurn(null);
                         }
-                        restoreVoiceOriginalAttachments();
                         useActiveThreadStore
                             .getState()
                             .setComposerError(voiceComposerErrorMessage(captureError));
@@ -843,12 +851,7 @@ const ThreadScreen = ({
                     void refreshVoiceStatus();
                 });
         },
-        [
-            refreshVoiceStatus,
-            restoreVoiceOriginalAttachments,
-            visibleThreadId,
-            voiceComposerErrorMessage,
-        ],
+        [refreshVoiceStatus, prepareVoiceContext, visibleThreadId, voiceComposerErrorMessage],
     );
 
     const handleVoiceStart = useCallback(() => {
@@ -877,11 +880,15 @@ const ThreadScreen = ({
         setVoiceCaptureBusy(true);
         setVoiceCommitPendingTurn(null);
         voiceReleaseIntentRef.current = null;
-        voiceOriginalAttachmentsRef.current = null;
+        const turnId = generateVoiceTurnId();
 
         const startPromise = startMobileVoiceCapture({
             workspaceId: activeWorkspaceId,
-            prepareContext: prepareVoiceContext,
+            startContext: {
+                workspace_id: activeWorkspaceId,
+                thread_id: visibleThreadId,
+                turn_id: turnId,
+            },
             callbacks: {
                 onLevel: (level) => {
                     if (voiceMountedRef.current) {
@@ -926,7 +933,6 @@ const ThreadScreen = ({
                 voiceReleaseIntentRef.current = null;
                 setVoiceCaptureBusy(false);
                 setVoiceLevel(0);
-                restoreVoiceOriginalAttachments();
                 useActiveThreadStore
                     .getState()
                     .setComposerError(voiceComposerErrorMessage(captureError));
@@ -935,9 +941,7 @@ const ThreadScreen = ({
     }, [
         activeWorkspaceId,
         finishVoiceCapture,
-        prepareVoiceContext,
         refreshVoiceStatus,
-        restoreVoiceOriginalAttachments,
         t,
         visibleThreadId,
         voiceCaptureBusy,
@@ -987,7 +991,6 @@ const ThreadScreen = ({
                 }
 
                 voiceOwnedTurnIdsRef.current.delete(turnId);
-                voiceOriginalAttachmentsRef.current = null;
                 useActiveThreadStore.getState().clearComposerPayload();
                 return;
             }
@@ -1008,26 +1011,23 @@ const ThreadScreen = ({
             void refreshVoiceStatus();
 
             if (sessionResult.outcome === 'turn_started') {
-                voiceOriginalAttachmentsRef.current = null;
                 useActiveThreadStore.getState().clearComposerPayload();
                 return;
             }
 
             if (sessionResult.outcome === 'cancelled') {
                 setVoiceCommitPendingTurn(null);
-                restoreVoiceOriginalAttachments();
                 return;
             }
 
             if (sessionResult.outcome === 'no_speech' || sessionResult.outcome === 'failed') {
                 setVoiceCommitPendingTurn(null);
-                restoreVoiceOriginalAttachments();
                 useActiveThreadStore
                     .getState()
                     .setComposerError(voiceSessionResultMessage(sessionResult));
             }
         });
-    }, [focused, refreshVoiceStatus, restoreVoiceOriginalAttachments, voiceSessionResultMessage]);
+    }, [focused, refreshVoiceStatus, voiceSessionResultMessage]);
 
     const handleStopTurn = useCallback(() => {
         void stopTurn();

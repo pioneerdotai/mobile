@@ -59,6 +59,13 @@
       ],
       "default": null
     },
+    "turn_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "default": null
+    },
     "workspace_id": {
       "type": [
         "string",
