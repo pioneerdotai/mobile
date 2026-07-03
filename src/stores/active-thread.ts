@@ -341,8 +341,10 @@ export const useActiveThreadStore = create<ActiveThreadStoreState>((set) => ({
     setComposerReasoningEffortFromUser: (composerSelectedReasoningEffort) => {
         set((state) => ({
             composerSelectedReasoningEffort,
+            composerModelManuallySelected: true,
             ...updateActiveDraft(state, {
                 selectedReasoningEffort: composerSelectedReasoningEffort,
+                modelManuallySelected: true,
             }),
         }));
     },

@@ -77,6 +77,20 @@ describe('active thread reasoning effort state', () => {
         expect(useActiveThreadStore.getState().composerSelectedReasoningEffort).toBe('low');
     });
 
+    it('treats user reasoning effort selection as a manual composer selection', () => {
+        useActiveThreadStore.getState().syncComposerModelSelection('openai', 'gpt-5', 'high');
+
+        useActiveThreadStore.getState().setComposerReasoningEffortFromUser('low');
+
+        expect(useActiveThreadStore.getState().composerModelManuallySelected).toBe(true);
+
+        useActiveThreadStore.getState().syncComposerModelSelection('openai', 'gpt-5', 'high');
+
+        expect(useActiveThreadStore.getState().composerSelectedProvider).toBe('openai');
+        expect(useActiveThreadStore.getState().composerSelectedModel).toBe('gpt-5');
+        expect(useActiveThreadStore.getState().composerSelectedReasoningEffort).toBe('low');
+    });
+
     it('restores default effort on reset paths', () => {
         useActiveThreadStore
             .getState()
