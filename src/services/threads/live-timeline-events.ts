@@ -1,11 +1,10 @@
 import type { QueryClient } from '@tanstack/react-query';
 
-import type { ClientActiveThreadEventResult, ClientEvent } from '@/client';
+import type { ClientEvent } from '@/client';
 
 import { invalidateTimelineQueriesForThread } from './timeline-query';
 
 export type ActiveThreadTimelineEvent = Extract<ClientEvent, { GatewayNotification: unknown }>;
-type SemanticTimelineCachePatch = ClientActiveThreadEventResult['semantic_timeline_patch'];
 
 const snakeCaseThreadId = (params: object): string | null => {
     const threadId = (params as { thread_id?: unknown }).thread_id;
@@ -53,31 +52,18 @@ export const isActiveThreadTimelineEvent = (
 
 export const activeThreadTimelineEventNeedsQueryInvalidation = (
     event: ActiveThreadTimelineEvent,
-    semanticTimelinePatch?: SemanticTimelineCachePatch | null,
 ): boolean => {
     switch (event.GatewayNotification.kind) {
         case 'thread_timeline_blocks_changed':
-            return true;
         case 'turn_work_items_changed':
         case 'turn_work_state_changed':
         case 'turn_completed':
         case 'turn_failed':
         case 'turn_blocked':
-            return !semanticTimelinePatchHasChanges(semanticTimelinePatch);
+            return true;
         default:
             return false;
     }
-};
-
-export const semanticTimelinePatchHasChanges = (
-    patch: SemanticTimelineCachePatch | null | undefined,
-): boolean => {
-    return Boolean(
-        (patch?.changed_blocks?.length ?? 0) > 0 ||
-        (patch?.removed_block_ids?.length ?? 0) > 0 ||
-        (patch?.changed_work_items?.length ?? 0) > 0 ||
-        (patch?.removed_work_items?.length ?? 0) > 0,
-    );
 };
 
 export const activeThreadTimelineEventThreadId = (
@@ -124,9 +110,8 @@ export const invalidateTimelineQueriesForActiveThreadEvent = (
     queryClient: QueryClient,
     event: ActiveThreadTimelineEvent,
     fallbackThreadId: string | null | undefined,
-    semanticTimelinePatch?: SemanticTimelineCachePatch | null,
 ): Promise<void> => {
-    if (!activeThreadTimelineEventNeedsQueryInvalidation(event, semanticTimelinePatch)) {
+    if (!activeThreadTimelineEventNeedsQueryInvalidation(event)) {
         return Promise.resolve();
     }
 

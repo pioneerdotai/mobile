@@ -20,6 +20,7 @@ import type {
 
 const FILE_CHANGE_OUTPUT_LIMIT = 4_000;
 const DYNAMIC_TOOL_RESULT_LIMIT = 4_000;
+const SEMANTIC_TURN_WORK_GROUP_PREFIX = 'semantic-turn-work-group::';
 
 type ProjectConversationRowsOptions = {
     expandedKeys?: ReadonlySet<string> | Readonly<Record<string, boolean>>;
@@ -99,11 +100,12 @@ const projectClientConversationRow = (
         const anchorEntry = projection.timeline.find((entry) => entry.id === group.anchor_entry_id);
         const anchorItem = anchorEntry ? itemsById.get(anchorEntry.item_id) : null;
         const toggleKey = group.toggle_key || row.key;
+        const semanticTurnId = semanticTurnWorkTurnIdFromKey(toggleKey);
 
         return {
             type: 'work-group',
             key: toggleKey,
-            turnId: anchorEntry?.turn_id ?? anchorItem?.turn_id ?? '',
+            turnId: anchorEntry?.turn_id ?? anchorItem?.turn_id ?? semanticTurnId ?? '',
             anchorItemId: anchorItem?.id ?? anchorEntry?.item_id ?? '',
             anchorEntryId: group.anchor_entry_id,
             title: tt('timelineWorked'),
@@ -197,6 +199,14 @@ const expandedContains = (
     }
 
     return (expandedKeys as Readonly<Record<string, boolean>>)[key] === true;
+};
+
+const semanticTurnWorkTurnIdFromKey = (key: string): string | null => {
+    if (!key.startsWith(SEMANTIC_TURN_WORK_GROUP_PREFIX)) {
+        return null;
+    }
+
+    return key.slice(SEMANTIC_TURN_WORK_GROUP_PREFIX.length) || null;
 };
 
 export const formatElapsedMs = (elapsedMs: number): string => {

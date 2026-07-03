@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useShallow } from 'zustand/react/shallow';
 
-import { pioneerClient, type ClientActiveThreadSnapshot, type Thread } from '@/client';
+import { pioneerClient, type Thread } from '@/client';
 import {
     activeThreadSnapshot,
     applyActiveThreadEvent,
@@ -13,7 +13,6 @@ import {
     sendActiveThreadText,
 } from '@/services/threads/active';
 import { selectedReasoningEffortRequestFields } from '@/services/threads/reasoning-effort';
-import { applySemanticTimelinePatchToCache } from '@/services/threads/semantic-cache-patch';
 import {
     invalidateTimelineQueriesForActiveThreadEvent,
     isActiveThreadTimelineEvent,
@@ -26,20 +25,6 @@ import { useGatewayStore } from '@/stores/gateway';
 let openSequence = 0;
 
 const MODEL_SELECTION_REQUIRED_ERROR = 'model and provider must';
-
-const stripServerTimelineCache = (
-    snapshot: ClientActiveThreadSnapshot,
-): ClientActiveThreadSnapshot => {
-    return {
-        ...snapshot,
-        projection: {
-            ...snapshot.projection,
-            items: [],
-            timeline: [],
-        },
-        rows: [],
-    };
-};
 
 const errorMessage = (error: unknown, fallback: string): string => {
     if (error instanceof Error) {
@@ -171,7 +156,7 @@ export const useActiveThread = (
                     return;
                 }
 
-                setSnapshot(stripServerTimelineCache(nextSnapshot));
+                setSnapshot(nextSnapshot);
             } catch (caught) {
                 if (
                     openSequence === sequence &&
@@ -216,7 +201,7 @@ export const useActiveThread = (
                     return;
                 }
 
-                setSnapshot(stripServerTimelineCache(nextSnapshot));
+                setSnapshot(nextSnapshot);
             } catch (caught) {
                 if (
                     openSequence === sequence &&
@@ -305,14 +290,12 @@ export const useActiveThread = (
                         return;
                     }
 
-                    applySemanticTimelinePatchToCache(queryClient, result.semantic_timeline_patch);
                     void invalidateTimelineQueriesForActiveThreadEvent(
                         queryClient,
                         event,
                         result.snapshot.thread_id,
-                        result.semantic_timeline_patch,
                     );
-                    setSnapshot(stripServerTimelineCache(result.snapshot));
+                    setSnapshot(result.snapshot);
                 })
                 .catch((caught) => {
                     if (
@@ -337,7 +320,7 @@ export const useActiveThread = (
     const updateExpandedKeys = useCallback(
         (keys: string[]) => {
             setExpandedKeys(keys);
-            setSnapshot(stripServerTimelineCache(activeThreadSnapshot({ expanded_keys: keys })));
+            setSnapshot(activeThreadSnapshot({ expanded_keys: keys }));
         },
         [setExpandedKeys, setSnapshot],
     );
@@ -445,14 +428,14 @@ export const useActiveThread = (
                     return false;
                 }
 
-                applySemanticTimelinePatchToCache(queryClient, result.semantic_timeline_patch);
                 activeThreadIdRef.current = result.thread_id;
+                void invalidateTimelineQueriesForThread(queryClient, result.thread_id);
                 const latestSnapshot = useActiveThreadStore.getState().snapshot;
                 if (
                     !latestSnapshot ||
                     latestSnapshot.projection.revision <= result.snapshot.projection.revision
                 ) {
-                    setSnapshot(stripServerTimelineCache(result.snapshot));
+                    setSnapshot(result.snapshot);
                 }
                 clearComposerPayload();
                 return true;
@@ -482,7 +465,7 @@ export const useActiveThread = (
                         if (rejectedSnapshot.thread_id) {
                             activeThreadIdRef.current = rejectedSnapshot.thread_id;
                         }
-                        setSnapshot(stripServerTimelineCache(rejectedSnapshot));
+                        setSnapshot(rejectedSnapshot);
                     } catch {
                         // The native error is already surfaced through composerError.
                     }
@@ -547,7 +530,7 @@ export const useActiveThread = (
                 !latestSnapshot ||
                 latestSnapshot.projection.revision <= result.snapshot.projection.revision
             ) {
-                setSnapshot(stripServerTimelineCache(result.snapshot));
+                setSnapshot(result.snapshot);
             }
 
             return result.cancelled;
@@ -561,7 +544,7 @@ export const useActiveThread = (
                     if (rejectedSnapshot.thread_id) {
                         activeThreadIdRef.current = rejectedSnapshot.thread_id;
                     }
-                    setSnapshot(stripServerTimelineCache(rejectedSnapshot));
+                    setSnapshot(rejectedSnapshot);
                 } catch {
                     // The native error is already surfaced through composerError.
                 }

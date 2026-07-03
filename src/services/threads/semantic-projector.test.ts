@@ -16,6 +16,7 @@ mock.module('@/locale/i18n', () => ({
     },
 }));
 
+const { projectConversationToRows } = await import('./conversation/projector');
 const { projectSemanticTimelineToRows } = await import('./semantic-projector');
 
 const snapshot = (
@@ -85,6 +86,33 @@ describe('mobile semantic timeline projector', () => {
         expect(rows.find((row) => row.type === 'assistant-message')).toMatchObject({
             text: 'final **markdown**',
             markdown,
+        });
+    });
+
+    it('projects native work toggle turn id from the semantic group key', () => {
+        const rows = projectConversationToRows({
+            ...snapshot(),
+            rows: [
+                {
+                    key: 'semantic-turn-work-group::turn_a',
+                    kind: {
+                        TurnWorkToggle: {
+                            toggle_key: 'semantic-turn-work-group::turn_a',
+                            anchor_entry_id: 'block_work',
+                            elapsed_ms: 1_234,
+                            is_open: false,
+                        },
+                    },
+                },
+            ],
+        });
+
+        expect(rows).toHaveLength(1);
+        expect(rows[0]).toMatchObject({
+            type: 'work-group',
+            key: 'semantic-turn-work-group::turn_a',
+            turnId: 'turn_a',
+            expanded: false,
         });
     });
 

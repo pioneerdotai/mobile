@@ -4,7 +4,6 @@ import { useQueryClient } from '@tanstack/react-query';
 import {
     cancelTimelineQueriesExceptThread,
     cancelTimelineQueriesForThread,
-    removeTimelineQueriesForThread,
 } from '@/services/threads/timeline-query';
 
 export const useTimelineQueryCancellation = (threadId: string | null, active: boolean) => {
@@ -15,18 +14,14 @@ export const useTimelineQueryCancellation = (threadId: string | null, active: bo
         const previousThreadId = previousThreadIdRef.current;
 
         if (previousThreadId && previousThreadId !== threadId) {
-            void cancelTimelineQueriesForThread(queryClient, previousThreadId).finally(() => {
-                removeTimelineQueriesForThread(queryClient, previousThreadId);
-            });
+            void cancelTimelineQueriesForThread(queryClient, previousThreadId);
         }
 
         previousThreadIdRef.current = threadId;
 
         if (!active) {
             if (threadId) {
-                void cancelTimelineQueriesForThread(queryClient, threadId).finally(() => {
-                    removeTimelineQueriesForThread(queryClient, threadId);
-                });
+                void cancelTimelineQueriesForThread(queryClient, threadId);
             }
             return;
         }
@@ -35,9 +30,7 @@ export const useTimelineQueryCancellation = (threadId: string | null, active: bo
 
         return () => {
             if (threadId) {
-                void cancelTimelineQueriesForThread(queryClient, threadId).finally(() => {
-                    removeTimelineQueriesForThread(queryClient, threadId);
-                });
+                void cancelTimelineQueriesForThread(queryClient, threadId);
             }
         };
     }, [active, queryClient, threadId]);

@@ -1,7 +1,7 @@
 import { describe, expect, it, mock } from 'bun:test';
 import { QueryClient, type InfiniteData } from '@tanstack/react-query';
 
-import type { ThreadTimelinePageResponse, TimelineBlock } from '@/client';
+import type { ThreadTimelinePageResponse } from '@/client';
 
 mock.module('@/client', () => ({
     PioneerClientNativeError: class PioneerClientNativeError extends Error {
@@ -14,99 +14,59 @@ mock.module('@/client', () => ({
     },
 }));
 
-const { applySemanticTimelinePatchToCache } = await import('./semantic-cache-patch');
+const { seedEmptyThreadTimelineCache } = await import('./semantic-cache-patch');
 const { DEFAULT_THREAD_TIMELINE_PAGE_LIMIT, timelineQueryKeys } = await import('./timeline-query');
 
 type ThreadTimelineData = InfiniteData<ThreadTimelinePageResponse, unknown>;
 
-const pageInfo = {
-    beforeCursor: null,
-    afterCursor: null,
-    hasMoreBefore: false,
-    hasMoreAfter: false,
-};
+describe('mobile semantic timeline cache seed', () => {
+    it('seeds an empty default thread timeline query for newly-created threads', () => {
+        const queryClient = new QueryClient();
 
-const threadPage = (
-    threadId: string,
-    workspaceId: string,
-    blocks: TimelineBlock[] = [],
-): ThreadTimelinePageResponse => ({
-    workspaceId,
-    threadId,
-    projectionVersion: 0,
-    blocks,
-    page: pageInfo,
-});
+        seedEmptyThreadTimelineCache(queryClient, 'workspace_a', 'thread_a');
 
-const timelineBlock = (id: string, sortKey: string): TimelineBlock =>
-    ({
-        workspaceId: 'workspace_a',
-        threadId: 'thread_a',
-        blockId: id,
-        sortKey,
-        kind: { kind: 'user_message', message: { id } },
-    }) as unknown as TimelineBlock;
+        const data = queryClient.getQueryData<ThreadTimelineData>(
+            timelineQueryKeys.threadPagesForLimit('thread_a', DEFAULT_THREAD_TIMELINE_PAGE_LIMIT),
+        );
+        expect(data?.pages[0]).toMatchObject({
+            workspaceId: 'workspace_a',
+            threadId: 'thread_a',
+            blocks: [],
+        });
+    });
 
-describe('mobile semantic timeline cache patch', () => {
-    it('updates mounted thread timeline queries keyed by page limit', () => {
+    it('does not replace an existing thread timeline query', () => {
         const queryClient = new QueryClient();
         const queryKey = timelineQueryKeys.threadPagesForLimit(
             'thread_a',
             DEFAULT_THREAD_TIMELINE_PAGE_LIMIT,
         );
         queryClient.setQueryData<ThreadTimelineData>(queryKey, {
-            pages: [threadPage('thread_a', 'workspace_a', [timelineBlock('block_1', '001')])],
+            pages: [
+                {
+                    workspaceId: 'workspace_a',
+                    threadId: 'thread_a',
+                    projectionVersion: 1,
+                    blocks: [
+                        {
+                            blockId: 'block_a',
+                        },
+                    ],
+                    page: {
+                        beforeCursor: null,
+                        afterCursor: null,
+                        hasMoreBefore: false,
+                        hasMoreAfter: false,
+                    },
+                } as unknown as ThreadTimelinePageResponse,
+            ],
             pageParams: [{ kind: 'newest' }],
         });
 
-        applySemanticTimelinePatchToCache(queryClient, {
-            workspace_id: 'workspace_a',
-            thread_id: 'thread_a',
-            changed_blocks: [timelineBlock('block_2', '002')],
-        });
+        seedEmptyThreadTimelineCache(queryClient, 'workspace_a', 'thread_a');
 
         const data = queryClient.getQueryData<ThreadTimelineData>(queryKey);
-        expect(data?.pages[0]?.blocks?.map((block) => block.blockId)).toEqual([
-            'block_1',
-            'block_2',
-        ]);
-    });
-
-    it('seeds the default thread timeline query for newly-created threads', () => {
-        const queryClient = new QueryClient();
-
-        applySemanticTimelinePatchToCache(queryClient, {
-            workspace_id: 'workspace_a',
-            thread_id: 'thread_a',
-            changed_blocks: [timelineBlock('block_1', '001')],
-        });
-
-        const data = queryClient.getQueryData<ThreadTimelineData>(
-            timelineQueryKeys.threadPagesForLimit('thread_a', DEFAULT_THREAD_TIMELINE_PAGE_LIMIT),
-        );
-        expect(data?.pages[0]?.blocks?.map((block) => block.blockId)).toEqual(['block_1']);
-    });
-
-    it('keeps patched top-level blocks in protocol order regardless of patch arrival order', () => {
-        const queryClient = new QueryClient();
-
-        applySemanticTimelinePatchToCache(queryClient, {
-            workspace_id: 'workspace_a',
-            thread_id: 'thread_a',
-            changed_blocks: [
-                timelineBlock('assistant', '00000000000000000010:turn_a:200:answer'),
-                timelineBlock('work', '00000000000000000010:turn_a:100:work'),
-                timelineBlock('user', '00000000000000000010:turn_a:000:user'),
-            ],
-        });
-
-        const data = queryClient.getQueryData<ThreadTimelineData>(
-            timelineQueryKeys.threadPagesForLimit('thread_a', DEFAULT_THREAD_TIMELINE_PAGE_LIMIT),
-        );
-        expect(data?.pages[0]?.blocks?.map((block) => block.blockId)).toEqual([
-            'user',
-            'work',
-            'assistant',
-        ]);
+        expect(data?.pages[0]?.projectionVersion).toBe(1);
+        expect(data?.pages[0]?.blocks?.map((block) => block.blockId)).toEqual(['block_a']);
     });
 });

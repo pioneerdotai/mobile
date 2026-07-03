@@ -7,7 +7,6 @@ import {
     activeThreadTimelineEventThreadId,
     invalidateTimelineQueriesForActiveThreadEvent,
     isActiveThreadTimelineEvent,
-    semanticTimelinePatchHasChanges,
 } from './live-timeline-events';
 import { timelineQueryKeys } from './timeline-query';
 
@@ -79,7 +78,7 @@ describe('active thread live timeline events', () => {
         });
     });
 
-    it('keeps top-level block invalidation even when the live patch updated cache', async () => {
+    it('keeps top-level block invalidation on live notifications', async () => {
         const queryClient = new QueryClient();
         const invalidateSpy = jest
             .spyOn(queryClient, 'invalidateQueries')
@@ -90,37 +89,15 @@ describe('active thread live timeline events', () => {
             throw new Error('expected active thread timeline event');
         }
 
-        await invalidateTimelineQueriesForActiveThreadEvent(queryClient, event, null, {
-            workspace_id: 'workspace_a',
-            thread_id: 'thread_a',
-            changed_blocks: [
-                {
-                    workspaceId: 'workspace_a',
-                    threadId: 'thread_a',
-                    blockId: 'block_a',
-                    sortKey: '001',
-                    kind: {
-                        kind: 'turn_state',
-                        state: 'running',
-                    },
-                },
-            ],
-        });
+        await invalidateTimelineQueriesForActiveThreadEvent(queryClient, event, null);
 
-        expect(
-            semanticTimelinePatchHasChanges({
-                workspace_id: 'workspace_a',
-                thread_id: 'thread_a',
-                changed_blocks: [],
-            }),
-        ).toBe(false);
         expect(invalidateSpy).toHaveBeenCalledWith({
             queryKey: timelineQueryKeys.thread('thread_a'),
             refetchType: 'active',
         });
     });
 
-    it('does not invalidate work-state events when the live patch already updated the cache', async () => {
+    it('invalidates work-state events through canonical timeline queries', async () => {
         const queryClient = new QueryClient();
         const invalidateSpy = jest
             .spyOn(queryClient, 'invalidateQueries')
@@ -131,33 +108,11 @@ describe('active thread live timeline events', () => {
             throw new Error('expected active thread timeline event');
         }
 
-        await invalidateTimelineQueriesForActiveThreadEvent(queryClient, event, null, {
-            workspace_id: 'workspace_a',
-            thread_id: 'thread_a',
-            changed_blocks: [
-                {
-                    workspaceId: 'workspace_a',
-                    threadId: 'thread_a',
-                    blockId: 'block_work',
-                    turnId: 'turn_a',
-                    sortKey: '001',
-                    kind: {
-                        kind: 'turn_work',
-                        work: {
-                            turnId: 'turn_a',
-                            presentation: 'expanded_live',
-                            state: 'running',
-                            workCount: 1,
-                            visibleWorkCount: 1,
-                            hiddenWorkCount: 0,
-                            hasMoreBefore: false,
-                            hasMoreAfter: false,
-                        },
-                    },
-                },
-            ],
-        });
+        await invalidateTimelineQueriesForActiveThreadEvent(queryClient, event, null);
 
-        expect(invalidateSpy).not.toHaveBeenCalled();
+        expect(invalidateSpy).toHaveBeenCalledWith({
+            queryKey: timelineQueryKeys.thread('thread_a'),
+            refetchType: 'active',
+        });
     });
 });
