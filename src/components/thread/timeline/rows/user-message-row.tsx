@@ -151,7 +151,8 @@ const styles = StyleSheet.create((theme) => ({
         borderRadius: theme.radius['2xl'],
         backgroundColor: theme.colors.foreground,
         paddingHorizontal: theme.space(3.5),
-        paddingVertical: theme.space(2.75),
+        paddingTop: theme.space(2),
+        paddingBottom: theme.space(3),
     },
     actionRow: {
         minHeight: theme.space(7.5),
