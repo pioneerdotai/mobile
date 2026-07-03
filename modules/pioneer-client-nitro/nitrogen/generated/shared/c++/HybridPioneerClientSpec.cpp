@@ -40,6 +40,11 @@ namespace margelo::nitro::pioneer::client {
       prototype.registerHybridMethod("cliRuntimeReviewStartJson", &HybridPioneerClientSpec::cliRuntimeReviewStartJson);
       prototype.registerHybridMethod("cliRuntimeRequestRespondJson", &HybridPioneerClientSpec::cliRuntimeRequestRespondJson);
       prototype.registerHybridMethod("turnPermissionRequestRespondJson", &HybridPioneerClientSpec::turnPermissionRequestRespondJson);
+      prototype.registerHybridMethod("voiceStatusJson", &HybridPioneerClientSpec::voiceStatusJson);
+      prototype.registerHybridMethod("voiceSessionStartJson", &HybridPioneerClientSpec::voiceSessionStartJson);
+      prototype.registerHybridMethod("voiceAudioChunkJson", &HybridPioneerClientSpec::voiceAudioChunkJson);
+      prototype.registerHybridMethod("voiceSessionFinalizeJson", &HybridPioneerClientSpec::voiceSessionFinalizeJson);
+      prototype.registerHybridMethod("voiceSessionCancelJson", &HybridPioneerClientSpec::voiceSessionCancelJson);
       prototype.registerHybridMethod("pendingRequestResponsePlanJson", &HybridPioneerClientSpec::pendingRequestResponsePlanJson);
       prototype.registerHybridMethod("pendingRequestPresentationJson", &HybridPioneerClientSpec::pendingRequestPresentationJson);
       prototype.registerHybridMethod("providerListModelsJson", &HybridPioneerClientSpec::providerListModelsJson);
@@ -71,6 +76,7 @@ namespace margelo::nitro::pioneer::client {
       prototype.registerHybridMethod("activeThreadSnapshotJson", &HybridPioneerClientSpec::activeThreadSnapshotJson);
       prototype.registerHybridMethod("activeThreadApplyEventJson", &HybridPioneerClientSpec::activeThreadApplyEventJson);
       prototype.registerHybridMethod("activeThreadSendTextJson", &HybridPioneerClientSpec::activeThreadSendTextJson);
+      prototype.registerHybridMethod("prepareVoiceComposerSnapshotJson", &HybridPioneerClientSpec::prepareVoiceComposerSnapshotJson);
       prototype.registerHybridMethod("activeThreadCancelTurnJson", &HybridPioneerClientSpec::activeThreadCancelTurnJson);
       prototype.registerHybridMethod("activeThreadUnsubscribeOrCloseJson", &HybridPioneerClientSpec::activeThreadUnsubscribeOrCloseJson);
       prototype.registerHybridMethod("activeThreadClearJson", &HybridPioneerClientSpec::activeThreadClearJson);

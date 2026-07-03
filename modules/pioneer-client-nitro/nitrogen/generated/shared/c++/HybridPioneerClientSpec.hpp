@@ -17,6 +17,7 @@
 
 #include <string>
 #include <NitroModules/Promise.hpp>
+#include <NitroModules/ArrayBuffer.hpp>
 
 namespace margelo::nitro::pioneer::client {
 
@@ -75,6 +76,11 @@ namespace margelo::nitro::pioneer::client {
       virtual std::shared_ptr<Promise<std::string>> cliRuntimeReviewStartJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> cliRuntimeRequestRespondJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> turnPermissionRequestRespondJson(const std::string& inputJson) = 0;
+      virtual std::shared_ptr<Promise<std::string>> voiceStatusJson(const std::string& inputJson) = 0;
+      virtual std::shared_ptr<Promise<std::string>> voiceSessionStartJson(const std::string& inputJson) = 0;
+      virtual std::string voiceAudioChunkJson(const std::string& inputJson, const std::shared_ptr<ArrayBuffer>& pcmChunk) = 0;
+      virtual std::shared_ptr<Promise<std::string>> voiceSessionFinalizeJson(const std::string& inputJson) = 0;
+      virtual std::shared_ptr<Promise<std::string>> voiceSessionCancelJson(const std::string& inputJson) = 0;
       virtual std::string pendingRequestResponsePlanJson(const std::string& inputJson) = 0;
       virtual std::string pendingRequestPresentationJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> providerListModelsJson(const std::string& inputJson) = 0;
@@ -106,6 +112,7 @@ namespace margelo::nitro::pioneer::client {
       virtual std::string activeThreadSnapshotJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> activeThreadApplyEventJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> activeThreadSendTextJson(const std::string& inputJson) = 0;
+      virtual std::shared_ptr<Promise<std::string>> prepareVoiceComposerSnapshotJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> activeThreadCancelTurnJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> activeThreadUnsubscribeOrCloseJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> activeThreadClearJson() = 0;

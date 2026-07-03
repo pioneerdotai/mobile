@@ -1,5 +1,6 @@
-import { useCallback, useMemo } from 'react';
-import { Platform, type LayoutChangeEvent } from 'react-native';
+import { useCallback, useMemo, useRef, useState } from 'react';
+import * as Haptics from 'expo-haptics';
+import { Platform, type GestureResponderEvent, type LayoutChangeEvent } from 'react-native';
 import { KeyboardController } from 'react-native-keyboard-controller';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import {
@@ -10,7 +11,9 @@ import {
     FileAudio,
     FileVideo,
     Image,
+    Keyboard as KeyboardIcon,
     Loader,
+    Mic,
     ShieldAlert,
     ShieldCheck,
     ShieldX,
@@ -75,11 +78,28 @@ type ThreadComposerProps = {
     onRemoveAttachment: (index: number) => void;
     onRemoveCapability: (index: number) => void;
     onHeightChange?: (height: number) => void;
+    voiceEnabled: boolean;
+    voiceBusy: boolean;
+    voiceProcessing: boolean;
+    voiceLevel: number;
+    voiceMicrophoneLabel: string;
+    voiceKeyboardLabel: string;
+    voiceHoldLabel: string;
+    voiceReleaseToSendLabel: string;
+    voiceReleaseToCancelLabel: string;
+    onVoiceStart: () => void;
+    onVoiceCommit: () => void;
+    onVoiceCancel: () => void;
 };
 
 export const THREAD_COMPOSER_MIN_INPUT_HEIGHT = 44;
 
 const MAX_INPUT_HEIGHT = 136;
+const VOICE_CANCEL_SWIPE_DISTANCE = 44;
+const VOICE_ACTIVE_COLOR = '#1071FF';
+const VOICE_CANCEL_COLOR = '#DC2626';
+
+type VoiceGestureState = 'idle' | 'recording' | 'cancel';
 
 export const ThreadComposer = ({
     value,
@@ -118,20 +138,65 @@ export const ThreadComposer = ({
     onRemoveAttachment,
     onRemoveCapability,
     onHeightChange,
+    voiceEnabled,
+    voiceBusy,
+    voiceProcessing,
+    voiceLevel,
+    voiceMicrophoneLabel,
+    voiceKeyboardLabel,
+    voiceHoldLabel,
+    voiceReleaseToSendLabel,
+    voiceReleaseToCancelLabel,
+    onVoiceStart,
+    onVoiceCommit,
+    onVoiceCancel,
 }: ThreadComposerProps) => {
     const { theme, rt } = useUnistyles();
+    const [voiceMode, setVoiceMode] = useState(false);
+    const [voiceGesture, setVoiceGesture] = useState<VoiceGestureState>('idle');
+    const voiceGestureRef = useRef<VoiceGestureState>('idle');
+    const voiceStartPageYRef = useRef<number | null>(null);
 
     const hasComposerPayload =
         value.trim().length > 0 || attachments.length > 0 || capabilities.length > 0;
     const canSubmit = hasComposerPayload && canSend && !disabled && !sending;
     const actionIsStop = hasInFlightTurn;
-    const actionDisabled = actionIsStop ? !canStopTurn : !canSubmit;
-    const actionLoading = actionIsStop ? turnCancelling : sending;
-    const actionLabel = actionIsStop ? stopLabel : sendLabel;
+    const draftTextEmpty = value.trim().length === 0;
+    const activeVoiceMode =
+        voiceMode && draftTextEmpty && !disabled && !sending && !hasInFlightTurn && voiceEnabled;
+    const actionIsVoice = !activeVoiceMode && !actionIsStop && draftTextEmpty && voiceEnabled;
+    const voiceModeDisabled = disabled || sending || hasInFlightTurn || voiceBusy || !voiceEnabled;
+    const actionDisabled = voiceProcessing
+        ? true
+        : actionIsStop
+          ? !canStopTurn
+          : activeVoiceMode
+            ? false
+            : actionIsVoice
+              ? voiceModeDisabled
+              : !canSubmit;
+    const actionLoading = voiceProcessing || (actionIsStop ? turnCancelling : sending);
+    const actionDimmed = actionDisabled && !voiceProcessing;
+    const actionLabel = actionIsStop ? stopLabel : actionIsVoice ? voiceMicrophoneLabel : sendLabel;
     const actionColor = rt.themeName === 'dark' ? theme.colors.neutral[950] : theme.colors.white;
     const hasChips = attachmentsEnabled && (attachments.length > 0 || capabilities.length > 0);
     const steerDisabled = !canSteerTurn || disabled || steering;
     const permissionSelectionDisabled = disabled || sending || hasInFlightTurn;
+    const voiceActive = voiceGesture !== 'idle';
+    const voiceHoldDisabled = !activeVoiceMode || (!voiceActive && voiceModeDisabled);
+    const voiceCancelling = voiceGesture === 'cancel';
+    const voiceSurfaceLabel = voiceCancelling
+        ? voiceReleaseToCancelLabel
+        : voiceActive
+          ? voiceReleaseToSendLabel
+          : voiceHoldLabel;
+    const voiceSurfaceColor = voiceCancelling
+        ? VOICE_CANCEL_COLOR
+        : voiceActive
+          ? VOICE_ACTIVE_COLOR
+          : theme.colors.surfaceMuted;
+    const voiceSurfaceTextColor = voiceActive ? theme.colors.white : theme.colors.typography;
+
     const selectedPermissionOption = useMemo(
         () =>
             permissionModeOptions.find((option) => option.mode === selectedPermissionMode) ??
@@ -168,6 +233,103 @@ export const ThreadComposer = ({
         onOpenPermissionModeSelector();
     }, [onOpenPermissionModeSelector, permissionSelectionDisabled]);
 
+    const updateVoiceGesture = useCallback((nextGesture: VoiceGestureState) => {
+        if (voiceGestureRef.current === nextGesture) {
+            return;
+        }
+
+        voiceGestureRef.current = nextGesture;
+        setVoiceGesture(nextGesture);
+    }, []);
+
+    const triggerVoiceHoldHaptic = useCallback(() => {
+        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => null);
+    }, []);
+
+    const openVoiceMode = useCallback(() => {
+        if (voiceModeDisabled) {
+            return;
+        }
+        if (KeyboardController.isVisible()) {
+            void KeyboardController.dismiss();
+        }
+        setVoiceMode(true);
+        updateVoiceGesture('idle');
+    }, [updateVoiceGesture, voiceModeDisabled]);
+
+    const closeVoiceMode = useCallback(() => {
+        if (voiceStartPageYRef.current !== null) {
+            onVoiceCancel();
+        }
+
+        voiceStartPageYRef.current = null;
+        updateVoiceGesture('idle');
+        setVoiceMode(false);
+    }, [onVoiceCancel, updateVoiceGesture]);
+
+    const voiceGestureShouldCancel = useCallback((event: GestureResponderEvent) => {
+        const startPageY = voiceStartPageYRef.current;
+        return (
+            startPageY !== null &&
+            event.nativeEvent.pageY - startPageY <= -VOICE_CANCEL_SWIPE_DISTANCE
+        );
+    }, []);
+
+    const handleVoiceResponderGrant = useCallback(
+        (event: GestureResponderEvent) => {
+            if (voiceHoldDisabled) {
+                return;
+            }
+
+            voiceStartPageYRef.current = event.nativeEvent.pageY;
+            updateVoiceGesture('recording');
+            triggerVoiceHoldHaptic();
+            onVoiceStart();
+        },
+        [onVoiceStart, triggerVoiceHoldHaptic, updateVoiceGesture, voiceHoldDisabled],
+    );
+
+    const handleVoiceResponderMove = useCallback(
+        (event: GestureResponderEvent) => {
+            if (voiceStartPageYRef.current === null) {
+                return;
+            }
+
+            const nextGesture = voiceGestureShouldCancel(event) ? 'cancel' : 'recording';
+            updateVoiceGesture(nextGesture);
+        },
+        [updateVoiceGesture, voiceGestureShouldCancel],
+    );
+
+    const handleVoiceResponderRelease = useCallback(
+        (event: GestureResponderEvent) => {
+            if (voiceStartPageYRef.current === null) {
+                return;
+            }
+
+            const shouldCancel = voiceGestureShouldCancel(event);
+            voiceStartPageYRef.current = null;
+            updateVoiceGesture('idle');
+            if (shouldCancel) {
+                onVoiceCancel();
+            } else {
+                setVoiceMode(false);
+                onVoiceCommit();
+            }
+        },
+        [onVoiceCancel, onVoiceCommit, updateVoiceGesture, voiceGestureShouldCancel],
+    );
+
+    const handleVoiceResponderTerminate = useCallback(() => {
+        if (voiceStartPageYRef.current === null) {
+            return;
+        }
+
+        voiceStartPageYRef.current = null;
+        updateVoiceGesture('idle');
+        onVoiceCancel();
+    }, [onVoiceCancel, updateVoiceGesture]);
+
     return (
         <Box onLayout={handleLayout} style={styles.container}>
             <Box style={styles.composerContainer}>
@@ -187,17 +349,50 @@ export const ThreadComposer = ({
                         />
                     ) : null}
                     <VStack style={styles.inputRow}>
-                        <Input
-                            nativeID={inputNativeID}
-                            value={value}
-                            placeholder={placeholder}
-                            placeholderTextColor={theme.colors.textMuted}
-                            editable={!disabled && !sending}
-                            multiline
-                            textAlignVertical="top"
-                            onChangeText={onChangeText}
-                            style={styles.input}
-                        />
+                        {activeVoiceMode ? (
+                            <Box
+                                accessible
+                                accessibilityRole="button"
+                                accessibilityLabel={voiceSurfaceLabel}
+                                onStartShouldSetResponder={() => !voiceHoldDisabled}
+                                onMoveShouldSetResponder={() => voiceStartPageYRef.current !== null}
+                                onResponderGrant={handleVoiceResponderGrant}
+                                onResponderMove={handleVoiceResponderMove}
+                                onResponderRelease={handleVoiceResponderRelease}
+                                onResponderTerminate={handleVoiceResponderTerminate}
+                                style={[
+                                    styles.voiceSurface,
+                                    { backgroundColor: voiceSurfaceColor },
+                                    voiceHoldDisabled ? styles.voiceSurfaceDisabled : null,
+                                ]}
+                            >
+                                <HStack style={styles.voiceSurfaceContent}>
+                                    <Text
+                                        numberOfLines={1}
+                                        adjustsFontSizeToFit
+                                        minimumFontScale={0.68}
+                                        style={[
+                                            styles.voiceSurfaceText,
+                                            { color: voiceSurfaceTextColor },
+                                        ]}
+                                    >
+                                        {voiceSurfaceLabel}
+                                    </Text>
+                                </HStack>
+                            </Box>
+                        ) : (
+                            <Input
+                                nativeID={inputNativeID}
+                                value={value}
+                                placeholder={placeholder}
+                                placeholderTextColor={theme.colors.textMuted}
+                                editable={!disabled && !sending}
+                                multiline
+                                textAlignVertical="top"
+                                onChangeText={onChangeText}
+                                style={styles.input}
+                            />
+                        )}
                         <HStack style={styles.bottomContainer}>
                             <HStack style={styles.leftActions}>
                                 {attachmentsEnabled ? (
@@ -318,12 +513,22 @@ export const ThreadComposer = ({
                                 ) : null}
                                 <Pressable
                                     accessibilityRole="button"
-                                    accessibilityLabel={actionLabel}
+                                    accessibilityLabel={
+                                        activeVoiceMode ? voiceKeyboardLabel : actionLabel
+                                    }
                                     disabled={actionDisabled}
-                                    onPress={actionIsStop ? onStopTurn : onSend}
+                                    onPress={
+                                        activeVoiceMode
+                                            ? closeVoiceMode
+                                            : actionIsStop
+                                              ? onStopTurn
+                                              : actionIsVoice
+                                                ? openVoiceMode
+                                                : onSend
+                                    }
                                     style={({ pressed }) => [
-                                        styles.sendButton,
-                                        actionDisabled && styles.sendButtonDisabled,
+                                        activeVoiceMode ? styles.keyboardButton : styles.sendButton,
+                                        actionDimmed && styles.sendButtonDisabled,
                                         pressed && !actionDisabled && styles.sendButtonPressed,
                                     ]}
                                 >
@@ -331,6 +536,13 @@ export const ThreadComposer = ({
                                         <Spinner size={theme.space(4)} color={actionColor} />
                                     ) : actionIsStop ? (
                                         <Square size={theme.space(4)} color={actionColor} />
+                                    ) : activeVoiceMode ? (
+                                        <KeyboardIcon
+                                            size={theme.space(4.5)}
+                                            color={theme.colors.typography}
+                                        />
+                                    ) : actionIsVoice ? (
+                                        <Mic size={theme.space(4.5)} color={actionColor} />
                                     ) : (
                                         <ArrowUp size={theme.space(5)} color={actionColor} />
                                     )}
@@ -542,6 +754,32 @@ const styles = StyleSheet.create((theme, rt) => ({
         paddingTop: 11,
         paddingBottom: 10,
     },
+    voiceSurface: {
+        minHeight: THREAD_COMPOSER_MIN_INPUT_HEIGHT,
+        maxHeight: THREAD_COMPOSER_MIN_INPUT_HEIGHT,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: theme.radius['2xl'],
+        paddingHorizontal: theme.space(2.5),
+        overflow: 'hidden',
+    },
+    voiceSurfaceDisabled: {
+        opacity: 0.6,
+    },
+    voiceSurfaceContent: {
+        minWidth: 0,
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: theme.space(2),
+    },
+    voiceSurfaceText: {
+        minWidth: 0,
+        flexShrink: 1,
+        fontSize: theme.fontSize.sm.fontSize,
+        lineHeight: theme.fontSize.sm.lineHeight,
+        fontWeight: theme.fontWeight.medium.fontWeight,
+        textAlign: 'center',
+    },
     bottomContainer: {
         justifyContent: 'space-between',
         alignItems: 'center',
@@ -640,6 +878,15 @@ const styles = StyleSheet.create((theme, rt) => ({
         flexShrink: 0,
     },
     steerButton: {
+        width: theme.space(8),
+        height: theme.space(8),
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: theme.radius.full,
+        backgroundColor: theme.colors.surfaceMuted,
+        flexShrink: 0,
+    },
+    keyboardButton: {
         width: theme.space(8),
         height: theme.space(8),
         alignItems: 'center',

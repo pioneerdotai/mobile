@@ -33,6 +33,7 @@ import type { ClientPendingRequestResponsePlanRequest } from './generated/client
 import type { ClientPendingRequestResponsePlanResult } from './generated/client_pending_request_response_plan_result';
 import type { ClientPendingRequestPresentationRequest } from './generated/client_pending_request_presentation_request';
 import type { ClientPendingRequestPresentationResult } from './generated/client_pending_request_presentation_result';
+import type { ClientPrepareVoiceComposerSnapshotRequest } from './generated/client_prepare_voice_composer_snapshot_request';
 import type { ClientComposerSkillCapabilityFromRowRequest } from './generated/client_composer_skill_capability_from_row_request';
 import type { ClientComposerSkillPickerRowsRequest } from './generated/client_composer_skill_picker_rows_request';
 import type { ClientComposerSkillToggleRequest } from './generated/client_composer_skill_toggle_request';
@@ -71,6 +72,7 @@ import type { ProviderListParams } from './generated/provider_list_params';
 import type { ProviderListResponse } from './generated/provider_list_response';
 import type { ProviderModelDisplayKey } from './generated/provider_model_display_key';
 import type { ProviderModelDisplayResolution } from './generated/provider_model_display_resolution';
+import type { PreparedVoiceComposerSnapshot } from './generated/prepared_voice_composer_snapshot';
 import type { ReasoningEffortRowsRequest } from './generated/reasoning_effort_rows_request';
 import type { ReasoningEffortRowsResponse } from './generated/reasoning_effort_rows_response';
 import type { RemoteGatewayValidation } from './generated/remote_gateway_validation';
@@ -94,6 +96,15 @@ import type { TurnWorkPageResponse } from './generated/turn_work_page_response';
 import type { TurnPermissionRequestRespondParams } from './generated/turn_permission_request_respond_params';
 import type { TurnPermissionRequestRespondResponse } from './generated/turn_permission_request_respond_response';
 import type { UpdateRemoteGatewayRegistryPlan } from './generated/update_remote_gateway_registry_plan';
+import type { VoiceAudioFormat } from './generated/voice_audio_format';
+import type { VoiceSessionCancelParams } from './generated/voice_session_cancel_params';
+import type { VoiceSessionCancelResponse } from './generated/voice_session_cancel_response';
+import type { VoiceSessionFinalizeParams } from './generated/voice_session_finalize_params';
+import type { VoiceSessionFinalizeResponse } from './generated/voice_session_finalize_response';
+import type { VoiceSessionStartParams } from './generated/voice_session_start_params';
+import type { VoiceSessionStartResponse } from './generated/voice_session_start_response';
+import type { VoiceStatusParams } from './generated/voice_status_params';
+import type { VoiceStatusResponse } from './generated/voice_status_response';
 import type { WorkspaceBootstrapRequest } from './generated/workspace_bootstrap_request';
 import type { WorkspaceBootstrapSuccessReduction } from './generated/workspace_bootstrap_success_reduction';
 import type { WorkspaceCreateRequest } from './generated/workspace_create_request';
@@ -137,6 +148,7 @@ export type { ClientPendingRequestResponsePlanRequest } from './generated/client
 export type { ClientPendingRequestResponsePlanResult } from './generated/client_pending_request_response_plan_result';
 export type { ClientPendingRequestPresentationRequest } from './generated/client_pending_request_presentation_request';
 export type { ClientPendingRequestPresentationResult } from './generated/client_pending_request_presentation_result';
+export type { ClientPrepareVoiceComposerSnapshotRequest } from './generated/client_prepare_voice_composer_snapshot_request';
 export type { ClientComposerSkillCapabilityFromRowRequest } from './generated/client_composer_skill_capability_from_row_request';
 export type { ClientComposerSkillPickerRowsRequest } from './generated/client_composer_skill_picker_rows_request';
 export type { ClientComposerSkillToggleRequest } from './generated/client_composer_skill_toggle_request';
@@ -211,6 +223,7 @@ export type { PendingRequestPresentation } from './generated/pending_request_pre
 export type { PendingRequestResolution } from './generated/pending_request_resolution';
 export type { PendingRequestUserInputOption } from './generated/pending_request_user_input_option';
 export type { PendingRequestUserInputQuestion } from './generated/pending_request_user_input_question';
+export type { PreparedVoiceComposerSnapshot } from './generated/prepared_voice_composer_snapshot';
 export type { ProviderModelDisplayKey } from './generated/provider_model_display_key';
 export type { ProviderModelDisplayResolution } from './generated/provider_model_display_resolution';
 export type { ReasoningEffortRow } from './generated/reasoning_effort_row';
@@ -265,6 +278,21 @@ export type { TurnPermissionRequestRespondResponse } from './generated/turn_perm
 export type { TurnWorkPresentation } from './generated/turn_work_presentation';
 export type { TurnWorkState } from './generated/turn_work_state';
 export type { UpdateRemoteGatewayRegistryPlan } from './generated/update_remote_gateway_registry_plan';
+export type { VoiceAudioFormat } from './generated/voice_audio_format';
+export type { VoiceError } from './generated/voice_error';
+export type { VoiceErrorKind } from './generated/voice_error_kind';
+export type { VoiceSessionCancelParams } from './generated/voice_session_cancel_params';
+export type { VoiceSessionCancelResponse } from './generated/voice_session_cancel_response';
+export type { VoiceSessionFinalizeParams } from './generated/voice_session_finalize_params';
+export type { VoiceSessionFinalizeResponse } from './generated/voice_session_finalize_response';
+export type { VoiceSessionOutcome } from './generated/voice_session_outcome';
+export type { VoiceSessionResultNotification } from './generated/voice_session_result_notification';
+export type { VoiceSessionStartParams } from './generated/voice_session_start_params';
+export type { VoiceSessionStartResponse } from './generated/voice_session_start_response';
+export type { VoiceStatus } from './generated/voice_status';
+export type { VoiceStatusParams } from './generated/voice_status_params';
+export type { VoiceStatusResponse } from './generated/voice_status_response';
+export type { VoiceTurnContext } from './generated/voice_turn_context';
 export type { WorkspaceBootstrapRequest } from './generated/workspace_bootstrap_request';
 export type { WorkspaceCreateRequest } from './generated/workspace_create_request';
 export type { WorkspaceCreateResult } from './generated/workspace_create_result';
@@ -286,6 +314,18 @@ export type PioneerClientConfig = {
 
 export type PioneerClientInitializeResult = {
     initialized: boolean;
+};
+
+export type VoiceAudioChunkParams = {
+    session_id: string;
+    sequence: number;
+    audio_format: VoiceAudioFormat;
+    captured_at_unix_ms?: number | null;
+    duration_ms?: number | null;
+};
+
+export type VoiceAudioChunkResult = {
+    sent: boolean;
 };
 
 export const pioneerClient = {
@@ -484,6 +524,38 @@ export const pioneerClient = {
     ): Promise<TurnPermissionRequestRespondResponse> {
         return parsePioneerClientResponse<TurnPermissionRequestRespondResponse>(
             await getPioneerClientNitro().turnPermissionRequestRespondJson(JSON.stringify(input)),
+        );
+    },
+
+    async voiceStatus(input: VoiceStatusParams): Promise<VoiceStatusResponse> {
+        return parsePioneerClientResponse<VoiceStatusResponse>(
+            await getPioneerClientNitro().voiceStatusJson(JSON.stringify(input)),
+        );
+    },
+
+    async voiceSessionStart(input: VoiceSessionStartParams): Promise<VoiceSessionStartResponse> {
+        return parsePioneerClientResponse<VoiceSessionStartResponse>(
+            await getPioneerClientNitro().voiceSessionStartJson(JSON.stringify(input)),
+        );
+    },
+
+    voiceAudioChunk(input: VoiceAudioChunkParams, pcmChunk: ArrayBuffer): VoiceAudioChunkResult {
+        return parsePioneerClientResponse<VoiceAudioChunkResult>(
+            getPioneerClientNitro().voiceAudioChunkJson(JSON.stringify(input), pcmChunk),
+        );
+    },
+
+    async voiceSessionFinalize(
+        input: VoiceSessionFinalizeParams,
+    ): Promise<VoiceSessionFinalizeResponse> {
+        return parsePioneerClientResponse<VoiceSessionFinalizeResponse>(
+            await getPioneerClientNitro().voiceSessionFinalizeJson(JSON.stringify(input)),
+        );
+    },
+
+    async voiceSessionCancel(input: VoiceSessionCancelParams): Promise<VoiceSessionCancelResponse> {
+        return parsePioneerClientResponse<VoiceSessionCancelResponse>(
+            await getPioneerClientNitro().voiceSessionCancelJson(JSON.stringify(input)),
         );
     },
 
@@ -706,6 +778,14 @@ export const pioneerClient = {
     ): Promise<ClientActiveThreadSendTextResult> {
         return parsePioneerClientResponse<ClientActiveThreadSendTextResult>(
             await getPioneerClientNitro().activeThreadSendTextJson(JSON.stringify(input)),
+        );
+    },
+
+    async prepareVoiceComposerSnapshot(
+        input: ClientPrepareVoiceComposerSnapshotRequest,
+    ): Promise<PreparedVoiceComposerSnapshot> {
+        return parsePioneerClientResponse<PreparedVoiceComposerSnapshot>(
+            await getPioneerClientNitro().prepareVoiceComposerSnapshotJson(JSON.stringify(input)),
         );
     },
 

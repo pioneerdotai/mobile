@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
 import { EnrichedMarkdownText, type MarkdownStyle } from 'react-native-enriched-markdown';
-import { StreamdownText } from 'react-native-streamdown';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
+import remend from 'remend';
+import type { RemendOptions } from 'remend';
 
 import type {
     MarkdownBlock,
@@ -41,8 +42,17 @@ const EMPTY_MARKDOWN_BLOCKS: MarkdownBlock[] = [];
 const MARKDOWN_FLAGS = {
     latexMath: false,
 };
-const STREAMDOWN_REMEND_CONFIG = {
+const STREAMING_REMEND_CONFIG: RemendOptions = {
+    bold: true,
+    italic: true,
+    boldItalic: true,
+    strikethrough: true,
+    links: true,
+    linkMode: 'text-only',
+    images: true,
+    inlineCode: true,
     katex: false,
+    setextHeadings: true,
 };
 
 export const MarkdownContent = ({
@@ -56,6 +66,10 @@ export const MarkdownContent = ({
     const markdown = useMemo(
         () => markdownSource(text, document, streaming),
         [document, streaming, text],
+    );
+    const renderedMarkdown = useMemo(
+        () => (streaming ? remend(markdown, STREAMING_REMEND_CONFIG) : markdown),
+        [markdown, streaming],
     );
     const markdownStyle = useMemo(
         () =>
@@ -75,36 +89,19 @@ export const MarkdownContent = ({
         [theme, tone],
     );
 
-    if (streaming) {
-        return (
-            <StreamdownText
-                allowTrailingMargin={false}
-                containerStyle={styles.document}
-                flavor="github"
-                markdown={markdown}
-                markdownStyle={markdownStyle}
-                md4cFlags={MARKDOWN_FLAGS}
-                remendConfig={STREAMDOWN_REMEND_CONFIG}
-                selectable={selectable}
-                selectionColor={theme.colors.infoText}
-                selectionHandleColor={theme.colors.infoText}
-                selectionMenuConfig={selectionMenuConfig}
-            />
-        );
-    }
-
     return (
         <EnrichedMarkdownText
             allowTrailingMargin={false}
             containerStyle={styles.document}
             flavor="github"
-            markdown={markdown}
+            markdown={renderedMarkdown}
             markdownStyle={markdownStyle}
             md4cFlags={MARKDOWN_FLAGS}
             selectable={selectable}
             selectionColor={theme.colors.infoText}
             selectionHandleColor={theme.colors.infoText}
             selectionMenuConfig={selectionMenuConfig}
+            streamingAnimation={streaming}
         />
     );
 };

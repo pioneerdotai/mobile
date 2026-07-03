@@ -1,5 +1,8 @@
 #pragma once
 
+#include <stddef.h>
+#include <stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -34,6 +37,11 @@ char* pioneer_client_ffi_cli_runtime_turn_steer(PioneerClientFfi* client, const 
 char* pioneer_client_ffi_cli_runtime_review_start(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_cli_runtime_request_respond(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_turn_permission_request_respond(PioneerClientFfi* client, const char* input_json);
+char* pioneer_client_ffi_voice_status(PioneerClientFfi* client, const char* input_json);
+char* pioneer_client_ffi_voice_session_start(PioneerClientFfi* client, const char* input_json);
+char* pioneer_client_ffi_voice_audio_chunk(PioneerClientFfi* client, const char* input_json, const uint8_t* pcm_ptr, size_t pcm_len);
+char* pioneer_client_ffi_voice_session_finalize(PioneerClientFfi* client, const char* input_json);
+char* pioneer_client_ffi_voice_session_cancel(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_pending_request_response_plan(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_pending_request_presentation(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_provider_list_models(PioneerClientFfi* client, const char* input_json);
@@ -65,6 +73,7 @@ char* pioneer_client_ffi_active_thread_open_or_create_new(PioneerClientFfi* clie
 char* pioneer_client_ffi_active_thread_snapshot(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_active_thread_apply_event(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_active_thread_send_text(PioneerClientFfi* client, const char* input_json);
+char* pioneer_client_ffi_prepare_voice_composer_snapshot(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_active_thread_cancel_turn(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_active_thread_unsubscribe_or_close(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_active_thread_clear(PioneerClientFfi* client);

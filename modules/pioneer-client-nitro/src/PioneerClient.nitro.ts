@@ -27,6 +27,11 @@ export interface PioneerClient extends HybridObject<{ ios: 'c++'; android: 'c++'
     cliRuntimeReviewStartJson(inputJson: string): Promise<string>;
     cliRuntimeRequestRespondJson(inputJson: string): Promise<string>;
     turnPermissionRequestRespondJson(inputJson: string): Promise<string>;
+    voiceStatusJson(inputJson: string): Promise<string>;
+    voiceSessionStartJson(inputJson: string): Promise<string>;
+    voiceAudioChunkJson(inputJson: string, pcmChunk: ArrayBuffer): string;
+    voiceSessionFinalizeJson(inputJson: string): Promise<string>;
+    voiceSessionCancelJson(inputJson: string): Promise<string>;
     pendingRequestResponsePlanJson(inputJson: string): string;
     pendingRequestPresentationJson(inputJson: string): string;
     providerListModelsJson(inputJson: string): Promise<string>;
@@ -58,6 +63,7 @@ export interface PioneerClient extends HybridObject<{ ios: 'c++'; android: 'c++'
     activeThreadSnapshotJson(inputJson: string): string;
     activeThreadApplyEventJson(inputJson: string): Promise<string>;
     activeThreadSendTextJson(inputJson: string): Promise<string>;
+    prepareVoiceComposerSnapshotJson(inputJson: string): Promise<string>;
     activeThreadCancelTurnJson(inputJson: string): Promise<string>;
     activeThreadUnsubscribeOrCloseJson(inputJson: string): Promise<string>;
     activeThreadClearJson(): Promise<string>;

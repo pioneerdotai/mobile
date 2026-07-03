@@ -107,6 +107,7 @@
         "react-hook-form": "^7.80.0",
         "react-i18next": "^17.0.8",
         "react-native": "0.85.3",
+        "react-native-audio-api": "^0.13.1",
         "react-native-drax": "^1.1.0",
         "react-native-edge-to-edge": "^1.8.1",
         "react-native-enriched-markdown": "0.6.0",

@@ -1,5 +1,6 @@
 #include "HybridPioneerClient.hpp"
 
+#include <algorithm>
 #include <stdexcept>
 
 namespace margelo::nitro::pioneer::client {
@@ -31,6 +32,19 @@ std::string PioneerClientHolder::call(
     throw std::runtime_error("pioneer client runtime has been disposed");
   }
   return HybridPioneerClient::takeOwnedCString(operation(client_, payload.c_str()));
+}
+
+std::string PioneerClientHolder::call(
+    char* (*operation)(PioneerClientFfi*, const char*, const uint8_t*, size_t),
+    const std::string& payload,
+    const std::vector<uint8_t>& bytes) {
+  std::shared_lock<std::shared_mutex> lock(mutex_);
+  if (client_ == nullptr) {
+    throw std::runtime_error("pioneer client runtime has been disposed");
+  }
+  const uint8_t* data = bytes.empty() ? nullptr : bytes.data();
+  return HybridPioneerClient::takeOwnedCString(
+      operation(client_, payload.c_str(), data, bytes.size()));
 }
 
 void PioneerClientHolder::destroy() {
@@ -175,6 +189,46 @@ HybridPioneerClient::turnPermissionRequestRespondJson(const std::string& inputJs
   return callWithClientAsync(pioneer_client_ffi_turn_permission_request_respond, inputJson);
 }
 
+std::shared_ptr<margelo::nitro::Promise<std::string>>
+HybridPioneerClient::voiceStatusJson(const std::string& inputJson) {
+  return callWithClientAsync(pioneer_client_ffi_voice_status, inputJson);
+}
+
+std::shared_ptr<margelo::nitro::Promise<std::string>>
+HybridPioneerClient::voiceSessionStartJson(const std::string& inputJson) {
+  return callWithClientAsync(pioneer_client_ffi_voice_session_start, inputJson);
+}
+
+std::string HybridPioneerClient::voiceAudioChunkJson(
+    const std::string& inputJson,
+    const std::shared_ptr<margelo::nitro::ArrayBuffer>& pcmChunk) {
+  if (!pcmChunk) {
+    throw std::runtime_error("voice audio chunk buffer is required");
+  }
+
+  const auto size = pcmChunk->size();
+  std::vector<uint8_t> bytes(size);
+  if (size > 0) {
+    const auto* data = pcmChunk->data();
+    if (data == nullptr) {
+      throw std::runtime_error("voice audio chunk buffer has null data");
+    }
+    std::copy(data, data + size, bytes.begin());
+  }
+
+  return callWithClient(pioneer_client_ffi_voice_audio_chunk, inputJson, bytes);
+}
+
+std::shared_ptr<margelo::nitro::Promise<std::string>>
+HybridPioneerClient::voiceSessionFinalizeJson(const std::string& inputJson) {
+  return callWithClientAsync(pioneer_client_ffi_voice_session_finalize, inputJson);
+}
+
+std::shared_ptr<margelo::nitro::Promise<std::string>>
+HybridPioneerClient::voiceSessionCancelJson(const std::string& inputJson) {
+  return callWithClientAsync(pioneer_client_ffi_voice_session_cancel, inputJson);
+}
+
 std::string HybridPioneerClient::pendingRequestResponsePlanJson(const std::string& inputJson) {
   return callWithClient(pioneer_client_ffi_pending_request_response_plan, inputJson);
 }
@@ -316,6 +370,11 @@ HybridPioneerClient::activeThreadSendTextJson(const std::string& inputJson) {
 }
 
 std::shared_ptr<margelo::nitro::Promise<std::string>>
+HybridPioneerClient::prepareVoiceComposerSnapshotJson(const std::string& inputJson) {
+  return callWithClientAsync(pioneer_client_ffi_prepare_voice_composer_snapshot, inputJson);
+}
+
+std::shared_ptr<margelo::nitro::Promise<std::string>>
 HybridPioneerClient::activeThreadCancelTurnJson(const std::string& inputJson) {
   return callWithClientAsync(pioneer_client_ffi_active_thread_cancel_turn, inputJson);
 }
@@ -344,6 +403,16 @@ std::string HybridPioneerClient::callWithClient(
     throw std::runtime_error("pioneer client runtime has been disposed");
   }
   return holder_->call(operation, payload);
+}
+
+std::string HybridPioneerClient::callWithClient(
+    char* (*operation)(PioneerClientFfi*, const char*, const uint8_t*, size_t),
+    const std::string& payload,
+    const std::vector<uint8_t>& bytes) {
+  if (!holder_) {
+    throw std::runtime_error("pioneer client runtime has been disposed");
+  }
+  return holder_->call(operation, payload, bytes);
 }
 
 std::shared_ptr<margelo::nitro::Promise<std::string>> HybridPioneerClient::callWithClientAsync(

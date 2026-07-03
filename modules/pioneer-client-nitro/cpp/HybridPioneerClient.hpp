@@ -3,10 +3,12 @@
 #include "HybridPioneerClientSpec.hpp"
 #include "pioneer_client_ffi.h"
 
+#include <NitroModules/ArrayBuffer.hpp>
 #include <memory>
 #include <mutex>
 #include <shared_mutex>
 #include <string>
+#include <vector>
 
 namespace margelo::nitro::pioneer::client {
 
@@ -17,6 +19,10 @@ public:
 
   std::string call(char* (*operation)(PioneerClientFfi*));
   std::string call(char* (*operation)(PioneerClientFfi*, const char*), const std::string& payload);
+  std::string call(
+      char* (*operation)(PioneerClientFfi*, const char*, const uint8_t*, size_t),
+      const std::string& payload,
+      const std::vector<uint8_t>& bytes);
   void destroy();
 
 private:
@@ -78,6 +84,17 @@ public:
       const std::string& inputJson) override;
   std::shared_ptr<margelo::nitro::Promise<std::string>> turnPermissionRequestRespondJson(
       const std::string& inputJson) override;
+  std::shared_ptr<margelo::nitro::Promise<std::string>> voiceStatusJson(
+      const std::string& inputJson) override;
+  std::shared_ptr<margelo::nitro::Promise<std::string>> voiceSessionStartJson(
+      const std::string& inputJson) override;
+  std::string voiceAudioChunkJson(
+      const std::string& inputJson,
+      const std::shared_ptr<margelo::nitro::ArrayBuffer>& pcmChunk) override;
+  std::shared_ptr<margelo::nitro::Promise<std::string>> voiceSessionFinalizeJson(
+      const std::string& inputJson) override;
+  std::shared_ptr<margelo::nitro::Promise<std::string>> voiceSessionCancelJson(
+      const std::string& inputJson) override;
   std::string pendingRequestResponsePlanJson(const std::string& inputJson) override;
   std::string pendingRequestPresentationJson(const std::string& inputJson) override;
   std::shared_ptr<margelo::nitro::Promise<std::string>> providerListModelsJson(
@@ -125,6 +142,8 @@ public:
       const std::string& inputJson) override;
   std::shared_ptr<margelo::nitro::Promise<std::string>> activeThreadSendTextJson(
       const std::string& inputJson) override;
+  std::shared_ptr<margelo::nitro::Promise<std::string>> prepareVoiceComposerSnapshotJson(
+      const std::string& inputJson) override;
   std::shared_ptr<margelo::nitro::Promise<std::string>> activeThreadCancelTurnJson(
       const std::string& inputJson) override;
   std::shared_ptr<margelo::nitro::Promise<std::string>> activeThreadUnsubscribeOrCloseJson(
@@ -136,6 +155,10 @@ private:
 
   std::string callWithClient(char* (*operation)(PioneerClientFfi*));
   std::string callWithClient(char* (*operation)(PioneerClientFfi*, const char*), const std::string& payload);
+  std::string callWithClient(
+      char* (*operation)(PioneerClientFfi*, const char*, const uint8_t*, size_t),
+      const std::string& payload,
+      const std::vector<uint8_t>& bytes);
   std::shared_ptr<margelo::nitro::Promise<std::string>> callWithClientAsync(
       char* (*operation)(PioneerClientFfi*, const char*),
       const std::string& payload);

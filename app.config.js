@@ -103,6 +103,17 @@ module.exports = {
             },
         ],
         [
+            'react-native-audio-api',
+            {
+                iosMicrophonePermission: 'Allow Pioneer to use your microphone for voice input.',
+                iosBackgroundMode: false,
+                androidPermissions: ['android.permission.RECORD_AUDIO'],
+                androidForegroundService: false,
+                disableFFmpeg: true,
+                disableStaticExternalLibs: false,
+            },
+        ],
+        [
             'expo-build-properties',
             {
                 android: {
