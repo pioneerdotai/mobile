@@ -6,11 +6,11 @@ import { KeyboardGestureArea, KeyboardStickyView } from 'react-native-keyboard-c
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useKeyboardChatComposerInset } from '@legendapp/list/keyboard';
 import type { LegendListRef } from '@legendapp/list/react-native';
+import { useQueryClient } from '@tanstack/react-query';
 
 import {
     pioneerClient,
     type CLIRuntimeThreadBinding,
-    type ClientActiveThreadSnapshot,
     type Thread,
     type TimelineBlock,
     type TurnWorkBlock,
@@ -36,19 +36,21 @@ import {
     useProviderModelReasoningEffortLabel,
 } from '@/hooks/use-provider-model-display-name';
 import { isCliRuntimeProvider } from '@/services/providers/cli-runtime';
+import { useHideAppSplashWhen } from '@/services/app-splash';
 import {
     projectSemanticTimelineToRows,
     type SemanticTurnWorkRange,
 } from '@/services/threads/semantic-projector';
+import { seedEmptyThreadTimelineCache } from '@/services/threads/semantic-cache-patch';
 import type { TimelineRow } from '@/services/threads/conversation/timeline';
 import { useActiveThreadStore } from '@/stores/active-thread';
 import { useThreadTreeStore } from '@/stores/thread-tree';
 import { useWorkspaceStore } from '@/stores/workspace';
 
 type ThreadScreenProps = {
-    threadId: string | null;
+    threadId: string;
+    initialThread?: Thread | null;
     parentThreadId?: string | null;
-    taskTitle?: string | null;
 };
 
 const THREAD_COMPOSER_INPUT_NATIVE_ID = 'thread-composer-input';
@@ -74,29 +76,6 @@ type CliRuntimeSupportsSteerState = {
     supportsSteer: boolean | null;
 };
 
-const createEmptyActiveThreadSnapshot = (
-    threadId: string | null,
-    workspaceId: string | null,
-): ClientActiveThreadSnapshot => ({
-    thread_id: threadId,
-    workspace_id: workspaceId,
-    thread: null,
-    history_loaded: true,
-    history_loading: false,
-    projection: {
-        composer_locked: false,
-        in_flight_turn_id: null,
-        items: [],
-        last_error: null,
-        pending_request_id: null,
-        phase_label: '',
-        revision: 0,
-        timeline: [],
-        turns: [],
-    },
-    rows: [],
-});
-
 const modelSelectionFromThread = (
     thread: Thread | null | undefined,
 ): ComposerModelSelection | null => {
@@ -112,52 +91,25 @@ const modelSelectionFromThread = (
     return { provider, model, selectedReasoningEffort };
 };
 
-const ThreadScreen = ({ threadId, parentThreadId = null, taskTitle = null }: ThreadScreenProps) => {
+const ThreadScreen = ({
+    threadId,
+    initialThread = null,
+    parentThreadId = null,
+}: ThreadScreenProps) => {
     const { t } = useTranslation('threads');
     const { theme, rt } = useUnistyles();
+    const queryClient = useQueryClient();
 
-    const isDraftThread = threadId === null;
     const [focused, setFocused] = useState(false);
-    const [taskChildThreadFallbackTimestamp] = useState(() => Math.floor(Date.now() / 1000));
 
     const treeSnapshot = useThreadTreeStore((state) => state.snapshot);
 
     const activeWorkspaceId = useWorkspaceStore((state) => state.activeWorkspaceId);
     const expandedKeys = useActiveThreadStore((state) => state.expandedKeys);
 
-    const thread =
-        !isDraftThread && threadId ? (treeSnapshot?.threads_by_id[threadId] ?? null) : null;
-    const parentThread =
-        parentThreadId && treeSnapshot
-            ? (treeSnapshot.threads_by_id[parentThreadId] ?? null)
-            : null;
-    const taskChildThread = useMemo<Thread | null>(() => {
-        if (isDraftThread || !threadId || !parentThreadId || !parentThread) {
-            return null;
-        }
-
-        return {
-            ...parentThread,
-            id: threadId,
-            name: taskTitle ?? parentThread.name,
-            preview: '',
-            origin_kind: 'task_run',
-            sidebar_visibility: 'hidden',
-            status: 'Active',
-            turns: [],
-            created_at: parentThread.created_at ?? taskChildThreadFallbackTimestamp,
-            updated_at: parentThread.updated_at ?? taskChildThreadFallbackTimestamp,
-        };
-    }, [
-        isDraftThread,
-        parentThread,
-        parentThreadId,
-        taskChildThreadFallbackTimestamp,
-        taskTitle,
-        threadId,
-    ]);
-    const activeThread = thread ?? taskChildThread;
-    const isTaskChildThread = Boolean(!isDraftThread && threadId && parentThreadId);
+    const thread = treeSnapshot?.threads_by_id[threadId] ?? null;
+    const activeThread = thread ?? initialThread ?? null;
+    const isTaskChildThread = Boolean(threadId && parentThreadId);
 
     const { connectionId, connectionState } = useGateway();
 
@@ -168,6 +120,7 @@ const ThreadScreen = ({ threadId, parentThreadId = null, taskTitle = null }: Thr
         sending,
         turnCancelling,
         composerError,
+        composerText,
         composerAttachments,
         composerCapabilities,
         connected,
@@ -183,10 +136,11 @@ const ThreadScreen = ({ threadId, parentThreadId = null, taskTitle = null }: Thr
         open,
         sendText,
         stopTurn,
+        setComposerText,
         setComposerAttachments,
         setComposerCapabilities,
         setExpandedKeys,
-    } = useActiveThread(activeThread, activeWorkspaceId, focused);
+    } = useActiveThread(activeThread, activeWorkspaceId, focused, threadId);
 
     const syncComposerModelSelection = useActiveThreadStore(
         (state) => state.syncComposerModelSelection,
@@ -196,7 +150,6 @@ const ThreadScreen = ({ threadId, parentThreadId = null, taskTitle = null }: Thr
     );
     const timelineRef = useRef<LegendListRef>(null);
     const composerRef = useRef<View>(null);
-    const [draftText, setDraftText] = useState('');
     const [steering, setSteering] = useState(false);
     const [cliRuntimeThreadBinding, setCliRuntimeThreadBinding] =
         useState<CLIRuntimeThreadBinding | null>(null);
@@ -231,32 +184,38 @@ const ThreadScreen = ({ threadId, parentThreadId = null, taskTitle = null }: Thr
     );
     const permissionModeOptions = useMemo(() => pioneerClient.composerPermissionModeOptions(), []);
 
-    const draftSnapshot = useMemo(
-        () => createEmptyActiveThreadSnapshot(null, activeWorkspaceId),
-        [activeWorkspaceId],
+    const visibleSnapshot = snapshot?.thread_id === threadId ? snapshot : null;
+    const visibleThreadId = visibleSnapshot?.thread_id ?? threadId;
+    const [composerMeasurement, setComposerMeasurement] = useState<{
+        threadId: string;
+        measured: boolean;
+    } | null>(null);
+    const composerMeasured =
+        composerMeasurement?.threadId === visibleThreadId && composerMeasurement.measured;
+    const isLiveDraftThread = Boolean(
+        visibleSnapshot?.draft_thread_id && visibleSnapshot.draft_thread_id === visibleThreadId,
     );
-
-    const visibleSnapshot = isDraftThread
-        ? snapshot?.thread_id
-            ? snapshot
-            : draftSnapshot
-        : snapshot?.thread_id === threadId
-          ? snapshot
-          : null;
-    const visibleThreadId = visibleSnapshot?.thread_id ?? (!isDraftThread ? threadId : null);
-    const timelineIdentityKey = visibleThreadId ?? `draft:${activeWorkspaceId ?? 'none'}`;
+    const timelineIdentityKey = visibleThreadId;
     const visibleTurnId = visibleSnapshot?.projection.in_flight_turn_id ?? null;
     const semanticWorkRangesByTurn =
         semanticWorkRangesState.threadId === visibleThreadId
             ? semanticWorkRangesState.ranges
             : EMPTY_SEMANTIC_WORK_RANGES;
 
-    useTimelineQueryCancellation(visibleThreadId, focused && !isDraftThread);
-    useTimelineReconnectInvalidation(visibleThreadId, focused && !isDraftThread);
+    useTimelineQueryCancellation(visibleThreadId, focused);
+    useTimelineReconnectInvalidation(visibleThreadId, focused);
+
+    useEffect(() => {
+        if (!isLiveDraftThread || !visibleSnapshot?.workspace_id) {
+            return;
+        }
+
+        seedEmptyThreadTimelineCache(queryClient, visibleSnapshot.workspace_id, visibleThreadId);
+    }, [isLiveDraftThread, queryClient, visibleSnapshot?.workspace_id, visibleThreadId]);
 
     const threadTimelineBlocksQuery = useThreadTimelineBlocksQuery({
         threadId: visibleThreadId,
-        enabled: focused && connected && !isDraftThread,
+        enabled: focused && connected && !isLiveDraftThread,
     });
     const { refetch: refetchThreadTimelineBlocks } = threadTimelineBlocksQuery;
     const threadTimelineBlocksQueryRef = useRef(threadTimelineBlocksQuery);
@@ -290,26 +249,23 @@ const ThreadScreen = ({ threadId, parentThreadId = null, taskTitle = null }: Thr
             visibleSnapshot,
         ],
     );
-    const timelineRowsOverride = isDraftThread
-        ? semanticTimelineRows
-        : (semanticTimelineRows ?? []);
+    const timelineRowsOverride = semanticTimelineRows ?? [];
 
     const closed = Boolean(
         visibleSnapshot?.thread?.status === 'Closed' || activeThread?.status === 'Closed',
     );
 
-    const waitingForSnapshot =
-        !isDraftThread && (loading || (connectionState === 'Connected' && !error));
+    const waitingForSnapshot = loading || (connectionState === 'Connected' && !error);
 
     const semanticTimelineError =
         threadTimelineBlocksQuery.error instanceof Error
             ? threadTimelineBlocksQuery.error.message
             : null;
-    const screenError = isDraftThread ? null : (error ?? semanticTimelineError);
+    const screenError = error ?? semanticTimelineError;
 
     const waitingForInitialTimelinePage = Boolean(
         visibleSnapshot &&
-        !isDraftThread &&
+        !isLiveDraftThread &&
         !threadTimelineBlocksQuery.hasLoadedPage &&
         threadTimelineBlocksQuery.isLoading &&
         !screenError,
@@ -317,6 +273,14 @@ const ThreadScreen = ({ threadId, parentThreadId = null, taskTitle = null }: Thr
     const showThreadLoader = Boolean(
         (!visibleSnapshot && waitingForSnapshot) || waitingForInitialTimelinePage,
     );
+    const emptyTimelineReady = timelineRowsOverride.length > 0 || composerMeasured;
+    const threadScreenReady = Boolean(
+        (visibleSnapshot && !showThreadLoader && emptyTimelineReady) ||
+        screenError ||
+        (!activeThread && !visibleSnapshot && !loading && !waitingForSnapshot),
+    );
+
+    useHideAppSplashWhen(threadScreenReady);
 
     const contentTopInset = theme.screenContentPadding('child').paddingTop;
 
@@ -330,9 +294,8 @@ const ThreadScreen = ({ threadId, parentThreadId = null, taskTitle = null }: Thr
     const activeThreadModel = activeThreadModelSelection?.model ?? null;
     const activeThreadReasoningEffort = activeThreadModelSelection?.selectedReasoningEffort ?? null;
     const shouldUseThreadModelSelection =
-        Boolean(activeThreadModelSelection) && !composerModelManuallySelected;
-    const shouldUseDraftComposerSelection =
-        isDraftThread && !visibleSnapshot?.thread_id && !composerModelManuallySelected;
+        Boolean(activeThreadModelSelection) && !composerModelManuallySelected && !isLiveDraftThread;
+    const shouldUseDraftComposerSelection = isLiveDraftThread && !composerModelManuallySelected;
     const selectedProvider = shouldUseThreadModelSelection
         ? activeThreadModelProvider
         : composerModelManuallySelected || shouldUseDraftComposerSelection
@@ -402,7 +365,7 @@ const ThreadScreen = ({ threadId, parentThreadId = null, taskTitle = null }: Thr
         activeCliRuntimeCanSteer &&
         visibleThreadId &&
         visibleTurnId &&
-        draftText.trim().length > 0 &&
+        composerText.trim().length > 0 &&
         composerAttachments.length === 0 &&
         composerCapabilities.length === 0,
     );
@@ -429,13 +392,17 @@ const ThreadScreen = ({ threadId, parentThreadId = null, taskTitle = null }: Thr
         (event: LayoutChangeEvent) => {
             onComposerLayout(event);
             updateComposerHeight(event.nativeEvent.layout.height);
+            setComposerMeasurement({ threadId: visibleThreadId, measured: true });
         },
-        [onComposerLayout, updateComposerHeight],
+        [onComposerLayout, updateComposerHeight, visibleThreadId],
     );
 
     const refreshThreadTimeline = useCallback(async () => {
-        await Promise.all([open(), refetchThreadTimelineBlocks()]);
-    }, [open, refetchThreadTimelineBlocks]);
+        await open();
+        if (!isLiveDraftThread) {
+            await refetchThreadTimelineBlocks();
+        }
+    }, [isLiveDraftThread, open, refetchThreadTimelineBlocks]);
 
     const handleTurnWorkRangeChange = useCallback(
         (turnId: string, range: SemanticTurnWorkRange | null) => {
@@ -506,7 +473,7 @@ const ThreadScreen = ({ threadId, parentThreadId = null, taskTitle = null }: Thr
 
     const handleSend = useCallback(() => {
         const hasComposerPayload =
-            draftText.trim().length > 0 ||
+            composerText.trim().length > 0 ||
             composerAttachments.length > 0 ||
             (!cliRuntimeSelected && composerCapabilities.length > 0);
 
@@ -514,17 +481,18 @@ const ThreadScreen = ({ threadId, parentThreadId = null, taskTitle = null }: Thr
             return;
         }
 
-        void sendText(draftText).then((sent) => {
+        void sendText(composerText).then((sent) => {
             if (sent) {
-                setDraftText('');
+                setComposerText('');
             }
         });
     }, [
         cliRuntimeSelected,
         composerAttachments.length,
         composerCapabilities.length,
-        draftText,
+        composerText,
         sendText,
+        setComposerText,
     ]);
 
     const handleStopTurn = useCallback(() => {
@@ -532,7 +500,7 @@ const ThreadScreen = ({ threadId, parentThreadId = null, taskTitle = null }: Thr
     }, [stopTurn]);
 
     const handleSteerTurn = useCallback(() => {
-        const message = draftText.trim();
+        const message = composerText.trim();
 
         if (
             !message ||
@@ -556,7 +524,7 @@ const ThreadScreen = ({ threadId, parentThreadId = null, taskTitle = null }: Thr
                 message,
             })
             .then(() => {
-                setDraftText('');
+                setComposerText('');
             })
             .catch((steerError) => {
                 useActiveThreadStore.getState().setComposerError(errorMessage(steerError));
@@ -567,14 +535,11 @@ const ThreadScreen = ({ threadId, parentThreadId = null, taskTitle = null }: Thr
     }, [
         activeCliRuntimeThreadBinding,
         activeWorkspaceId,
-        draftText,
+        composerText,
+        setComposerText,
         visibleThreadId,
         visibleTurnId,
     ]);
-
-    const updateDraftExpandedKeys = useCallback((_keys: string[]) => {}, []);
-
-    const refreshDraftThread = useCallback(async () => {}, []);
 
     const openModelSelector = useCallback(() => {
         if (selectedProvider && selectedModel) {
@@ -622,6 +587,10 @@ const ThreadScreen = ({ threadId, parentThreadId = null, taskTitle = null }: Thr
 
     useFocusEffect(
         useCallback(() => {
+            if (isLiveDraftThread) {
+                return;
+            }
+
             if (!activeThreadModelProvider || !activeThreadModel) {
                 return;
             }
@@ -635,6 +604,7 @@ const ThreadScreen = ({ threadId, parentThreadId = null, taskTitle = null }: Thr
             activeThreadModel,
             activeThreadModelProvider,
             activeThreadReasoningEffort,
+            isLiveDraftThread,
             syncComposerModelSelection,
         ]),
     );
@@ -712,11 +682,11 @@ const ThreadScreen = ({ threadId, parentThreadId = null, taskTitle = null }: Thr
         };
     }, [activeCliRuntimeId, activeWorkspaceId, connected, connectionId]);
 
-    if (!isDraftThread && !activeThread && !treeSnapshot) {
+    if (!activeThread && !visibleSnapshot && !treeSnapshot) {
         return <ThreadState loading label={t('loadingThread')} />;
     }
 
-    if (!isDraftThread && !activeThread) {
+    if (!activeThread && !visibleSnapshot && !loading) {
         return <ThreadState label={t('invalidThread')} />;
     }
 
@@ -726,7 +696,7 @@ const ThreadScreen = ({ threadId, parentThreadId = null, taskTitle = null }: Thr
                 <TurnWorkItemsQueryBridge
                     key={target.work.turnId}
                     threadId={visibleThreadId}
-                    enabled={focused && connected && !isDraftThread}
+                    enabled={focused && connected && !isLiveDraftThread}
                     expanded={target.expanded}
                     liveVisible={target.liveVisible}
                     boundaryHint={viewportPrefetchPlan?.turnWork[target.work.turnId] ?? null}
@@ -763,6 +733,7 @@ const ThreadScreen = ({ threadId, parentThreadId = null, taskTitle = null }: Thr
                             pendingRequests={pendingRequests}
                             contentTopInset={contentTopInset}
                             contentBottomInset={timelineContentBottomInset}
+                            emptyReady={composerMeasured}
                             ListHeaderComponent={
                                 screenError ? (
                                     <View style={styles.screenErrorWrap}>
@@ -775,12 +746,10 @@ const ThreadScreen = ({ threadId, parentThreadId = null, taskTitle = null }: Thr
                             keyboardOffset={keyboardOffset}
                             contentInsetEndAdjustment={contentInsetEndAdjustment}
                             mcpServerIdByName={EMPTY_MCP_SERVER_ID_BY_NAME}
-                            onExpandedKeysChange={
-                                isDraftThread ? updateDraftExpandedKeys : setExpandedKeys
-                            }
+                            onExpandedKeysChange={setExpandedKeys}
                             onViewportPrefetchPlanChange={handleViewportPrefetchPlanChange}
                             onOpenTaskThread={handleOpenTaskThread}
-                            onRefresh={isDraftThread ? refreshDraftThread : refreshThreadTimeline}
+                            onRefresh={refreshThreadTimeline}
                         />
                     ) : (
                         <ThreadState
@@ -794,7 +763,7 @@ const ThreadScreen = ({ threadId, parentThreadId = null, taskTitle = null }: Thr
                     <KeyboardStickyView offset={keyboardStickyOffset} style={styles.composerSticky}>
                         <View ref={composerRef} onLayout={handleComposerAreaLayout}>
                             <ThreadComposer
-                                value={draftText}
+                                value={composerText}
                                 placeholder={t('inputPlaceholder')}
                                 sendLabel={t('sendMessage')}
                                 stopLabel={t('stopTurn')}
@@ -820,7 +789,7 @@ const ThreadScreen = ({ threadId, parentThreadId = null, taskTitle = null }: Thr
                                 permissionModeOptions={permissionModeOptions}
                                 selectedPermissionMode={composerSelectedPermissionMode}
                                 inputNativeID={THREAD_COMPOSER_INPUT_NATIVE_ID}
-                                onChangeText={setDraftText}
+                                onChangeText={setComposerText}
                                 onOpenAttachmentMenu={openAttachmentMenu}
                                 onOpenModelSelector={openModelSelector}
                                 onOpenPermissionModeSelector={openPermissionModeSelector}

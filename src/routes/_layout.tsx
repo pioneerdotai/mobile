@@ -4,7 +4,6 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import { useFonts } from 'expo-font';
-import * as SplashScreen from 'expo-splash-screen';
 import * as SystemUI from 'expo-system-ui';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
@@ -30,12 +29,13 @@ import ThreadModeSwitcherSheet from '@/components/overlays/thread-mode';
 import ThreadPermissionModeSwitcherSheet from '@/components/overlays/thread-permission';
 import { initializeSentry, isSentryEnabled, Sentry } from '@/services/sentry';
 import { pioneerQueryClient } from '@/services/query/client';
+import { preventAppSplashAutoHide, useHideAppSplashWhen } from '@/services/app-splash';
 
 export const unstable_settings = {
     initialRouteName: '(tabs)',
 };
 
-void SplashScreen.preventAutoHideAsync();
+preventAppSplashAutoHide();
 
 initializeSentry();
 
@@ -50,7 +50,6 @@ const normalizeStartupError = (error: unknown): Error => {
 const RootLayout = () => {
     const { hydrate: hydrateGateway } = useGateway();
     const bootstrapStartedRef = useRef(false);
-    const splashHiddenRef = useRef(false);
 
     const [startupReady, setStartupReady] = useState(false);
     const [startupError, setStartupError] = useState<Error | null>(null);
@@ -85,17 +84,7 @@ const RootLayout = () => {
             });
     }, [hydrateGateway]);
 
-    useEffect(() => {
-        const readyToLeaveSplash = (fontsLoaded && startupReady) || !!fontsError || !!startupError;
-
-        if (!readyToLeaveSplash || splashHiddenRef.current) {
-            return;
-        }
-
-        splashHiddenRef.current = true;
-
-        void SplashScreen.hideAsync();
-    }, [fontsError, fontsLoaded, startupError, startupReady]);
+    useHideAppSplashWhen(Boolean(fontsError || startupError));
 
     useEffect(() => {
         if (fontsError) {
@@ -154,7 +143,7 @@ const RootContent = () => {
     }
 
     if (!activeGateway) {
-        return <GatewaySetupScreen blocker />;
+        return <GatewaySetupRoute />;
     }
 
     return (
@@ -172,6 +161,12 @@ const RootContent = () => {
             <RootStack />
         </>
     );
+};
+
+const GatewaySetupRoute = () => {
+    useHideAppSplashWhen(true);
+
+    return <GatewaySetupScreen blocker />;
 };
 
 const GatewaySessionController = ({

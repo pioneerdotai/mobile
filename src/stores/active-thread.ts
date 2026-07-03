@@ -14,6 +14,9 @@ type ActiveThreadStoreState = {
     loading: boolean;
     error: string | null;
     sending: boolean;
+    activeComposerThreadId: string | null;
+    composerDrafts: Record<string, ComposerDraftState>;
+    composerText: string;
     composerError: string | null;
     composerAttachments: ComposerAttachment[];
     composerCapabilities: ComposerCapability[];
@@ -34,10 +37,12 @@ type ActiveThreadStoreState = {
     defaultComposerWorkspaceId: string | null;
     defaultComposerSelectionLoading: boolean;
     composerModelManuallySelected: boolean;
+    activateComposerThread: (threadId: string) => void;
     setSnapshot: (snapshot: ClientActiveThreadSnapshot) => void;
     setLoading: (loading: boolean) => void;
     setError: (error: string | null) => void;
     setSending: (sending: boolean) => void;
+    setComposerText: (text: string) => void;
     setComposerError: (error: string | null) => void;
     setComposerAttachments: (attachments: ComposerAttachment[]) => void;
     setComposerCapabilities: (capabilities: ComposerCapability[]) => void;
@@ -45,7 +50,6 @@ type ActiveThreadStoreState = {
     setComposerModeSwitcherOpen: (open: boolean) => void;
     setComposerPermissionModeSwitcherOpen: (open: boolean) => void;
     setComposerMode: (mode: ThreadMode) => void;
-    syncComposerMode: (threadId: string | null, mode: ThreadMode) => void;
     clearComposerPayload: () => void;
     setExpandedKeys: (keys: string[]) => void;
     setComposerModelSelectionFromUser: (provider: string | null, model: string | null) => void;
@@ -73,6 +77,19 @@ type ComposerModeContext = {
     mode: ThreadMode;
 };
 
+type ComposerDraftState = {
+    text: string;
+    attachments: ComposerAttachment[];
+    capabilities: ComposerCapability[];
+    selectedMode: ThreadMode;
+    modeManuallySelected: boolean;
+    selectedProvider: string | null;
+    selectedModel: string | null;
+    selectedReasoningEffort: string | null;
+    selectedPermissionMode: TurnPermissionMode;
+    modelManuallySelected: boolean;
+};
+
 const DEFAULT_COMPOSER_MODE: ThreadMode = 'Agent';
 const DEFAULT_COMPOSER_PERMISSION_MODE: TurnPermissionMode = 'full_access';
 
@@ -82,11 +99,74 @@ const normalizeReasoningEffort = (effort: string | null | undefined): string | n
     return trimmed ? trimmed : null;
 };
 
+const draftFromState = (state: ActiveThreadStoreState): ComposerDraftState => ({
+    text: state.composerText,
+    attachments: state.composerAttachments,
+    capabilities: state.composerCapabilities,
+    selectedMode: state.composerSelectedMode,
+    modeManuallySelected: state.composerModeManuallySelected,
+    selectedProvider: state.composerSelectedProvider,
+    selectedModel: state.composerSelectedModel,
+    selectedReasoningEffort: state.composerSelectedReasoningEffort,
+    selectedPermissionMode: state.composerSelectedPermissionMode,
+    modelManuallySelected: state.composerModelManuallySelected,
+});
+
+const defaultDraftForThread = (state: ActiveThreadStoreState): ComposerDraftState => ({
+    text: '',
+    attachments: [],
+    capabilities: [],
+    selectedMode: state.composerSelectedMode,
+    modeManuallySelected: false,
+    selectedProvider: state.defaultComposerProvider,
+    selectedModel: state.defaultComposerModel,
+    selectedReasoningEffort: state.defaultComposerReasoningEffort,
+    selectedPermissionMode: DEFAULT_COMPOSER_PERMISSION_MODE,
+    modelManuallySelected: false,
+});
+
+const persistActiveDraft = (
+    state: ActiveThreadStoreState,
+    nextDrafts: Record<string, ComposerDraftState> = state.composerDrafts,
+): Record<string, ComposerDraftState> => {
+    if (!state.activeComposerThreadId) {
+        return nextDrafts;
+    }
+
+    return {
+        ...nextDrafts,
+        [state.activeComposerThreadId]: draftFromState(state),
+    };
+};
+
+const updateActiveDraft = (
+    state: ActiveThreadStoreState,
+    patch: Partial<ComposerDraftState>,
+): Partial<ActiveThreadStoreState> => {
+    if (!state.activeComposerThreadId) {
+        return {};
+    }
+
+    return {
+        composerDrafts: {
+            ...state.composerDrafts,
+            [state.activeComposerThreadId]: {
+                ...(state.composerDrafts[state.activeComposerThreadId] ??
+                    defaultDraftForThread(state)),
+                ...patch,
+            },
+        },
+    };
+};
+
 export const useActiveThreadStore = create<ActiveThreadStoreState>((set) => ({
     snapshot: null,
     loading: false,
     error: null,
     sending: false,
+    activeComposerThreadId: null,
+    composerDrafts: {},
+    composerText: '',
     composerError: null,
     composerAttachments: [],
     composerCapabilities: [],
@@ -108,24 +188,37 @@ export const useActiveThreadStore = create<ActiveThreadStoreState>((set) => ({
     defaultComposerSelectionLoading: true,
     composerModelManuallySelected: false,
 
-    setSnapshot: (snapshot) => {
+    activateComposerThread: (threadId) => {
         set((state) => {
-            const thread = snapshot.thread;
-            const nextState: Partial<ActiveThreadStoreState> = {
-                snapshot,
-                error: null,
+            const persistedDrafts = persistActiveDraft(state);
+            const draft = persistedDrafts[threadId] ?? defaultDraftForThread(state);
+
+            return {
+                activeComposerThreadId: threadId,
+                composerDrafts: {
+                    ...persistedDrafts,
+                    [threadId]: draft,
+                },
+                composerText: draft.text,
+                composerAttachments: draft.attachments,
+                composerCapabilities: draft.capabilities,
+                composerModeThreadId: threadId,
+                composerSelectedMode: draft.selectedMode,
+                composerModeManuallySelected: draft.modeManuallySelected,
+                composerSelectedProvider: draft.selectedProvider,
+                composerSelectedModel: draft.selectedModel,
+                composerSelectedReasoningEffort: draft.selectedReasoningEffort,
+                composerSelectedPermissionMode: draft.selectedPermissionMode,
+                composerModelManuallySelected: draft.modelManuallySelected,
+                composerError: null,
             };
+        });
+    },
 
-            if (
-                thread &&
-                !(state.composerModeThreadId === thread.id && state.composerModeManuallySelected)
-            ) {
-                nextState.composerModeThreadId = thread.id;
-                nextState.composerSelectedMode = thread.mode;
-                nextState.composerModeManuallySelected = false;
-            }
-
-            return nextState;
+    setSnapshot: (snapshot) => {
+        set({
+            snapshot,
+            error: null,
         });
     },
 
@@ -141,16 +234,31 @@ export const useActiveThreadStore = create<ActiveThreadStoreState>((set) => ({
         set({ sending });
     },
 
+    setComposerText: (composerText) => {
+        set((state) => ({
+            composerText,
+            ...updateActiveDraft(state, { text: composerText }),
+        }));
+    },
+
     setComposerError: (composerError) => {
         set({ composerError });
     },
 
     setComposerAttachments: (composerAttachments) => {
-        set({ composerAttachments, composerError: null });
+        set((state) => ({
+            composerAttachments,
+            composerError: null,
+            ...updateActiveDraft(state, { attachments: composerAttachments }),
+        }));
     },
 
     setComposerCapabilities: (composerCapabilities) => {
-        set({ composerCapabilities, composerError: null });
+        set((state) => ({
+            composerCapabilities,
+            composerError: null,
+            ...updateActiveDraft(state, { capabilities: composerCapabilities }),
+        }));
     },
 
     setComposerAttachmentMenuOpen: (showComposerAttachmentMenu) => {
@@ -166,40 +274,28 @@ export const useActiveThreadStore = create<ActiveThreadStoreState>((set) => ({
     },
 
     setComposerMode: (composerSelectedMode) => {
-        set({
+        set((state) => ({
             composerSelectedMode,
             composerModeManuallySelected: true,
-        });
-    },
-
-    syncComposerMode: (threadId, mode) => {
-        set((state) => {
-            if (state.composerModeThreadId === threadId && state.composerModeManuallySelected) {
-                return state;
-            }
-
-            if (
-                state.composerModeThreadId === threadId &&
-                state.composerSelectedMode === mode &&
-                !state.composerModeManuallySelected
-            ) {
-                return state;
-            }
-
-            return {
-                composerModeThreadId: threadId,
-                composerSelectedMode: mode,
-                composerModeManuallySelected: false,
-            };
-        });
+            ...updateActiveDraft(state, {
+                selectedMode: composerSelectedMode,
+                modeManuallySelected: true,
+            }),
+        }));
     },
 
     clearComposerPayload: () => {
-        set({
+        set((state) => ({
+            composerText: '',
             composerAttachments: [],
             composerCapabilities: [],
             composerError: null,
-        });
+            ...updateActiveDraft(state, {
+                text: '',
+                attachments: [],
+                capabilities: [],
+            }),
+        }));
     },
 
     setExpandedKeys: (expandedKeys) => {
@@ -220,6 +316,19 @@ export const useActiveThreadStore = create<ActiveThreadStoreState>((set) => ({
                     : state.composerSelectedReasoningEffort,
                 composerModelManuallySelected: true,
                 composerError: null,
+                ...updateActiveDraft(state, {
+                    selectedProvider: composerSelectedProvider,
+                    selectedModel: composerSelectedModel,
+                    selectedReasoningEffort: modelSelectionChanged
+                        ? null
+                        : state.composerSelectedReasoningEffort,
+                    modelManuallySelected: true,
+                    ...(isCliRuntimeProvider(composerSelectedProvider)
+                        ? {
+                              capabilities: [],
+                          }
+                        : {}),
+                }),
                 ...(isCliRuntimeProvider(composerSelectedProvider)
                     ? {
                           composerCapabilities: [],
@@ -230,14 +339,22 @@ export const useActiveThreadStore = create<ActiveThreadStoreState>((set) => ({
     },
 
     setComposerReasoningEffortFromUser: (composerSelectedReasoningEffort) => {
-        set({ composerSelectedReasoningEffort });
+        set((state) => ({
+            composerSelectedReasoningEffort,
+            ...updateActiveDraft(state, {
+                selectedReasoningEffort: composerSelectedReasoningEffort,
+            }),
+        }));
     },
 
     setComposerPermissionMode: (composerSelectedPermissionMode) => {
-        set({
+        set((state) => ({
             composerSelectedPermissionMode,
             composerError: null,
-        });
+            ...updateActiveDraft(state, {
+                selectedPermissionMode: composerSelectedPermissionMode,
+            }),
+        }));
     },
 
     beginDefaultComposerModelSelectionRefresh: (workspaceId) => {
@@ -309,6 +426,16 @@ export const useActiveThreadStore = create<ActiveThreadStoreState>((set) => ({
                           composerSelectedProvider: defaultComposerProvider,
                           composerSelectedModel: defaultComposerModel,
                           composerSelectedReasoningEffort: normalizedReasoningEffort,
+                          ...updateActiveDraft(state, {
+                              selectedProvider: defaultComposerProvider,
+                              selectedModel: defaultComposerModel,
+                              selectedReasoningEffort: normalizedReasoningEffort,
+                              ...(isCliRuntimeProvider(defaultComposerProvider)
+                                  ? {
+                                        capabilities: [],
+                                    }
+                                  : {}),
+                          }),
                           ...(isCliRuntimeProvider(defaultComposerProvider)
                               ? {
                                     composerCapabilities: [],
@@ -335,6 +462,18 @@ export const useActiveThreadStore = create<ActiveThreadStoreState>((set) => ({
                 composerSelectedReasoningEffort: normalizeReasoningEffort(
                     composerSelectedReasoningEffort,
                 ),
+                ...updateActiveDraft(state, {
+                    selectedProvider: composerSelectedProvider,
+                    selectedModel: composerSelectedModel,
+                    selectedReasoningEffort: normalizeReasoningEffort(
+                        composerSelectedReasoningEffort,
+                    ),
+                    ...(isCliRuntimeProvider(composerSelectedProvider)
+                        ? {
+                              capabilities: [],
+                          }
+                        : {}),
+                }),
                 ...(isCliRuntimeProvider(composerSelectedProvider)
                     ? {
                           composerCapabilities: [],
@@ -350,6 +489,9 @@ export const useActiveThreadStore = create<ActiveThreadStoreState>((set) => ({
             loading: false,
             error: null,
             sending: false,
+            activeComposerThreadId: composerModeContext?.threadId ?? null,
+            composerDrafts: {},
+            composerText: '',
             composerError: null,
             composerAttachments: [],
             composerCapabilities: [],

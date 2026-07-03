@@ -114,12 +114,20 @@ public:
       const std::string& inputJson) override;
   std::shared_ptr<margelo::nitro::Promise<std::string>> activeThreadOpenJson(
       const std::string& inputJson) override;
+  std::shared_ptr<margelo::nitro::Promise<std::string>> activeThreadOpenByIdJson(
+      const std::string& inputJson) override;
+  std::shared_ptr<margelo::nitro::Promise<std::string>> activeThreadEnsureWorkspaceDraftJson(
+      const std::string& inputJson) override;
+  std::shared_ptr<margelo::nitro::Promise<std::string>> activeThreadOpenOrCreateNewJson(
+      const std::string& inputJson) override;
   std::string activeThreadSnapshotJson(const std::string& inputJson) override;
   std::shared_ptr<margelo::nitro::Promise<std::string>> activeThreadApplyEventJson(
       const std::string& inputJson) override;
   std::shared_ptr<margelo::nitro::Promise<std::string>> activeThreadSendTextJson(
       const std::string& inputJson) override;
   std::shared_ptr<margelo::nitro::Promise<std::string>> activeThreadCancelTurnJson(
+      const std::string& inputJson) override;
+  std::shared_ptr<margelo::nitro::Promise<std::string>> activeThreadUnsubscribeOrCloseJson(
       const std::string& inputJson) override;
   std::shared_ptr<margelo::nitro::Promise<std::string>> activeThreadClearJson() override;
 

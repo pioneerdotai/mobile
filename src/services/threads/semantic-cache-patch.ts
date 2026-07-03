@@ -14,6 +14,8 @@ import {
     timelineQueryKeys,
 } from '@/services/threads/timeline-query';
 
+import { protocolKeyCompare } from './protocol-key-order';
+
 type SemanticTimelineCachePatch = ClientActiveThreadEventResult['semantic_timeline_patch'];
 type ThreadTimelineData = InfiniteData<ThreadTimelinePageResponse, unknown>;
 type TurnWorkData = InfiniteData<TurnWorkPageResponse, unknown>;
@@ -70,6 +72,26 @@ export const applySemanticTimelinePatchToCache = (
             workBlocksByTurn,
         );
     }
+};
+
+export const seedEmptyThreadTimelineCache = (
+    queryClient: QueryClient,
+    workspaceId: string,
+    threadId: string,
+) => {
+    const queryKey = timelineQueryKeys.threadPagesForLimit(
+        threadId,
+        DEFAULT_THREAD_TIMELINE_PAGE_LIMIT,
+    );
+
+    if (queryClient.getQueryData<ThreadTimelineData>(queryKey)) {
+        return;
+    }
+
+    queryClient.setQueryData<ThreadTimelineData>(queryKey, {
+        pages: [emptyThreadTimelinePage(workspaceId, threadId)],
+        pageParams: [{ kind: 'newest' }],
+    });
 };
 
 const applyThreadBlockPatch = (
@@ -256,12 +278,13 @@ const emptyTurnWorkPage = (
 const sortBlocks = (blocks: TimelineBlock[]): TimelineBlock[] =>
     blocks.sort(
         (left, right) =>
-            left.sortKey.localeCompare(right.sortKey) || left.blockId.localeCompare(right.blockId),
+            protocolKeyCompare(left.sortKey, right.sortKey) ||
+            protocolKeyCompare(left.blockId, right.blockId),
     );
 
 const sortWorkItems = (items: TurnWorkItem[]): TurnWorkItem[] =>
     items.sort(
         (left, right) =>
-            left.orderKey.localeCompare(right.orderKey) ||
-            left.workItemId.localeCompare(right.workItemId),
+            protocolKeyCompare(left.orderKey, right.orderKey) ||
+            protocolKeyCompare(left.workItemId, right.workItemId),
     );

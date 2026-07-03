@@ -81,22 +81,24 @@ const useThreadTreeRefresh = () => {
         }
 
         const activeThreadState = useActiveThreadStore.getState();
-        const shouldRefreshDefaultComposerSelection = !activeThreadState.snapshot?.thread_id;
         const requestConnectionId = gatewayState.connectionId;
         const requestWorkspaceId = currentWorkspaceId;
         const sequence = refreshSequence + 1;
         refreshSequence = sequence;
 
-        if (shouldRefreshDefaultComposerSelection) {
-            activeThreadState.beginDefaultComposerModelSelectionRefresh(requestWorkspaceId);
-        }
+        activeThreadState.beginDefaultComposerModelSelectionRefresh(requestWorkspaceId);
         setLoading(true);
         setError(null);
 
         try {
             const result = await refreshThreadTree({
                 workspace_id: requestWorkspaceId,
-                active_thread_id: null,
+                active_thread_id: activeThreadState.snapshot?.thread_id ?? null,
+                existing_draft_thread_id: activeThreadState.snapshot?.draft_thread_id ?? null,
+                existing_draft_thread_workspace_id:
+                    activeThreadState.snapshot?.draft_workspace_id ??
+                    activeThreadState.snapshot?.workspace_id ??
+                    null,
                 has_known_threads_for_workspace:
                     useThreadTreeStore.getState().workspaceId === requestWorkspaceId,
             });
@@ -113,19 +115,14 @@ const useThreadTreeRefresh = () => {
             }
 
             setSnapshot(result.snapshot);
-            if (
-                shouldRefreshDefaultComposerSelection &&
-                !useActiveThreadStore.getState().snapshot?.thread_id
-            ) {
-                useActiveThreadStore
-                    .getState()
-                    .syncDefaultComposerModelSelection(
-                        requestWorkspaceId,
-                        result.composer_model_selection?.provider ?? null,
-                        result.composer_model_selection?.model ?? null,
-                        result.composer_model_selection?.selected_reasoning_effort ?? null,
-                    );
-            }
+            useActiveThreadStore
+                .getState()
+                .syncDefaultComposerModelSelection(
+                    requestWorkspaceId,
+                    result.composer_model_selection?.provider ?? null,
+                    result.composer_model_selection?.model ?? null,
+                    result.composer_model_selection?.selected_reasoning_effort ?? null,
+                );
         } catch (caught) {
             const latestGatewayState = useGatewayStore.getState();
             const latestWorkspaceState = useWorkspaceStore.getState();
@@ -139,14 +136,9 @@ const useThreadTreeRefresh = () => {
             }
 
             setError(errorMessage(caught, t('loadFailed')));
-            if (
-                shouldRefreshDefaultComposerSelection &&
-                !useActiveThreadStore.getState().snapshot?.thread_id
-            ) {
-                useActiveThreadStore
-                    .getState()
-                    .completeDefaultComposerModelSelectionRefresh(requestWorkspaceId);
-            }
+            useActiveThreadStore
+                .getState()
+                .completeDefaultComposerModelSelectionRefresh(requestWorkspaceId);
         } finally {
             const latestGatewayState = useGatewayStore.getState();
             const latestWorkspaceState = useWorkspaceStore.getState();

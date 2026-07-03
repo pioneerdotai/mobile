@@ -52,9 +52,13 @@ export interface PioneerClient extends HybridObject<{ ios: 'c++'; android: 'c++'
     agentsDocSaveJson(inputJson: string): Promise<string>;
     agentsDocArchiveJson(inputJson: string): Promise<string>;
     activeThreadOpenJson(inputJson: string): Promise<string>;
+    activeThreadOpenByIdJson(inputJson: string): Promise<string>;
+    activeThreadEnsureWorkspaceDraftJson(inputJson: string): Promise<string>;
+    activeThreadOpenOrCreateNewJson(inputJson: string): Promise<string>;
     activeThreadSnapshotJson(inputJson: string): string;
     activeThreadApplyEventJson(inputJson: string): Promise<string>;
     activeThreadSendTextJson(inputJson: string): Promise<string>;
     activeThreadCancelTurnJson(inputJson: string): Promise<string>;
+    activeThreadUnsubscribeOrCloseJson(inputJson: string): Promise<string>;
     activeThreadClearJson(): Promise<string>;
 }

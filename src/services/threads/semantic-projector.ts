@@ -89,16 +89,6 @@ export const projectSemanticTimelineToRows = ({
         }
     });
 
-    const inFlightTurnId = snapshot.projection.in_flight_turn_id ?? null;
-    if (inFlightTurnId && !insertedRunningRows.has(inFlightTurnId)) {
-        pushRunningRow(
-            semantic,
-            inFlightTurnId,
-            snapshot.projection.turns.find((turn) => turn.id === inFlightTurnId)
-                ?.started_at_unix_ms ?? null,
-        );
-    }
-
     const semanticSnapshot: ClientActiveThreadSnapshot = {
         ...snapshot,
         history_loaded: true,

@@ -67,6 +67,7 @@ type ThreadTimelineProps = {
     pendingRequests: TimelinePendingRequest[];
     contentTopInset?: number;
     contentBottomInset?: number;
+    emptyReady?: boolean;
     ListHeaderComponent?: ReactElement | null;
     keyboardOffset: number;
     contentInsetEndAdjustment: SharedValue<number>;
@@ -112,6 +113,7 @@ const ThreadTimelineContent = ({
     pendingRequests,
     contentTopInset = 0,
     contentBottomInset = 0,
+    emptyReady = true,
     ListHeaderComponent,
     keyboardOffset,
     contentInsetEndAdjustment,
@@ -307,7 +309,7 @@ const ThreadTimelineContent = ({
                     contentTopInset > 0 && { paddingTop: contentTopInset },
                 ]}
             />
-            {rowCount === 0 ? (
+            {rowCount === 0 && emptyReady ? (
                 <TimelineEmptyOverlay
                     loading={loading}
                     message={emptyMessage}

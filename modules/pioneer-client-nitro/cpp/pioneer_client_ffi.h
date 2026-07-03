@@ -59,10 +59,14 @@ char* pioneer_client_ffi_agents_doc_get(PioneerClientFfi* client, const char* in
 char* pioneer_client_ffi_agents_doc_save(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_agents_doc_archive(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_active_thread_open(PioneerClientFfi* client, const char* input_json);
+char* pioneer_client_ffi_active_thread_open_by_id(PioneerClientFfi* client, const char* input_json);
+char* pioneer_client_ffi_active_thread_ensure_workspace_draft(PioneerClientFfi* client, const char* input_json);
+char* pioneer_client_ffi_active_thread_open_or_create_new(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_active_thread_snapshot(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_active_thread_apply_event(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_active_thread_send_text(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_active_thread_cancel_turn(PioneerClientFfi* client, const char* input_json);
+char* pioneer_client_ffi_active_thread_unsubscribe_or_close(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_active_thread_clear(PioneerClientFfi* client);
 void pioneer_client_ffi_string_destroy(char* value);
 

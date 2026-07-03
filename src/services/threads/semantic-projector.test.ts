@@ -164,7 +164,7 @@ describe('mobile semantic timeline projector', () => {
         });
     });
 
-    it('hydrates running row from active snapshot before the live work block arrives', () => {
+    it('does not synthesize running row from stale active snapshot state', () => {
         const rows = projectSemanticTimelineToRows({
             snapshot: snapshot({
                 composer_locked: true,
@@ -185,10 +185,7 @@ describe('mobile semantic timeline projector', () => {
             nowMs: 10_000,
         });
 
-        expect(rows.find((row) => row.type === 'running')).toMatchObject({
-            turnId: 'turn_a',
-            startedAtUnixMs: 1_000,
-        });
+        expect(rows.some((row) => row.type === 'running')).toBe(false);
     });
 
     it('projects pending request blocks into actionable pending request rows', () => {

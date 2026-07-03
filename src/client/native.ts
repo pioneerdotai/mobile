@@ -10,11 +10,14 @@ import type { ClientActiveThreadCancelTurnResult } from './generated/client_acti
 import type { ClientActiveThreadClearResult } from './generated/client_active_thread_clear_result';
 import type { ClientActiveThreadEventRequest } from './generated/client_active_thread_event_request';
 import type { ClientActiveThreadEventResult } from './generated/client_active_thread_event_result';
+import type { ClientActiveThreadOpenByIdRequest } from './generated/client_active_thread_open_by_id_request';
 import type { ClientActiveThreadOpenRequest } from './generated/client_active_thread_open_request';
 import type { ClientActiveThreadSendTextRequest } from './generated/client_active_thread_send_text_request';
 import type { ClientActiveThreadSendTextResult } from './generated/client_active_thread_send_text_result';
 import type { ClientActiveThreadSnapshot } from './generated/client_active_thread_snapshot';
 import type { ClientActiveThreadSnapshotRequest } from './generated/client_active_thread_snapshot_request';
+import type { ClientActiveThreadUnsubscribeRequest } from './generated/client_active_thread_unsubscribe_request';
+import type { ClientActiveThreadUnsubscribeResult } from './generated/client_active_thread_unsubscribe_result';
 import type { ClientComposerAttachmentFromPathRequest } from './generated/client_composer_attachment_from_path_request';
 import type { ClientComposerAttachmentsUpdateRequest } from './generated/client_composer_attachments_update_request';
 import type { ClientComposerCapabilitiesUpdateRequest } from './generated/client_composer_capabilities_update_request';
@@ -38,6 +41,7 @@ import type { ClientDiagnosticEvent } from './generated/client_diagnostic_event'
 import type { ClientEvent } from './generated/client_event';
 import type { ClientGatewayConnectRequest } from './generated/client_gateway_connect_request';
 import type { ClientGatewayConnectResult } from './generated/client_gateway_connect_result';
+import type { ClientEnsureWorkspaceDraftRequest } from './generated/client_ensure_workspace_draft_request';
 import type { CLIRuntimeListModelsParams } from './generated/cli_runtime_list_models_params';
 import type { CLIRuntimeListModelsResponse } from './generated/cli_runtime_list_models_response';
 import type { CLIRuntimeListParams } from './generated/cli_runtime_list_params';
@@ -108,12 +112,15 @@ export type { ClientActiveThreadCancelTurnResult } from './generated/client_acti
 export type { ClientActiveThreadClearResult } from './generated/client_active_thread_clear_result';
 export type { ClientActiveThreadEventRequest } from './generated/client_active_thread_event_request';
 export type { ClientActiveThreadEventResult } from './generated/client_active_thread_event_result';
+export type { ClientActiveThreadOpenByIdRequest } from './generated/client_active_thread_open_by_id_request';
 export type { ClientActiveThreadOpenRequest } from './generated/client_active_thread_open_request';
 export type { ClientActiveThreadSendTextRequest } from './generated/client_active_thread_send_text_request';
 export type { ThreadMode } from './generated/client_active_thread_send_text_request';
 export type { ClientActiveThreadSendTextResult } from './generated/client_active_thread_send_text_result';
 export type { ClientActiveThreadSnapshot } from './generated/client_active_thread_snapshot';
 export type { ClientActiveThreadSnapshotRequest } from './generated/client_active_thread_snapshot_request';
+export type { ClientActiveThreadUnsubscribeRequest } from './generated/client_active_thread_unsubscribe_request';
+export type { ClientActiveThreadUnsubscribeResult } from './generated/client_active_thread_unsubscribe_result';
 export type { ClientComposerAttachmentFromPathRequest } from './generated/client_composer_attachment_from_path_request';
 export type { ClientComposerAttachmentsUpdateRequest } from './generated/client_composer_attachments_update_request';
 export type { ClientComposerCapabilitiesUpdateRequest } from './generated/client_composer_capabilities_update_request';
@@ -138,6 +145,7 @@ export type { ClientDiagnosticEvent } from './generated/client_diagnostic_event'
 export type { ClientEvent } from './generated/client_event';
 export type { ClientGatewayConnectRequest } from './generated/client_gateway_connect_request';
 export type { ClientGatewayConnectResult } from './generated/client_gateway_connect_result';
+export type { ClientEnsureWorkspaceDraftRequest } from './generated/client_ensure_workspace_draft_request';
 export type { CLIRuntimeListModelsParams } from './generated/cli_runtime_list_models_params';
 export type {
     CLIRuntimeListModelsResponse,
@@ -653,6 +661,32 @@ export const pioneerClient = {
         );
     },
 
+    async activeThreadOpenById(
+        input: ClientActiveThreadOpenByIdRequest,
+    ): Promise<ClientActiveThreadSnapshot> {
+        return parsePioneerClientResponse<ClientActiveThreadSnapshot>(
+            await getPioneerClientNitro().activeThreadOpenByIdJson(JSON.stringify(input)),
+        );
+    },
+
+    async activeThreadEnsureWorkspaceDraft(
+        input: ClientEnsureWorkspaceDraftRequest,
+    ): Promise<ClientActiveThreadSnapshot> {
+        return parsePioneerClientResponse<ClientActiveThreadSnapshot>(
+            await getPioneerClientNitro().activeThreadEnsureWorkspaceDraftJson(
+                JSON.stringify(input),
+            ),
+        );
+    },
+
+    async activeThreadOpenOrCreateNew(
+        input: ClientEnsureWorkspaceDraftRequest,
+    ): Promise<ClientActiveThreadSnapshot> {
+        return parsePioneerClientResponse<ClientActiveThreadSnapshot>(
+            await getPioneerClientNitro().activeThreadOpenOrCreateNewJson(JSON.stringify(input)),
+        );
+    },
+
     activeThreadSnapshot(input: ClientActiveThreadSnapshotRequest): ClientActiveThreadSnapshot {
         return parsePioneerClientResponse<ClientActiveThreadSnapshot>(
             getPioneerClientNitro().activeThreadSnapshotJson(JSON.stringify(input)),
@@ -680,6 +714,14 @@ export const pioneerClient = {
     ): Promise<ClientActiveThreadCancelTurnResult> {
         return parsePioneerClientResponse<ClientActiveThreadCancelTurnResult>(
             await getPioneerClientNitro().activeThreadCancelTurnJson(JSON.stringify(input)),
+        );
+    },
+
+    async activeThreadUnsubscribeOrClose(
+        input: ClientActiveThreadUnsubscribeRequest,
+    ): Promise<ClientActiveThreadUnsubscribeResult> {
+        return parsePioneerClientResponse<ClientActiveThreadUnsubscribeResult>(
+            await getPioneerClientNitro().activeThreadUnsubscribeOrCloseJson(JSON.stringify(input)),
         );
     },
 

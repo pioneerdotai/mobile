@@ -12,6 +12,7 @@ import {
     type TimelinePageAnchor,
 } from '@/client';
 import { requestThreadTimelinePage } from '@/services/threads/timeline-page-requests';
+import { protocolKeyCompare } from '@/services/threads/protocol-key-order';
 import {
     DEFAULT_THREAD_TIMELINE_PAGE_LIMIT,
     TIMELINE_FFI_ERROR_CODES,
@@ -146,7 +147,8 @@ export const flattenThreadTimelineBlocks = (
 
     return Array.from(blocksById.values()).sort(
         (left, right) =>
-            left.sortKey.localeCompare(right.sortKey) || left.blockId.localeCompare(right.blockId),
+            protocolKeyCompare(left.sortKey, right.sortKey) ||
+            protocolKeyCompare(left.blockId, right.blockId),
     );
 };
 

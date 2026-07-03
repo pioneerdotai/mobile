@@ -467,6 +467,11 @@ export type GatewayNotification =
       [k: string]: unknown;
     }
   | {
+      kind: 'voice_session_result';
+      params: VoiceSessionResultNotification;
+      [k: string]: unknown;
+    }
+  | {
       kind: 'unknown';
       params: UnknownGatewayNotification;
       [k: string]: unknown;
@@ -1484,6 +1489,20 @@ export type GatewayRemoteAccessErrorKind =
   | 'restart_limit_reached'
   | 'io'
   | 'unknown';
+export type VoiceErrorKind =
+  | 'model_unavailable'
+  | 'microphone_permission_blocked'
+  | 'device_unavailable'
+  | 'invalid_session'
+  | 'stale_chunk'
+  | 'sequence_gap'
+  | 'cancelled'
+  | 'no_speech'
+  | 'transcription_failed'
+  | 'gateway_busy'
+  | 'model_downloading'
+  | 'unknown';
+export type VoiceSessionOutcome = 'turn_started' | 'cancelled' | 'no_speech' | 'failed';
 export type ClientEffect =
   | (
       | 'RefreshWorkspaceList'
@@ -3000,6 +3019,24 @@ export interface GatewayRemoteAccessStatusSnapshot {
   message?: string | null;
   state?: 'disabled' | 'starting' | 'connected' | 'reconnecting' | 'failed' | 'stopped';
   updated_at_unix?: number | null;
+  [k: string]: unknown;
+}
+/**
+ * Voice session terminal notification.
+ *
+ * This never carries transcript text. Successful user-message rendering comes
+ * from the normal `turn/started` and timeline notifications.
+ */
+export interface VoiceSessionResultNotification {
+  error?: VoiceError | null;
+  outcome: VoiceSessionOutcome;
+  session_id: string;
+  turn_id?: string | null;
+  [k: string]: unknown;
+}
+export interface VoiceError {
+  kind: VoiceErrorKind;
+  message: string;
   [k: string]: unknown;
 }
 export interface UnknownGatewayNotification {

@@ -9,6 +9,7 @@ import type { Thread } from '@/client';
 import { useGateway } from '@/hooks/use-gateway';
 import { useThreadTreeLevel } from '@/hooks/use-thread-tree';
 import { useWorkspace } from '@/hooks/use-workspace';
+import { useHideAppSplashWhen } from '@/services/app-splash';
 import { Title } from '@/components/typography/title';
 
 import { Workspace } from '../workspace';
@@ -18,8 +19,14 @@ const ThreadTree = () => {
     const router = useRouter();
     const { connectionState } = useGateway();
     const { activeWorkspaceId } = useWorkspace();
-    const { currentAgentsDocSummary, folders, threads, loading, error } = useThreadTreeLevel(null);
+    const { currentAgentsDocSummary, folders, threads, loading, error, workspaceId } =
+        useThreadTreeLevel(null);
     const ready = connectionState === 'Connected' && !!activeWorkspaceId;
+    const treeReady =
+        ready && activeWorkspaceId !== null && (workspaceId === activeWorkspaceId || !!error);
+    const initialScreenReady = treeReady || connectionState === 'Disconnected';
+
+    useHideAppSplashWhen(initialScreenReady);
 
     const openFolder = (folderId: string) => {
         router.push({

@@ -13,6 +13,7 @@ import {
     type TurnWorkPageResponse,
 } from '@/client';
 import { requestTurnWorkPage } from '@/services/threads/timeline-page-requests';
+import { protocolKeyCompare } from '@/services/threads/protocol-key-order';
 import {
     DEFAULT_TURN_WORK_PAGE_LIMIT,
     TIMELINE_FFI_ERROR_CODES,
@@ -154,8 +155,8 @@ export const flattenTurnWorkItems = (pages: readonly TurnWorkPageResponse[]): Tu
 
     return Array.from(itemsById.values()).sort(
         (left, right) =>
-            left.orderKey.localeCompare(right.orderKey) ||
-            left.workItemId.localeCompare(right.workItemId),
+            protocolKeyCompare(left.orderKey, right.orderKey) ||
+            protocolKeyCompare(left.workItemId, right.workItemId),
     );
 };
 

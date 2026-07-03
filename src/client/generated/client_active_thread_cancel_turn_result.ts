@@ -705,11 +705,15 @@ export interface ClientActiveThreadCancelTurnResult {
   [k: string]: unknown;
 }
 export interface ClientActiveThreadSnapshot {
+  draft_thread_id?: string | null;
+  draft_workspace_id?: string | null;
   history_loaded: boolean;
   history_loading: boolean;
+  last_active_thread_id?: string | null;
   pending_requests?: PendingRequest[];
   projection: ConversationViewState;
   rows: TimelineRow[];
+  session_revision?: number;
   thread?: Thread | null;
   thread_id?: string | null;
   workspace_id?: string | null;

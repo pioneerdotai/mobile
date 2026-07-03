@@ -86,4 +86,27 @@ describe('mobile semantic timeline cache patch', () => {
         );
         expect(data?.pages[0]?.blocks?.map((block) => block.blockId)).toEqual(['block_1']);
     });
+
+    it('keeps patched top-level blocks in protocol order regardless of patch arrival order', () => {
+        const queryClient = new QueryClient();
+
+        applySemanticTimelinePatchToCache(queryClient, {
+            workspace_id: 'workspace_a',
+            thread_id: 'thread_a',
+            changed_blocks: [
+                timelineBlock('assistant', '00000000000000000010:turn_a:200:answer'),
+                timelineBlock('work', '00000000000000000010:turn_a:100:work'),
+                timelineBlock('user', '00000000000000000010:turn_a:000:user'),
+            ],
+        });
+
+        const data = queryClient.getQueryData<ThreadTimelineData>(
+            timelineQueryKeys.threadPagesForLimit('thread_a', DEFAULT_THREAD_TIMELINE_PAGE_LIMIT),
+        );
+        expect(data?.pages[0]?.blocks?.map((block) => block.blockId)).toEqual([
+            'user',
+            'work',
+            'assistant',
+        ]);
+    });
 });

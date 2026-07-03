@@ -65,10 +65,14 @@ namespace margelo::nitro::pioneer::client {
       prototype.registerHybridMethod("agentsDocSaveJson", &HybridPioneerClientSpec::agentsDocSaveJson);
       prototype.registerHybridMethod("agentsDocArchiveJson", &HybridPioneerClientSpec::agentsDocArchiveJson);
       prototype.registerHybridMethod("activeThreadOpenJson", &HybridPioneerClientSpec::activeThreadOpenJson);
+      prototype.registerHybridMethod("activeThreadOpenByIdJson", &HybridPioneerClientSpec::activeThreadOpenByIdJson);
+      prototype.registerHybridMethod("activeThreadEnsureWorkspaceDraftJson", &HybridPioneerClientSpec::activeThreadEnsureWorkspaceDraftJson);
+      prototype.registerHybridMethod("activeThreadOpenOrCreateNewJson", &HybridPioneerClientSpec::activeThreadOpenOrCreateNewJson);
       prototype.registerHybridMethod("activeThreadSnapshotJson", &HybridPioneerClientSpec::activeThreadSnapshotJson);
       prototype.registerHybridMethod("activeThreadApplyEventJson", &HybridPioneerClientSpec::activeThreadApplyEventJson);
       prototype.registerHybridMethod("activeThreadSendTextJson", &HybridPioneerClientSpec::activeThreadSendTextJson);
       prototype.registerHybridMethod("activeThreadCancelTurnJson", &HybridPioneerClientSpec::activeThreadCancelTurnJson);
+      prototype.registerHybridMethod("activeThreadUnsubscribeOrCloseJson", &HybridPioneerClientSpec::activeThreadUnsubscribeOrCloseJson);
       prototype.registerHybridMethod("activeThreadClearJson", &HybridPioneerClientSpec::activeThreadClearJson);
     });
   }

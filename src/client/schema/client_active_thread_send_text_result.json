@@ -261,11 +261,32 @@
     "ClientActiveThreadSnapshot": {
       "type": "object",
       "properties": {
+        "draft_thread_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "draft_workspace_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
         "history_loaded": {
           "type": "boolean"
         },
         "history_loading": {
           "type": "boolean"
+        },
+        "last_active_thread_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
         },
         "pending_requests": {
           "type": "array",
@@ -282,6 +303,12 @@
           "items": {
             "$ref": "#/$defs/TimelineRow"
           }
+        },
+        "session_revision": {
+          "type": "integer",
+          "format": "uint64",
+          "default": 0,
+          "minimum": 0
         },
         "thread": {
           "anyOf": [

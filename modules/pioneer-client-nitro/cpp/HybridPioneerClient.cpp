@@ -286,6 +286,21 @@ HybridPioneerClient::activeThreadOpenJson(const std::string& inputJson) {
   return callWithClientAsync(pioneer_client_ffi_active_thread_open, inputJson);
 }
 
+std::shared_ptr<margelo::nitro::Promise<std::string>>
+HybridPioneerClient::activeThreadOpenByIdJson(const std::string& inputJson) {
+  return callWithClientAsync(pioneer_client_ffi_active_thread_open_by_id, inputJson);
+}
+
+std::shared_ptr<margelo::nitro::Promise<std::string>>
+HybridPioneerClient::activeThreadEnsureWorkspaceDraftJson(const std::string& inputJson) {
+  return callWithClientAsync(pioneer_client_ffi_active_thread_ensure_workspace_draft, inputJson);
+}
+
+std::shared_ptr<margelo::nitro::Promise<std::string>>
+HybridPioneerClient::activeThreadOpenOrCreateNewJson(const std::string& inputJson) {
+  return callWithClientAsync(pioneer_client_ffi_active_thread_open_or_create_new, inputJson);
+}
+
 std::string HybridPioneerClient::activeThreadSnapshotJson(const std::string& inputJson) {
   return callWithClient(pioneer_client_ffi_active_thread_snapshot, inputJson);
 }
@@ -303,6 +318,11 @@ HybridPioneerClient::activeThreadSendTextJson(const std::string& inputJson) {
 std::shared_ptr<margelo::nitro::Promise<std::string>>
 HybridPioneerClient::activeThreadCancelTurnJson(const std::string& inputJson) {
   return callWithClientAsync(pioneer_client_ffi_active_thread_cancel_turn, inputJson);
+}
+
+std::shared_ptr<margelo::nitro::Promise<std::string>>
+HybridPioneerClient::activeThreadUnsubscribeOrCloseJson(const std::string& inputJson) {
+  return callWithClientAsync(pioneer_client_ffi_active_thread_unsubscribe_or_close, inputJson);
 }
 
 std::shared_ptr<margelo::nitro::Promise<std::string>>

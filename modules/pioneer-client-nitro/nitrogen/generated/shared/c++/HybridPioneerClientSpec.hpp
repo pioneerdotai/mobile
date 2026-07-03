@@ -100,10 +100,14 @@ namespace margelo::nitro::pioneer::client {
       virtual std::shared_ptr<Promise<std::string>> agentsDocSaveJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> agentsDocArchiveJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> activeThreadOpenJson(const std::string& inputJson) = 0;
+      virtual std::shared_ptr<Promise<std::string>> activeThreadOpenByIdJson(const std::string& inputJson) = 0;
+      virtual std::shared_ptr<Promise<std::string>> activeThreadEnsureWorkspaceDraftJson(const std::string& inputJson) = 0;
+      virtual std::shared_ptr<Promise<std::string>> activeThreadOpenOrCreateNewJson(const std::string& inputJson) = 0;
       virtual std::string activeThreadSnapshotJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> activeThreadApplyEventJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> activeThreadSendTextJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> activeThreadCancelTurnJson(const std::string& inputJson) = 0;
+      virtual std::shared_ptr<Promise<std::string>> activeThreadUnsubscribeOrCloseJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> activeThreadClearJson() = 0;
 
     protected:
