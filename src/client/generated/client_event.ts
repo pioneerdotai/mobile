@@ -11,6 +11,9 @@ export type ClientEvent =
       GatewayNotification: GatewayNotification;
     }
   | {
+      VoiceSessionResultReduced: VoiceSessionResultReduction;
+    }
+  | {
       EffectsPlanned: ClientEffect[];
     }
   | {
@@ -1503,6 +1506,11 @@ export type VoiceErrorKind =
   | 'model_downloading'
   | 'unknown';
 export type VoiceSessionOutcome = 'turn_started' | 'cancelled' | 'no_speech' | 'failed';
+export type VoiceFinalizeUiAction =
+  | 'keep_finalizing'
+  | 'clear_finalizing'
+  | 'show_no_speech_error'
+  | 'show_finalize_error';
 export type ClientEffect =
   | (
       | 'RefreshWorkspaceList'
@@ -3043,6 +3051,13 @@ export interface UnknownGatewayNotification {
   turn_id?: string | null;
   workspace_id?: string | null;
   [k: string]: unknown;
+}
+export interface VoiceSessionResultReduction {
+  action: VoiceFinalizeUiAction;
+  error?: VoiceError | null;
+  outcome: VoiceSessionOutcome;
+  session_id: string;
+  turn_id?: string | null;
 }
 export interface ClientErrorEvent {
   code?: string | null;

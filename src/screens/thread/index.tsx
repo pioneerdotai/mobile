@@ -19,7 +19,7 @@ import {
     type Thread,
     type TimelineBlock,
     type TurnWorkBlock,
-    type VoiceSessionResultNotification,
+    type VoiceSessionResultReduction,
     type VoiceStatusResponse,
     type VoiceTurnContext,
 } from '@/client';
@@ -957,13 +957,13 @@ const ThreadScreen = ({
         finishVoiceCapture('cancel');
     }, [finishVoiceCapture]);
 
-    const voiceSessionResultMessage = useCallback(
-        (notification: VoiceSessionResultNotification): string => {
-            if (notification.outcome === 'no_speech') {
-                return notification.error?.message || t('voiceNoSpeech');
+    const voiceSessionResultReductionMessage = useCallback(
+        (reduction: VoiceSessionResultReduction): string => {
+            if (reduction.action === 'show_no_speech_error') {
+                return reduction.error?.message || t('voiceNoSpeech');
             }
 
-            return notification.error?.message || t('voiceTranscriptionFailed');
+            return reduction.error?.message || t('voiceTranscriptionFailed');
         },
         [t],
     );
@@ -979,55 +979,59 @@ const ThreadScreen = ({
             }
 
             const event = state.lastEvent;
-            if (!event || !('GatewayNotification' in event)) {
+            if (!event) {
                 return;
             }
 
-            const notification = event.GatewayNotification;
-            if (notification.kind === 'turn_started') {
-                const turnId = notification.params.turn.id;
-                if (!voiceOwnedTurnIdsRef.current.has(turnId)) {
+            if ('GatewayNotification' in event) {
+                const notification = event.GatewayNotification;
+                if (notification.kind !== 'turn_started') {
                     return;
                 }
 
-                voiceOwnedTurnIdsRef.current.delete(turnId);
+                const turnId = notification.params.turn.id;
+                if (!voiceOwnedTurnIdsRef.current.delete(turnId)) {
+                    return;
+                }
                 useActiveThreadStore.getState().clearComposerPayload();
                 return;
             }
 
-            if (notification.kind !== 'voice_session_result') {
+            if (!('VoiceSessionResultReduced' in event)) {
                 return;
             }
 
-            const sessionResult = notification.params;
-            if (!voiceOwnedSessionIdsRef.current.has(sessionResult.session_id)) {
+            const reduction = event.VoiceSessionResultReduced;
+            if (!voiceOwnedSessionIdsRef.current.has(reduction.session_id)) {
                 return;
             }
 
-            voiceOwnedSessionIdsRef.current.delete(sessionResult.session_id);
-            if (sessionResult.turn_id && sessionResult.outcome !== 'turn_started') {
-                voiceOwnedTurnIdsRef.current.delete(sessionResult.turn_id);
+            voiceOwnedSessionIdsRef.current.delete(reduction.session_id);
+            if (reduction.turn_id) {
+                voiceOwnedTurnIdsRef.current.delete(reduction.turn_id);
             }
             void refreshVoiceStatus();
 
-            if (sessionResult.outcome === 'turn_started') {
+            if (reduction.action === 'clear_finalizing') {
+                if (reduction.outcome !== 'turn_started') {
+                    setVoiceCommitPendingTurn(null);
+                    return;
+                }
                 useActiveThreadStore.getState().clearComposerPayload();
                 return;
             }
 
-            if (sessionResult.outcome === 'cancelled') {
-                setVoiceCommitPendingTurn(null);
-                return;
-            }
-
-            if (sessionResult.outcome === 'no_speech' || sessionResult.outcome === 'failed') {
+            if (
+                reduction.action === 'show_no_speech_error' ||
+                reduction.action === 'show_finalize_error'
+            ) {
                 setVoiceCommitPendingTurn(null);
                 useActiveThreadStore
                     .getState()
-                    .setComposerError(voiceSessionResultMessage(sessionResult));
+                    .setComposerError(voiceSessionResultReductionMessage(reduction));
             }
         });
-    }, [focused, refreshVoiceStatus, voiceSessionResultMessage]);
+    }, [focused, refreshVoiceStatus, voiceSessionResultReductionMessage]);
 
     const handleStopTurn = useCallback(() => {
         void stopTurn();

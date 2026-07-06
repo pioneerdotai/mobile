@@ -285,8 +285,11 @@ export type { VoiceSessionCancelParams } from './generated/voice_session_cancel_
 export type { VoiceSessionCancelResponse } from './generated/voice_session_cancel_response';
 export type { VoiceSessionFinalizeParams } from './generated/voice_session_finalize_params';
 export type { VoiceSessionFinalizeResponse } from './generated/voice_session_finalize_response';
+export type { VoiceFinalizeResponseReduction } from './generated/voice_finalize_response_reduction';
+export type { VoiceFinalizeUiAction } from './generated/voice_finalize_ui_action';
 export type { VoiceSessionOutcome } from './generated/voice_session_outcome';
 export type { VoiceSessionResultNotification } from './generated/voice_session_result_notification';
+export type { VoiceSessionResultReduction } from './generated/voice_session_result_reduction';
 export type {
     VoiceSessionStartContext,
     VoiceSessionStartParams,

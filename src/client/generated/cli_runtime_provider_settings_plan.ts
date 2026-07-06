@@ -141,9 +141,6 @@ export interface GatewayRemoteAccessStatusSnapshot {
   [k: string]: unknown;
 }
 export interface GatewayThreadEpisodicSettings {
-  chunk_max_chars: number;
-  chunk_target_max_chars: number;
-  chunk_target_min_chars: number;
   default_max_candidates: number;
   default_prompt_chars: number;
   enabled: boolean;
@@ -151,7 +148,6 @@ export interface GatewayThreadEpisodicSettings {
   indexing_enabled: boolean;
   max_attempts: number;
   max_candidate_work: number;
-  max_chunks_per_item: number;
   max_hit_chars: number;
   max_prompt_chars: number;
   max_segments: number;
@@ -195,9 +191,6 @@ export interface GatewayRemoteAccessSettingsUpdate {
   [k: string]: unknown;
 }
 export interface GatewayThreadEpisodicSettingsUpdate {
-  chunk_max_chars?: number | null;
-  chunk_target_max_chars?: number | null;
-  chunk_target_min_chars?: number | null;
   default_max_candidates?: number | null;
   default_prompt_chars?: number | null;
   enabled?: boolean | null;
@@ -205,7 +198,6 @@ export interface GatewayThreadEpisodicSettingsUpdate {
   indexing_enabled?: boolean | null;
   max_attempts?: number | null;
   max_candidate_work?: number | null;
-  max_chunks_per_item?: number | null;
   max_hit_chars?: number | null;
   max_prompt_chars?: number | null;
   max_segments?: number | null;

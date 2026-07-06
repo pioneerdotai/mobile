@@ -89,9 +89,6 @@ export interface GatewayRemoteAccessStatusSnapshot {
   [k: string]: unknown;
 }
 export interface GatewayThreadEpisodicSettings {
-  chunk_max_chars: number;
-  chunk_target_max_chars: number;
-  chunk_target_min_chars: number;
   default_max_candidates: number;
   default_prompt_chars: number;
   enabled: boolean;
@@ -99,7 +96,6 @@ export interface GatewayThreadEpisodicSettings {
   indexing_enabled: boolean;
   max_attempts: number;
   max_candidate_work: number;
-  max_chunks_per_item: number;
   max_hit_chars: number;
   max_prompt_chars: number;
   max_segments: number;
