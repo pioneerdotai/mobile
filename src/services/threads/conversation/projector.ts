@@ -145,6 +145,7 @@ const projectClientConversationRow = (
             turnId: runningTurn.turn_id,
             startedAtUnixMs,
             elapsedLabel: elapsedMs >= 1_000 ? formatElapsedMs(elapsedMs) : null,
+            securitySummary: runningTurn.security_summary ?? null,
         };
     }
 

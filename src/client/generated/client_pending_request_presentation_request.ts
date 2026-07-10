@@ -50,7 +50,8 @@ export type TurnPermissionDecisionReason =
   | 'user_denied'
   | 'cancelled'
   | 'expired'
-  | 'unknown_action_default';
+  | 'unknown_action_default'
+  | 'sandbox_denied';
 
 export interface ClientPendingRequestPresentationRequest {
   request: PendingRequest;
@@ -87,6 +88,7 @@ export interface TurnPermissionApprovalRequest {
   thread_id: string;
   tool_name: string;
   turn_id: string;
+  visible_thread_ids?: string[];
   workspace_id: string;
   [k: string]: unknown;
 }

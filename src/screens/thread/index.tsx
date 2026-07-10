@@ -53,7 +53,7 @@ import { projectConversationToRows } from '@/services/threads/conversation/proje
 import { activeThreadSnapshot } from '@/services/threads/active';
 import { seedEmptyThreadTimelineCache } from '@/services/threads/semantic-cache-patch';
 import { selectedReasoningEffortRequestFields } from '@/services/threads/reasoning-effort';
-import type { TimelineRow } from '@/services/threads/conversation/timeline';
+import type { TimelinePendingRequest, TimelineRow } from '@/services/threads/conversation/timeline';
 import {
     canUseVoiceStatus,
     MobileVoiceCaptureError,
@@ -355,6 +355,13 @@ const ThreadScreen = ({
         () => (hasNativeTimelineRows ? null : (semanticTimelineRows ?? [])),
         [hasNativeTimelineRows, semanticTimelineRows],
     );
+    const semanticPendingRequests = useMemo<TimelinePendingRequest[]>(
+        () =>
+            (semanticTimelineRows ?? []).flatMap((row) =>
+                'type' in row && row.type === 'pending-request' ? [row.entry] : [],
+            ),
+        [semanticTimelineRows],
+    );
     const visibleTimelineRowCount = hasNativeTimelineRows
         ? (visibleSnapshot?.rows.length ?? 0)
         : (timelineRowsOverride?.length ?? 0);
@@ -479,15 +486,25 @@ const ThreadScreen = ({
         canUseVoiceStatus(voiceStatus),
     );
 
-    const pendingRequests = useMemo(
-        () =>
-            (visibleSnapshot?.pending_requests ?? []).map((request) => ({
+    const pendingRequests = useMemo(() => {
+        const byRequestId = new Map<string, TimelinePendingRequest>();
+
+        for (const request of visibleSnapshot?.pending_requests ?? []) {
+            byRequestId.set(request.request_id, {
                 thread_id: request.thread_id ?? null,
                 turn_id: request.turn_id ?? null,
                 request,
-            })),
-        [visibleSnapshot?.pending_requests],
-    );
+            });
+        }
+
+        for (const request of semanticPendingRequests) {
+            if (!byRequestId.has(request.request.request_id)) {
+                byRequestId.set(request.request.request_id, request);
+            }
+        }
+
+        return Array.from(byRequestId.values());
+    }, [semanticPendingRequests, visibleSnapshot?.pending_requests]);
     const activeCliRuntimeThreadBinding =
         cliRuntimeThreadBinding?.workspace_id === activeWorkspaceId &&
         cliRuntimeThreadBinding.thread_id === visibleThreadId

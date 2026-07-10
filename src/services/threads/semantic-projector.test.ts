@@ -273,6 +273,47 @@ describe('mobile semantic timeline projector', () => {
             },
         });
     });
+
+    it('keeps child request scope for pending request blocks projected on a parent page', () => {
+        const basePendingBlock = pendingRequestBlock('003');
+        if (basePendingBlock.kind.kind !== 'pending_request') {
+            throw new Error('expected pending request block');
+        }
+
+        const rows = projectSemanticTimelineToRows({
+            snapshot: snapshot(),
+            blocks: [
+                {
+                    ...basePendingBlock,
+                    threadId: 'child_thread',
+                    turnId: 'child_turn',
+                    kind: {
+                        ...basePendingBlock.kind,
+                        requestId: 'child_request',
+                    },
+                },
+            ],
+            expandedKeys: [],
+            workRangesByTurn: {},
+            nowMs: 10_000,
+        });
+
+        const requestRow = rows.find((row) => row.type === 'pending-request');
+
+        expect(requestRow).toMatchObject({
+            key: 'timeline-pending-request::child_request',
+            turnId: 'child_turn',
+            entry: {
+                thread_id: 'child_thread',
+                turn_id: 'child_turn',
+                request: {
+                    request_id: 'child_request',
+                    thread_id: 'child_thread',
+                    turn_id: 'child_turn',
+                },
+            },
+        });
+    });
 });
 
 const userBlock = (sortKey: string): TimelineBlock => ({

@@ -696,6 +696,14 @@ export type TurnItemType =
   | 'download'
   | 'dynamic_tool_call';
 export type TurnWorkItemStatus = 'running' | 'completed' | 'blocked' | 'failed' | 'cancelled';
+export type TurnSecurityCapabilityKind = 'filesystem' | 'network' | 'process' | 'approval' | 'sandbox_backend';
+export type ClientSecurityEnforcementStatus = 'active' | 'degraded' | 'unavailable';
+export type TurnSecurityExecutionBackendKind = 'native' | 'codex_cli' | 'claude_cli';
+export type ClientSecurityFilesystemAccess = 'unrestricted' | 'read_only' | 'workspace_write';
+export type TurnNetworkMode = 'disabled' | 'restricted' | 'enabled';
+export type TurnPermissionMode = 'full_access' | 'auto_accept_edits' | 'supervised';
+export type SandboxBackendKind = 'nono' | 'windows_restricted_token' | 'provider_native';
+export type TurnSandboxMode = 'unrestricted' | 'read_only' | 'workspace_write';
 export type PendingRequestKind = 'command_approval' | 'file_change_approval' | 'user_input' | 'other';
 export type PendingRequestOrigin =
   | {
@@ -745,7 +753,8 @@ export type TurnPermissionDecisionReason =
   | 'user_denied'
   | 'cancelled'
   | 'expired'
-  | 'unknown_action_default';
+  | 'unknown_action_default'
+  | 'sandbox_denied';
 export type TimelineEntryStatus = 'Running' | 'Completed' | 'Blocked' | 'Failed' | 'Cancelled';
 export type TimelineOriginKind = 'parent_turn' | 'task_event' | 'child_turn';
 export type TimelineLane = 'parent' | 'task' | 'child_agent' | 'child_tool' | 'child_reasoning' | 'child_result';
@@ -759,11 +768,13 @@ export type TurnPermissionAuditDecision =
   | 'expired';
 export type TurnPermissionAuditEventKind =
   | 'profile_selected'
+  | 'security_snapshot_resolved'
+  | 'security_sandbox_degraded'
+  | 'security_sandbox_unavailable'
   | 'approval_requested'
   | 'approval_resolved'
   | 'decision_allowed'
   | 'decision_denied';
-export type TurnPermissionMode = 'full_access' | 'auto_accept_edits' | 'supervised';
 export type TurnPermissionProfileSource =
   | 'composer'
   | 'defaulted'
@@ -1046,6 +1057,8 @@ export interface SemanticTimelineRemovedWorkItem {
   [k: string]: unknown;
 }
 export interface ClientActiveThreadSnapshot {
+  active_turn_security_diagnostics?: ClientSecurityDiagnosticRow[];
+  active_turn_security_summary?: ClientTurnSecuritySummary | null;
   draft_thread_id?: string | null;
   draft_workspace_id?: string | null;
   history_loaded: boolean;
@@ -1058,6 +1071,29 @@ export interface ClientActiveThreadSnapshot {
   thread?: Thread | null;
   thread_id?: string | null;
   workspace_id?: string | null;
+  [k: string]: unknown;
+}
+export interface ClientSecurityDiagnosticRow {
+  capability: TurnSecurityCapabilityKind;
+  label: string;
+  message: string;
+  [k: string]: unknown;
+}
+export interface ClientTurnSecuritySummary {
+  diagnostics?: ClientSecurityDiagnostic[];
+  enforcement: ClientSecurityEnforcementStatus;
+  execution_backend: TurnSecurityExecutionBackendKind;
+  filesystem_access: ClientSecurityFilesystemAccess;
+  network_mode: TurnNetworkMode;
+  permission_mode: TurnPermissionMode;
+  sandbox_backend?: SandboxBackendKind | null;
+  sandbox_mode: TurnSandboxMode;
+  [k: string]: unknown;
+}
+export interface ClientSecurityDiagnostic {
+  capability: TurnSecurityCapabilityKind;
+  message: string;
+  status: ClientSecurityEnforcementStatus;
   [k: string]: unknown;
 }
 export interface PendingRequest {
@@ -1084,6 +1120,7 @@ export interface TurnPermissionApprovalRequest {
   thread_id: string;
   tool_name: string;
   turn_id: string;
+  visible_thread_ids?: string[];
   workspace_id: string;
   [k: string]: unknown;
 }
@@ -1168,6 +1205,7 @@ export interface TurnView {
   permission_profile?: TurnPermissionProfileSnapshot | null;
   phase: TurnPhase;
   resume?: TurnBlockedResumeMetadata | null;
+  security_summary?: ClientTurnSecuritySummary | null;
   started_at_unix_ms?: number | null;
   [k: string]: unknown;
 }
@@ -1224,6 +1262,7 @@ export interface TimelineCoalescedToolsRow {
 }
 export interface RunningTurnDisplay {
   permission_profile?: TurnPermissionProfileSnapshot | null;
+  security_summary?: ClientTurnSecuritySummary | null;
   started_at_unix_ms?: number | null;
   turn_id: string;
   [k: string]: unknown;

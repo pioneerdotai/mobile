@@ -561,7 +561,8 @@ export type TurnPermissionDecisionReason =
   | 'user_denied'
   | 'cancelled'
   | 'expired'
-  | 'unknown_action_default';
+  | 'unknown_action_default'
+  | 'sandbox_denied';
 export type TurnPermissionApprovalResolution = 'allow_once' | 'allow_for_turn' | 'deny' | 'cancelled' | 'expired';
 export type ExecutionWindowStatus =
   | 'running'
@@ -1365,6 +1366,52 @@ export type TaskResultReviewResolutionStrategy =
   | 'quorum_then_parent'
   | 'any_required_reviewer_can_request_changes';
 export type TaskResultReviewerKind = 'runtime_auto' | 'parent_agent' | 'review_agent' | 'user' | 'system';
+export type TurnFilesystemAccess = 'none' | 'read' | 'write';
+export type TurnFilesystemSandboxPath =
+  | {
+      kind: 'root';
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'current_working_directory';
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'workspace_root';
+      [k: string]: unknown;
+    }
+  | {
+      id: string;
+      kind: 'project_root';
+      subpath?: string | null;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'slash_tmp';
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'tmpdir';
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'runtime_home';
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'explicit_path';
+      path: string;
+      [k: string]: unknown;
+    };
+export type TurnSecurityRuleProvenance =
+  | 'composer_selection'
+  | 'workspace'
+  | 'project'
+  | 'runtime'
+  | 'task_cap'
+  | 'system';
+export type TurnNetworkMode = 'disabled' | 'restricted' | 'enabled';
+export type TurnSandboxMode = 'unrestricted' | 'read_only' | 'workspace_write';
 export type TaskAgentWriteMode = 'read_only' | 'workspace_write' | 'scoped_write' | 'full_access';
 export type TaskRescheduleReason =
   | 'unknown'
@@ -1767,6 +1814,7 @@ export interface TurnPermissionApprovalRequest {
   thread_id: string;
   tool_name: string;
   turn_id: string;
+  visible_thread_ids?: string[];
   workspace_id: string;
   [k: string]: unknown;
 }
@@ -2581,6 +2629,7 @@ export interface TaskAgentSpec {
   resultContract?: TaskAgentResultContract | null;
   reviewPolicy?: TaskAgentReviewPolicy | null;
   runId?: string | null;
+  securityCap?: TaskAgentSecurityCap | null;
   taskId: string;
   toolPolicy?: TaskAgentToolPolicy | null;
   updatedAt: number;
@@ -2666,6 +2715,57 @@ export interface TaskResultReviewerSpec {
   required: boolean;
   reviewerKind: TaskResultReviewerKind;
   weight?: number | null;
+  [k: string]: unknown;
+}
+export interface TaskAgentSecurityCap {
+  maxFilesystemEntries?: TurnFilesystemSandboxEntry[];
+  maxNetworkPolicy: TurnNetworkPolicySnapshot;
+  maxPermissionProfile: TurnPermissionProfileCap;
+  maxProcessPolicy: TurnProcessPolicySnapshot;
+  maxSandboxMode: TurnSandboxMode;
+  [k: string]: unknown;
+}
+export interface TurnFilesystemSandboxEntry {
+  access: TurnFilesystemAccess;
+  path: TurnFilesystemSandboxPath;
+  provenance: TurnSecurityRuleProvenance;
+  resolved_path?: string | null;
+  [k: string]: unknown;
+}
+export interface TurnNetworkPolicySnapshot {
+  allow_localhost: boolean;
+  allow_unix_sockets: boolean;
+  allowed_domains?: string[];
+  denied_domains?: string[];
+  mode: TurnNetworkMode;
+  [k: string]: unknown;
+}
+export interface TurnProcessPolicySnapshot {
+  command_risk: TurnCommandRiskPolicy;
+  environment: TurnEnvironmentPolicy;
+  shell: TurnShellPolicy;
+  timeout: TurnProcessTimeoutPolicy;
+  [k: string]: unknown;
+}
+export interface TurnCommandRiskPolicy {
+  allowed_command_families?: string[];
+  denied_commands?: string[];
+  [k: string]: unknown;
+}
+export interface TurnEnvironmentPolicy {
+  allowed_vars?: string[];
+  denied_patterns?: string[];
+  inherit: boolean;
+  [k: string]: unknown;
+}
+export interface TurnShellPolicy {
+  allow_session_inheritance: boolean;
+  allow_stdin: boolean;
+  enabled: boolean;
+  [k: string]: unknown;
+}
+export interface TurnProcessTimeoutPolicy {
+  max_duration_ms: number;
   [k: string]: unknown;
 }
 export interface TaskAgentToolPolicy {

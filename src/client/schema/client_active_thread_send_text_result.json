@@ -261,6 +261,22 @@
     "ClientActiveThreadSnapshot": {
       "type": "object",
       "properties": {
+        "active_turn_security_diagnostics": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ClientSecurityDiagnosticRow"
+          }
+        },
+        "active_turn_security_summary": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ClientTurnSecuritySummary"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "draft_thread_id": {
           "type": [
             "string",
@@ -338,6 +354,107 @@
         "history_loading",
         "projection",
         "rows"
+      ]
+    },
+    "ClientSecurityDiagnostic": {
+      "type": "object",
+      "properties": {
+        "capability": {
+          "$ref": "#/$defs/TurnSecurityCapabilityKind"
+        },
+        "message": {
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/ClientSecurityEnforcementStatus"
+        }
+      },
+      "required": [
+        "capability",
+        "status",
+        "message"
+      ]
+    },
+    "ClientSecurityDiagnosticRow": {
+      "type": "object",
+      "properties": {
+        "capability": {
+          "$ref": "#/$defs/TurnSecurityCapabilityKind"
+        },
+        "label": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "capability",
+        "label",
+        "message"
+      ]
+    },
+    "ClientSecurityEnforcementStatus": {
+      "type": "string",
+      "enum": [
+        "active",
+        "degraded",
+        "unavailable"
+      ]
+    },
+    "ClientSecurityFilesystemAccess": {
+      "type": "string",
+      "enum": [
+        "unrestricted",
+        "read_only",
+        "workspace_write"
+      ]
+    },
+    "ClientTurnSecuritySummary": {
+      "type": "object",
+      "properties": {
+        "diagnostics": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ClientSecurityDiagnostic"
+          }
+        },
+        "enforcement": {
+          "$ref": "#/$defs/ClientSecurityEnforcementStatus"
+        },
+        "execution_backend": {
+          "$ref": "#/$defs/TurnSecurityExecutionBackendKind"
+        },
+        "filesystem_access": {
+          "$ref": "#/$defs/ClientSecurityFilesystemAccess"
+        },
+        "network_mode": {
+          "$ref": "#/$defs/TurnNetworkMode"
+        },
+        "permission_mode": {
+          "$ref": "#/$defs/TurnPermissionMode"
+        },
+        "sandbox_backend": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SandboxBackendKind"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "sandbox_mode": {
+          "$ref": "#/$defs/TurnSandboxMode"
+        }
+      },
+      "required": [
+        "permission_mode",
+        "sandbox_mode",
+        "filesystem_access",
+        "network_mode",
+        "execution_backend",
+        "enforcement"
       ]
     },
     "ConversationViewState": {
@@ -1514,6 +1631,16 @@
             }
           ]
         },
+        "security_summary": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ClientTurnSecuritySummary"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "started_at_unix_ms": {
           "type": [
             "integer",
@@ -1527,6 +1654,14 @@
       },
       "required": [
         "turn_id"
+      ]
+    },
+    "SandboxBackendKind": {
+      "type": "string",
+      "enum": [
+        "nono",
+        "windows_restricted_token",
+        "provider_native"
       ]
     },
     "SemanticTimelineCachePatch": {
@@ -4164,6 +4299,14 @@
         "scopeKind"
       ]
     },
+    "TurnNetworkMode": {
+      "type": "string",
+      "enum": [
+        "disabled",
+        "restricted",
+        "enabled"
+      ]
+    },
     "TurnOrigin": {
       "type": "string",
       "enum": [
@@ -4225,6 +4368,12 @@
         "turn_id": {
           "type": "string"
         },
+        "visible_thread_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
         "workspace_id": {
           "type": "string"
         }
@@ -4275,6 +4424,9 @@
       "type": "string",
       "enum": [
         "profile_selected",
+        "security_snapshot_resolved",
+        "security_sandbox_degraded",
+        "security_sandbox_unavailable",
         "approval_requested",
         "approval_resolved",
         "decision_allowed",
@@ -4293,7 +4445,8 @@
         "user_denied",
         "cancelled",
         "expired",
-        "unknown_action_default"
+        "unknown_action_default",
+        "sandbox_denied"
       ]
     },
     "TurnPermissionMode": {
@@ -4343,6 +4496,32 @@
         "Blocked",
         "Failed",
         "Cancelled"
+      ]
+    },
+    "TurnSandboxMode": {
+      "type": "string",
+      "enum": [
+        "unrestricted",
+        "read_only",
+        "workspace_write"
+      ]
+    },
+    "TurnSecurityCapabilityKind": {
+      "type": "string",
+      "enum": [
+        "filesystem",
+        "network",
+        "process",
+        "approval",
+        "sandbox_backend"
+      ]
+    },
+    "TurnSecurityExecutionBackendKind": {
+      "type": "string",
+      "enum": [
+        "native",
+        "codex_cli",
+        "claude_cli"
       ]
     },
     "TurnSkillCapabilitySummary": {
@@ -4414,6 +4593,16 @@
           "anyOf": [
             {
               "$ref": "#/$defs/TurnBlockedResumeMetadata"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "security_summary": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ClientTurnSecuritySummary"
             },
             {
               "type": "null"

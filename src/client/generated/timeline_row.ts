@@ -25,6 +25,13 @@ export type TurnPermissionProfileSource =
   | 'inherited_from_parent_turn'
   | 'task_permission_cap'
   | 'system';
+export type TurnSecurityCapabilityKind = 'filesystem' | 'network' | 'process' | 'approval' | 'sandbox_backend';
+export type ClientSecurityEnforcementStatus = 'active' | 'degraded' | 'unavailable';
+export type TurnSecurityExecutionBackendKind = 'native' | 'codex_cli' | 'claude_cli';
+export type ClientSecurityFilesystemAccess = 'unrestricted' | 'read_only' | 'workspace_write';
+export type TurnNetworkMode = 'disabled' | 'restricted' | 'enabled';
+export type SandboxBackendKind = 'nono' | 'windows_restricted_token' | 'provider_native';
+export type TurnSandboxMode = 'unrestricted' | 'read_only' | 'workspace_write';
 
 export interface TimelineRow {
   key: string;
@@ -47,6 +54,7 @@ export interface TimelineCoalescedToolsRow {
 }
 export interface RunningTurnDisplay {
   permission_profile?: TurnPermissionProfileSnapshot | null;
+  security_summary?: ClientTurnSecuritySummary | null;
   started_at_unix_ms?: number | null;
   turn_id: string;
   [k: string]: unknown;
@@ -71,5 +79,22 @@ export interface ToolPermissionPolicySnapshot {
   network: PermissionBehavior;
   shell_command: PermissionBehavior;
   task_subagent: PermissionBehavior;
+  [k: string]: unknown;
+}
+export interface ClientTurnSecuritySummary {
+  diagnostics?: ClientSecurityDiagnostic[];
+  enforcement: ClientSecurityEnforcementStatus;
+  execution_backend: TurnSecurityExecutionBackendKind;
+  filesystem_access: ClientSecurityFilesystemAccess;
+  network_mode: TurnNetworkMode;
+  permission_mode: TurnPermissionMode;
+  sandbox_backend?: SandboxBackendKind | null;
+  sandbox_mode: TurnSandboxMode;
+  [k: string]: unknown;
+}
+export interface ClientSecurityDiagnostic {
+  capability: TurnSecurityCapabilityKind;
+  message: string;
+  status: ClientSecurityEnforcementStatus;
   [k: string]: unknown;
 }

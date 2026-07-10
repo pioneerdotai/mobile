@@ -3,6 +3,7 @@ import type {
     ArtifactRef,
     MarkdownDocument,
 } from '@/client/generated/client_active_thread_snapshot';
+import type { ClientTurnSecuritySummary } from '@/client/generated/client_turn_security_summary';
 import type { PendingRequest } from '@/client/generated/pending_request';
 
 export type TimelineUserAttachment = {
@@ -181,6 +182,7 @@ export type TimelineRow = TimelineRowMeta &
               turnId: string;
               startedAtUnixMs: number | null;
               elapsedLabel: string | null;
+              securitySummary: ClientTurnSecuritySummary | null;
           }
         | {
               type: 'pending-request';
