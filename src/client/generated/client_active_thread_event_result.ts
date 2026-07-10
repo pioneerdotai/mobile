@@ -1258,9 +1258,11 @@ export interface TimelineCoalescedToolsRow {
   [k: string]: unknown;
 }
 export interface RunningTurnDisplay {
+  message?: string | null;
   permission_profile?: TurnPermissionProfileSnapshot | null;
   security_summary?: ClientTurnSecuritySummary | null;
   started_at_unix_ms?: number | null;
+  state?: TurnWorkState | null;
   turn_id: string;
   [k: string]: unknown;
 }

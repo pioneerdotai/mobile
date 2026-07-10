@@ -23,6 +23,7 @@ export interface ProviderModelInfo {
   [k: string]: unknown;
 }
 export interface ProviderModelCapabilities {
+  embeddings?: boolean | null;
   fine_tuning?: boolean | null;
   input_modalities?: string[] | null;
   json_output?: boolean | null;

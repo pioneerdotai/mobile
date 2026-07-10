@@ -680,6 +680,15 @@ export type TimelineRowKind =
       RunningTurn: RunningTurnDisplay;
     };
 export type TimelineCoalescedToolsKind = 'CompletedTaskTools' | 'RepeatedTaskWait';
+export type TurnWorkState =
+  | 'starting'
+  | 'running'
+  | 'waiting_for_approval'
+  | 'stalled'
+  | 'completed'
+  | 'blocked'
+  | 'failed'
+  | 'interrupted';
 export type ThreadMode = 'Chat' | 'Agent';
 export type ThreadStatus = 'Active' | 'Idle' | 'Closed';
 export type PromptManifestDiagnosticCode =
@@ -1063,9 +1072,11 @@ export interface TimelineCoalescedToolsRow {
   [k: string]: unknown;
 }
 export interface RunningTurnDisplay {
+  message?: string | null;
   permission_profile?: TurnPermissionProfileSnapshot | null;
   security_summary?: ClientTurnSecuritySummary | null;
   started_at_unix_ms?: number | null;
+  state?: TurnWorkState | null;
   turn_id: string;
   [k: string]: unknown;
 }

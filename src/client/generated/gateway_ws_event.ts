@@ -482,6 +482,11 @@ export type GatewayNotification =
       [k: string]: unknown;
     }
   | {
+      kind: 'gateway_thread_episodic_vector_refill_status_changed';
+      params: GatewayThreadEpisodicVectorRefillStatusChangedNotification;
+      [k: string]: unknown;
+    }
+  | {
       kind: 'voice_session_result';
       params: VoiceSessionResultNotification;
       [k: string]: unknown;
@@ -1551,6 +1556,13 @@ export type GatewayRemoteAccessErrorKind =
   | 'restart_limit_reached'
   | 'io'
   | 'unknown';
+export type GatewayThreadEpisodicVectorRefillStatus =
+  | 'disabled'
+  | 'unknown'
+  | 'required'
+  | 'running'
+  | 'complete'
+  | 'failed';
 export type VoiceErrorKind =
   | 'model_unavailable'
   | 'microphone_permission_blocked'
@@ -2969,6 +2981,7 @@ export interface RuntimeSummary {
   home_path?: string | null;
   kind: CLIAgentRuntimeKind;
   models_refreshed_at_unix_ms?: number | null;
+  proxy_url?: string | null;
   recent_stderr?: string[];
   runtime_id: string;
   shadow_home_path?: string | null;
@@ -3075,6 +3088,11 @@ export interface GatewayRemoteAccessStatusSnapshot {
   message?: string | null;
   state?: 'disabled' | 'starting' | 'connected' | 'reconnecting' | 'failed' | 'stopped';
   updated_at_unix?: number | null;
+  [k: string]: unknown;
+}
+export interface GatewayThreadEpisodicVectorRefillStatusChangedNotification {
+  status: GatewayThreadEpisodicVectorRefillStatus;
+  workspace_id: string;
   [k: string]: unknown;
 }
 /**

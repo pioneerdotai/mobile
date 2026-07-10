@@ -1621,6 +1621,12 @@
     "RunningTurnDisplay": {
       "type": "object",
       "properties": {
+        "message": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "permission_profile": {
           "anyOf": [
             {
@@ -1647,6 +1653,16 @@
             "null"
           ],
           "format": "int64"
+        },
+        "state": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TurnWorkState"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "turn_id": {
           "type": "string"

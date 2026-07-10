@@ -5,6 +5,7 @@ import type {
 } from '@/client/generated/client_active_thread_snapshot';
 import type { ClientTurnSecuritySummary } from '@/client/generated/client_turn_security_summary';
 import type { PendingRequest } from '@/client/generated/pending_request';
+import type { TurnWorkState } from '@/client/generated/turn_work_state';
 
 export type TimelineUserAttachment = {
     id: string;
@@ -182,6 +183,8 @@ export type TimelineRow = TimelineRowMeta &
               turnId: string;
               startedAtUnixMs: number | null;
               elapsedLabel: string | null;
+              state: TurnWorkState | null;
+              message: string | null;
               securitySummary: ClientTurnSecuritySummary | null;
           }
         | {

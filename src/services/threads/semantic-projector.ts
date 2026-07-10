@@ -12,6 +12,7 @@ import type { PendingRequest } from '@/client/generated/pending_request';
 import type { TimelineBlock } from '@/client/generated/timeline_block';
 import type { TurnWorkBlock } from '@/client/generated/turn_work_block';
 import type { TurnWorkItem } from '@/client/generated/turn_work_item';
+import type { TurnWorkState } from '@/client/generated/turn_work_state';
 
 import { projectConversationToRows } from './conversation/projector';
 import type { TimelinePendingRequest, TimelineRow } from './conversation/timeline';
@@ -77,13 +78,15 @@ export const projectSemanticTimelineToRows = ({
             currentTurnId &&
             currentTurnId !== nextTurnId &&
             block.kind.work.presentation === 'expanded_live' &&
-            (block.kind.work.state === 'starting' || block.kind.work.state === 'running') &&
+            isRunningTurnState(block.kind.work.state) &&
             !insertedRunningRows.has(currentTurnId)
         ) {
             pushRunningRow(
                 semantic,
                 currentTurnId,
                 block.kind.work.startedAtUnixMs ?? block.startedAtUnixMs ?? null,
+                block.kind.work.state,
+                null,
             );
             insertedRunningRows.add(currentTurnId);
         }
@@ -316,7 +319,7 @@ const pushTurnStateRow = (
     if (block.kind.kind !== 'turn_state') {
         return;
     }
-    if (block.kind.state !== 'starting' && block.kind.state !== 'running') {
+    if (!isRunningTurnState(block.kind.state)) {
         return;
     }
 
@@ -325,14 +328,25 @@ const pushTurnStateRow = (
         return;
     }
 
-    pushRunningRow(semantic, turnId, block.startedAtUnixMs ?? block.updatedAtUnixMs ?? null);
+    pushRunningRow(
+        semantic,
+        turnId,
+        block.startedAtUnixMs ?? block.updatedAtUnixMs ?? null,
+        block.kind.state,
+        block.kind.message ?? null,
+    );
     insertedRunningRows.add(turnId);
 };
+
+const isRunningTurnState = (state: TurnWorkState): boolean =>
+    state === 'starting' || state === 'running' || state === 'stalled';
 
 const pushRunningRow = (
     semantic: MutableSemanticProjection,
     turnId: string,
     startedAtUnixMs: number | null,
+    state: TurnWorkState,
+    message: string | null,
 ) => {
     semantic.rows.push({
         key: `semantic-running-turn::${turnId}`,
@@ -340,6 +354,8 @@ const pushRunningRow = (
             RunningTurn: {
                 turn_id: turnId,
                 started_at_unix_ms: startedAtUnixMs,
+                state,
+                message,
             },
         },
     });

@@ -57,6 +57,7 @@ export interface RuntimeSummary {
   home_path?: string | null;
   kind: CLIAgentRuntimeKind;
   models_refreshed_at_unix_ms?: number | null;
+  proxy_url?: string | null;
   recent_stderr?: string[];
   runtime_id: string;
   shadow_home_path?: string | null;

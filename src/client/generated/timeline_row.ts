@@ -32,6 +32,15 @@ export type ClientSecurityFilesystemAccess = 'unrestricted' | 'read_only' | 'wor
 export type TurnNetworkMode = 'disabled' | 'restricted' | 'enabled';
 export type SandboxBackendKind = 'nono' | 'windows_restricted_token' | 'provider_native';
 export type TurnSandboxMode = 'unrestricted' | 'read_only' | 'workspace_write';
+export type TurnWorkState =
+  | 'starting'
+  | 'running'
+  | 'waiting_for_approval'
+  | 'stalled'
+  | 'completed'
+  | 'blocked'
+  | 'failed'
+  | 'interrupted';
 
 export interface TimelineRow {
   key: string;
@@ -53,9 +62,11 @@ export interface TimelineCoalescedToolsRow {
   [k: string]: unknown;
 }
 export interface RunningTurnDisplay {
+  message?: string | null;
   permission_profile?: TurnPermissionProfileSnapshot | null;
   security_summary?: ClientTurnSecuritySummary | null;
   started_at_unix_ms?: number | null;
+  state?: TurnWorkState | null;
   turn_id: string;
   [k: string]: unknown;
 }

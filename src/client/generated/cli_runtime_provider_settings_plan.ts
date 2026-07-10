@@ -21,6 +21,7 @@ export type GatewayRemoteAccessErrorKind =
   | 'restart_limit_reached'
   | 'io'
   | 'unknown';
+export type GatewayThreadEpisodicVectorProvider = 'openai' | 'openrouter' | 'local';
 export type CLIRuntimeProviderSettingsRejection =
   | ('MissingSettings' | 'EmptyId' | 'ShadowHomeMatchesHome')
   | {
@@ -158,6 +159,25 @@ export interface GatewayThreadEpisodicSettings {
   retry_base_delay_secs: number;
   retry_max_delay_secs: number;
   snippet_chars: number;
+  vector_search?: GatewayThreadEpisodicVectorSearchSettings;
+  [k: string]: unknown;
+}
+export interface GatewayThreadEpisodicVectorSearchSettings {
+  embedding_dimension?: number | null;
+  embedding_normalized?: boolean;
+  enabled?: boolean;
+  local_model?: string | null;
+  local_model_status?: 'not_selected' | 'unknown' | 'missing' | 'downloading' | 'installed' | 'failed';
+  model?: string | null;
+  provider?: GatewayThreadEpisodicVectorProvider | null;
+  provider_key?: GatewayThreadEpisodicVectorProviderKeyStatus;
+  refill_status?: 'disabled' | 'unknown' | 'required' | 'running' | 'complete' | 'failed';
+  use_search_instructions?: boolean;
+  [k: string]: unknown;
+}
+export interface GatewayThreadEpisodicVectorProviderKeyStatus {
+  present?: boolean;
+  required?: boolean;
   [k: string]: unknown;
 }
 export interface GatewaySettingsUpdate {
@@ -208,5 +228,15 @@ export interface GatewayThreadEpisodicSettingsUpdate {
   retry_base_delay_secs?: number | null;
   retry_max_delay_secs?: number | null;
   snippet_chars?: number | null;
+  vector_search?: GatewayThreadEpisodicVectorSearchSettingsUpdate | null;
+  [k: string]: unknown;
+}
+export interface GatewayThreadEpisodicVectorSearchSettingsUpdate {
+  embedding_normalized?: boolean | null;
+  enabled?: boolean | null;
+  local_model?: string | null;
+  model?: string | null;
+  provider?: GatewayThreadEpisodicVectorProvider | null;
+  use_search_instructions?: boolean | null;
   [k: string]: unknown;
 }

@@ -3,6 +3,7 @@ import { describe, expect, it, mock } from 'bun:test';
 import type { TimelineBlock } from '@/client/generated/timeline_block';
 import type { TurnWorkBlock } from '@/client/generated/turn_work_block';
 import type { TurnWorkItem } from '@/client/generated/turn_work_item';
+import type { TurnWorkState } from '@/client/generated/turn_work_state';
 import type {
     ClientActiveThreadSnapshot,
     MarkdownDocument,
@@ -116,6 +117,37 @@ describe('mobile semantic timeline projector', () => {
         });
     });
 
+    it('preserves stalled state and message from native running rows', () => {
+        const rows = projectConversationToRows(
+            {
+                ...snapshot(),
+                rows: [
+                    {
+                        key: 'semantic-running-turn::turn_a',
+                        kind: {
+                            RunningTurn: {
+                                turn_id: 'turn_a',
+                                started_at_unix_ms: 1_000,
+                                state: 'stalled',
+                                message: 'runtime heartbeat overdue',
+                            },
+                        },
+                    },
+                ],
+            },
+            { nowMs: 10_000 },
+        );
+
+        expect(rows).toHaveLength(1);
+        expect(rows[0]).toMatchObject({
+            type: 'running',
+            turnId: 'turn_a',
+            startedAtUnixMs: 1_000,
+            state: 'stalled',
+            message: 'runtime heartbeat overdue',
+        });
+    });
+
     it('expands large work from the bounded work range only', () => {
         const rows = projectSemanticTimelineToRows({
             snapshot: snapshot(),
@@ -189,6 +221,28 @@ describe('mobile semantic timeline projector', () => {
         expect(rows.find((row) => row.type === 'running')).toMatchObject({
             turnId: 'turn_a',
             startedAtUnixMs: 1_000,
+            state: 'running',
+            message: null,
+        });
+    });
+
+    it('keeps stalled turn-state rows visible in the paged fallback', () => {
+        const rows = projectSemanticTimelineToRows({
+            snapshot: snapshot(),
+            blocks: [
+                userBlock('001'),
+                turnStateBlock('002', 'stalled', 'runtime heartbeat overdue'),
+            ],
+            expandedKeys: [],
+            workRangesByTurn: {},
+            nowMs: 10_000,
+        });
+
+        expect(rows.find((row) => row.type === 'running')).toMatchObject({
+            turnId: 'turn_a',
+            startedAtUnixMs: 2,
+            state: 'stalled',
+            message: 'runtime heartbeat overdue',
         });
     });
 
@@ -387,6 +441,25 @@ const workBlock = (sortKey: string, overrides: Partial<TurnWorkBlock>): Timeline
     kind: {
         kind: 'turn_work',
         work: workSummary(overrides),
+    },
+});
+
+const turnStateBlock = (
+    sortKey: string,
+    state: TurnWorkState,
+    message: string | null,
+): TimelineBlock => ({
+    workspaceId: 'workspace_a',
+    threadId: 'thread_a',
+    blockId: `block_turn_state_${sortKey}`,
+    turnId: 'turn_a',
+    sortKey,
+    startedAtUnixMs: 2,
+    updatedAtUnixMs: 2,
+    kind: {
+        kind: 'turn_state',
+        state,
+        message,
     },
 });
 
