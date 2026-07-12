@@ -7,7 +7,11 @@ import type {
     ThreadMode,
     TurnPermissionMode,
 } from '@/client';
-import { isCliRuntimeProvider } from '@/services/providers/cli-runtime';
+import {
+    filterComposerCapabilitiesForTarget,
+    isCliRuntimeProvider,
+    type ComposerCapabilityTarget,
+} from '@/services/providers/cli-runtime';
 
 type ActiveThreadStoreState = {
     snapshot: ClientActiveThreadSnapshot | null;
@@ -28,10 +32,12 @@ type ActiveThreadStoreState = {
     composerSelectedMode: ThreadMode;
     composerModeManuallySelected: boolean;
     composerSelectedProvider: string | null;
+    composerCapabilityTarget: ComposerCapabilityTarget;
     composerSelectedModel: string | null;
     composerSelectedReasoningEffort: string | null;
     composerSelectedPermissionMode: TurnPermissionMode;
     defaultComposerProvider: string | null;
+    defaultComposerCapabilityTarget: ComposerCapabilityTarget;
     defaultComposerModel: string | null;
     defaultComposerReasoningEffort: string | null;
     defaultComposerWorkspaceId: string | null;
@@ -52,7 +58,12 @@ type ActiveThreadStoreState = {
     setComposerMode: (mode: ThreadMode) => void;
     clearComposerPayload: () => void;
     setExpandedKeys: (keys: string[]) => void;
-    setComposerModelSelectionFromUser: (provider: string | null, model: string | null) => void;
+    setComposerModelSelectionFromUser: (
+        provider: string | null,
+        model: string | null,
+        capabilityTarget?: ComposerCapabilityTarget,
+        capabilitiesRemovedMessage?: string,
+    ) => void;
     setComposerReasoningEffortFromUser: (effort: string | null) => void;
     setComposerPermissionMode: (mode: TurnPermissionMode) => void;
     beginDefaultComposerModelSelectionRefresh: (workspaceId: string) => void;
@@ -63,11 +74,14 @@ type ActiveThreadStoreState = {
         provider: string | null,
         model: string | null,
         reasoningEffort?: string | null,
+        capabilityTarget?: ComposerCapabilityTarget,
     ) => void;
     syncComposerModelSelection: (
         provider: string | null,
         model: string | null,
         reasoningEffort?: string | null,
+        capabilityTarget?: ComposerCapabilityTarget,
+        capabilitiesRemovedMessage?: string,
     ) => void;
     reset: (composerModeContext?: ComposerModeContext) => void;
 };
@@ -84,6 +98,7 @@ type ComposerDraftState = {
     selectedMode: ThreadMode;
     modeManuallySelected: boolean;
     selectedProvider: string | null;
+    capabilityTarget: ComposerCapabilityTarget;
     selectedModel: string | null;
     selectedReasoningEffort: string | null;
     selectedPermissionMode: TurnPermissionMode;
@@ -106,6 +121,7 @@ const draftFromState = (state: ActiveThreadStoreState): ComposerDraftState => ({
     selectedMode: state.composerSelectedMode,
     modeManuallySelected: state.composerModeManuallySelected,
     selectedProvider: state.composerSelectedProvider,
+    capabilityTarget: state.composerCapabilityTarget,
     selectedModel: state.composerSelectedModel,
     selectedReasoningEffort: state.composerSelectedReasoningEffort,
     selectedPermissionMode: state.composerSelectedPermissionMode,
@@ -119,6 +135,7 @@ const defaultDraftForThread = (state: ActiveThreadStoreState): ComposerDraftStat
     selectedMode: state.composerSelectedMode,
     modeManuallySelected: false,
     selectedProvider: state.defaultComposerProvider,
+    capabilityTarget: state.defaultComposerCapabilityTarget,
     selectedModel: state.defaultComposerModel,
     selectedReasoningEffort: state.defaultComposerReasoningEffort,
     selectedPermissionMode: DEFAULT_COMPOSER_PERMISSION_MODE,
@@ -137,6 +154,20 @@ const persistActiveDraft = (
         ...nextDrafts,
         [state.activeComposerThreadId]: draftFromState(state),
     };
+};
+
+const capabilityTargetForSelection = (
+    state: ActiveThreadStoreState,
+    provider: string | null,
+    requestedTarget?: ComposerCapabilityTarget,
+): ComposerCapabilityTarget => {
+    if (requestedTarget) {
+        return requestedTarget;
+    }
+    if (provider === state.composerSelectedProvider) {
+        return state.composerCapabilityTarget;
+    }
+    return isCliRuntimeProvider(provider) ? 'unsupportedCli' : 'native';
 };
 
 const updateActiveDraft = (
@@ -178,10 +209,12 @@ export const useActiveThreadStore = create<ActiveThreadStoreState>((set) => ({
     composerSelectedMode: DEFAULT_COMPOSER_MODE,
     composerModeManuallySelected: false,
     composerSelectedProvider: null,
+    composerCapabilityTarget: 'native',
     composerSelectedModel: null,
     composerSelectedReasoningEffort: null,
     composerSelectedPermissionMode: DEFAULT_COMPOSER_PERMISSION_MODE,
     defaultComposerProvider: null,
+    defaultComposerCapabilityTarget: 'native',
     defaultComposerModel: null,
     defaultComposerReasoningEffort: null,
     defaultComposerWorkspaceId: null,
@@ -206,6 +239,7 @@ export const useActiveThreadStore = create<ActiveThreadStoreState>((set) => ({
                 composerSelectedMode: draft.selectedMode,
                 composerModeManuallySelected: draft.modeManuallySelected,
                 composerSelectedProvider: draft.selectedProvider,
+                composerCapabilityTarget: draft.capabilityTarget,
                 composerSelectedModel: draft.selectedModel,
                 composerSelectedReasoningEffort: draft.selectedReasoningEffort,
                 composerSelectedPermissionMode: draft.selectedPermissionMode,
@@ -302,38 +336,52 @@ export const useActiveThreadStore = create<ActiveThreadStoreState>((set) => ({
         set({ expandedKeys });
     },
 
-    setComposerModelSelectionFromUser: (composerSelectedProvider, composerSelectedModel) => {
+    setComposerModelSelectionFromUser: (
+        composerSelectedProvider,
+        composerSelectedModel,
+        requestedCapabilityTarget,
+        capabilitiesRemovedMessage,
+    ) => {
         set((state) => {
             const modelSelectionChanged =
                 state.composerSelectedProvider !== composerSelectedProvider ||
                 state.composerSelectedModel !== composerSelectedModel;
 
+            const capabilityTarget = capabilityTargetForSelection(
+                state,
+                composerSelectedProvider,
+                requestedCapabilityTarget,
+            );
+            const composerCapabilities = filterComposerCapabilitiesForTarget(
+                state.composerCapabilities,
+                capabilityTarget,
+            );
+            const capabilitiesRemoved =
+                composerCapabilities.length !== state.composerCapabilities.length;
+
             return {
                 composerSelectedProvider,
+                composerCapabilityTarget: capabilityTarget,
                 composerSelectedModel,
                 composerSelectedReasoningEffort: modelSelectionChanged
                     ? null
                     : state.composerSelectedReasoningEffort,
                 composerModelManuallySelected: true,
-                composerError: null,
+                composerError:
+                    capabilitiesRemoved && capabilitiesRemovedMessage
+                        ? capabilitiesRemovedMessage
+                        : null,
+                composerCapabilities,
                 ...updateActiveDraft(state, {
                     selectedProvider: composerSelectedProvider,
+                    capabilityTarget,
                     selectedModel: composerSelectedModel,
                     selectedReasoningEffort: modelSelectionChanged
                         ? null
                         : state.composerSelectedReasoningEffort,
                     modelManuallySelected: true,
-                    ...(isCliRuntimeProvider(composerSelectedProvider)
-                        ? {
-                              capabilities: [],
-                          }
-                        : {}),
+                    capabilities: composerCapabilities,
                 }),
-                ...(isCliRuntimeProvider(composerSelectedProvider)
-                    ? {
-                          composerCapabilities: [],
-                      }
-                    : {}),
             };
         });
     },
@@ -369,6 +417,7 @@ export const useActiveThreadStore = create<ActiveThreadStoreState>((set) => ({
                 ...(workspaceChanged && !state.composerModelManuallySelected
                     ? {
                           composerSelectedProvider: null,
+                          composerCapabilityTarget: 'native',
                           composerSelectedModel: null,
                           composerSelectedReasoningEffort: null,
                       }
@@ -392,10 +441,12 @@ export const useActiveThreadStore = create<ActiveThreadStoreState>((set) => ({
     resetDefaultComposerModelSelection: () => {
         set({
             composerSelectedProvider: null,
+            composerCapabilityTarget: 'native',
             composerSelectedModel: null,
             composerSelectedReasoningEffort: null,
             composerSelectedPermissionMode: DEFAULT_COMPOSER_PERMISSION_MODE,
             defaultComposerProvider: null,
+            defaultComposerCapabilityTarget: 'native',
             defaultComposerModel: null,
             defaultComposerReasoningEffort: null,
             defaultComposerWorkspaceId: null,
@@ -410,15 +461,20 @@ export const useActiveThreadStore = create<ActiveThreadStoreState>((set) => ({
         defaultComposerProvider,
         defaultComposerModel,
         defaultComposerReasoningEffort,
+        requestedCapabilityTarget,
     ) => {
         set((state) => {
             const normalizedReasoningEffort = normalizeReasoningEffort(
                 defaultComposerReasoningEffort,
             );
+            const defaultComposerCapabilityTarget =
+                requestedCapabilityTarget ??
+                (isCliRuntimeProvider(defaultComposerProvider) ? 'unsupportedCli' : 'native');
 
             return {
                 defaultComposerWorkspaceId,
                 defaultComposerProvider,
+                defaultComposerCapabilityTarget,
                 defaultComposerModel,
                 defaultComposerReasoningEffort: normalizedReasoningEffort,
                 defaultComposerSelectionLoading: false,
@@ -426,23 +482,23 @@ export const useActiveThreadStore = create<ActiveThreadStoreState>((set) => ({
                     ? {}
                     : {
                           composerSelectedProvider: defaultComposerProvider,
+                          composerCapabilityTarget: defaultComposerCapabilityTarget,
                           composerSelectedModel: defaultComposerModel,
                           composerSelectedReasoningEffort: normalizedReasoningEffort,
                           ...updateActiveDraft(state, {
                               selectedProvider: defaultComposerProvider,
+                              capabilityTarget: defaultComposerCapabilityTarget,
                               selectedModel: defaultComposerModel,
                               selectedReasoningEffort: normalizedReasoningEffort,
-                              ...(isCliRuntimeProvider(defaultComposerProvider)
-                                  ? {
-                                        capabilities: [],
-                                    }
-                                  : {}),
+                              capabilities: filterComposerCapabilitiesForTarget(
+                                  state.composerCapabilities,
+                                  defaultComposerCapabilityTarget,
+                              ),
                           }),
-                          ...(isCliRuntimeProvider(defaultComposerProvider)
-                              ? {
-                                    composerCapabilities: [],
-                                }
-                              : {}),
+                          composerCapabilities: filterComposerCapabilitiesForTarget(
+                              state.composerCapabilities,
+                              defaultComposerCapabilityTarget,
+                          ),
                       }),
             };
         });
@@ -452,35 +508,65 @@ export const useActiveThreadStore = create<ActiveThreadStoreState>((set) => ({
         composerSelectedProvider,
         composerSelectedModel,
         composerSelectedReasoningEffort,
+        requestedCapabilityTarget,
+        capabilitiesRemovedMessage,
     ) => {
         set((state) => {
             if (state.composerModelManuallySelected) {
-                return state;
+                if (
+                    requestedCapabilityTarget === undefined ||
+                    state.composerSelectedProvider !== composerSelectedProvider
+                ) {
+                    return state;
+                }
+                const composerCapabilities = filterComposerCapabilitiesForTarget(
+                    state.composerCapabilities,
+                    requestedCapabilityTarget,
+                );
+                const capabilitiesRemoved =
+                    composerCapabilities.length !== state.composerCapabilities.length;
+
+                return {
+                    composerCapabilityTarget: requestedCapabilityTarget,
+                    composerCapabilities,
+                    composerError:
+                        capabilitiesRemoved && capabilitiesRemovedMessage
+                            ? capabilitiesRemovedMessage
+                            : state.composerError,
+                    ...updateActiveDraft(state, {
+                        capabilityTarget: requestedCapabilityTarget,
+                        capabilities: composerCapabilities,
+                    }),
+                };
             }
+
+            const capabilityTarget = capabilityTargetForSelection(
+                state,
+                composerSelectedProvider,
+                requestedCapabilityTarget,
+            );
+            const composerCapabilities = filterComposerCapabilitiesForTarget(
+                state.composerCapabilities,
+                capabilityTarget,
+            );
 
             return {
                 composerSelectedProvider,
+                composerCapabilityTarget: capabilityTarget,
                 composerSelectedModel,
                 composerSelectedReasoningEffort: normalizeReasoningEffort(
                     composerSelectedReasoningEffort,
                 ),
                 ...updateActiveDraft(state, {
                     selectedProvider: composerSelectedProvider,
+                    capabilityTarget,
                     selectedModel: composerSelectedModel,
                     selectedReasoningEffort: normalizeReasoningEffort(
                         composerSelectedReasoningEffort,
                     ),
-                    ...(isCliRuntimeProvider(composerSelectedProvider)
-                        ? {
-                              capabilities: [],
-                          }
-                        : {}),
+                    capabilities: composerCapabilities,
                 }),
-                ...(isCliRuntimeProvider(composerSelectedProvider)
-                    ? {
-                          composerCapabilities: [],
-                      }
-                    : {}),
+                composerCapabilities,
             };
         });
     },
@@ -505,6 +591,7 @@ export const useActiveThreadStore = create<ActiveThreadStoreState>((set) => ({
             composerSelectedMode: composerModeContext?.mode ?? DEFAULT_COMPOSER_MODE,
             composerModeManuallySelected: false,
             composerSelectedProvider: state.defaultComposerProvider,
+            composerCapabilityTarget: state.defaultComposerCapabilityTarget,
             composerSelectedModel: state.defaultComposerModel,
             composerSelectedReasoningEffort: state.defaultComposerReasoningEffort,
             composerSelectedPermissionMode: DEFAULT_COMPOSER_PERMISSION_MODE,

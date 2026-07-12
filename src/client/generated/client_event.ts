@@ -3062,6 +3062,7 @@ export interface RuntimeCapabilities {
   supports_model_list: boolean;
   supports_resume: boolean;
   supports_review: boolean;
+  supports_skills?: boolean;
   supports_steer: boolean;
   supports_thread_archive: boolean;
   supports_threads: boolean;

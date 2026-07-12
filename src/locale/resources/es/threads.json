@@ -127,6 +127,7 @@
     "composerNoSkills": "No se encontraron skills.",
     "composerNoMcp": "No se encontraron servidores MCP.",
     "composerSkillsFailed": "No se pudieron cargar las skills.",
+    "composerCapabilitiesRemovedForProvider": "Algunas capacidades no están disponibles para este proveedor y se eliminaron.",
     "composerMcpFailed": "No se pudo cargar MCP.",
     "composerMcpServers": "Servidores",
     "composerMcpTools": "Herramientas",

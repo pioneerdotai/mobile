@@ -58,7 +58,12 @@ export const AssistantMessageRow = ({ row, expanded, onToggle }: AssistantMessag
                 </Pressable>
                 {expanded && hasText && (
                     <Box style={styles.taskBody}>
-                        <MarkdownContent text={row.text} document={row.markdown} />
+                        <MarkdownContent
+                            text={row.text}
+                            document={row.markdown}
+                            highlightCodeBlocks={!row.streaming}
+                            streaming={row.streaming}
+                        />
                     </Box>
                 )}
             </VStack>
@@ -71,6 +76,7 @@ export const AssistantMessageRow = ({ row, expanded, onToggle }: AssistantMessag
                 <MarkdownContent
                     text={row.text}
                     document={row.markdown}
+                    highlightCodeBlocks={!row.streaming}
                     streaming={row.streaming}
                 />
             ) : row.streaming ? (
@@ -95,7 +101,6 @@ const styles = StyleSheet.create((theme) => ({
         width: '100%',
         maxWidth: '100%',
         paddingVertical: theme.space(3),
-        paddingRight: theme.space(3),
     },
     streamingContainer: {
         opacity: 0.92,

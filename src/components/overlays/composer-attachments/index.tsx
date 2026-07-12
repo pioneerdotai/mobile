@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { router } from 'expo-router';
 import { BottomSheetModal, BottomSheetScrollView } from '@gorhom/bottom-sheet';
@@ -21,13 +21,19 @@ import {
     pickComposerFileAttachments,
     pickComposerMediaAttachments,
 } from '@/services/threads/composer-attachments';
-import { isCliRuntimeProvider } from '@/services/providers/cli-runtime';
+import {
+    composerCapabilityTargetForProvider,
+    isCliRuntimeProvider,
+    type ComposerCapabilityTarget,
+} from '@/services/providers/cli-runtime';
 import { useActiveThreadStore } from '@/stores/active-thread';
+import { useWorkspaceStore } from '@/stores/workspace';
 
 const ComposerAttachmentMenuSheet = () => {
     const bottomSheetRef = useRef<BottomSheetModal>(null);
     const { t } = useTranslation('threads');
     const { theme, rt } = useUnistyles();
+    const activeWorkspaceId = useWorkspaceStore((state) => state.activeWorkspaceId);
 
     const {
         showComposerAttachmentMenu,
@@ -35,6 +41,7 @@ const ComposerAttachmentMenuSheet = () => {
         setComposerAttachmentMenuOpen,
         setComposerAttachments,
         setComposerError,
+        syncComposerModelSelection,
     } = useActiveThreadStore(
         useShallow((state) => ({
             showComposerAttachmentMenu: state.showComposerAttachmentMenu,
@@ -42,10 +49,99 @@ const ComposerAttachmentMenuSheet = () => {
             setComposerAttachmentMenuOpen: state.setComposerAttachmentMenuOpen,
             setComposerAttachments: state.setComposerAttachments,
             setComposerError: state.setComposerError,
+            syncComposerModelSelection: state.syncComposerModelSelection,
         })),
     );
 
     const cliRuntimeSelected = isCliRuntimeProvider(composerSelectedProvider);
+    const [runtimeTarget, setRuntimeTarget] = useState<{
+        provider: string | null;
+        workspaceId: string | null;
+        target: ComposerCapabilityTarget;
+    } | null>(null);
+    const capabilityTarget =
+        runtimeTarget?.provider === composerSelectedProvider &&
+        runtimeTarget.workspaceId === activeWorkspaceId
+            ? runtimeTarget.target
+            : cliRuntimeSelected
+              ? 'unsupportedCli'
+              : 'native';
+
+    useEffect(() => {
+        let cancelled = false;
+
+        if (!cliRuntimeSelected || !showComposerAttachmentMenu) {
+            return () => {
+                cancelled = true;
+            };
+        }
+
+        if (!activeWorkspaceId) {
+            const storeState = useActiveThreadStore.getState();
+            syncComposerModelSelection(
+                composerSelectedProvider,
+                storeState.composerSelectedModel,
+                storeState.composerSelectedReasoningEffort,
+                'unsupportedCli',
+                t('composerCapabilitiesRemovedForProvider'),
+            );
+            return () => {
+                cancelled = true;
+            };
+        }
+
+        void pioneerClient
+            .cliRuntimeList({ workspace_id: activeWorkspaceId })
+            .then((response) => {
+                if (!cancelled) {
+                    const target = composerCapabilityTargetForProvider(
+                        composerSelectedProvider,
+                        response.runtimes,
+                    );
+                    setRuntimeTarget({
+                        provider: composerSelectedProvider,
+                        workspaceId: activeWorkspaceId,
+                        target,
+                    });
+                    const storeState = useActiveThreadStore.getState();
+                    syncComposerModelSelection(
+                        composerSelectedProvider,
+                        storeState.composerSelectedModel,
+                        storeState.composerSelectedReasoningEffort,
+                        target,
+                        t('composerCapabilitiesRemovedForProvider'),
+                    );
+                }
+            })
+            .catch(() => {
+                if (!cancelled) {
+                    setRuntimeTarget({
+                        provider: composerSelectedProvider,
+                        workspaceId: activeWorkspaceId,
+                        target: 'unsupportedCli',
+                    });
+                    const storeState = useActiveThreadStore.getState();
+                    syncComposerModelSelection(
+                        composerSelectedProvider,
+                        storeState.composerSelectedModel,
+                        storeState.composerSelectedReasoningEffort,
+                        'unsupportedCli',
+                        t('composerCapabilitiesRemovedForProvider'),
+                    );
+                }
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [
+        activeWorkspaceId,
+        cliRuntimeSelected,
+        composerSelectedProvider,
+        showComposerAttachmentMenu,
+        syncComposerModelSelection,
+        t,
+    ]);
 
     useEffect(() => {
         if (bottomSheetRef.current) {
@@ -160,23 +256,25 @@ const ComposerAttachmentMenuSheet = () => {
                             onPress={pickFiles}
                         />
                     </HStack>
-                    {!cliRuntimeSelected ? (
+                    {capabilityTarget !== 'unsupportedCli' ? (
                         <HStack style={styles.menuRow}>
                             <MenuItem
                                 icon={<Zap size={theme.space(5)} color={theme.colors.typography} />}
                                 label={t('composerSkills')}
                                 onPress={openSkills}
                             />
-                            <MenuItem
-                                icon={
-                                    <McpIcon
-                                        size={theme.space(5)}
-                                        color={theme.colors.typography}
-                                    />
-                                }
-                                label={t('composerMcp')}
-                                onPress={openMcp}
-                            />
+                            {capabilityTarget === 'native' ? (
+                                <MenuItem
+                                    icon={
+                                        <McpIcon
+                                            size={theme.space(5)}
+                                            color={theme.colors.typography}
+                                        />
+                                    }
+                                    label={t('composerMcp')}
+                                    onPress={openMcp}
+                                />
+                            ) : null}
                         </HStack>
                     ) : null}
                 </VStack>

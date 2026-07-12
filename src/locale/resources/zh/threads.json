@@ -127,6 +127,7 @@
     "composerNoSkills": "未找到 skills。",
     "composerNoMcp": "未找到 MCP 服务器。",
     "composerSkillsFailed": "无法加载 skills。",
+    "composerCapabilitiesRemovedForProvider": "部分功能不适用于此提供商，已被移除。",
     "composerMcpFailed": "无法加载 MCP。",
     "composerMcpServers": "服务器",
     "composerMcpTools": "工具",

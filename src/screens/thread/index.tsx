@@ -43,7 +43,12 @@ import {
     useProviderModelDisplayName,
     useProviderModelReasoningEffortLabel,
 } from '@/hooks/use-provider-model-display-name';
-import { isCliRuntimeProvider } from '@/services/providers/cli-runtime';
+import {
+    composerHasSendableContentForTarget,
+    composerCapabilityTargetForProvider,
+    filterComposerCapabilitiesForTarget,
+    isCliRuntimeProvider,
+} from '@/services/providers/cli-runtime';
 import { useHideAppSplashWhen } from '@/services/app-splash';
 import {
     projectSemanticTimelineToRows,
@@ -180,6 +185,7 @@ const ThreadScreen = ({
         canStopTurn,
         composerSelectedMode,
         composerSelectedProvider,
+        composerCapabilityTarget,
         composerSelectedModel,
         composerSelectedReasoningEffort,
         composerSelectedPermissionMode,
@@ -450,7 +456,6 @@ const ThreadScreen = ({
         : composerModelManuallySelected || shouldUseDraftComposerSelection
           ? composerSelectedReasoningEffort
           : null;
-    const cliRuntimeSelected = isCliRuntimeProvider(selectedProvider);
     const { label: selectedModelDisplayName, loading: modelDisplayNameLoading } =
         useProviderModelDisplayName(activeWorkspaceId, selectedProvider, selectedModel);
     const { label: selectedReasoningEffortLabel, loading: reasoningEffortLabelLoading } =
@@ -697,10 +702,12 @@ const ThreadScreen = ({
     );
 
     const handleSend = useCallback(() => {
-        const hasComposerPayload =
-            composerText.trim().length > 0 ||
-            composerAttachments.length > 0 ||
-            (!cliRuntimeSelected && composerCapabilities.length > 0);
+        const hasComposerPayload = composerHasSendableContentForTarget(
+            composerText,
+            composerAttachments.length > 0,
+            composerCapabilities,
+            composerCapabilityTarget,
+        );
 
         if (!hasComposerPayload) {
             return;
@@ -712,9 +719,9 @@ const ThreadScreen = ({
             }
         });
     }, [
-        cliRuntimeSelected,
         composerAttachments.length,
-        composerCapabilities.length,
+        composerCapabilityTarget,
+        composerCapabilities,
         composerText,
         sendText,
         setComposerText,
@@ -762,9 +769,11 @@ const ThreadScreen = ({
                 ? storeState.composerSelectedReasoningEffort
                 : null;
 
-            const voiceCliRuntimeSelected = isCliRuntimeProvider(selectedProviderForVoice);
             const attachments = storeState.composerAttachments;
-            const capabilities = voiceCliRuntimeSelected ? [] : storeState.composerCapabilities;
+            const capabilities = filterComposerCapabilitiesForTarget(
+                storeState.composerCapabilities,
+                storeState.composerCapabilityTarget,
+            );
             const attachmentsForVoice =
                 attachments.length > 0
                     ? pioneerClient.composerAttachmentsUpdate({
@@ -1142,23 +1151,70 @@ const ThreadScreen = ({
 
     useFocusEffect(
         useCallback(() => {
+            let cancelled = false;
+
             if (isLiveDraftThread) {
-                return;
+                return () => {
+                    cancelled = true;
+                };
             }
 
             if (!activeThreadModelProvider || !activeThreadModel) {
-                return;
+                return () => {
+                    cancelled = true;
+                };
             }
 
-            syncComposerModelSelection(
-                activeThreadModelProvider,
-                activeThreadModel,
-                activeThreadReasoningEffort,
-            );
+            if (!isCliRuntimeProvider(activeThreadModelProvider)) {
+                syncComposerModelSelection(
+                    activeThreadModelProvider,
+                    activeThreadModel,
+                    activeThreadReasoningEffort,
+                    'native',
+                );
+            } else if (activeWorkspaceId) {
+                void pioneerClient
+                    .cliRuntimeList({ workspace_id: activeWorkspaceId })
+                    .then((response) => {
+                        if (!cancelled) {
+                            syncComposerModelSelection(
+                                activeThreadModelProvider,
+                                activeThreadModel,
+                                activeThreadReasoningEffort,
+                                composerCapabilityTargetForProvider(
+                                    activeThreadModelProvider,
+                                    response.runtimes,
+                                ),
+                            );
+                        }
+                    })
+                    .catch(() => {
+                        if (!cancelled) {
+                            syncComposerModelSelection(
+                                activeThreadModelProvider,
+                                activeThreadModel,
+                                activeThreadReasoningEffort,
+                                'unsupportedCli',
+                            );
+                        }
+                    });
+            } else {
+                syncComposerModelSelection(
+                    activeThreadModelProvider,
+                    activeThreadModel,
+                    activeThreadReasoningEffort,
+                    'unsupportedCli',
+                );
+            }
+
+            return () => {
+                cancelled = true;
+            };
         }, [
             activeThreadModel,
             activeThreadModelProvider,
             activeThreadReasoningEffort,
+            activeWorkspaceId,
             isLiveDraftThread,
             syncComposerModelSelection,
         ]),
@@ -1334,7 +1390,10 @@ const ThreadScreen = ({
                                 turnCancelling={turnCancelling}
                                 error={composerError}
                                 attachments={composerAttachments}
-                                capabilities={cliRuntimeSelected ? [] : composerCapabilities}
+                                capabilities={filterComposerCapabilitiesForTarget(
+                                    composerCapabilities,
+                                    composerCapabilityTarget,
+                                )}
                                 attachmentsEnabled
                                 attachmentMenuAccessibilityLabel={t('composerAttachmentMenuTitle')}
                                 modelSelectionLabel={modelSelectionLabel}

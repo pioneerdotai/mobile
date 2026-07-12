@@ -2,7 +2,11 @@ import { useCallback, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useShallow } from 'zustand/react/shallow';
 
-import type { ClientEvent, ClientThreadTreeLevel } from '@/client';
+import { pioneerClient, type ClientEvent, type ClientThreadTreeLevel } from '@/client';
+import {
+    composerCapabilityTargetForProvider,
+    isCliRuntimeProvider,
+} from '@/services/providers/cli-runtime';
 import { refreshThreadTree, threadTreeLevel } from '@/services/threads/tree';
 import { useActiveThreadStore } from '@/stores/active-thread';
 import { useGatewayStore } from '@/stores/gateway';
@@ -102,6 +106,17 @@ const useThreadTreeRefresh = () => {
                 has_known_threads_for_workspace:
                     useThreadTreeStore.getState().workspaceId === requestWorkspaceId,
             });
+            const defaultProvider = result.composer_model_selection?.provider ?? null;
+            const cliRuntimes = isCliRuntimeProvider(defaultProvider)
+                ? await pioneerClient
+                      .cliRuntimeList({ workspace_id: requestWorkspaceId })
+                      .then((response) => response.runtimes)
+                      .catch(() => [])
+                : [];
+            const capabilityTarget = composerCapabilityTargetForProvider(
+                defaultProvider,
+                cliRuntimes,
+            );
             const latestGatewayState = useGatewayStore.getState();
             const latestWorkspaceState = useWorkspaceStore.getState();
 
@@ -122,6 +137,7 @@ const useThreadTreeRefresh = () => {
                     result.composer_model_selection?.provider ?? null,
                     result.composer_model_selection?.model ?? null,
                     result.composer_model_selection?.selected_reasoning_effort ?? null,
+                    capabilityTarget,
                 );
         } catch (caught) {
             const latestGatewayState = useGatewayStore.getState();

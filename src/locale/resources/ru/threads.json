@@ -127,6 +127,7 @@
     "composerNoSkills": "Skills не найдены.",
     "composerNoMcp": "MCP-серверы не найдены.",
     "composerSkillsFailed": "Не удалось загрузить skills.",
+    "composerCapabilitiesRemovedForProvider": "Некоторые возможности недоступны для этого провайдера и были удалены.",
     "composerMcpFailed": "Не удалось загрузить MCP.",
     "composerMcpServers": "Серверы",
     "composerMcpTools": "Инструменты",

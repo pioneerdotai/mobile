@@ -127,6 +127,7 @@
     "composerNoSkills": "Aucune skill trouvée.",
     "composerNoMcp": "Aucun serveur MCP trouvé.",
     "composerSkillsFailed": "Impossible de charger les skills.",
+    "composerCapabilitiesRemovedForProvider": "Certaines capacités ne sont pas disponibles pour ce fournisseur et ont été supprimées.",
     "composerMcpFailed": "Impossible de charger MCP.",
     "composerMcpServers": "Serveurs",
     "composerMcpTools": "Outils",

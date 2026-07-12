@@ -8,6 +8,11 @@ import { HStack } from '@/components/primitives/hstack';
 import { Pressable } from '@/components/primitives/pressable';
 import { Text } from '@/components/primitives/text';
 import { VStack } from '@/components/primitives/vstack';
+import {
+    composerCapabilityTargetForProvider,
+    filterSkillRowsForComposerTarget,
+    isCliRuntimeProvider,
+} from '@/services/providers/cli-runtime';
 import { useActiveThreadStore } from '@/stores/active-thread';
 import { useWorkspaceStore } from '@/stores/workspace';
 
@@ -28,10 +33,17 @@ export const ComposerSkillCapabilitiesScreen = () => {
 
     const activeWorkspaceId = useWorkspaceStore((state) => state.activeWorkspaceId);
 
-    const { composerCapabilities, setComposerCapabilities } = useActiveThreadStore(
+    const {
+        composerCapabilities,
+        composerSelectedProvider,
+        setComposerCapabilities,
+        syncComposerModelSelection,
+    } = useActiveThreadStore(
         useShallow((state) => ({
             composerCapabilities: state.composerCapabilities,
+            composerSelectedProvider: state.composerSelectedProvider,
             setComposerCapabilities: state.setComposerCapabilities,
+            syncComposerModelSelection: state.syncComposerModelSelection,
         })),
     );
 
@@ -50,11 +62,34 @@ export const ComposerSkillCapabilitiesScreen = () => {
 
             setState({ loading: true, error: null });
 
-            void pioneerClient
-                .composerSkillPickerRows({ workspace_id: activeWorkspaceId, query: '' })
-                .then((nextRows) => {
+            const runtimeRequest = isCliRuntimeProvider(composerSelectedProvider)
+                ? pioneerClient
+                      .cliRuntimeList({ workspace_id: activeWorkspaceId })
+                      .catch(() => ({ runtimes: [] }))
+                : Promise.resolve({ runtimes: [] });
+
+            void Promise.all([
+                pioneerClient.composerSkillPickerRows({
+                    workspace_id: activeWorkspaceId,
+                    query: '',
+                }),
+                runtimeRequest,
+            ])
+                .then(([nextRows, runtimeResponse]) => {
                     if (!cancelled) {
-                        setRows(nextRows);
+                        const target = composerCapabilityTargetForProvider(
+                            composerSelectedProvider,
+                            runtimeResponse.runtimes,
+                        );
+                        const storeState = useActiveThreadStore.getState();
+                        syncComposerModelSelection(
+                            composerSelectedProvider,
+                            storeState.composerSelectedModel,
+                            storeState.composerSelectedReasoningEffort,
+                            target,
+                            t('composerCapabilitiesRemovedForProvider'),
+                        );
+                        setRows(filterSkillRowsForComposerTarget(nextRows, target));
                     }
                 })
                 .catch(() => {
@@ -74,7 +109,7 @@ export const ComposerSkillCapabilitiesScreen = () => {
             cancelled = true;
             clearTimeout(timeout);
         };
-    }, [activeWorkspaceId, t]);
+    }, [activeWorkspaceId, composerSelectedProvider, syncComposerModelSelection, t]);
 
     const filteredRows = useMemo(
         () => pioneerClient.composerFilterSkillRows({ rows, query }),

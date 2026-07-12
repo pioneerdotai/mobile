@@ -110,7 +110,7 @@
         "react-native-audio-api": "^0.13.1",
         "react-native-drax": "^1.1.0",
         "react-native-edge-to-edge": "^1.8.1",
-        "react-native-enriched-markdown": "0.6.0",
+        "react-native-enriched-markdown": "github:pioneerdotai/react-native-enriched-markdown#f4ad3fe1fe7c123e54218f1e4539b04f338f067d",
         "react-native-gesture-handler": "~2.31.1",
         "react-native-get-random-values": "~1.11.0",
         "react-native-keyboard-controller": "1.21.13",

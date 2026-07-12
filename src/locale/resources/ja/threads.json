@@ -127,6 +127,7 @@
     "composerNoSkills": "スキルが見つかりません。",
     "composerNoMcp": "MCP servers が見つかりません。",
     "composerSkillsFailed": "スキルを読み込めませんでした。",
+    "composerCapabilitiesRemovedForProvider": "このプロバイダーで利用できない機能が削除されました。",
     "composerMcpFailed": "MCP を読み込めませんでした。",
     "composerMcpServers": "サーバー",
     "composerMcpTools": "ツール",

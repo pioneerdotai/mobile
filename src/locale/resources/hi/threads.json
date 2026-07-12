@@ -127,6 +127,7 @@
     "composerNoSkills": "स्किल्स नहीं मिलीं.",
     "composerNoMcp": "MCP servers नहीं मिले.",
     "composerSkillsFailed": "स्किल्स लोड नहीं हो सकीं.",
+    "composerCapabilitiesRemovedForProvider": "कुछ क्षमताएँ इस प्रदाता के लिए उपलब्ध नहीं हैं और हटा दी गईं।",
     "composerMcpFailed": "MCP लोड नहीं हो सका.",
     "composerMcpServers": "सर्वर",
     "composerMcpTools": "टूल",

@@ -83,7 +83,12 @@ export const ReasoningRow = ({ row, expanded, onToggle }: ReasoningRowProps) => 
             </Pressable>
             {expanded && hasText && (
                 <Box style={styles.body}>
-                    <MarkdownContent text={row.text} document={row.markdown} tone="muted" />
+                    <MarkdownContent
+                        text={row.text}
+                        document={row.markdown}
+                        highlightCodeBlocks
+                        tone="muted"
+                    />
                 </Box>
             )}
         </VStack>

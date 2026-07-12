@@ -397,7 +397,7 @@ const TimelineRowContainer = ({
     onToggleExpanded: () => void;
 }) => {
     return (
-        <Box>
+        <Box style={styles.timelineRow}>
             <TimelineRowRenderer
                 row={row}
                 expanded={expanded}
@@ -572,6 +572,10 @@ const styles = StyleSheet.create((theme) => ({
     },
     timelineList: {
         flex: 1,
+    },
+    timelineRow: {
+        width: '100%',
+        maxWidth: '100%',
     },
     content: {
         paddingHorizontal: theme.space(4),

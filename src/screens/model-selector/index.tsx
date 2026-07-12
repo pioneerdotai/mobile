@@ -284,10 +284,15 @@ export const ModelSelectorProviderScreen = () => {
 
     const selectProvider = useCallback(
         (provider: ModelSelectorProvider) => {
-            setComposerModelSelectionFromUser(provider.id, null);
+            setComposerModelSelectionFromUser(
+                provider.id,
+                null,
+                provider.capabilityTarget,
+                t('composerCapabilitiesRemovedForProvider'),
+            );
             goBackToModelSelector();
         },
-        [setComposerModelSelectionFromUser],
+        [setComposerModelSelectionFromUser, t],
     );
 
     const renderProvider = useCallback<ListRenderItem<ModelSelectorProvider>>(

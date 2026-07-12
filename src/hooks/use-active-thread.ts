@@ -18,7 +18,10 @@ import {
     isActiveThreadTimelineEvent,
 } from '@/services/threads/live-timeline-events';
 import { invalidateTimelineQueriesForThread } from '@/services/threads/timeline-query';
-import { isCliRuntimeProvider } from '@/services/providers/cli-runtime';
+import {
+    composerHasSendableContentForTarget,
+    filterComposerCapabilitiesForTarget,
+} from '@/services/providers/cli-runtime';
 import { useActiveThreadStore } from '@/stores/active-thread';
 import { useGatewayStore } from '@/stores/gateway';
 
@@ -54,6 +57,7 @@ export const useActiveThread = (
         composerCapabilities,
         composerSelectedMode,
         composerSelectedProvider,
+        composerCapabilityTarget,
         composerSelectedModel,
         composerSelectedReasoningEffort,
         composerSelectedPermissionMode,
@@ -82,6 +86,7 @@ export const useActiveThread = (
             composerCapabilities: state.composerCapabilities,
             composerSelectedMode: state.composerSelectedMode,
             composerSelectedProvider: state.composerSelectedProvider,
+            composerCapabilityTarget: state.composerCapabilityTarget,
             composerSelectedModel: state.composerSelectedModel,
             composerSelectedReasoningEffort: state.composerSelectedReasoningEffort,
             composerSelectedPermissionMode: state.composerSelectedPermissionMode,
@@ -346,11 +351,17 @@ export const useActiveThread = (
             const selectedReasoningEffortForSend = hasCompleteComposerModelSelection
                 ? storeState.composerSelectedReasoningEffort
                 : null;
-            const cliRuntimeSelected = isCliRuntimeProvider(selectedProviderForSend);
             const attachments = storeState.composerAttachments;
-            const capabilities = cliRuntimeSelected ? [] : storeState.composerCapabilities;
-            const hasSendableContent =
-                normalizedText.length > 0 || attachments.length > 0 || capabilities.length > 0;
+            const capabilities = filterComposerCapabilitiesForTarget(
+                storeState.composerCapabilities,
+                storeState.composerCapabilityTarget,
+            );
+            const hasSendableContent = composerHasSendableContentForTarget(
+                normalizedText,
+                attachments.length > 0,
+                storeState.composerCapabilities,
+                storeState.composerCapabilityTarget,
+            );
             if (
                 (!thread && !workspaceId) ||
                 !connected ||
@@ -599,6 +610,7 @@ export const useActiveThread = (
             hasInFlightTurn,
             canStopTurn,
             composerSelectedProvider,
+            composerCapabilityTarget,
             composerSelectedModel,
             composerSelectedReasoningEffort,
             composerSelectedPermissionMode,
@@ -623,6 +635,7 @@ export const useActiveThread = (
             composerSelectedMode,
             composerSelectedModel,
             composerSelectedProvider,
+            composerCapabilityTarget,
             composerSelectedReasoningEffort,
             composerSelectedPermissionMode,
             defaultComposerSelectionLoading,
