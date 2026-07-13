@@ -1,4 +1,4 @@
-import { AudioManager, AudioRecorder } from 'react-native-audio-api';
+import { AudioManager, AudioRecorder, type AudioEventSubscription } from 'react-native-audio-api';
 
 import {
     pioneerClient,
@@ -14,6 +14,13 @@ const VOICE_CHUNK_SAMPLES = 320;
 const VOICE_MAX_CHUNK_SAMPLES = 1_600;
 const VOICE_CHUNK_DURATION_MS = 20;
 const LEVEL_UPDATE_INTERVAL_MS = 80;
+const ROUTE_CHANGE_RESTART_DELAY_MS = 150;
+const ROUTE_CHANGE_RESTART_REASONS: ReadonlySet<string> = new Set([
+    'NewDeviceAvailable',
+    'OldDeviceUnavailable',
+    'ConfigurationChange',
+    'NoSuitableRouteForCategory',
+]);
 
 export const MOBILE_VOICE_AUDIO_FORMAT: VoiceAudioFormat = {
     sample_rate_hz: VOICE_SAMPLE_RATE_HZ,
@@ -126,6 +133,10 @@ export class MobileVoiceCaptureSession {
     readonly turnId: string;
     private readonly callbacks?: MobileVoiceCaptureCallbacks;
     private recorder: AudioRecorder | null = null;
+    private routeChangeSubscription: AudioEventSubscription | null = null;
+    private routeChangeRestartTimer: ReturnType<typeof setTimeout> | null = null;
+    private recorderTransition: Promise<void> = Promise.resolve();
+    private currentInputRouteKey: string | null = null;
     private sequence = 0;
     private ending = false;
     private chunkError: MobileVoiceCaptureError | null = null;
@@ -143,10 +154,27 @@ export class MobileVoiceCaptureSession {
     }
 
     async start(): Promise<void> {
+        await this.startRecorder();
+        this.currentInputRouteKey = await getCurrentInputRouteKey();
+        this.routeChangeSubscription = AudioManager.addSystemEventListener(
+            'routeChange',
+            (event) => {
+                if (!ROUTE_CHANGE_RESTART_REASONS.has(event.reason)) {
+                    return;
+                }
+                this.scheduleRecorderRestart();
+            },
+        );
+    }
+
+    private async startRecorder(): Promise<void> {
         const recorder = new AudioRecorder();
         this.recorder = recorder;
 
         recorder.onError((event) => {
+            if (this.recorder !== recorder || this.ending) {
+                return;
+            }
             const error = new MobileVoiceCaptureError(
                 'recorder_start_failed',
                 event.message || 'Microphone recording failed.',
@@ -177,6 +205,60 @@ export class MobileVoiceCaptureSession {
         if (startResult.status === 'error') {
             throw new MobileVoiceCaptureError('recorder_start_failed', startResult.message);
         }
+    }
+
+    private scheduleRecorderRestart(): void {
+        if (this.ending) {
+            return;
+        }
+
+        if (this.routeChangeRestartTimer) {
+            clearTimeout(this.routeChangeRestartTimer);
+        }
+
+        // A Bluetooth switch emits several route notifications; restart once after the route settles.
+        this.routeChangeRestartTimer = setTimeout(() => {
+            this.routeChangeRestartTimer = null;
+            this.recorderTransition = this.recorderTransition
+                .then(() => this.restartRecorderIfInputRouteChanged())
+                .catch((error) => {
+                    if (this.ending) {
+                        return;
+                    }
+                    const captureError = new MobileVoiceCaptureError(
+                        'recorder_start_failed',
+                        errorMessage(error),
+                        errorOptions(error),
+                    );
+                    this.callbacks?.onError?.(captureError);
+                    void this.cancel('mobile_audio_route_change_failed');
+                });
+        }, ROUTE_CHANGE_RESTART_DELAY_MS);
+    }
+
+    private async restartRecorderIfInputRouteChanged(): Promise<void> {
+        if (this.ending) {
+            return;
+        }
+
+        const nextInputRouteKey = await getCurrentInputRouteKey();
+        if (nextInputRouteKey !== null && nextInputRouteKey === this.currentInputRouteKey) {
+            return;
+        }
+
+        await this.stopCurrentRecorder();
+        if (this.ending) {
+            return;
+        }
+
+        await deactivateRecordingSession();
+        await activateRecordingSession();
+        if (this.ending) {
+            return;
+        }
+
+        await this.startRecorder();
+        this.currentInputRouteKey = await getCurrentInputRouteKey();
     }
 
     async commit(prepareContext: () => Promise<VoiceTurnContext>): Promise<void> {
@@ -313,6 +395,17 @@ export class MobileVoiceCaptureSession {
     }
 
     private async stopRecorder(): Promise<void> {
+        this.routeChangeSubscription?.remove();
+        this.routeChangeSubscription = null;
+        if (this.routeChangeRestartTimer) {
+            clearTimeout(this.routeChangeRestartTimer);
+            this.routeChangeRestartTimer = null;
+        }
+        await this.recorderTransition;
+        await this.stopCurrentRecorder();
+    }
+
+    private async stopCurrentRecorder(): Promise<void> {
         const recorder = this.recorder;
         this.recorder = null;
         if (!recorder) {
@@ -376,10 +469,22 @@ const ensureInputDevice = async (): Promise<void> => {
     );
 };
 
+const getCurrentInputRouteKey = async (): Promise<string | null> => {
+    const devices = await AudioManager.getDevicesInfo().catch(() => null);
+    if (!devices) {
+        return null;
+    }
+
+    return devices.currentInputs
+        .map((device) => device.id)
+        .sort((left, right) => left.localeCompare(right))
+        .join('|');
+};
+
 const activateRecordingSession = async (): Promise<void> => {
     AudioManager.setAudioSessionOptions({
         iosCategory: 'record',
-        iosMode: 'measurement',
+        iosMode: 'default',
         iosOptions: ['allowBluetoothHFP', 'bluetoothHighQualityRecording'],
     });
     await AudioManager.setAudioSessionActivity(true);
