@@ -718,10 +718,6 @@ const ProviderRow = ({
     selected: boolean;
     onPress: () => void;
 }) => {
-    const { t } = useTranslation('threads');
-    const readinessKey = providerMcpReadinessTranslationKey(provider);
-    const mcpReadinessLabel = readinessKey ? t(readinessKey) : null;
-
     return (
         <Pressable accessibilityRole="button" onPress={onPress}>
             <HStack style={styles.listRow}>
@@ -729,11 +725,6 @@ const ProviderRow = ({
                     <Text numberOfLines={1} style={styles.listRowTitle}>
                         {provider.label}
                     </Text>
-                    {mcpReadinessLabel ? (
-                        <Text numberOfLines={2} style={styles.modelDescription}>
-                            {`MCP: ${mcpReadinessLabel}`}
-                        </Text>
-                    ) : null}
                 </VStack>
                 {selected ? <Check /> : null}
             </HStack>
