@@ -1,6 +1,11 @@
 import { beforeEach, describe, expect, it } from '@jest/globals';
 
-import type { ClientActiveThreadSnapshot, ComposerCapability } from '@/client';
+import type { ClientActiveThreadSnapshot, ComposerAttachment, ComposerCapability } from '@/client';
+import {
+    NATIVE_COMPOSER_CAPABILITY_POLICY,
+    UNSUPPORTED_CLI_COMPOSER_CAPABILITY_POLICY,
+    type ComposerCapabilityPolicy,
+} from '@/services/providers/cli-runtime';
 
 import { useActiveThreadStore } from './active-thread';
 
@@ -20,6 +25,25 @@ const mcpCapability: ComposerCapability = {
     label: 'docs',
     kind: { McpServer: { name: 'docs', scope_kind: 'workspace' } },
 };
+
+const mcpToolCapability: ComposerCapability = {
+    id: 'mcp-tool:workspace:issues:search',
+    label: 'issues / search',
+    kind: {
+        McpTool: {
+            server_name: 'issues',
+            raw_tool_name: 'search',
+            scope_kind: 'workspace',
+        },
+    },
+};
+
+const cliPolicy = (supportsSkills: boolean, supportsMcpTools: boolean) =>
+    ({
+        kind: 'cli',
+        supportsSkills,
+        supportsMcpTools,
+    }) satisfies ComposerCapabilityPolicy;
 
 describe('active thread reasoning effort state', () => {
     beforeEach(() => {
@@ -87,22 +111,31 @@ describe('active thread reasoning effort state', () => {
                 'cli_runtime:codex',
                 'gpt-5',
                 null,
-                'skillCapableCli',
+                cliPolicy(true, false),
             );
 
-        expect(useActiveThreadStore.getState().defaultComposerCapabilityTarget).toBe(
-            'skillCapableCli',
+        expect(useActiveThreadStore.getState().defaultComposerCapabilityTarget).toEqual(
+            cliPolicy(true, false),
         );
-        expect(useActiveThreadStore.getState().composerCapabilityTarget).toBe('skillCapableCli');
+        expect(useActiveThreadStore.getState().composerCapabilityTarget).toEqual(
+            cliPolicy(true, false),
+        );
         expect(useActiveThreadStore.getState().composerCapabilities.map((item) => item.id)).toEqual(
             ['skill:user:user-skill'],
         );
 
         useActiveThreadStore
             .getState()
-            .syncComposerModelSelection('cli_runtime:codex', 'gpt-5', null, 'unsupportedCli');
+            .syncComposerModelSelection(
+                'cli_runtime:codex',
+                'gpt-5',
+                null,
+                UNSUPPORTED_CLI_COMPOSER_CAPABILITY_POLICY,
+            );
 
-        expect(useActiveThreadStore.getState().composerCapabilityTarget).toBe('unsupportedCli');
+        expect(useActiveThreadStore.getState().composerCapabilityTarget).toEqual(
+            UNSUPPORTED_CLI_COMPOSER_CAPABILITY_POLICY,
+        );
         expect(useActiveThreadStore.getState().composerCapabilities).toEqual([]);
     });
 
@@ -254,7 +287,7 @@ describe('active thread keyed composer drafts', () => {
     });
 });
 
-describe('active thread CLI skill capability drafts', () => {
+describe('active thread CLI capability drafts', () => {
     beforeEach(() => {
         resetStore();
     });
@@ -274,7 +307,7 @@ describe('active thread CLI skill capability drafts', () => {
             .setComposerModelSelectionFromUser(
                 'cli_runtime:codex',
                 null,
-                'skillCapableCli',
+                cliPolicy(true, false),
                 'Capabilities removed',
             );
 
@@ -283,9 +316,57 @@ describe('active thread CLI skill capability drafts', () => {
         );
         expect(useActiveThreadStore.getState().composerError).toBe('Capabilities removed');
         expect(useActiveThreadStore.getState().composerDrafts['thread-a']).toMatchObject({
-            capabilityTarget: 'skillCapableCli',
+            capabilityTarget: cliPolicy(true, false),
             capabilities: [mixed[0], mixed[2]],
         });
+    });
+
+    it('preserves whole-server and individual-tool selections for MCP-only and combined CLI', () => {
+        const mixed = [
+            skillCapability('user', 'user-skill'),
+            mcpCapability,
+            skillCapability('registry', 'registry-skill'),
+            skillCapability('system', 'memory'),
+            mcpToolCapability,
+        ];
+        useActiveThreadStore.getState().activateComposerThread('thread-a');
+        useActiveThreadStore.getState().setComposerCapabilities(mixed);
+
+        useActiveThreadStore
+            .getState()
+            .setComposerModelSelectionFromUser(
+                'cli_runtime:codex',
+                null,
+                cliPolicy(true, true),
+                'Capabilities removed',
+            );
+        expect(useActiveThreadStore.getState().composerCapabilities.map((item) => item.id)).toEqual(
+            [mixed[0].id, mixed[1].id, mixed[2].id, mixed[4].id],
+        );
+
+        useActiveThreadStore
+            .getState()
+            .setComposerModelSelectionFromUser(
+                'cli_runtime:codex',
+                null,
+                cliPolicy(false, true),
+                'Capabilities removed',
+            );
+        expect(useActiveThreadStore.getState().composerCapabilities).toEqual([
+            mcpCapability,
+            mcpToolCapability,
+        ]);
+        expect(useActiveThreadStore.getState().composerDrafts['thread-a']).toMatchObject({
+            capabilityTarget: cliPolicy(false, true),
+            capabilities: [mcpCapability, mcpToolCapability],
+        });
+
+        useActiveThreadStore.getState().activateComposerThread('thread-b');
+        useActiveThreadStore.getState().activateComposerThread('thread-a');
+        expect(useActiveThreadStore.getState().composerCapabilities).toEqual([
+            mcpCapability,
+            mcpToolCapability,
+        ]);
     });
 
     it('removes every capability for unsupported CLI and never resurrects hidden values', () => {
@@ -299,13 +380,15 @@ describe('active thread CLI skill capability drafts', () => {
             .setComposerModelSelectionFromUser(
                 'cli_runtime:legacy',
                 null,
-                'unsupportedCli',
+                UNSUPPORTED_CLI_COMPOSER_CAPABILITY_POLICY,
                 'Capabilities removed',
             );
         expect(useActiveThreadStore.getState().composerCapabilities).toEqual([]);
         expect(useActiveThreadStore.getState().composerError).toBe('Capabilities removed');
 
-        useActiveThreadStore.getState().setComposerModelSelectionFromUser('openai', null, 'native');
+        useActiveThreadStore
+            .getState()
+            .setComposerModelSelectionFromUser('openai', null, NATIVE_COMPOSER_CAPABILITY_POLICY);
         expect(useActiveThreadStore.getState().composerCapabilities).toEqual([]);
     });
 
@@ -319,12 +402,18 @@ describe('active thread CLI skill capability drafts', () => {
             ]);
         useActiveThreadStore
             .getState()
-            .setComposerModelSelectionFromUser('cli_runtime:codex', 'gpt-5', 'skillCapableCli');
+            .setComposerModelSelectionFromUser(
+                'cli_runtime:codex',
+                'gpt-5',
+                cliPolicy(true, false),
+            );
 
         useActiveThreadStore.getState().activateComposerThread('thread-b');
         useActiveThreadStore.getState().activateComposerThread('thread-a');
 
-        expect(useActiveThreadStore.getState().composerCapabilityTarget).toBe('skillCapableCli');
+        expect(useActiveThreadStore.getState().composerCapabilityTarget).toEqual(
+            cliPolicy(true, false),
+        );
         expect(useActiveThreadStore.getState().composerCapabilities.map((item) => item.id)).toEqual(
             ['skill:user:user-skill'],
         );
@@ -334,7 +423,11 @@ describe('active thread CLI skill capability drafts', () => {
         useActiveThreadStore.getState().activateComposerThread('thread-a');
         useActiveThreadStore
             .getState()
-            .setComposerModelSelectionFromUser('cli_runtime:codex', 'gpt-5', 'skillCapableCli');
+            .setComposerModelSelectionFromUser(
+                'cli_runtime:codex',
+                'gpt-5',
+                cliPolicy(true, false),
+            );
         useActiveThreadStore
             .getState()
             .setComposerCapabilities([skillCapability('user', 'user-skill')]);
@@ -345,19 +438,51 @@ describe('active thread CLI skill capability drafts', () => {
                 'cli_runtime:codex',
                 'ignored-active-thread-model',
                 null,
-                'unsupportedCli',
+                UNSUPPORTED_CLI_COMPOSER_CAPABILITY_POLICY,
                 'Capabilities removed',
             );
 
         const state = useActiveThreadStore.getState();
         expect(state.composerSelectedModel).toBe('gpt-5');
-        expect(state.composerCapabilityTarget).toBe('unsupportedCli');
+        expect(state.composerCapabilityTarget).toEqual(UNSUPPORTED_CLI_COMPOSER_CAPABILITY_POLICY);
         expect(state.composerCapabilities).toEqual([]);
         expect(state.composerError).toBe('Capabilities removed');
         expect(state.composerDrafts['thread-a']).toMatchObject({
             selectedModel: 'gpt-5',
-            capabilityTarget: 'unsupportedCli',
+            capabilityTarget: UNSUPPORTED_CLI_COMPOSER_CAPABILITY_POLICY,
             capabilities: [],
         });
+    });
+
+    it('does not rewrite historical snapshots or unrelated composer payload on policy change', () => {
+        const historicalSnapshot = {
+            thread_id: 'thread-a',
+            projection: {
+                historical_user_message_attachments: [mcpCapability, mcpToolCapability],
+            },
+        } as unknown as ClientActiveThreadSnapshot;
+        const attachment = { path: '/tmp/example.txt' } as unknown as ComposerAttachment;
+
+        useActiveThreadStore.getState().activateComposerThread('thread-a');
+        useActiveThreadStore.getState().setSnapshot(historicalSnapshot);
+        useActiveThreadStore.getState().setComposerText('draft text');
+        useActiveThreadStore.getState().setComposerAttachments([attachment]);
+        useActiveThreadStore.getState().setComposerCapabilities([mcpCapability, mcpToolCapability]);
+
+        useActiveThreadStore
+            .getState()
+            .setComposerModelSelectionFromUser(
+                'cli_runtime:legacy',
+                null,
+                UNSUPPORTED_CLI_COMPOSER_CAPABILITY_POLICY,
+                'Capabilities removed',
+            );
+
+        const state = useActiveThreadStore.getState();
+        expect(state.snapshot).toBe(historicalSnapshot);
+        expect(state.composerText).toBe('draft text');
+        expect(state.composerAttachments).toEqual([attachment]);
+        expect(state.composerCapabilities).toEqual([]);
+        expect(state.composerError).toBe('Capabilities removed');
     });
 });

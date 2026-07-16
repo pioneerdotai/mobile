@@ -18,10 +18,7 @@ import {
     isActiveThreadTimelineEvent,
 } from '@/services/threads/live-timeline-events';
 import { invalidateTimelineQueriesForThread } from '@/services/threads/timeline-query';
-import {
-    composerHasSendableContentForTarget,
-    filterComposerCapabilitiesForTarget,
-} from '@/services/providers/cli-runtime';
+import { composerCapabilitySnapshotForTarget } from '@/services/providers/cli-runtime';
 import { useActiveThreadStore } from '@/stores/active-thread';
 import { useGatewayStore } from '@/stores/gateway';
 
@@ -352,11 +349,7 @@ export const useActiveThread = (
                 ? storeState.composerSelectedReasoningEffort
                 : null;
             const attachments = storeState.composerAttachments;
-            const capabilities = filterComposerCapabilitiesForTarget(
-                storeState.composerCapabilities,
-                storeState.composerCapabilityTarget,
-            );
-            const hasSendableContent = composerHasSendableContentForTarget(
+            const capabilitySnapshot = composerCapabilitySnapshotForTarget(
                 normalizedText,
                 attachments.length > 0,
                 storeState.composerCapabilities,
@@ -366,7 +359,7 @@ export const useActiveThread = (
                 (!thread && !workspaceId) ||
                 !connected ||
                 connectionId === null ||
-                !hasSendableContent
+                !capabilitySnapshot.hasComposerPayload
             ) {
                 return false;
             }
@@ -428,7 +421,7 @@ export const useActiveThread = (
                     selected_mode: storeState.composerSelectedMode,
                     permission_mode: storeState.composerSelectedPermissionMode,
                     attachments: attachmentsForSend,
-                    capabilities,
+                    capabilities: capabilitySnapshot.capabilities,
                     expanded_keys: useActiveThreadStore.getState().expandedKeys,
                 });
 

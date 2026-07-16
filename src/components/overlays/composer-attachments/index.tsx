@@ -22,9 +22,12 @@ import {
     pickComposerMediaAttachments,
 } from '@/services/threads/composer-attachments';
 import {
+    NATIVE_COMPOSER_CAPABILITY_POLICY,
+    UNSUPPORTED_CLI_COMPOSER_CAPABILITY_POLICY,
+    composerCapabilityMenuVisibility,
     composerCapabilityTargetForProvider,
     isCliRuntimeProvider,
-    type ComposerCapabilityTarget,
+    type ComposerCapabilityPolicy,
 } from '@/services/providers/cli-runtime';
 import { useActiveThreadStore } from '@/stores/active-thread';
 import { useWorkspaceStore } from '@/stores/workspace';
@@ -57,15 +60,16 @@ const ComposerAttachmentMenuSheet = () => {
     const [runtimeTarget, setRuntimeTarget] = useState<{
         provider: string | null;
         workspaceId: string | null;
-        target: ComposerCapabilityTarget;
+        target: ComposerCapabilityPolicy;
     } | null>(null);
     const capabilityTarget =
         runtimeTarget?.provider === composerSelectedProvider &&
         runtimeTarget.workspaceId === activeWorkspaceId
             ? runtimeTarget.target
             : cliRuntimeSelected
-              ? 'unsupportedCli'
-              : 'native';
+              ? UNSUPPORTED_CLI_COMPOSER_CAPABILITY_POLICY
+              : NATIVE_COMPOSER_CAPABILITY_POLICY;
+    const capabilityMenu = composerCapabilityMenuVisibility(capabilityTarget);
 
     useEffect(() => {
         let cancelled = false;
@@ -82,7 +86,7 @@ const ComposerAttachmentMenuSheet = () => {
                 composerSelectedProvider,
                 storeState.composerSelectedModel,
                 storeState.composerSelectedReasoningEffort,
-                'unsupportedCli',
+                UNSUPPORTED_CLI_COMPOSER_CAPABILITY_POLICY,
                 t('composerCapabilitiesRemovedForProvider'),
             );
             return () => {
@@ -118,14 +122,14 @@ const ComposerAttachmentMenuSheet = () => {
                     setRuntimeTarget({
                         provider: composerSelectedProvider,
                         workspaceId: activeWorkspaceId,
-                        target: 'unsupportedCli',
+                        target: UNSUPPORTED_CLI_COMPOSER_CAPABILITY_POLICY,
                     });
                     const storeState = useActiveThreadStore.getState();
                     syncComposerModelSelection(
                         composerSelectedProvider,
                         storeState.composerSelectedModel,
                         storeState.composerSelectedReasoningEffort,
-                        'unsupportedCli',
+                        UNSUPPORTED_CLI_COMPOSER_CAPABILITY_POLICY,
                         t('composerCapabilitiesRemovedForProvider'),
                     );
                 }
@@ -256,14 +260,21 @@ const ComposerAttachmentMenuSheet = () => {
                             onPress={pickFiles}
                         />
                     </HStack>
-                    {capabilityTarget !== 'unsupportedCli' ? (
+                    {capabilityMenu.any ? (
                         <HStack style={styles.menuRow}>
-                            <MenuItem
-                                icon={<Zap size={theme.space(5)} color={theme.colors.typography} />}
-                                label={t('composerSkills')}
-                                onPress={openSkills}
-                            />
-                            {capabilityTarget === 'native' ? (
+                            {capabilityMenu.skills ? (
+                                <MenuItem
+                                    icon={
+                                        <Zap
+                                            size={theme.space(5)}
+                                            color={theme.colors.typography}
+                                        />
+                                    }
+                                    label={t('composerSkills')}
+                                    onPress={openSkills}
+                                />
+                            ) : null}
+                            {capabilityMenu.mcp ? (
                                 <MenuItem
                                     icon={
                                         <McpIcon

@@ -44,9 +44,10 @@ import {
     useProviderModelReasoningEffortLabel,
 } from '@/hooks/use-provider-model-display-name';
 import {
-    composerHasSendableContentForTarget,
+    NATIVE_COMPOSER_CAPABILITY_POLICY,
+    UNSUPPORTED_CLI_COMPOSER_CAPABILITY_POLICY,
+    composerCapabilitySnapshotForTarget,
     composerCapabilityTargetForProvider,
-    filterComposerCapabilitiesForTarget,
     isCliRuntimeProvider,
 } from '@/services/providers/cli-runtime';
 import { useHideAppSplashWhen } from '@/services/app-splash';
@@ -205,6 +206,16 @@ const ThreadScreen = ({
     );
     const setComposerPermissionModeSwitcherOpen = useActiveThreadStore(
         (state) => state.setComposerPermissionModeSwitcherOpen,
+    );
+    const renderedComposerCapabilitySnapshot = useMemo(
+        () =>
+            composerCapabilitySnapshotForTarget(
+                composerText,
+                composerAttachments.length > 0,
+                composerCapabilities,
+                composerCapabilityTarget,
+            ),
+        [composerAttachments.length, composerCapabilities, composerCapabilityTarget, composerText],
     );
     const timelineRef = useRef<LegendListRef>(null);
     const composerRef = useRef<View>(null);
@@ -702,14 +713,7 @@ const ThreadScreen = ({
     );
 
     const handleSend = useCallback(() => {
-        const hasComposerPayload = composerHasSendableContentForTarget(
-            composerText,
-            composerAttachments.length > 0,
-            composerCapabilities,
-            composerCapabilityTarget,
-        );
-
-        if (!hasComposerPayload) {
+        if (!renderedComposerCapabilitySnapshot.hasComposerPayload) {
             return;
         }
 
@@ -719,10 +723,8 @@ const ThreadScreen = ({
             }
         });
     }, [
-        composerAttachments.length,
-        composerCapabilityTarget,
-        composerCapabilities,
         composerText,
+        renderedComposerCapabilitySnapshot.hasComposerPayload,
         sendText,
         setComposerText,
     ]);
@@ -770,7 +772,9 @@ const ThreadScreen = ({
                 : null;
 
             const attachments = storeState.composerAttachments;
-            const capabilities = filterComposerCapabilitiesForTarget(
+            const capabilitySnapshot = composerCapabilitySnapshotForTarget(
+                '',
+                storeState.composerAttachments.length > 0,
                 storeState.composerCapabilities,
                 storeState.composerCapabilityTarget,
             );
@@ -797,7 +801,7 @@ const ThreadScreen = ({
                     selected_mode: composerSelectedMode,
                     permission_mode: composerSelectedPermissionMode,
                     attachments: attachmentsForVoice,
-                    capabilities,
+                    capabilities: capabilitySnapshot.capabilities,
                 });
 
                 const uploadedAttachments = applyVoiceUploadedAttachmentArtifacts(
@@ -1170,7 +1174,7 @@ const ThreadScreen = ({
                     activeThreadModelProvider,
                     activeThreadModel,
                     activeThreadReasoningEffort,
-                    'native',
+                    NATIVE_COMPOSER_CAPABILITY_POLICY,
                 );
             } else if (activeWorkspaceId) {
                 void pioneerClient
@@ -1194,7 +1198,7 @@ const ThreadScreen = ({
                                 activeThreadModelProvider,
                                 activeThreadModel,
                                 activeThreadReasoningEffort,
-                                'unsupportedCli',
+                                UNSUPPORTED_CLI_COMPOSER_CAPABILITY_POLICY,
                             );
                         }
                     });
@@ -1203,7 +1207,7 @@ const ThreadScreen = ({
                     activeThreadModelProvider,
                     activeThreadModel,
                     activeThreadReasoningEffort,
-                    'unsupportedCli',
+                    UNSUPPORTED_CLI_COMPOSER_CAPABILITY_POLICY,
                 );
             }
 
@@ -1390,10 +1394,7 @@ const ThreadScreen = ({
                                 turnCancelling={turnCancelling}
                                 error={composerError}
                                 attachments={composerAttachments}
-                                capabilities={filterComposerCapabilitiesForTarget(
-                                    composerCapabilities,
-                                    composerCapabilityTarget,
-                                )}
+                                capabilities={renderedComposerCapabilitySnapshot.capabilities}
                                 attachmentsEnabled
                                 attachmentMenuAccessibilityLabel={t('composerAttachmentMenuTitle')}
                                 modelSelectionLabel={modelSelectionLabel}

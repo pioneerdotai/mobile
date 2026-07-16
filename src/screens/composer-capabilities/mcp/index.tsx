@@ -5,11 +5,18 @@ import { useTranslation } from 'react-i18next';
 import { useUnistyles } from 'react-native-unistyles';
 import { useShallow } from 'zustand/react/shallow';
 
-import { pioneerClient, type SelectableMcpCapability } from '@/client';
+import { pioneerClient, type ComposerCapability, type SelectableMcpCapability } from '@/client';
 import { HStack } from '@/components/primitives/hstack';
 import { Pressable } from '@/components/primitives/pressable';
 import { Text } from '@/components/primitives/text';
 import { VStack } from '@/components/primitives/vstack';
+import {
+    NATIVE_COMPOSER_CAPABILITY_POLICY,
+    UNSUPPORTED_CLI_COMPOSER_CAPABILITY_POLICY,
+    composerCapabilityPolicySupportsMcpTools,
+    composerCapabilityTargetForProvider,
+    isCliRuntimeProvider,
+} from '@/services/providers/cli-runtime';
 import { useActiveThreadStore } from '@/stores/active-thread';
 import { useWorkspaceStore } from '@/stores/workspace';
 
@@ -35,15 +42,38 @@ type McpDisplayRow =
 const mcpKeyExtractor = (row: McpDisplayRow): string =>
     row.type === 'section' ? `section:${row.id}` : `${row.type}:${row.row.key}`;
 
+export const replaceSelectedMcpComposerCapabilities = (
+    currentCapabilities: readonly ComposerCapability[],
+    selectedKeys: readonly string[],
+    rowsByKey: ReadonlyMap<string, SelectableMcpCapability>,
+    capabilityFromRow: (row: SelectableMcpCapability) => ComposerCapability,
+): ComposerCapability[] => {
+    const nextMcpCapabilities = selectedKeys.flatMap((key) => {
+        const row = rowsByKey.get(key);
+        return row ? [capabilityFromRow(row)] : [];
+    });
+
+    return currentCapabilities
+        .filter((capability) => !isMcpComposerCapability(capability))
+        .concat(nextMcpCapabilities);
+};
+
 export const ComposerMcpCapabilitiesScreen = () => {
     const { t } = useTranslation('threads');
 
     const activeWorkspaceId = useWorkspaceStore((state) => state.activeWorkspaceId);
 
-    const { composerCapabilities, setComposerCapabilities } = useActiveThreadStore(
+    const {
+        composerCapabilities,
+        composerSelectedProvider,
+        setComposerCapabilities,
+        syncComposerModelSelection,
+    } = useActiveThreadStore(
         useShallow((state) => ({
             composerCapabilities: state.composerCapabilities,
+            composerSelectedProvider: state.composerSelectedProvider,
             setComposerCapabilities: state.setComposerCapabilities,
+            syncComposerModelSelection: state.syncComposerModelSelection,
         })),
     );
 
@@ -65,33 +95,70 @@ export const ComposerMcpCapabilitiesScreen = () => {
 
             setState({ loading: true, error: null });
 
-            void pioneerClient
-                .composerMcpPickerRows({ workspace_id: activeWorkspaceId, query: '' })
-                .then((result) => {
+            void (async () => {
+                let policy = NATIVE_COMPOSER_CAPABILITY_POLICY;
+                if (isCliRuntimeProvider(composerSelectedProvider)) {
+                    try {
+                        const response = await pioneerClient.cliRuntimeList({
+                            workspace_id: activeWorkspaceId,
+                        });
+                        policy = composerCapabilityTargetForProvider(
+                            composerSelectedProvider,
+                            response.runtimes,
+                        );
+                    } catch {
+                        policy = UNSUPPORTED_CLI_COMPOSER_CAPABILITY_POLICY;
+                    }
+                }
+
+                if (cancelled) {
+                    return;
+                }
+
+                const storeState = useActiveThreadStore.getState();
+                syncComposerModelSelection(
+                    composerSelectedProvider,
+                    storeState.composerSelectedModel,
+                    storeState.composerSelectedReasoningEffort,
+                    policy,
+                    t('composerCapabilitiesRemovedForProvider'),
+                );
+
+                if (!composerCapabilityPolicySupportsMcpTools(policy)) {
+                    setServerRows([]);
+                    setToolRows([]);
+                    setState({
+                        loading: false,
+                        error: t('composerMcpUnavailableForProvider'),
+                    });
+                    return;
+                }
+
+                try {
+                    const result = await pioneerClient.composerMcpPickerRows({
+                        workspace_id: activeWorkspaceId,
+                        query: '',
+                    });
                     if (!cancelled) {
                         setServerRows(result.server_rows);
                         setToolRows(result.tool_rows);
+                        setState({ loading: false, error: null });
                     }
-                })
-                .catch(() => {
+                } catch {
                     if (!cancelled) {
                         setServerRows([]);
                         setToolRows([]);
                         setState({ loading: false, error: t('composerMcpFailed') });
                     }
-                })
-                .finally(() => {
-                    if (!cancelled) {
-                        setState((current) => ({ ...current, loading: false }));
-                    }
-                });
+                }
+            })();
         }, 0);
 
         return () => {
             cancelled = true;
             clearTimeout(timeout);
         };
-    }, [activeWorkspaceId, t]);
+    }, [activeWorkspaceId, composerSelectedProvider, syncComposerModelSelection, t]);
 
     const selectedKeys = useMemo(
         () => selectedCapabilityKeys(composerCapabilities),
@@ -170,16 +237,13 @@ export const ComposerMcpCapabilitiesScreen = () => {
             });
 
             const currentCapabilities = useActiveThreadStore.getState().composerCapabilities;
-            const nextMcpCapabilities = result.selected_keys.flatMap((key) => {
-                const nextRow = mcpRowsByKey.get(key);
-                return nextRow
-                    ? [pioneerClient.composerMcpCapabilityFromRow({ row: nextRow })]
-                    : [];
-            });
             setComposerCapabilities(
-                currentCapabilities
-                    .filter((capability) => !isMcpComposerCapability(capability))
-                    .concat(nextMcpCapabilities),
+                replaceSelectedMcpComposerCapabilities(
+                    currentCapabilities,
+                    result.selected_keys,
+                    mcpRowsByKey,
+                    (nextRow) => pioneerClient.composerMcpCapabilityFromRow({ row: nextRow }),
+                ),
             );
 
             if (result.collapse_active_server) {

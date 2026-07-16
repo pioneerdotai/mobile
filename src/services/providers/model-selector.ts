@@ -7,17 +7,21 @@ import type {
     RuntimeSummary,
 } from '@/client';
 import {
+    NATIVE_COMPOSER_CAPABILITY_POLICY,
+    cliRuntimeMcpReadinessReason,
     cliRuntimeProviderKey,
     composerCapabilityTargetForProvider,
     isCliRuntimeProvider,
-    type ComposerCapabilityTarget,
+    type ComposerCapabilityPolicy,
+    type CliRuntimeMcpReadinessReason,
 } from './cli-runtime';
 
 export type ModelSelectorProvider = {
     id: string;
     label: string;
     kind: 'api' | 'cliRuntime';
-    capabilityTarget: ComposerCapabilityTarget;
+    capabilityTarget: ComposerCapabilityPolicy;
+    mcpReadinessReason: CliRuntimeMcpReadinessReason | null;
 };
 
 export const listProviders = async (workspaceId: string): Promise<ModelSelectorProvider[]> => {
@@ -32,7 +36,8 @@ export const listProviders = async (workspaceId: string): Promise<ModelSelectorP
                   id: provider.name,
                   label: provider.name,
                   kind: 'api',
-                  capabilityTarget: 'native' as const,
+                  capabilityTarget: NATIVE_COMPOSER_CAPABILITY_POLICY,
+                  mcpReadinessReason: null,
               }))
             : [];
 
@@ -48,6 +53,7 @@ export const listProviders = async (workspaceId: string): Promise<ModelSelectorP
                         cliRuntimeProviderKey(runtime.runtime_id),
                         cliRuntimes.value.runtimes,
                     ),
+                    mcpReadinessReason: cliRuntimeMcpReadinessReason(runtime),
                 })),
         );
     }

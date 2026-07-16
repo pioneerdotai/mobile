@@ -3059,6 +3059,7 @@ export interface RuntimeCapabilities {
   supports_goal: boolean;
   supports_history_read: boolean;
   supports_interrupt: boolean;
+  supports_mcp_tools?: boolean;
   supports_model_list: boolean;
   supports_resume: boolean;
   supports_review: boolean;
