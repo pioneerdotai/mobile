@@ -13,6 +13,7 @@ import {
     filterSkillRowsForComposerTarget,
     isCliRuntimeProvider,
 } from '@/services/providers/cli-runtime';
+import { refreshCliRuntimeSummaries } from '@/services/providers/cli-runtime-live';
 import { useActiveThreadStore } from '@/stores/active-thread';
 import { useWorkspaceStore } from '@/stores/workspace';
 
@@ -63,10 +64,8 @@ export const ComposerSkillCapabilitiesScreen = () => {
             setState({ loading: true, error: null });
 
             const runtimeRequest = isCliRuntimeProvider(composerSelectedProvider)
-                ? pioneerClient
-                      .cliRuntimeList({ workspace_id: activeWorkspaceId })
-                      .catch(() => ({ runtimes: [] }))
-                : Promise.resolve({ runtimes: [] });
+                ? refreshCliRuntimeSummaries(activeWorkspaceId).catch(() => [])
+                : Promise.resolve([]);
 
             void Promise.all([
                 pioneerClient.composerSkillPickerRows({
@@ -75,11 +74,11 @@ export const ComposerSkillCapabilitiesScreen = () => {
                 }),
                 runtimeRequest,
             ])
-                .then(([nextRows, runtimeResponse]) => {
+                .then(([nextRows, runtimes]) => {
                     if (!cancelled) {
                         const target = composerCapabilityTargetForProvider(
                             composerSelectedProvider,
-                            runtimeResponse.runtimes,
+                            runtimes,
                         );
                         const storeState = useActiveThreadStore.getState();
                         syncComposerModelSelection(

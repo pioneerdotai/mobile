@@ -69,6 +69,7 @@ namespace margelo::nitro::pioneer::client {
       virtual std::shared_ptr<Promise<std::string>> workspaceRenameJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> providerListJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> cliRuntimeListJson(const std::string& inputJson) = 0;
+      virtual std::shared_ptr<Promise<std::string>> cliRuntimeRefreshJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> cliRuntimeListModelsJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> cliRuntimeThreadBindingGetJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> cliRuntimeThreadCompactJson(const std::string& inputJson) = 0;

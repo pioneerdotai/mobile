@@ -30,6 +30,7 @@ char* pioneer_client_ffi_workspace_create(PioneerClientFfi* client, const char* 
 char* pioneer_client_ffi_workspace_rename(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_provider_list(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_cli_runtime_list(PioneerClientFfi* client, const char* input_json);
+char* pioneer_client_ffi_cli_runtime_refresh(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_cli_runtime_list_models(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_cli_runtime_thread_binding_get(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_cli_runtime_thread_compact(PioneerClientFfi* client, const char* input_json);

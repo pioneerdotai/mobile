@@ -17,6 +17,7 @@ import {
     composerCapabilityTargetForProvider,
     isCliRuntimeProvider,
 } from '@/services/providers/cli-runtime';
+import { refreshCliRuntimeSummaries } from '@/services/providers/cli-runtime-live';
 import { useActiveThreadStore } from '@/stores/active-thread';
 import { useWorkspaceStore } from '@/stores/workspace';
 
@@ -99,12 +100,10 @@ export const ComposerMcpCapabilitiesScreen = () => {
                 let policy = NATIVE_COMPOSER_CAPABILITY_POLICY;
                 if (isCliRuntimeProvider(composerSelectedProvider)) {
                     try {
-                        const response = await pioneerClient.cliRuntimeList({
-                            workspace_id: activeWorkspaceId,
-                        });
+                        const runtimes = await refreshCliRuntimeSummaries(activeWorkspaceId);
                         policy = composerCapabilityTargetForProvider(
                             composerSelectedProvider,
-                            response.runtimes,
+                            runtimes,
                         );
                     } catch {
                         policy = UNSUPPORTED_CLI_COMPOSER_CAPABILITY_POLICY;

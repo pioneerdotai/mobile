@@ -1,17 +1,20 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
-import type { ProviderModelInfo, ReasoningEffortRowsRequest } from '@/client';
+import type { ProviderModelInfo, ReasoningEffortRowsRequest, RuntimeSummary } from '@/client';
 import { pioneerClient } from '@/client';
 
 import {
+    listProviders,
     listProviderModels,
     reasoningEffortDisplayLabelForModel,
     reasoningEffortRowsForModel,
     resolveSelectedProviderModel,
 } from './model-selector';
+import { refreshCliRuntimeSummaries } from './cli-runtime-live';
 
 jest.mock('@/client', () => ({
     pioneerClient: {
         cliRuntimeListModels: jest.fn(),
+        providerList: jest.fn(),
         providerListModels: jest.fn(),
         reasoningEffortRows: jest.fn(({ model, selected_effort }: ReasoningEffortRowsRequest) => {
             const reasoning = model.capabilities.reasoning;
@@ -33,6 +36,10 @@ jest.mock('@/client', () => ({
             };
         }),
     },
+}));
+
+jest.mock('./cli-runtime-live', () => ({
+    refreshCliRuntimeSummaries: jest.fn(),
 }));
 
 const providerModel = (
@@ -110,6 +117,40 @@ describe('model selector reasoning helpers', () => {
         expect(reasoningEffortRowsForModel(providerModel(null), 'high')).toEqual([]);
         expect(reasoningEffortRowsForModel(null, 'high')).toEqual([]);
         expect(reasoningEffortDisplayLabelForModel(providerModel(null), 'high')).toBeNull();
+    });
+
+    it('loads CLI capability policy from live runtime readiness', async () => {
+        const runtime = {
+            runtime_id: 'codex',
+            kind: 'codex',
+            display_name: 'Codex CLI',
+            enabled: true,
+            status: { state: 'ready' },
+            capabilities: {
+                supports_threads: true,
+                supports_model_list: true,
+                supports_skills: true,
+                supports_mcp_tools: true,
+            },
+            diagnostics: [{ code: 'cli_runtime.mcp.ready', level: 'info', message: 'ready' }],
+        } as RuntimeSummary;
+        jest.mocked(pioneerClient.providerList).mockResolvedValue({ providers: [] });
+        jest.mocked(refreshCliRuntimeSummaries).mockResolvedValue([runtime]);
+
+        await expect(listProviders('workspace-1')).resolves.toEqual([
+            {
+                id: 'cli_runtime:codex',
+                label: 'Codex CLI',
+                kind: 'cliRuntime',
+                capabilityTarget: {
+                    kind: 'cli',
+                    supportsSkills: true,
+                    supportsMcpTools: true,
+                },
+                mcpReadinessReason: null,
+            },
+        ]);
+        expect(refreshCliRuntimeSummaries).toHaveBeenCalledWith('workspace-1');
     });
 
     it('delegates CLI runtime provider model conversion to the native client helper', async () => {

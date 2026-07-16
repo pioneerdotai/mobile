@@ -155,6 +155,11 @@ HybridPioneerClient::cliRuntimeListJson(const std::string& inputJson) {
 }
 
 std::shared_ptr<margelo::nitro::Promise<std::string>>
+HybridPioneerClient::cliRuntimeRefreshJson(const std::string& inputJson) {
+  return callWithClientAsync(pioneer_client_ffi_cli_runtime_refresh, inputJson);
+}
+
+std::shared_ptr<margelo::nitro::Promise<std::string>>
 HybridPioneerClient::cliRuntimeListModelsJson(const std::string& inputJson) {
   return callWithClientAsync(pioneer_client_ffi_cli_runtime_list_models, inputJson);
 }

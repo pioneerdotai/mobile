@@ -2,11 +2,12 @@ import { useCallback, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useShallow } from 'zustand/react/shallow';
 
-import { pioneerClient, type ClientEvent, type ClientThreadTreeLevel } from '@/client';
+import type { ClientEvent, ClientThreadTreeLevel } from '@/client';
 import {
     composerCapabilityTargetForProvider,
     isCliRuntimeProvider,
 } from '@/services/providers/cli-runtime';
+import { refreshCliRuntimeSummaries } from '@/services/providers/cli-runtime-live';
 import { refreshThreadTree, threadTreeLevel } from '@/services/threads/tree';
 import { useActiveThreadStore } from '@/stores/active-thread';
 import { useGatewayStore } from '@/stores/gateway';
@@ -108,10 +109,7 @@ const useThreadTreeRefresh = () => {
             });
             const defaultProvider = result.composer_model_selection?.provider ?? null;
             const cliRuntimes = isCliRuntimeProvider(defaultProvider)
-                ? await pioneerClient
-                      .cliRuntimeList({ workspace_id: requestWorkspaceId })
-                      .then((response) => response.runtimes)
-                      .catch(() => [])
+                ? await refreshCliRuntimeSummaries(requestWorkspaceId).catch(() => [])
                 : [];
             const capabilityTarget = composerCapabilityTargetForProvider(
                 defaultProvider,

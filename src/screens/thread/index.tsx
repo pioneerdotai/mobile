@@ -50,6 +50,7 @@ import {
     composerCapabilityTargetForProvider,
     isCliRuntimeProvider,
 } from '@/services/providers/cli-runtime';
+import { refreshCliRuntimeSummaries } from '@/services/providers/cli-runtime-live';
 import { useHideAppSplashWhen } from '@/services/app-splash';
 import {
     projectSemanticTimelineToRows,
@@ -1177,9 +1178,8 @@ const ThreadScreen = ({
                     NATIVE_COMPOSER_CAPABILITY_POLICY,
                 );
             } else if (activeWorkspaceId) {
-                void pioneerClient
-                    .cliRuntimeList({ workspace_id: activeWorkspaceId })
-                    .then((response) => {
+                void refreshCliRuntimeSummaries(activeWorkspaceId)
+                    .then((runtimes) => {
                         if (!cancelled) {
                             syncComposerModelSelection(
                                 activeThreadModelProvider,
@@ -1187,7 +1187,7 @@ const ThreadScreen = ({
                                 activeThreadReasoningEffort,
                                 composerCapabilityTargetForProvider(
                                     activeThreadModelProvider,
-                                    response.runtimes,
+                                    runtimes,
                                 ),
                             );
                         }

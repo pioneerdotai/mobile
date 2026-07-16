@@ -33,6 +33,7 @@ namespace margelo::nitro::pioneer::client {
       prototype.registerHybridMethod("workspaceRenameJson", &HybridPioneerClientSpec::workspaceRenameJson);
       prototype.registerHybridMethod("providerListJson", &HybridPioneerClientSpec::providerListJson);
       prototype.registerHybridMethod("cliRuntimeListJson", &HybridPioneerClientSpec::cliRuntimeListJson);
+      prototype.registerHybridMethod("cliRuntimeRefreshJson", &HybridPioneerClientSpec::cliRuntimeRefreshJson);
       prototype.registerHybridMethod("cliRuntimeListModelsJson", &HybridPioneerClientSpec::cliRuntimeListModelsJson);
       prototype.registerHybridMethod("cliRuntimeThreadBindingGetJson", &HybridPioneerClientSpec::cliRuntimeThreadBindingGetJson);
       prototype.registerHybridMethod("cliRuntimeThreadCompactJson", &HybridPioneerClientSpec::cliRuntimeThreadCompactJson);

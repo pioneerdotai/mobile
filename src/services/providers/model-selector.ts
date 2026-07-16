@@ -15,6 +15,7 @@ import {
     type ComposerCapabilityPolicy,
     type CliRuntimeMcpReadinessReason,
 } from './cli-runtime';
+import { refreshCliRuntimeSummaries } from './cli-runtime-live';
 
 export type ModelSelectorProvider = {
     id: string;
@@ -27,7 +28,7 @@ export type ModelSelectorProvider = {
 export const listProviders = async (workspaceId: string): Promise<ModelSelectorProvider[]> => {
     const [apiProviders, cliRuntimes] = await Promise.allSettled([
         pioneerClient.providerList({ workspace_id: workspaceId }),
-        pioneerClient.cliRuntimeList({ workspace_id: workspaceId }),
+        refreshCliRuntimeSummaries(workspaceId),
     ]);
 
     const rows: ModelSelectorProvider[] =
@@ -43,18 +44,16 @@ export const listProviders = async (workspaceId: string): Promise<ModelSelectorP
 
     if (cliRuntimes.status === 'fulfilled') {
         rows.push(
-            ...cliRuntimes.value.runtimes
-                .filter(cliRuntimeVisibleInModelSelector)
-                .map((runtime) => ({
-                    id: cliRuntimeProviderKey(runtime.runtime_id),
-                    label: runtime.display_name,
-                    kind: 'cliRuntime' as const,
-                    capabilityTarget: composerCapabilityTargetForProvider(
-                        cliRuntimeProviderKey(runtime.runtime_id),
-                        cliRuntimes.value.runtimes,
-                    ),
-                    mcpReadinessReason: cliRuntimeMcpReadinessReason(runtime),
-                })),
+            ...cliRuntimes.value.filter(cliRuntimeVisibleInModelSelector).map((runtime) => ({
+                id: cliRuntimeProviderKey(runtime.runtime_id),
+                label: runtime.display_name,
+                kind: 'cliRuntime' as const,
+                capabilityTarget: composerCapabilityTargetForProvider(
+                    cliRuntimeProviderKey(runtime.runtime_id),
+                    cliRuntimes.value,
+                ),
+                mcpReadinessReason: cliRuntimeMcpReadinessReason(runtime),
+            })),
         );
     }
 

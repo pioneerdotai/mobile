@@ -47,6 +47,8 @@ import type { CLIRuntimeListModelsParams } from './generated/cli_runtime_list_mo
 import type { CLIRuntimeListModelsResponse } from './generated/cli_runtime_list_models_response';
 import type { CLIRuntimeListParams } from './generated/cli_runtime_list_params';
 import type { CLIRuntimeListResponse } from './generated/cli_runtime_list_response';
+import type { CLIRuntimeRefreshParams } from './generated/cli_runtime_refresh_params';
+import type { CLIRuntimeRefreshResponse } from './generated/cli_runtime_refresh_response';
 import type { CLIRuntimeRequestRespondParams } from './generated/cli_runtime_request_respond_params';
 import type { CLIRuntimeRequestRespondResponse } from './generated/cli_runtime_request_respond_response';
 import type { CLIRuntimeReviewStartParams } from './generated/cli_runtime_review_start_params';
@@ -169,6 +171,8 @@ export type {
     RuntimeStatus,
     RuntimeSummary,
 } from './generated/cli_runtime_list_response';
+export type { CLIRuntimeRefreshParams } from './generated/cli_runtime_refresh_params';
+export type { CLIRuntimeRefreshResponse } from './generated/cli_runtime_refresh_response';
 export type { CLIRuntimePendingRequest } from './generated/cli_runtime_pending_request';
 export type { CLIRuntimeRequestResolution } from './generated/cli_runtime_request_resolution';
 export type { CLIRuntimeRequestRespondParams } from './generated/cli_runtime_request_respond_params';
@@ -474,6 +478,12 @@ export const pioneerClient = {
     async cliRuntimeList(input: CLIRuntimeListParams): Promise<CLIRuntimeListResponse> {
         return parsePioneerClientResponse<CLIRuntimeListResponse>(
             await getPioneerClientNitro().cliRuntimeListJson(JSON.stringify(input)),
+        );
+    },
+
+    async cliRuntimeRefresh(input: CLIRuntimeRefreshParams): Promise<CLIRuntimeRefreshResponse> {
+        return parsePioneerClientResponse<CLIRuntimeRefreshResponse>(
+            await getPioneerClientNitro().cliRuntimeRefreshJson(JSON.stringify(input)),
         );
     },
 

@@ -29,6 +29,7 @@ import {
     isCliRuntimeProvider,
     type ComposerCapabilityPolicy,
 } from '@/services/providers/cli-runtime';
+import { refreshCliRuntimeSummaries } from '@/services/providers/cli-runtime-live';
 import { useActiveThreadStore } from '@/stores/active-thread';
 import { useWorkspaceStore } from '@/stores/workspace';
 
@@ -94,13 +95,12 @@ const ComposerAttachmentMenuSheet = () => {
             };
         }
 
-        void pioneerClient
-            .cliRuntimeList({ workspace_id: activeWorkspaceId })
-            .then((response) => {
+        void refreshCliRuntimeSummaries(activeWorkspaceId)
+            .then((runtimes) => {
                 if (!cancelled) {
                     const target = composerCapabilityTargetForProvider(
                         composerSelectedProvider,
-                        response.runtimes,
+                        runtimes,
                     );
                     setRuntimeTarget({
                         provider: composerSelectedProvider,
