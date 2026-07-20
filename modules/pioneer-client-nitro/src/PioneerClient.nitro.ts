@@ -12,6 +12,8 @@ export interface PioneerClient extends HybridObject<{ ios: 'c++'; android: 'c++'
     gatewayPlanDeleteRemoteRegistryJson(inputJson: string): Promise<string>;
     gatewayPlanSetWorkspaceRegistryJson(inputJson: string): Promise<string>;
     gatewayConnectJson(inputJson: string): Promise<string>;
+    gatewaySettingsGetJson(inputJson: string): Promise<string>;
+    gatewaySettingsUpdateJson(inputJson: string): Promise<string>;
     gatewayNextEventsJson(): Promise<string>;
     gatewayDisconnectJson(): Promise<string>;
     workspaceBootstrapJson(inputJson: string): Promise<string>;
@@ -36,6 +38,8 @@ export interface PioneerClient extends HybridObject<{ ios: 'c++'; android: 'c++'
     pendingRequestResponsePlanJson(inputJson: string): string;
     pendingRequestPresentationJson(inputJson: string): string;
     providerListModelsJson(inputJson: string): Promise<string>;
+    providerListTranscriptionModelsJson(inputJson: string): Promise<string>;
+    voiceInputSettingsPlanJson(inputJson: string): string;
     providerModelDisplayJson(inputJson: string): Promise<string>;
     reasoningEffortRowsJson(inputJson: string): string;
     composerPermissionModeOptionsJson(): string;
@@ -44,6 +48,12 @@ export interface PioneerClient extends HybridObject<{ ios: 'c++'; android: 'c++'
     composerSkillPickerRowsJson(inputJson: string): Promise<string>;
     composerMcpPickerRowsJson(inputJson: string): Promise<string>;
     composerCapabilitiesUpdateJson(inputJson: string): string;
+    composerCapabilityTargetJson(inputJson: string): string;
+    composerCapabilityMenuVisibilityJson(inputJson: string): string;
+    composerSubmissionPlanJson(inputJson: string): string;
+    composerDomainTransitionJson(inputJson: string): string;
+    composerDraftLifecycleTransitionJson(inputJson: string): string;
+    composerSkillRowsForTargetJson(inputJson: string): string;
     composerSkillCapabilityFromRowJson(inputJson: string): string;
     composerMcpCapabilityFromRowJson(inputJson: string): string;
     composerSkillToggleJson(inputJson: string): string;

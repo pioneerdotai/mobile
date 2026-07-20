@@ -30,6 +30,7 @@ import ThreadPermissionModeSwitcherSheet from '@/components/overlays/thread-perm
 import { initializeSentry, isSentryEnabled, Sentry } from '@/services/sentry';
 import { pioneerQueryClient } from '@/services/query/client';
 import { preventAppSplashAutoHide, useHideAppSplashWhen } from '@/services/app-splash';
+import { useVoiceInputGatewayQueryLifecycle } from '@/services/voice-input/data-source';
 
 export const unstable_settings = {
     initialRouteName: '(tabs)',
@@ -132,6 +133,7 @@ const AppSystemBars = () => {
 
 const RootContent = () => {
     const { registry, bootstrapped, connectionId, connectionState, sessionRevision } = useGateway();
+    useVoiceInputGatewayQueryLifecycle();
 
     const remotes = registry.remotes ?? [];
     const activeGateway = bootstrapped

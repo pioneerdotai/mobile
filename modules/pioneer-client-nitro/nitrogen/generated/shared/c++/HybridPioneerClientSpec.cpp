@@ -25,6 +25,8 @@ namespace margelo::nitro::pioneer::client {
       prototype.registerHybridMethod("gatewayPlanDeleteRemoteRegistryJson", &HybridPioneerClientSpec::gatewayPlanDeleteRemoteRegistryJson);
       prototype.registerHybridMethod("gatewayPlanSetWorkspaceRegistryJson", &HybridPioneerClientSpec::gatewayPlanSetWorkspaceRegistryJson);
       prototype.registerHybridMethod("gatewayConnectJson", &HybridPioneerClientSpec::gatewayConnectJson);
+      prototype.registerHybridMethod("gatewaySettingsGetJson", &HybridPioneerClientSpec::gatewaySettingsGetJson);
+      prototype.registerHybridMethod("gatewaySettingsUpdateJson", &HybridPioneerClientSpec::gatewaySettingsUpdateJson);
       prototype.registerHybridMethod("gatewayNextEventsJson", &HybridPioneerClientSpec::gatewayNextEventsJson);
       prototype.registerHybridMethod("gatewayDisconnectJson", &HybridPioneerClientSpec::gatewayDisconnectJson);
       prototype.registerHybridMethod("workspaceBootstrapJson", &HybridPioneerClientSpec::workspaceBootstrapJson);
@@ -49,6 +51,8 @@ namespace margelo::nitro::pioneer::client {
       prototype.registerHybridMethod("pendingRequestResponsePlanJson", &HybridPioneerClientSpec::pendingRequestResponsePlanJson);
       prototype.registerHybridMethod("pendingRequestPresentationJson", &HybridPioneerClientSpec::pendingRequestPresentationJson);
       prototype.registerHybridMethod("providerListModelsJson", &HybridPioneerClientSpec::providerListModelsJson);
+      prototype.registerHybridMethod("providerListTranscriptionModelsJson", &HybridPioneerClientSpec::providerListTranscriptionModelsJson);
+      prototype.registerHybridMethod("voiceInputSettingsPlanJson", &HybridPioneerClientSpec::voiceInputSettingsPlanJson);
       prototype.registerHybridMethod("providerModelDisplayJson", &HybridPioneerClientSpec::providerModelDisplayJson);
       prototype.registerHybridMethod("reasoningEffortRowsJson", &HybridPioneerClientSpec::reasoningEffortRowsJson);
       prototype.registerHybridMethod("composerPermissionModeOptionsJson", &HybridPioneerClientSpec::composerPermissionModeOptionsJson);
@@ -57,6 +61,12 @@ namespace margelo::nitro::pioneer::client {
       prototype.registerHybridMethod("composerSkillPickerRowsJson", &HybridPioneerClientSpec::composerSkillPickerRowsJson);
       prototype.registerHybridMethod("composerMcpPickerRowsJson", &HybridPioneerClientSpec::composerMcpPickerRowsJson);
       prototype.registerHybridMethod("composerCapabilitiesUpdateJson", &HybridPioneerClientSpec::composerCapabilitiesUpdateJson);
+      prototype.registerHybridMethod("composerCapabilityTargetJson", &HybridPioneerClientSpec::composerCapabilityTargetJson);
+      prototype.registerHybridMethod("composerCapabilityMenuVisibilityJson", &HybridPioneerClientSpec::composerCapabilityMenuVisibilityJson);
+      prototype.registerHybridMethod("composerSubmissionPlanJson", &HybridPioneerClientSpec::composerSubmissionPlanJson);
+      prototype.registerHybridMethod("composerDomainTransitionJson", &HybridPioneerClientSpec::composerDomainTransitionJson);
+      prototype.registerHybridMethod("composerDraftLifecycleTransitionJson", &HybridPioneerClientSpec::composerDraftLifecycleTransitionJson);
+      prototype.registerHybridMethod("composerSkillRowsForTargetJson", &HybridPioneerClientSpec::composerSkillRowsForTargetJson);
       prototype.registerHybridMethod("composerSkillCapabilityFromRowJson", &HybridPioneerClientSpec::composerSkillCapabilityFromRowJson);
       prototype.registerHybridMethod("composerMcpCapabilityFromRowJson", &HybridPioneerClientSpec::composerMcpCapabilityFromRowJson);
       prototype.registerHybridMethod("composerSkillToggleJson", &HybridPioneerClientSpec::composerSkillToggleJson);

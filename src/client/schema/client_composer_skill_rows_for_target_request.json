@@ -1,0 +1,122 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ClientComposerSkillRowsForTargetRequest",
+  "type": "object",
+  "properties": {
+    "rows": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/SelectableSkillCapability"
+      }
+    },
+    "target": {
+      "$ref": "#/$defs/ComposerCapabilityTarget"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "target"
+  ],
+  "$defs": {
+    "ComposerCapabilityTarget": {
+      "description": "Capability eligibility context.\n\nThe target kind exists only because native skills retain their current\nsource policy while CLI skills must be exportable. Capability support is\nrepresented exclusively by [`ComposerCapabilityPolicy`].",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/ComposerCapabilityTargetKind"
+        },
+        "supports_mcp_tools": {
+          "type": "boolean"
+        },
+        "supports_skills": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "supports_skills",
+        "supports_mcp_tools"
+      ]
+    },
+    "ComposerCapabilityTargetKind": {
+      "type": "string",
+      "enum": [
+        "native",
+        "cli"
+      ]
+    },
+    "SelectableSkillCapability": {
+      "type": "object",
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "key": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "selectable": {
+          "type": "boolean"
+        },
+        "slug": {
+          "type": "string"
+        },
+        "source_kind": {
+          "type": "string"
+        },
+        "unavailable_reason": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SkillCapabilityUnavailableReason"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "key",
+        "label",
+        "description",
+        "slug",
+        "source_kind",
+        "selectable"
+      ]
+    },
+    "SkillCapabilityUnavailableReason": {
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "DisabledByPolicy"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "Inactive": {
+              "type": "object",
+              "properties": {
+                "status_reason": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              }
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "Inactive"
+          ]
+        }
+      ]
+    }
+  }
+}

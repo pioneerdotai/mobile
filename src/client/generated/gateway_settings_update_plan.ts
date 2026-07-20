@@ -15,6 +15,7 @@ export type GatewayRemoteAccessErrorKind =
   | 'io'
   | 'unknown';
 export type GatewayThreadEpisodicVectorProvider = 'openai' | 'openrouter' | 'local';
+export type GatewayVoiceInputProvider = 'local';
 
 export interface GatewaySettingsUpdatePlan {
   snapshot: GatewaySettingsSnapshot;
@@ -27,6 +28,7 @@ export interface GatewaySettingsSnapshot {
   memory: GatewayMemorySettings;
   remote_access?: GatewayRemoteAccessSettings;
   thread_episodic?: GatewayThreadEpisodicSettings;
+  voice_input?: GatewayVoiceInputSettings;
   [k: string]: unknown;
 }
 export interface GatewayCliRuntimeSettings {
@@ -127,12 +129,29 @@ export interface GatewayThreadEpisodicVectorProviderKeyStatus {
   required?: boolean;
   [k: string]: unknown;
 }
+export interface GatewayVoiceInputSettings {
+  enabled?: boolean;
+  model?: string | null;
+  provider?: GatewayVoiceInputProvider | null;
+  runtime?: GatewayVoiceInputRuntimeSnapshot;
+  [k: string]: unknown;
+}
+export interface GatewayVoiceInputRuntimeSnapshot {
+  downloaded_bytes?: number | null;
+  effective_enabled?: boolean;
+  error?: string | null;
+  model?: string | null;
+  phase?: 'disabled' | 'model_not_selected' | 'missing' | 'downloading' | 'installing' | 'loading' | 'ready' | 'failed';
+  total_bytes?: number | null;
+  [k: string]: unknown;
+}
 export interface GatewaySettingsUpdate {
   cli_runtimes?: GatewayCliRuntimeSettings1 | null;
   general?: GatewayGeneralSettingsUpdate | null;
   memory?: GatewayMemorySettings | null;
   remote_access?: GatewayRemoteAccessSettingsUpdate | null;
   thread_episodic?: GatewayThreadEpisodicSettingsUpdate | null;
+  voice_input?: GatewayVoiceInputSettingsUpdate | null;
   [k: string]: unknown;
 }
 export interface GatewayCliRuntimeSettings1 {
@@ -185,5 +204,12 @@ export interface GatewayThreadEpisodicVectorSearchSettingsUpdate {
   model?: string | null;
   provider?: GatewayThreadEpisodicVectorProvider | null;
   use_search_instructions?: boolean | null;
+  [k: string]: unknown;
+}
+export interface GatewayVoiceInputSettingsUpdate {
+  enabled?: boolean | null;
+  model?: string | null;
+  provider?: GatewayVoiceInputProvider | null;
+  retry_install?: boolean;
   [k: string]: unknown;
 }

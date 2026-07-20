@@ -61,6 +61,8 @@ namespace margelo::nitro::pioneer::client {
       virtual std::shared_ptr<Promise<std::string>> gatewayPlanDeleteRemoteRegistryJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> gatewayPlanSetWorkspaceRegistryJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> gatewayConnectJson(const std::string& inputJson) = 0;
+      virtual std::shared_ptr<Promise<std::string>> gatewaySettingsGetJson(const std::string& inputJson) = 0;
+      virtual std::shared_ptr<Promise<std::string>> gatewaySettingsUpdateJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> gatewayNextEventsJson() = 0;
       virtual std::shared_ptr<Promise<std::string>> gatewayDisconnectJson() = 0;
       virtual std::shared_ptr<Promise<std::string>> workspaceBootstrapJson(const std::string& inputJson) = 0;
@@ -85,6 +87,8 @@ namespace margelo::nitro::pioneer::client {
       virtual std::string pendingRequestResponsePlanJson(const std::string& inputJson) = 0;
       virtual std::string pendingRequestPresentationJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> providerListModelsJson(const std::string& inputJson) = 0;
+      virtual std::shared_ptr<Promise<std::string>> providerListTranscriptionModelsJson(const std::string& inputJson) = 0;
+      virtual std::string voiceInputSettingsPlanJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> providerModelDisplayJson(const std::string& inputJson) = 0;
       virtual std::string reasoningEffortRowsJson(const std::string& inputJson) = 0;
       virtual std::string composerPermissionModeOptionsJson() = 0;
@@ -93,6 +97,12 @@ namespace margelo::nitro::pioneer::client {
       virtual std::shared_ptr<Promise<std::string>> composerSkillPickerRowsJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> composerMcpPickerRowsJson(const std::string& inputJson) = 0;
       virtual std::string composerCapabilitiesUpdateJson(const std::string& inputJson) = 0;
+      virtual std::string composerCapabilityTargetJson(const std::string& inputJson) = 0;
+      virtual std::string composerCapabilityMenuVisibilityJson(const std::string& inputJson) = 0;
+      virtual std::string composerSubmissionPlanJson(const std::string& inputJson) = 0;
+      virtual std::string composerDomainTransitionJson(const std::string& inputJson) = 0;
+      virtual std::string composerDraftLifecycleTransitionJson(const std::string& inputJson) = 0;
+      virtual std::string composerSkillRowsForTargetJson(const std::string& inputJson) = 0;
       virtual std::string composerSkillCapabilityFromRowJson(const std::string& inputJson) = 0;
       virtual std::string composerMcpCapabilityFromRowJson(const std::string& inputJson) = 0;
       virtual std::string composerSkillToggleJson(const std::string& inputJson) = 0;

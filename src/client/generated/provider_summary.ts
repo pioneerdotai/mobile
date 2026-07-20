@@ -9,5 +9,6 @@ export interface ProviderSummary {
 }
 export interface ProviderSummaryCapabilities {
   embeddings?: boolean;
+  transcription?: boolean;
   [k: string]: unknown;
 }

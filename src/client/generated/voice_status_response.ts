@@ -14,7 +14,7 @@ export type VoiceErrorKind =
   | 'model_downloading'
   | 'unknown';
 export type VoiceStatus =
-  | ('unavailable' | 'model_loading' | 'ready' | 'busy' | 'recording' | 'transcribing' | 'error')
+  | ('disabled' | 'unavailable' | 'model_loading' | 'ready' | 'busy' | 'recording' | 'transcribing' | 'error')
   | 'model_downloading';
 
 export interface VoiceStatusResponse {

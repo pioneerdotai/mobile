@@ -1,5 +1,28 @@
 /* eslint-disable */
 
+export type ComposerCapabilityKind =
+  | {
+      Skill: {
+        slug: string;
+        source_kind: string;
+        [k: string]: unknown;
+      };
+    }
+  | {
+      McpServer: {
+        name: string;
+        scope_kind: McpScopeKind;
+        [k: string]: unknown;
+      };
+    }
+  | {
+      McpTool: {
+        raw_tool_name: string;
+        scope_kind: McpScopeKind;
+        server_name: string;
+        [k: string]: unknown;
+      };
+    };
 export type McpScopeKind = 'workspace' | 'user';
 export type McpCapabilityUnavailableReason =
   | 'DisabledByPolicy'
@@ -8,10 +31,17 @@ export type McpCapabilityUnavailableReason =
   | 'NoToolCatalog';
 
 export interface ClientComposerMcpToggleRequest {
+  capabilities: ComposerCapability[];
   row: SelectableMcpCapability;
   selected_keys: string[];
   server_rows: SelectableMcpCapability[];
   tool_rows: SelectableMcpCapability[];
+}
+export interface ComposerCapability {
+  id: string;
+  kind: ComposerCapabilityKind;
+  label: string;
+  [k: string]: unknown;
 }
 export interface SelectableMcpCapability {
   description: string;

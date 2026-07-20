@@ -10,9 +10,12 @@ type GatewayStoreState = {
     busy: boolean;
     error: GatewayOperationErrorCode | null;
     connectionId: number | null;
+    connectionGatewayId: string | null;
     connectionState: GatewayConnectionState;
     lastEvent: ClientEvent | null;
     lastEventSerial: number;
+    lastEventGatewayId: string | null;
+    lastEventConnectionId: number | null;
     sessionError: string | null;
     sessionRevision: number;
     showGatewaySwitcher: boolean;
@@ -21,8 +24,13 @@ type GatewayStoreState = {
     setBusy: (busy: boolean) => void;
     setError: (error: GatewayOperationErrorCode | null) => void;
     setConnectionId: (connectionId: number | null) => void;
+    setConnectionGatewayId: (gatewayId: string | null) => void;
     setConnectionState: (connectionState: GatewayConnectionState) => void;
-    setLastEvent: (event: ClientEvent | null) => void;
+    setLastEvent: (
+        event: ClientEvent | null,
+        gatewayId?: string | null,
+        connectionId?: number | null,
+    ) => void;
     setSessionError: (error: string | null) => void;
     bumpSessionRevision: () => void;
     clearError: () => void;
@@ -35,9 +43,12 @@ export const useGatewayStore = create<GatewayStoreState>((set) => ({
     busy: false,
     error: null,
     connectionId: null,
+    connectionGatewayId: null,
     connectionState: 'Idle',
     lastEvent: null,
     lastEventSerial: 0,
+    lastEventGatewayId: null,
+    lastEventConnectionId: null,
     sessionError: null,
     sessionRevision: 0,
     showGatewaySwitcher: false,
@@ -62,12 +73,21 @@ export const useGatewayStore = create<GatewayStoreState>((set) => ({
         set({ connectionId });
     },
 
+    setConnectionGatewayId: (connectionGatewayId) => {
+        set({ connectionGatewayId });
+    },
+
     setConnectionState: (connectionState) => {
         set({ connectionState });
     },
 
-    setLastEvent: (event) => {
-        set((state) => ({ lastEvent: event, lastEventSerial: state.lastEventSerial + 1 }));
+    setLastEvent: (event, lastEventGatewayId = null, lastEventConnectionId = null) => {
+        set((state) => ({
+            lastEvent: event,
+            lastEventGatewayId,
+            lastEventConnectionId,
+            lastEventSerial: state.lastEventSerial + 1,
+        }));
     },
 
     setSessionError: (error) => {

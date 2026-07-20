@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useShallow } from 'zustand/react/shallow';
 
-import { pioneerClient, type Thread } from '@/client';
+import type { Thread } from '@/client';
 import {
     activeThreadSnapshot,
     applyActiveThreadEvent,
@@ -18,7 +18,7 @@ import {
     isActiveThreadTimelineEvent,
 } from '@/services/threads/live-timeline-events';
 import { invalidateTimelineQueriesForThread } from '@/services/threads/timeline-query';
-import { composerCapabilitySnapshotForTarget } from '@/services/providers/cli-runtime';
+import { composerSubmissionPlanForProvider } from '@/services/providers/cli-runtime';
 import { useActiveThreadStore } from '@/stores/active-thread';
 import { useGatewayStore } from '@/stores/gateway';
 
@@ -69,6 +69,8 @@ export const useActiveThread = (
         setComposerError,
         setComposerAttachments,
         setComposerCapabilities,
+        markComposerAttachmentsUploading,
+        markComposerAttachmentsFailed,
         clearComposerPayload,
         setExpandedKeys,
     } = useActiveThreadStore(
@@ -98,6 +100,8 @@ export const useActiveThread = (
             setComposerError: state.setComposerError,
             setComposerAttachments: state.setComposerAttachments,
             setComposerCapabilities: state.setComposerCapabilities,
+            markComposerAttachmentsUploading: state.markComposerAttachmentsUploading,
+            markComposerAttachmentsFailed: state.markComposerAttachmentsFailed,
             clearComposerPayload: state.clearComposerPayload,
             setExpandedKeys: state.setExpandedKeys,
         })),
@@ -349,17 +353,17 @@ export const useActiveThread = (
                 ? storeState.composerSelectedReasoningEffort
                 : null;
             const attachments = storeState.composerAttachments;
-            const capabilitySnapshot = composerCapabilitySnapshotForTarget(
+            const submissionPlan = composerSubmissionPlanForProvider(
+                selectedProviderForSend,
                 normalizedText,
                 attachments.length > 0,
                 storeState.composerCapabilities,
-                storeState.composerCapabilityTarget,
             );
             if (
                 (!thread && !workspaceId) ||
                 !connected ||
                 connectionId === null ||
-                !capabilitySnapshot.hasComposerPayload
+                !submissionPlan.has_composer_payload
             ) {
                 return false;
             }
@@ -400,15 +404,7 @@ export const useActiveThread = (
             setSending(true);
             setComposerError(null);
             const attachmentsForSend =
-                attachments.length > 0
-                    ? pioneerClient.composerAttachmentsUpdate({
-                          attachments,
-                          action: 'MarkPendingUploading',
-                      })
-                    : attachments;
-            if (attachmentsForSend !== attachments) {
-                setComposerAttachments(attachmentsForSend);
-            }
+                attachments.length > 0 ? markComposerAttachmentsUploading() : attachments;
 
             try {
                 const result = await sendActiveThreadTextAsync({
@@ -421,7 +417,7 @@ export const useActiveThread = (
                     selected_mode: storeState.composerSelectedMode,
                     permission_mode: storeState.composerSelectedPermissionMode,
                     attachments: attachmentsForSend,
-                    capabilities: capabilitySnapshot.capabilities,
+                    capabilities: submissionPlan.capabilities,
                     expanded_keys: useActiveThreadStore.getState().expandedKeys,
                 });
 
@@ -450,12 +446,7 @@ export const useActiveThread = (
                 ) {
                     const message = errorMessage(caught, t('sendFailed'));
                     if (attachmentsForSend.length > 0) {
-                        setComposerAttachments(
-                            pioneerClient.composerAttachmentsUpdate({
-                                attachments: useActiveThreadStore.getState().composerAttachments,
-                                action: { MarkUploadingFailed: { error: message } },
-                            }),
-                        );
+                        markComposerAttachmentsFailed(message);
                     }
                     setComposerError(
                         message.includes(MODEL_SELECTION_REQUIRED_ERROR)
@@ -489,7 +480,8 @@ export const useActiveThread = (
             connectionId,
             setComposerError,
             clearComposerPayload,
-            setComposerAttachments,
+            markComposerAttachmentsFailed,
+            markComposerAttachmentsUploading,
             setSending,
             setSnapshot,
             t,

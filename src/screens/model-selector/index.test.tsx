@@ -22,8 +22,8 @@ const provider = (reason: CliRuntimeMcpReadinessReason | null): ModelSelectorPro
     kind: 'cliRuntime',
     capabilityTarget: {
         kind: 'cli',
-        supportsSkills: true,
-        supportsMcpTools: false,
+        supports_skills: true,
+        supports_mcp_tools: false,
     },
     mcpReadinessReason: reason,
 });
@@ -52,8 +52,8 @@ describe('model selector MCP readiness presentation', () => {
                 kind: 'api',
                 capabilityTarget: {
                     kind: 'native',
-                    supportsSkills: true,
-                    supportsMcpTools: true,
+                    supports_skills: true,
+                    supports_mcp_tools: true,
                 },
             }),
         ).toBeNull();

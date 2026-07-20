@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as Haptics from 'expo-haptics';
 import { Platform, type GestureResponderEvent, type LayoutChangeEvent } from 'react-native';
 import { KeyboardController } from 'react-native-keyboard-controller';
@@ -40,6 +40,11 @@ import { ScrollView } from '@/components/primitives/scrollview';
 import { Text } from '@/components/primitives/text';
 import { Input } from '@/components/primitives/input';
 import Spinner from '@/components/feedback/spinner';
+import {
+    resolveThreadComposerActionState,
+    resolveThreadComposerActionVisual,
+    resolveThreadComposerDraftPresence,
+} from './voice-entry';
 
 type ThreadComposerProps = {
     value: string;
@@ -65,6 +70,7 @@ type ThreadComposerProps = {
     modelSelectionLoading: boolean;
     modelSelectionAccessibilityLabel: string;
     modelSelectionDisabled: boolean;
+    modelSelectionComplete: boolean;
     permissionModeOptions: ComposerPermissionModeOption[];
     selectedPermissionMode: TurnPermissionMode;
     inputNativeID?: string;
@@ -78,7 +84,10 @@ type ThreadComposerProps = {
     onRemoveAttachment: (index: number) => void;
     onRemoveCapability: (index: number) => void;
     onHeightChange?: (height: number) => void;
+    voiceVisible: boolean;
     voiceEnabled: boolean;
+    voiceAvailabilityMessage: string | null;
+    voiceAvailabilityError: boolean;
     voiceBusy: boolean;
     voiceProcessing: boolean;
     voiceLevel: number;
@@ -125,6 +134,7 @@ export const ThreadComposer = ({
     modelSelectionLoading,
     modelSelectionAccessibilityLabel,
     modelSelectionDisabled,
+    modelSelectionComplete,
     permissionModeOptions,
     selectedPermissionMode,
     inputNativeID,
@@ -138,7 +148,10 @@ export const ThreadComposer = ({
     onRemoveAttachment,
     onRemoveCapability,
     onHeightChange,
+    voiceVisible,
     voiceEnabled,
+    voiceAvailabilityMessage,
+    voiceAvailabilityError,
     voiceBusy,
     voiceProcessing,
     voiceLevel,
@@ -157,25 +170,31 @@ export const ThreadComposer = ({
     const voiceGestureRef = useRef<VoiceGestureState>('idle');
     const voiceStartPageYRef = useRef<number | null>(null);
 
-    const hasComposerPayload =
-        value.trim().length > 0 || attachments.length > 0 || capabilities.length > 0;
+    const { composerTextEmpty, hasComposerPayload } = resolveThreadComposerDraftPresence(
+        value,
+        attachments.length,
+        capabilities.length,
+    );
     const canSubmit = hasComposerPayload && canSend && !disabled && !sending;
-    const actionIsStop = hasInFlightTurn;
-    const draftTextEmpty = value.trim().length === 0;
-    const activeVoiceMode =
-        voiceMode && draftTextEmpty && !disabled && !sending && !hasInFlightTurn && voiceEnabled;
-    const actionIsVoice = !activeVoiceMode && !actionIsStop && draftTextEmpty && voiceEnabled;
-    const voiceModeDisabled = disabled || sending || hasInFlightTurn || voiceBusy || !voiceEnabled;
-    const actionDisabled = voiceProcessing
-        ? true
-        : actionIsStop
-          ? !canStopTurn
-          : activeVoiceMode
-            ? false
-            : actionIsVoice
-              ? voiceModeDisabled
-              : !canSubmit;
-    const actionLoading = voiceProcessing || (actionIsStop ? turnCancelling : sending);
+    const { primaryAction, actionDisabled, actionLoading, activeVoiceMode, voiceModeDisabled } =
+        resolveThreadComposerActionState({
+            voiceMode,
+            composerTextEmpty,
+            modelSelectionComplete,
+            disabled,
+            sending,
+            canSubmit,
+            hasInFlightTurn,
+            canStopTurn,
+            turnCancelling,
+            voiceVisible,
+            voiceEnabled,
+            voiceBusy,
+            voiceProcessing,
+        });
+    const actionIsStop = primaryAction === 'stop';
+    const actionIsVoice = primaryAction === 'voice-ready';
+    const actionVisual = resolveThreadComposerActionVisual({ primaryAction, actionLoading });
     const actionDimmed = actionDisabled && !voiceProcessing;
     const actionLabel = actionIsStop ? stopLabel : actionIsVoice ? voiceMicrophoneLabel : sendLabel;
     const actionColor = rt.themeName === 'dark' ? theme.colors.neutral[950] : theme.colors.white;
@@ -196,6 +215,13 @@ export const ThreadComposer = ({
           ? VOICE_ACTIVE_COLOR
           : theme.colors.surfaceMuted;
     const voiceSurfaceTextColor = voiceActive ? theme.colors.white : theme.colors.typography;
+    const showVoiceAvailability = Boolean(
+        composerTextEmpty &&
+        modelSelectionComplete &&
+        voiceVisible &&
+        !voiceEnabled &&
+        voiceAvailabilityMessage,
+    );
 
     const selectedPermissionOption = useMemo(
         () =>
@@ -241,6 +267,23 @@ export const ThreadComposer = ({
         voiceGestureRef.current = nextGesture;
         setVoiceGesture(nextGesture);
     }, []);
+
+    useEffect(() => {
+        if (!voiceMode || activeVoiceMode) {
+            return;
+        }
+
+        const resetFrame = requestAnimationFrame(() => {
+            if (voiceStartPageYRef.current !== null) {
+                onVoiceCancel();
+            }
+            voiceStartPageYRef.current = null;
+            updateVoiceGesture('idle');
+            setVoiceMode(false);
+        });
+
+        return () => cancelAnimationFrame(resetFrame);
+    }, [activeVoiceMode, onVoiceCancel, updateVoiceGesture, voiceMode]);
 
     const triggerVoiceHoldHaptic = useCallback(() => {
         void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => null);
@@ -337,6 +380,19 @@ export const ThreadComposer = ({
                     {error ? (
                         <Box style={styles.errorWrap}>
                             <Text style={styles.errorText}>{error}</Text>
+                        </Box>
+                    ) : null}
+                    {!error && showVoiceAvailability ? (
+                        <Box style={styles.voiceAvailabilityWrap}>
+                            <Text
+                                style={[
+                                    styles.voiceAvailabilityText,
+                                    voiceAvailabilityError ? styles.voiceAvailabilityError : null,
+                                ]}
+                                numberOfLines={3}
+                            >
+                                {voiceAvailabilityMessage}
+                            </Text>
                         </Box>
                     ) : null}
                     {hasChips ? (
@@ -532,16 +588,16 @@ export const ThreadComposer = ({
                                         pressed && !actionDisabled && styles.sendButtonPressed,
                                     ]}
                                 >
-                                    {actionLoading ? (
+                                    {actionVisual === 'loading' ? (
                                         <Spinner size={theme.space(4)} color={actionColor} />
-                                    ) : actionIsStop ? (
+                                    ) : actionVisual === 'stop' ? (
                                         <Square size={theme.space(4)} color={actionColor} />
-                                    ) : activeVoiceMode ? (
+                                    ) : actionVisual === 'keyboard' ? (
                                         <KeyboardIcon
                                             size={theme.space(4.5)}
                                             color={theme.colors.typography}
                                         />
-                                    ) : actionIsVoice ? (
+                                    ) : actionVisual === 'microphone' ? (
                                         <Mic size={theme.space(4.5)} color={actionColor} />
                                     ) : (
                                         <ArrowUp size={theme.space(5)} color={actionColor} />
@@ -741,6 +797,17 @@ const styles = StyleSheet.create((theme, rt) => ({
     },
     inputRow: {
         gap: theme.space(2),
+    },
+    voiceAvailabilityWrap: {
+        paddingHorizontal: theme.space(2),
+        paddingTop: theme.space(1),
+    },
+    voiceAvailabilityText: {
+        ...theme.fontSize.xs,
+        color: theme.colors.textMuted,
+    },
+    voiceAvailabilityError: {
+        color: theme.colors.dangerText,
     },
     input: {
         flex: 1,

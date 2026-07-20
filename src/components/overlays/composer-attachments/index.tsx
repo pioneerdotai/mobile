@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { router } from 'expo-router';
 import { BottomSheetModal, BottomSheetScrollView } from '@gorhom/bottom-sheet';
@@ -7,7 +7,6 @@ import { useTranslation } from 'react-i18next';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useShallow } from 'zustand/react/shallow';
 
-import { pioneerClient } from '@/client';
 import type { ComposerAttachment } from '@/client';
 import { McpIcon } from '@/components/icons/mcp-icon';
 import { Backdrop } from '@/components/overlays/components/backdrop';
@@ -21,131 +20,25 @@ import {
     pickComposerFileAttachments,
     pickComposerMediaAttachments,
 } from '@/services/threads/composer-attachments';
-import {
-    NATIVE_COMPOSER_CAPABILITY_POLICY,
-    UNSUPPORTED_CLI_COMPOSER_CAPABILITY_POLICY,
-    composerCapabilityMenuVisibility,
-    composerCapabilityTargetForProvider,
-    isCliRuntimeProvider,
-    type ComposerCapabilityPolicy,
-} from '@/services/providers/cli-runtime';
-import { refreshCliRuntimeSummaries } from '@/services/providers/cli-runtime-live';
 import { useActiveThreadStore } from '@/stores/active-thread';
-import { useWorkspaceStore } from '@/stores/workspace';
 
 const ComposerAttachmentMenuSheet = () => {
     const bottomSheetRef = useRef<BottomSheetModal>(null);
     const { t } = useTranslation('threads');
     const { theme, rt } = useUnistyles();
-    const activeWorkspaceId = useWorkspaceStore((state) => state.activeWorkspaceId);
-
     const {
         showComposerAttachmentMenu,
-        composerSelectedProvider,
         setComposerAttachmentMenuOpen,
-        setComposerAttachments,
+        addComposerAttachment,
         setComposerError,
-        syncComposerModelSelection,
     } = useActiveThreadStore(
         useShallow((state) => ({
             showComposerAttachmentMenu: state.showComposerAttachmentMenu,
-            composerSelectedProvider: state.composerSelectedProvider,
             setComposerAttachmentMenuOpen: state.setComposerAttachmentMenuOpen,
-            setComposerAttachments: state.setComposerAttachments,
+            addComposerAttachment: state.addComposerAttachment,
             setComposerError: state.setComposerError,
-            syncComposerModelSelection: state.syncComposerModelSelection,
         })),
     );
-
-    const cliRuntimeSelected = isCliRuntimeProvider(composerSelectedProvider);
-    const [runtimeTarget, setRuntimeTarget] = useState<{
-        provider: string | null;
-        workspaceId: string | null;
-        target: ComposerCapabilityPolicy;
-    } | null>(null);
-    const capabilityTarget =
-        runtimeTarget?.provider === composerSelectedProvider &&
-        runtimeTarget.workspaceId === activeWorkspaceId
-            ? runtimeTarget.target
-            : cliRuntimeSelected
-              ? UNSUPPORTED_CLI_COMPOSER_CAPABILITY_POLICY
-              : NATIVE_COMPOSER_CAPABILITY_POLICY;
-    const capabilityMenu = composerCapabilityMenuVisibility(capabilityTarget);
-
-    useEffect(() => {
-        let cancelled = false;
-
-        if (!cliRuntimeSelected || !showComposerAttachmentMenu) {
-            return () => {
-                cancelled = true;
-            };
-        }
-
-        if (!activeWorkspaceId) {
-            const storeState = useActiveThreadStore.getState();
-            syncComposerModelSelection(
-                composerSelectedProvider,
-                storeState.composerSelectedModel,
-                storeState.composerSelectedReasoningEffort,
-                UNSUPPORTED_CLI_COMPOSER_CAPABILITY_POLICY,
-                t('composerCapabilitiesRemovedForProvider'),
-            );
-            return () => {
-                cancelled = true;
-            };
-        }
-
-        void refreshCliRuntimeSummaries(activeWorkspaceId)
-            .then((runtimes) => {
-                if (!cancelled) {
-                    const target = composerCapabilityTargetForProvider(
-                        composerSelectedProvider,
-                        runtimes,
-                    );
-                    setRuntimeTarget({
-                        provider: composerSelectedProvider,
-                        workspaceId: activeWorkspaceId,
-                        target,
-                    });
-                    const storeState = useActiveThreadStore.getState();
-                    syncComposerModelSelection(
-                        composerSelectedProvider,
-                        storeState.composerSelectedModel,
-                        storeState.composerSelectedReasoningEffort,
-                        target,
-                        t('composerCapabilitiesRemovedForProvider'),
-                    );
-                }
-            })
-            .catch(() => {
-                if (!cancelled) {
-                    setRuntimeTarget({
-                        provider: composerSelectedProvider,
-                        workspaceId: activeWorkspaceId,
-                        target: UNSUPPORTED_CLI_COMPOSER_CAPABILITY_POLICY,
-                    });
-                    const storeState = useActiveThreadStore.getState();
-                    syncComposerModelSelection(
-                        composerSelectedProvider,
-                        storeState.composerSelectedModel,
-                        storeState.composerSelectedReasoningEffort,
-                        UNSUPPORTED_CLI_COMPOSER_CAPABILITY_POLICY,
-                        t('composerCapabilitiesRemovedForProvider'),
-                    );
-                }
-            });
-
-        return () => {
-            cancelled = true;
-        };
-    }, [
-        activeWorkspaceId,
-        cliRuntimeSelected,
-        composerSelectedProvider,
-        showComposerAttachmentMenu,
-        syncComposerModelSelection,
-        t,
-    ]);
 
     useEffect(() => {
         if (bottomSheetRef.current) {
@@ -176,16 +69,11 @@ const ComposerAttachmentMenuSheet = () => {
                 return;
             }
 
-            let next = useActiveThreadStore.getState().composerAttachments;
             for (const attachment of attachments) {
-                next = pioneerClient.composerAttachmentsUpdate({
-                    attachments: next,
-                    action: { Add: { attachment } },
-                });
+                addComposerAttachment(attachment);
             }
-            setComposerAttachments(next);
         },
-        [setComposerAttachments],
+        [addComposerAttachment],
     );
 
     const errorMessage = useCallback(
@@ -260,34 +148,18 @@ const ComposerAttachmentMenuSheet = () => {
                             onPress={pickFiles}
                         />
                     </HStack>
-                    {capabilityMenu.any ? (
-                        <HStack style={styles.menuRow}>
-                            {capabilityMenu.skills ? (
-                                <MenuItem
-                                    icon={
-                                        <Zap
-                                            size={theme.space(5)}
-                                            color={theme.colors.typography}
-                                        />
-                                    }
-                                    label={t('composerSkills')}
-                                    onPress={openSkills}
-                                />
-                            ) : null}
-                            {capabilityMenu.mcp ? (
-                                <MenuItem
-                                    icon={
-                                        <McpIcon
-                                            size={theme.space(5)}
-                                            color={theme.colors.typography}
-                                        />
-                                    }
-                                    label={t('composerMcp')}
-                                    onPress={openMcp}
-                                />
-                            ) : null}
-                        </HStack>
-                    ) : null}
+                    <HStack style={styles.menuRow}>
+                        <MenuItem
+                            icon={<Zap size={theme.space(5)} color={theme.colors.typography} />}
+                            label={t('composerSkills')}
+                            onPress={openSkills}
+                        />
+                        <MenuItem
+                            icon={<McpIcon size={theme.space(5)} color={theme.colors.typography} />}
+                            label={t('composerMcp')}
+                            onPress={openMcp}
+                        />
+                    </HStack>
                 </VStack>
             </BottomSheetScrollView>
         </BottomSheetModal>

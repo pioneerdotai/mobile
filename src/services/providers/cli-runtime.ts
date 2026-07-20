@@ -1,53 +1,28 @@
-import type { ComposerCapability, RuntimeSummary } from '@/client';
+import {
+    pioneerClient,
+    type ComposerCapability,
+    type ComposerCapabilityMenuVisibility,
+    type ComposerCapabilityTarget,
+    type ComposerSubmissionPlan,
+    type RuntimeSummary,
+    type SelectableSkillCapability,
+} from '@/client';
 
 export const CLI_RUNTIME_PROVIDER_PREFIX = 'cli_runtime:';
 
-export type ComposerCapabilityPolicy = Readonly<{
-    kind: 'native' | 'cli';
-    supportsSkills: boolean;
-    supportsMcpTools: boolean;
-}>;
+export type ComposerCapabilityPolicy = ComposerCapabilityTarget;
 
-export const NATIVE_COMPOSER_CAPABILITY_POLICY: ComposerCapabilityPolicy = Object.freeze({
+export const NATIVE_COMPOSER_CAPABILITY_POLICY: ComposerCapabilityTarget = Object.freeze({
     kind: 'native',
-    supportsSkills: true,
-    supportsMcpTools: true,
+    supports_skills: true,
+    supports_mcp_tools: true,
 });
 
-export const UNSUPPORTED_CLI_COMPOSER_CAPABILITY_POLICY: ComposerCapabilityPolicy = Object.freeze({
+export const UNSUPPORTED_CLI_COMPOSER_CAPABILITY_POLICY: ComposerCapabilityTarget = Object.freeze({
     kind: 'cli',
-    supportsSkills: false,
-    supportsMcpTools: false,
+    supports_skills: false,
+    supports_mcp_tools: false,
 });
-
-export const COMPOSER_CAPABILITY_POLICY_MATRIX = Object.freeze([
-    Object.freeze({ id: 'native', policy: NATIVE_COMPOSER_CAPABILITY_POLICY }),
-    Object.freeze({ id: 'cli_neither', policy: UNSUPPORTED_CLI_COMPOSER_CAPABILITY_POLICY }),
-    Object.freeze({
-        id: 'cli_skills_only',
-        policy: Object.freeze({
-            kind: 'cli',
-            supportsSkills: true,
-            supportsMcpTools: false,
-        }) satisfies ComposerCapabilityPolicy,
-    }),
-    Object.freeze({
-        id: 'cli_mcp_only',
-        policy: Object.freeze({
-            kind: 'cli',
-            supportsSkills: false,
-            supportsMcpTools: true,
-        }) satisfies ComposerCapabilityPolicy,
-    }),
-    Object.freeze({
-        id: 'cli_both',
-        policy: Object.freeze({
-            kind: 'cli',
-            supportsSkills: true,
-            supportsMcpTools: true,
-        }) satisfies ComposerCapabilityPolicy,
-    }),
-] as const);
 
 export type CliRuntimeMcpReadinessReason =
     | 'runtimeNotReady'
@@ -144,108 +119,31 @@ export const isCliRuntimeProvider = (provider: string | null | undefined): boole
 export const composerCapabilityTargetForProvider = (
     provider: string | null | undefined,
     runtimes: readonly RuntimeSummary[],
-): ComposerCapabilityPolicy => {
-    const runtimeId = runtimeIdFromCliRuntimeProviderKey(provider);
-
-    if (!runtimeId) {
-        return NATIVE_COMPOSER_CAPABILITY_POLICY;
-    }
-
-    const runtime = runtimes.find((candidate) => candidate.runtime_id === runtimeId);
-
-    if (
-        !runtime?.enabled ||
-        (runtime.status.state !== 'ready' && runtime.status.state !== 'degraded')
-    ) {
-        return UNSUPPORTED_CLI_COMPOSER_CAPABILITY_POLICY;
-    }
-
-    return {
-        kind: 'cli',
-        supportsSkills: runtime.capabilities.supports_skills === true,
-        supportsMcpTools: runtime.capabilities.supports_mcp_tools === true,
-    };
-};
-
-export const composerCapabilityPolicySupportsMcpTools = (
-    policy: ComposerCapabilityPolicy,
-): boolean => policy.supportsMcpTools;
-
-export type ComposerCapabilityMenuVisibility = Readonly<{
-    skills: boolean;
-    mcp: boolean;
-    any: boolean;
-}>;
+): ComposerCapabilityTarget =>
+    pioneerClient.composerCapabilityTarget({
+        provider,
+        runtimes: [...runtimes],
+    });
 
 export const composerCapabilityMenuVisibility = (
-    policy: ComposerCapabilityPolicy,
-): ComposerCapabilityMenuVisibility => ({
-    skills: policy.supportsSkills,
-    mcp: policy.supportsMcpTools,
-    any: policy.supportsSkills || policy.supportsMcpTools,
-});
+    target: ComposerCapabilityTarget,
+): ComposerCapabilityMenuVisibility => pioneerClient.composerCapabilityMenuVisibility({ target });
 
-export const filterSkillRowsForComposerTarget = <Row extends { source_kind: string }>(
-    rows: readonly Row[],
-    target: ComposerCapabilityPolicy,
-): Row[] => {
-    if (!target.supportsSkills) {
-        return [];
-    }
+export const filterSkillRowsForComposerTarget = (
+    rows: readonly SelectableSkillCapability[],
+    target: ComposerCapabilityTarget,
+): SelectableSkillCapability[] =>
+    pioneerClient.composerSkillRowsForTarget({ rows: [...rows], target });
 
-    if (target.kind === 'native') {
-        return [...rows];
-    }
-
-    return rows.filter((row) => row.source_kind === 'user' || row.source_kind === 'registry');
-};
-
-export const filterComposerCapabilitiesForTarget = (
+export const composerSubmissionPlanForProvider = (
+    provider: string | null | undefined,
+    text: string,
+    hasAttachments: boolean,
     capabilities: readonly ComposerCapability[],
-    target: ComposerCapabilityPolicy,
-): ComposerCapability[] => {
-    return capabilities.filter((capability) => {
-        if ('Skill' in capability.kind) {
-            if (!target.supportsSkills) {
-                return false;
-            }
-            if (target.kind === 'native') {
-                return true;
-            }
-
-            const source = capability.kind.Skill.source_kind;
-            return source === 'user' || source === 'registry';
-        }
-
-        return target.supportsMcpTools;
+): ComposerSubmissionPlan =>
+    pioneerClient.composerSubmissionPlan({
+        provider,
+        text,
+        has_attachments: hasAttachments,
+        capabilities: [...capabilities],
     });
-};
-
-export type ComposerCapabilitySnapshot = Readonly<{
-    capabilities: ComposerCapability[];
-    hasComposerPayload: boolean;
-}>;
-
-export const composerCapabilitySnapshotForTarget = (
-    text: string,
-    hasAttachments: boolean,
-    capabilities: readonly ComposerCapability[],
-    target: ComposerCapabilityPolicy,
-): ComposerCapabilitySnapshot => {
-    const effectiveCapabilities = filterComposerCapabilitiesForTarget(capabilities, target);
-
-    return {
-        capabilities: effectiveCapabilities,
-        hasComposerPayload:
-            text.trim().length > 0 || hasAttachments || effectiveCapabilities.length > 0,
-    };
-};
-
-export const composerHasSendableContentForTarget = (
-    text: string,
-    hasAttachments: boolean,
-    capabilities: readonly ComposerCapability[],
-    target: ComposerCapabilityPolicy,
-): boolean =>
-    composerCapabilitySnapshotForTarget(text, hasAttachments, capabilities, target)
-        .hasComposerPayload;

@@ -1,16 +1,17 @@
-import { describe, expect, it } from '@jest/globals';
-import type { ComposerCapability, RuntimeSummary } from '@/client';
+import { beforeEach, describe, expect, it, jest } from '@jest/globals';
+import {
+    pioneerClient,
+    type ComposerCapability,
+    type RuntimeSummary,
+    type SelectableSkillCapability,
+} from '@/client';
 
 import {
-    NATIVE_COMPOSER_CAPABILITY_POLICY,
-    UNSUPPORTED_CLI_COMPOSER_CAPABILITY_POLICY,
-    composerHasSendableContentForTarget,
-    composerCapabilitySnapshotForTarget,
+    composerSubmissionPlanForProvider,
     composerCapabilityTargetForProvider,
     cliRuntimeMcpReadinessReason,
     cliRuntimeMcpReadinessReasonFromCode,
     cliRuntimeMcpReadinessTranslationKey,
-    filterComposerCapabilitiesForTarget,
     filterSkillRowsForComposerTarget,
     type ComposerCapabilityPolicy,
 } from './cli-runtime';
@@ -18,9 +19,18 @@ import {
 const cliPolicy = (supportsSkills: boolean, supportsMcpTools: boolean) =>
     ({
         kind: 'cli',
-        supportsSkills,
-        supportsMcpTools,
+        supports_skills: supportsSkills,
+        supports_mcp_tools: supportsMcpTools,
     }) satisfies ComposerCapabilityPolicy;
+
+jest.mock('@/client', () => ({
+    pioneerClient: {
+        composerCapabilityTarget: jest.fn(),
+        composerCapabilityMenuVisibility: jest.fn(),
+        composerSkillRowsForTarget: jest.fn(),
+        composerSubmissionPlan: jest.fn(),
+    },
+}));
 
 const runtime = (
     runtimeId: string,
@@ -100,139 +110,83 @@ const capabilities: ComposerCapability[] = [
 ];
 
 describe('composer CLI runtime capability policy', () => {
-    it('keeps API providers native', () => {
-        expect(composerCapabilityTargetForProvider('openai', [])).toEqual(
-            NATIVE_COMPOSER_CAPABILITY_POLICY,
-        );
+    beforeEach(() => {
+        jest.clearAllMocks();
     });
 
-    it('maps exact enabled ready runtimes to independent skills and MCP flags', () => {
-        const runtimes = [
-            runtime('skills', true, false),
-            runtime('mcp', false, true),
-            runtime('combined', true, true),
-            runtime('neither', false, false),
+    it('delegates live presentation targeting to pioneer-client', () => {
+        const runtimes = [runtime('codex', true, true)];
+        const target = cliPolicy(true, true);
+        jest.mocked(pioneerClient.composerCapabilityTarget).mockReturnValue(target);
+
+        expect(composerCapabilityTargetForProvider('cli_runtime:codex', runtimes)).toEqual(target);
+        expect(pioneerClient.composerCapabilityTarget).toHaveBeenCalledWith({
+            provider: 'cli_runtime:codex',
+            runtimes,
+        });
+    });
+
+    it('delegates skill-row projection to pioneer-client', () => {
+        const rows: SelectableSkillCapability[] = [
+            {
+                description: 'user skill',
+                key: 'user',
+                label: 'user',
+                selectable: true,
+                slug: 'user',
+                source_kind: 'user',
+                unavailable_reason: null,
+            },
         ];
+        const target = cliPolicy(true, true);
+        jest.mocked(pioneerClient.composerSkillRowsForTarget).mockReturnValue(rows);
 
-        expect(composerCapabilityTargetForProvider('cli_runtime:skills', runtimes)).toEqual(
-            cliPolicy(true, false),
-        );
-        expect(composerCapabilityTargetForProvider('cli_runtime:mcp', runtimes)).toEqual(
-            cliPolicy(false, true),
-        );
-        expect(composerCapabilityTargetForProvider('cli_runtime:combined', runtimes)).toEqual(
-            cliPolicy(true, true),
-        );
-        expect(composerCapabilityTargetForProvider('cli_runtime:neither', runtimes)).toEqual(
-            UNSUPPORTED_CLI_COMPOSER_CAPABILITY_POLICY,
-        );
+        expect(filterSkillRowsForComposerTarget(rows, target)).toEqual(rows);
+        expect(pioneerClient.composerSkillRowsForTarget).toHaveBeenCalledWith({ rows, target });
     });
 
-    it('fails closed for missing flags, disabled, unresolved, and stale status data', () => {
-        expect(
-            composerCapabilityTargetForProvider('cli_runtime:missing-bits', [
-                runtime('missing-bits', undefined, undefined),
-            ]),
-        ).toEqual(UNSUPPORTED_CLI_COMPOSER_CAPABILITY_POLICY);
-        expect(
-            composerCapabilityTargetForProvider('cli_runtime:disabled', [
-                runtime('disabled', true, true, false),
-            ]),
-        ).toEqual(UNSUPPORTED_CLI_COMPOSER_CAPABILITY_POLICY);
-        expect(
-            composerCapabilityTargetForProvider('cli_runtime:stale', [
-                runtime('stale', true, true, true, 'error'),
-            ]),
-        ).toEqual(UNSUPPORTED_CLI_COMPOSER_CAPABILITY_POLICY);
-        expect(composerCapabilityTargetForProvider('cli_runtime:missing', [])).toEqual(
-            UNSUPPORTED_CLI_COMPOSER_CAPABILITY_POLICY,
-        );
-    });
+    it('uses the same pioneer-client submission contract for text and voice', () => {
+        jest.mocked(pioneerClient.composerSubmissionPlan).mockImplementation((request) => {
+            const requestedCapabilities = request.capabilities ?? [];
+            return {
+                capabilities: requestedCapabilities,
+                has_composer_payload:
+                    (request.text?.trim().length ?? 0) > 0 ||
+                    request.has_attachments === true ||
+                    requestedCapabilities.length > 0,
+                removed: [],
+                target: cliPolicy(true, true),
+            };
+        });
 
-    it('keeps native skill rows and exports only user and registry skill rows to CLI', () => {
-        const rows = [
-            { source_kind: 'user', slug: 'user' },
-            { source_kind: 'system', slug: 'system' },
-            { source_kind: 'registry', slug: 'registry' },
-            { source_kind: 'future', slug: 'unknown' },
-        ];
-
-        expect(filterSkillRowsForComposerTarget(rows, NATIVE_COMPOSER_CAPABILITY_POLICY)).toEqual(
-            rows,
-        );
-        expect(
-            filterSkillRowsForComposerTarget(rows, UNSUPPORTED_CLI_COMPOSER_CAPABILITY_POLICY),
-        ).toEqual([]);
-        expect(filterSkillRowsForComposerTarget(rows, cliPolicy(true, true))).toEqual([
-            rows[0],
-            rows[2],
-        ]);
-    });
-
-    it('filters whole-server and individual-tool capabilities independently from skills', () => {
-        const cases: [ComposerCapabilityPolicy, string[]][] = [
-            [NATIVE_COMPOSER_CAPABILITY_POLICY, ['user', 'server', 'registry', 'system', 'tool']],
-            [UNSUPPORTED_CLI_COMPOSER_CAPABILITY_POLICY, []],
-            [cliPolicy(true, false), ['user', 'registry']],
-            [cliPolicy(false, true), ['server', 'tool']],
-            [cliPolicy(true, true), ['user', 'server', 'registry', 'tool']],
-        ];
-
-        for (const [policy, expectedIds] of cases) {
-            expect(
-                filterComposerCapabilitiesForTarget(capabilities, policy).map(
-                    (capability) => capability.id,
-                ),
-            ).toEqual(expectedIds);
-        }
-    });
-
-    it('treats every eligible capability kind as capability-only sendable content', () => {
-        expect(
-            composerHasSendableContentForTarget(
-                '',
-                false,
-                [capabilities[0]],
-                cliPolicy(true, false),
-            ),
-        ).toBe(true);
-        expect(
-            composerHasSendableContentForTarget(
-                '',
-                false,
-                [capabilities[1]],
-                cliPolicy(false, true),
-            ),
-        ).toBe(true);
-        expect(
-            composerHasSendableContentForTarget(
-                '',
-                false,
-                [capabilities[3]],
-                cliPolicy(true, true),
-            ),
-        ).toBe(false);
-    });
-
-    it('produces identical eligible capability snapshots for text and voice paths', () => {
-        const policy = cliPolicy(true, true);
-        const textSnapshot = composerCapabilitySnapshotForTarget(
+        const textPlan = composerSubmissionPlanForProvider(
+            'cli_runtime:codex',
             'message',
             true,
             capabilities,
-            policy,
         );
-        const voiceSnapshot = composerCapabilitySnapshotForTarget('', true, capabilities, policy);
+        const voicePlan = composerSubmissionPlanForProvider(
+            'cli_runtime:codex',
+            '',
+            true,
+            capabilities,
+        );
 
-        expect(textSnapshot.capabilities).toEqual(voiceSnapshot.capabilities);
-        expect(textSnapshot.capabilities.map((capability) => capability.id)).toEqual([
-            'user',
-            'server',
-            'registry',
-            'tool',
-        ]);
-        expect(textSnapshot.hasComposerPayload).toBe(true);
-        expect(voiceSnapshot.hasComposerPayload).toBe(true);
+        expect(textPlan.capabilities).toEqual(voicePlan.capabilities);
+        expect(textPlan.has_composer_payload).toBe(true);
+        expect(voicePlan.has_composer_payload).toBe(true);
+        expect(pioneerClient.composerSubmissionPlan).toHaveBeenNthCalledWith(1, {
+            provider: 'cli_runtime:codex',
+            text: 'message',
+            has_attachments: true,
+            capabilities,
+        });
+        expect(pioneerClient.composerSubmissionPlan).toHaveBeenNthCalledWith(2, {
+            provider: 'cli_runtime:codex',
+            text: '',
+            has_attachments: true,
+            capabilities,
+        });
     });
 
     it('maps every safe MCP readiness category to localized presentation semantics', () => {

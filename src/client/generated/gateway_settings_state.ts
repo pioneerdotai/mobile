@@ -15,6 +15,7 @@ export type GatewayRemoteAccessErrorKind =
   | 'io'
   | 'unknown';
 export type GatewayThreadEpisodicVectorProvider = 'openai' | 'openrouter' | 'local';
+export type GatewayVoiceInputProvider = 'local';
 
 export interface GatewaySettingsState {
   error?: string | null;
@@ -28,6 +29,7 @@ export interface GatewaySettingsSnapshot {
   memory: GatewayMemorySettings;
   remote_access?: GatewayRemoteAccessSettings;
   thread_episodic?: GatewayThreadEpisodicSettings;
+  voice_input?: GatewayVoiceInputSettings;
   [k: string]: unknown;
 }
 export interface GatewayCliRuntimeSettings {
@@ -126,5 +128,21 @@ export interface GatewayThreadEpisodicVectorSearchSettings {
 export interface GatewayThreadEpisodicVectorProviderKeyStatus {
   present?: boolean;
   required?: boolean;
+  [k: string]: unknown;
+}
+export interface GatewayVoiceInputSettings {
+  enabled?: boolean;
+  model?: string | null;
+  provider?: GatewayVoiceInputProvider | null;
+  runtime?: GatewayVoiceInputRuntimeSnapshot;
+  [k: string]: unknown;
+}
+export interface GatewayVoiceInputRuntimeSnapshot {
+  downloaded_bytes?: number | null;
+  effective_enabled?: boolean;
+  error?: string | null;
+  model?: string | null;
+  phase?: 'disabled' | 'model_not_selected' | 'missing' | 'downloading' | 'installing' | 'loading' | 'ready' | 'failed';
+  total_bytes?: number | null;
   [k: string]: unknown;
 }

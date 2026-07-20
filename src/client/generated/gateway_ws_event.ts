@@ -487,6 +487,11 @@ export type GatewayNotification =
       [k: string]: unknown;
     }
   | {
+      kind: 'gateway_voice_input_status_changed';
+      params: GatewayVoiceInputStatusChangedNotification;
+      [k: string]: unknown;
+    }
+  | {
       kind: 'voice_session_result';
       params: VoiceSessionResultNotification;
       [k: string]: unknown;
@@ -1563,6 +1568,7 @@ export type GatewayThreadEpisodicVectorRefillStatus =
   | 'running'
   | 'complete'
   | 'failed';
+export type GatewayVoiceInputProvider = 'local';
 export type VoiceErrorKind =
   | 'model_unavailable'
   | 'microphone_permission_blocked'
@@ -3095,6 +3101,26 @@ export interface GatewayRemoteAccessStatusSnapshot {
 export interface GatewayThreadEpisodicVectorRefillStatusChangedNotification {
   status: GatewayThreadEpisodicVectorRefillStatus;
   workspace_id: string;
+  [k: string]: unknown;
+}
+export interface GatewayVoiceInputStatusChangedNotification {
+  settings: GatewayVoiceInputSettings;
+  [k: string]: unknown;
+}
+export interface GatewayVoiceInputSettings {
+  enabled?: boolean;
+  model?: string | null;
+  provider?: GatewayVoiceInputProvider | null;
+  runtime?: GatewayVoiceInputRuntimeSnapshot;
+  [k: string]: unknown;
+}
+export interface GatewayVoiceInputRuntimeSnapshot {
+  downloaded_bytes?: number | null;
+  effective_enabled?: boolean;
+  error?: string | null;
+  model?: string | null;
+  phase?: 'disabled' | 'model_not_selected' | 'missing' | 'downloading' | 'installing' | 'loading' | 'ready' | 'failed';
+  total_bytes?: number | null;
   [k: string]: unknown;
 }
 /**

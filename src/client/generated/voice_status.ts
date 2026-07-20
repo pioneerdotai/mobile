@@ -1,5 +1,5 @@
 /* eslint-disable */
 
 export type VoiceStatus =
-  | ('unavailable' | 'model_loading' | 'ready' | 'busy' | 'recording' | 'transcribing' | 'error')
+  | ('disabled' | 'unavailable' | 'model_loading' | 'ready' | 'busy' | 'recording' | 'transcribing' | 'error')
   | 'model_downloading';

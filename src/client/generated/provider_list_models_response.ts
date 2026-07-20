@@ -25,6 +25,7 @@ export interface ProviderModelInfo {
   owned_by?: string | null;
   pricing?: ProviderModelPricing | null;
   provider: string;
+  transcription?: ProviderTranscriptionModelMetadata | null;
   [k: string]: unknown;
 }
 export interface ProviderModelCapabilities {
@@ -37,6 +38,7 @@ export interface ProviderModelCapabilities {
   streaming?: boolean | null;
   thinking?: boolean | null;
   tool_calling?: boolean | null;
+  transcription?: boolean | null;
   vision?: boolean | null;
   [k: string]: unknown;
 }
@@ -60,5 +62,16 @@ export interface ProviderModelPricing {
   input_token?: number | null;
   output_token?: number | null;
   request?: number | null;
+  [k: string]: unknown;
+}
+export interface ProviderTranscriptionModelMetadata {
+  accuracy_score: number;
+  download_size_mb: number;
+  engine: string;
+  recommended: boolean;
+  speed_score: number;
+  supported_languages: string[];
+  supports_language_selection: boolean;
+  supports_translation: boolean;
   [k: string]: unknown;
 }

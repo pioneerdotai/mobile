@@ -14,6 +14,7 @@ import { refreshCliRuntimeSummaries } from './cli-runtime-live';
 jest.mock('@/client', () => ({
     pioneerClient: {
         cliRuntimeListModels: jest.fn(),
+        composerCapabilityTarget: jest.fn(),
         providerList: jest.fn(),
         providerListModels: jest.fn(),
         reasoningEffortRows: jest.fn(({ model, selected_effort }: ReasoningEffortRowsRequest) => {
@@ -136,6 +137,11 @@ describe('model selector reasoning helpers', () => {
         } as RuntimeSummary;
         jest.mocked(pioneerClient.providerList).mockResolvedValue({ providers: [] });
         jest.mocked(refreshCliRuntimeSummaries).mockResolvedValue([runtime]);
+        jest.mocked(pioneerClient.composerCapabilityTarget).mockReturnValue({
+            kind: 'cli',
+            supports_skills: true,
+            supports_mcp_tools: true,
+        });
 
         await expect(listProviders('workspace-1')).resolves.toEqual([
             {
@@ -144,8 +150,8 @@ describe('model selector reasoning helpers', () => {
                 kind: 'cliRuntime',
                 capabilityTarget: {
                     kind: 'cli',
-                    supportsSkills: true,
-                    supportsMcpTools: true,
+                    supports_skills: true,
+                    supports_mcp_tools: true,
                 },
                 mcpReadinessReason: null,
             },

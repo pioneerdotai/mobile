@@ -56,6 +56,10 @@ public:
       const std::string& inputJson) override;
   std::shared_ptr<margelo::nitro::Promise<std::string>> gatewayConnectJson(
       const std::string& inputJson) override;
+  std::shared_ptr<margelo::nitro::Promise<std::string>> gatewaySettingsGetJson(
+      const std::string& inputJson) override;
+  std::shared_ptr<margelo::nitro::Promise<std::string>> gatewaySettingsUpdateJson(
+      const std::string& inputJson) override;
   std::shared_ptr<margelo::nitro::Promise<std::string>> gatewayNextEventsJson() override;
   std::shared_ptr<margelo::nitro::Promise<std::string>> gatewayDisconnectJson() override;
   std::shared_ptr<margelo::nitro::Promise<std::string>> workspaceBootstrapJson(
@@ -101,6 +105,9 @@ public:
   std::string pendingRequestPresentationJson(const std::string& inputJson) override;
   std::shared_ptr<margelo::nitro::Promise<std::string>> providerListModelsJson(
       const std::string& inputJson) override;
+  std::shared_ptr<margelo::nitro::Promise<std::string>> providerListTranscriptionModelsJson(
+      const std::string& inputJson) override;
+  std::string voiceInputSettingsPlanJson(const std::string& inputJson) override;
   std::shared_ptr<margelo::nitro::Promise<std::string>> providerModelDisplayJson(
       const std::string& inputJson) override;
   std::string reasoningEffortRowsJson(const std::string& inputJson) override;
@@ -112,6 +119,12 @@ public:
   std::shared_ptr<margelo::nitro::Promise<std::string>> composerMcpPickerRowsJson(
       const std::string& inputJson) override;
   std::string composerCapabilitiesUpdateJson(const std::string& inputJson) override;
+  std::string composerCapabilityTargetJson(const std::string& inputJson) override;
+  std::string composerCapabilityMenuVisibilityJson(const std::string& inputJson) override;
+  std::string composerSubmissionPlanJson(const std::string& inputJson) override;
+  std::string composerDomainTransitionJson(const std::string& inputJson) override;
+  std::string composerDraftLifecycleTransitionJson(const std::string& inputJson) override;
+  std::string composerSkillRowsForTargetJson(const std::string& inputJson) override;
   std::string composerSkillCapabilityFromRowJson(const std::string& inputJson) override;
   std::string composerMcpCapabilityFromRowJson(const std::string& inputJson) override;
   std::string composerSkillToggleJson(const std::string& inputJson) override;

@@ -8,12 +8,6 @@ import { HStack } from '@/components/primitives/hstack';
 import { Pressable } from '@/components/primitives/pressable';
 import { Text } from '@/components/primitives/text';
 import { VStack } from '@/components/primitives/vstack';
-import {
-    composerCapabilityTargetForProvider,
-    filterSkillRowsForComposerTarget,
-    isCliRuntimeProvider,
-} from '@/services/providers/cli-runtime';
-import { refreshCliRuntimeSummaries } from '@/services/providers/cli-runtime-live';
 import { useActiveThreadStore } from '@/stores/active-thread';
 import { useWorkspaceStore } from '@/stores/workspace';
 
@@ -34,19 +28,14 @@ export const ComposerSkillCapabilitiesScreen = () => {
 
     const activeWorkspaceId = useWorkspaceStore((state) => state.activeWorkspaceId);
 
-    const {
-        composerCapabilities,
-        composerSelectedProvider,
-        setComposerCapabilities,
-        syncComposerModelSelection,
-    } = useActiveThreadStore(
-        useShallow((state) => ({
-            composerCapabilities: state.composerCapabilities,
-            composerSelectedProvider: state.composerSelectedProvider,
-            setComposerCapabilities: state.setComposerCapabilities,
-            syncComposerModelSelection: state.syncComposerModelSelection,
-        })),
-    );
+    const { composerCapabilities, addComposerCapability, removeComposerCapability } =
+        useActiveThreadStore(
+            useShallow((state) => ({
+                composerCapabilities: state.composerCapabilities,
+                addComposerCapability: state.addComposerCapability,
+                removeComposerCapability: state.removeComposerCapability,
+            })),
+        );
 
     const [query, setQuery] = useState('');
     const [rows, setRows] = useState<SelectableSkillCapability[]>([]);
@@ -63,32 +52,14 @@ export const ComposerSkillCapabilitiesScreen = () => {
 
             setState({ loading: true, error: null });
 
-            const runtimeRequest = isCliRuntimeProvider(composerSelectedProvider)
-                ? refreshCliRuntimeSummaries(activeWorkspaceId).catch(() => [])
-                : Promise.resolve([]);
-
-            void Promise.all([
-                pioneerClient.composerSkillPickerRows({
+            void pioneerClient
+                .composerSkillPickerRows({
                     workspace_id: activeWorkspaceId,
                     query: '',
-                }),
-                runtimeRequest,
-            ])
-                .then(([nextRows, runtimes]) => {
+                })
+                .then((nextRows) => {
                     if (!cancelled) {
-                        const target = composerCapabilityTargetForProvider(
-                            composerSelectedProvider,
-                            runtimes,
-                        );
-                        const storeState = useActiveThreadStore.getState();
-                        syncComposerModelSelection(
-                            composerSelectedProvider,
-                            storeState.composerSelectedModel,
-                            storeState.composerSelectedReasoningEffort,
-                            target,
-                            t('composerCapabilitiesRemovedForProvider'),
-                        );
-                        setRows(filterSkillRowsForComposerTarget(nextRows, target));
+                        setRows(nextRows);
                     }
                 })
                 .catch(() => {
@@ -108,7 +79,7 @@ export const ComposerSkillCapabilitiesScreen = () => {
             cancelled = true;
             clearTimeout(timeout);
         };
-    }, [activeWorkspaceId, composerSelectedProvider, syncComposerModelSelection, t]);
+    }, [activeWorkspaceId, t]);
 
     const filteredRows = useMemo(
         () => pioneerClient.composerFilterSkillRows({ rows, query }),
@@ -126,18 +97,13 @@ export const ComposerSkillCapabilitiesScreen = () => {
                 return;
             }
 
-            const action = selectedKeys.has(row.key)
-                ? { Remove: { id: row.key } }
-                : { Add: { capability: pioneerClient.composerSkillCapabilityFromRow({ row }) } };
-
-            setComposerCapabilities(
-                pioneerClient.composerCapabilitiesUpdate({
-                    capabilities: useActiveThreadStore.getState().composerCapabilities,
-                    action,
-                }),
-            );
+            if (selectedKeys.has(row.key)) {
+                removeComposerCapability(row.key);
+            } else {
+                addComposerCapability(pioneerClient.composerSkillCapabilityFromRow({ row }));
+            }
         },
-        [selectedKeys, setComposerCapabilities],
+        [addComposerCapability, removeComposerCapability, selectedKeys],
     );
 
     const renderSkill = useCallback<ListRenderItem<SelectableSkillCapability>>(

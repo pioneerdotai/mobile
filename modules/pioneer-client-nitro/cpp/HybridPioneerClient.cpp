@@ -115,6 +115,16 @@ HybridPioneerClient::gatewayConnectJson(const std::string& inputJson) {
 }
 
 std::shared_ptr<margelo::nitro::Promise<std::string>>
+HybridPioneerClient::gatewaySettingsGetJson(const std::string& inputJson) {
+  return callWithClientAsync(pioneer_client_ffi_gateway_settings_get, inputJson);
+}
+
+std::shared_ptr<margelo::nitro::Promise<std::string>>
+HybridPioneerClient::gatewaySettingsUpdateJson(const std::string& inputJson) {
+  return callWithClientAsync(pioneer_client_ffi_gateway_settings_update, inputJson);
+}
+
+std::shared_ptr<margelo::nitro::Promise<std::string>>
 HybridPioneerClient::gatewayNextEventsJson() {
   return callWithClientAsync(pioneer_client_ffi_gateway_next_events);
 }
@@ -248,6 +258,15 @@ HybridPioneerClient::providerListModelsJson(const std::string& inputJson) {
 }
 
 std::shared_ptr<margelo::nitro::Promise<std::string>>
+HybridPioneerClient::providerListTranscriptionModelsJson(const std::string& inputJson) {
+  return callWithClientAsync(pioneer_client_ffi_provider_list_transcription_models, inputJson);
+}
+
+std::string HybridPioneerClient::voiceInputSettingsPlanJson(const std::string& inputJson) {
+  return callWithClient(pioneer_client_ffi_voice_input_settings_plan, inputJson);
+}
+
+std::shared_ptr<margelo::nitro::Promise<std::string>>
 HybridPioneerClient::providerModelDisplayJson(const std::string& inputJson) {
   return callWithClientAsync(pioneer_client_ffi_provider_model_display, inputJson);
 }
@@ -280,6 +299,31 @@ HybridPioneerClient::composerMcpPickerRowsJson(const std::string& inputJson) {
 
 std::string HybridPioneerClient::composerCapabilitiesUpdateJson(const std::string& inputJson) {
   return callWithClient(pioneer_client_ffi_composer_capabilities_update, inputJson);
+}
+
+std::string HybridPioneerClient::composerCapabilityTargetJson(const std::string& inputJson) {
+  return callWithClient(pioneer_client_ffi_composer_capability_target, inputJson);
+}
+
+std::string HybridPioneerClient::composerCapabilityMenuVisibilityJson(const std::string& inputJson) {
+  return callWithClient(pioneer_client_ffi_composer_capability_menu_visibility, inputJson);
+}
+
+std::string HybridPioneerClient::composerSubmissionPlanJson(const std::string& inputJson) {
+  return callWithClient(pioneer_client_ffi_composer_submission_plan, inputJson);
+}
+
+std::string HybridPioneerClient::composerDomainTransitionJson(const std::string& inputJson) {
+  return callWithClient(pioneer_client_ffi_composer_domain_transition, inputJson);
+}
+
+std::string HybridPioneerClient::composerDraftLifecycleTransitionJson(
+    const std::string& inputJson) {
+  return callWithClient(pioneer_client_ffi_composer_draft_lifecycle_transition, inputJson);
+}
+
+std::string HybridPioneerClient::composerSkillRowsForTargetJson(const std::string& inputJson) {
+  return callWithClient(pioneer_client_ffi_composer_skill_rows_for_target, inputJson);
 }
 
 std::string HybridPioneerClient::composerSkillCapabilityFromRowJson(const std::string& inputJson) {

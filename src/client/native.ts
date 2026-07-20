@@ -21,6 +21,10 @@ import type { ClientActiveThreadUnsubscribeResult } from './generated/client_act
 import type { ClientComposerAttachmentFromPathRequest } from './generated/client_composer_attachment_from_path_request';
 import type { ClientComposerAttachmentsUpdateRequest } from './generated/client_composer_attachments_update_request';
 import type { ClientComposerCapabilitiesUpdateRequest } from './generated/client_composer_capabilities_update_request';
+import type { ClientComposerCapabilityMenuVisibilityRequest } from './generated/client_composer_capability_menu_visibility_request';
+import type { ClientComposerCapabilityTargetRequest } from './generated/client_composer_capability_target_request';
+import type { ClientComposerDomainTransitionRequest } from './generated/client_composer_domain_transition_request';
+import type { ClientComposerDraftLifecycleTransitionRequest } from './generated/client_composer_draft_lifecycle_transition_request';
 import type { ClientComposerFilterMcpRowsRequest } from './generated/client_composer_filter_mcp_rows_request';
 import type { ClientComposerFilterMcpRowsResult } from './generated/client_composer_filter_mcp_rows_result';
 import type { ClientComposerFilterSkillRowsRequest } from './generated/client_composer_filter_skill_rows_request';
@@ -38,10 +42,15 @@ import type { ClientComposerSkillCapabilityFromRowRequest } from './generated/cl
 import type { ClientComposerSkillPickerRowsRequest } from './generated/client_composer_skill_picker_rows_request';
 import type { ClientComposerSkillToggleRequest } from './generated/client_composer_skill_toggle_request';
 import type { ClientComposerSkillToggleResult } from './generated/client_composer_skill_toggle_result';
+import type { ClientComposerSkillRowsForTargetRequest } from './generated/client_composer_skill_rows_for_target_request';
+import type { ClientComposerSubmissionPlanRequest } from './generated/client_composer_submission_plan_request';
 import type { ClientDiagnosticEvent } from './generated/client_diagnostic_event';
 import type { ClientEvent } from './generated/client_event';
 import type { ClientGatewayConnectRequest } from './generated/client_gateway_connect_request';
 import type { ClientGatewayConnectResult } from './generated/client_gateway_connect_result';
+import type { ClientGatewaySettingsUpdateRequest } from './generated/client_gateway_settings_update_request';
+import type { ClientVoiceInputPlanRequest } from './generated/client_voice_input_plan_request';
+import type { ClientVoiceInputPlanResult } from './generated/client_voice_input_plan_result';
 import type { ClientEnsureWorkspaceDraftRequest } from './generated/client_ensure_workspace_draft_request';
 import type { CLIRuntimeListModelsParams } from './generated/cli_runtime_list_models_params';
 import type { CLIRuntimeListModelsResponse } from './generated/cli_runtime_list_models_response';
@@ -61,8 +70,15 @@ import type { CLIRuntimeTurnSteerParams } from './generated/cli_runtime_turn_ste
 import type { CLIRuntimeTurnSteerResponse } from './generated/cli_runtime_turn_steer_response';
 import type { ComposerAttachment } from './generated/composer_attachment';
 import type { ComposerCapability } from './generated/composer_capability';
+import type { ComposerCapabilityMenuVisibility } from './generated/composer_capability_menu_visibility';
+import type { ComposerCapabilityTarget } from './generated/composer_capability_target';
+import type { ComposerDomainTransition } from './generated/composer_domain_transition';
+import type { ComposerDraftLifecycleTransition } from './generated/composer_draft_lifecycle_transition';
 import type { ComposerPermissionModeOption } from './generated/composer_permission_mode_option';
+import type { ComposerSubmissionPlan } from './generated/composer_submission_plan';
 import type { DeleteRemoteGatewayRegistryPlan } from './generated/delete_remote_gateway_registry_plan';
+import type { GatewaySettingsGetResponse } from './generated/gateway_settings_get_response';
+import type { GatewaySettingsUpdateResponse } from './generated/gateway_settings_update_response';
 import type { PlanActivateGatewayRequest } from './generated/plan_activate_gateway_request';
 import type { PlanAddRemoteGatewayRequest } from './generated/plan_add_remote_gateway_request';
 import type { PlanDeleteRemoteGatewayRequest } from './generated/plan_delete_remote_gateway_request';
@@ -137,6 +153,8 @@ export type { ClientActiveThreadUnsubscribeResult } from './generated/client_act
 export type { ClientComposerAttachmentFromPathRequest } from './generated/client_composer_attachment_from_path_request';
 export type { ClientComposerAttachmentsUpdateRequest } from './generated/client_composer_attachments_update_request';
 export type { ClientComposerCapabilitiesUpdateRequest } from './generated/client_composer_capabilities_update_request';
+export type { ClientComposerCapabilityMenuVisibilityRequest } from './generated/client_composer_capability_menu_visibility_request';
+export type { ClientComposerCapabilityTargetRequest } from './generated/client_composer_capability_target_request';
 export type { ClientComposerFilterMcpRowsRequest } from './generated/client_composer_filter_mcp_rows_request';
 export type { ClientComposerFilterMcpRowsResult } from './generated/client_composer_filter_mcp_rows_result';
 export type { ClientComposerFilterSkillRowsRequest } from './generated/client_composer_filter_skill_rows_request';
@@ -155,10 +173,15 @@ export type { ClientComposerSkillCapabilityFromRowRequest } from './generated/cl
 export type { ClientComposerSkillPickerRowsRequest } from './generated/client_composer_skill_picker_rows_request';
 export type { ClientComposerSkillToggleRequest } from './generated/client_composer_skill_toggle_request';
 export type { ClientComposerSkillToggleResult } from './generated/client_composer_skill_toggle_result';
+export type { ClientComposerSkillRowsForTargetRequest } from './generated/client_composer_skill_rows_for_target_request';
+export type { ClientComposerSubmissionPlanRequest } from './generated/client_composer_submission_plan_request';
 export type { ClientDiagnosticEvent } from './generated/client_diagnostic_event';
 export type { ClientEvent } from './generated/client_event';
 export type { ClientGatewayConnectRequest } from './generated/client_gateway_connect_request';
 export type { ClientGatewayConnectResult } from './generated/client_gateway_connect_result';
+export type { ClientGatewaySettingsUpdateRequest } from './generated/client_gateway_settings_update_request';
+export type { ClientVoiceInputPlanRequest } from './generated/client_voice_input_plan_request';
+export type { ClientVoiceInputPlanResult } from './generated/client_voice_input_plan_result';
 export type { ClientEnsureWorkspaceDraftRequest } from './generated/client_ensure_workspace_draft_request';
 export type { CLIRuntimeListModelsParams } from './generated/cli_runtime_list_models_params';
 export type {
@@ -191,6 +214,16 @@ export type { ComposerAttachmentKind } from './generated/composer_attachment_kin
 export type { ComposerAttachmentUploadState } from './generated/composer_attachment_upload_state';
 export type { ComposerCapability } from './generated/composer_capability';
 export type { ComposerCapabilityKind } from './generated/composer_capability_kind';
+export type { ComposerCapabilityMenuVisibility } from './generated/composer_capability_menu_visibility';
+export type { ComposerCapabilityTarget } from './generated/composer_capability_target';
+export type { ComposerDomainAction } from './generated/composer_domain_action';
+export type { ComposerDomainState } from './generated/composer_domain_state';
+export type { ComposerDomainTransition } from './generated/composer_domain_transition';
+export type { ComposerDomainDraft } from './generated/composer_domain_draft';
+export type { ComposerDraftLifecycleAction } from './generated/composer_draft_lifecycle_action';
+export type { ComposerDraftLifecycleState } from './generated/composer_draft_lifecycle_state';
+export type { ComposerDraftLifecycleTransition } from './generated/composer_draft_lifecycle_transition';
+export type { ComposerSubmissionPlan } from './generated/composer_submission_plan';
 export type {
     ComposerPermissionModeOption,
     TurnPermissionMode,
@@ -203,6 +236,8 @@ export type { GatewayConnectionState } from './generated/gateway_connection_stat
 export type { GatewayEndpoint } from './generated/gateway_endpoint';
 export type { GatewayEndpointKind } from './generated/gateway_endpoint_kind';
 export type { GatewayRegistry } from './generated/gateway_registry';
+export type { GatewaySettingsGetResponse } from './generated/gateway_settings_get_response';
+export type { GatewaySettingsUpdateResponse } from './generated/gateway_settings_update_response';
 export type { PlanActivateGatewayRequest } from './generated/plan_activate_gateway_request';
 export type { PlanAddRemoteGatewayRequest } from './generated/plan_add_remote_gateway_request';
 export type { PlanDeleteRemoteGatewayRequest } from './generated/plan_delete_remote_gateway_request';
@@ -429,6 +464,20 @@ export const pioneerClient = {
         );
     },
 
+    async gatewaySettingsGet(): Promise<GatewaySettingsGetResponse> {
+        return parsePioneerClientResponse<GatewaySettingsGetResponse>(
+            await getPioneerClientNitro().gatewaySettingsGetJson('{}'),
+        );
+    },
+
+    async gatewaySettingsUpdate(
+        input: ClientGatewaySettingsUpdateRequest,
+    ): Promise<GatewaySettingsUpdateResponse> {
+        return parsePioneerClientResponse<GatewaySettingsUpdateResponse>(
+            await getPioneerClientNitro().gatewaySettingsUpdateJson(JSON.stringify(input)),
+        );
+    },
+
     async gatewayNextEvents(): Promise<ClientEvent[]> {
         return parsePioneerClientResponse<ClientEvent[]>(
             await getPioneerClientNitro().gatewayNextEventsJson(),
@@ -597,6 +646,22 @@ export const pioneerClient = {
         );
     },
 
+    async providerListTranscriptionModels(
+        input: ProviderListModelsParams,
+    ): Promise<ProviderListModelsResponse> {
+        return parsePioneerClientResponse<ProviderListModelsResponse>(
+            await getPioneerClientNitro().providerListTranscriptionModelsJson(
+                JSON.stringify(input),
+            ),
+        );
+    },
+
+    voiceInputSettingsPlan(input: ClientVoiceInputPlanRequest): ClientVoiceInputPlanResult {
+        return parsePioneerClientResponse<ClientVoiceInputPlanResult>(
+            getPioneerClientNitro().voiceInputSettingsPlanJson(JSON.stringify(input)),
+        );
+    },
+
     async providerModelDisplay(
         input: ProviderModelDisplayKey,
     ): Promise<ProviderModelDisplayResolution> {
@@ -650,6 +715,52 @@ export const pioneerClient = {
     ): ComposerCapability[] {
         return parsePioneerClientResponse<ComposerCapability[]>(
             getPioneerClientNitro().composerCapabilitiesUpdateJson(JSON.stringify(input)),
+        );
+    },
+
+    composerCapabilityTarget(
+        input: ClientComposerCapabilityTargetRequest,
+    ): ComposerCapabilityTarget {
+        return parsePioneerClientResponse<ComposerCapabilityTarget>(
+            getPioneerClientNitro().composerCapabilityTargetJson(JSON.stringify(input)),
+        );
+    },
+
+    composerCapabilityMenuVisibility(
+        input: ClientComposerCapabilityMenuVisibilityRequest,
+    ): ComposerCapabilityMenuVisibility {
+        return parsePioneerClientResponse<ComposerCapabilityMenuVisibility>(
+            getPioneerClientNitro().composerCapabilityMenuVisibilityJson(JSON.stringify(input)),
+        );
+    },
+
+    composerDomainTransition(
+        input: ClientComposerDomainTransitionRequest,
+    ): ComposerDomainTransition {
+        return parsePioneerClientResponse<ComposerDomainTransition>(
+            getPioneerClientNitro().composerDomainTransitionJson(JSON.stringify(input)),
+        );
+    },
+
+    composerDraftLifecycleTransition(
+        input: ClientComposerDraftLifecycleTransitionRequest,
+    ): ComposerDraftLifecycleTransition {
+        return parsePioneerClientResponse<ComposerDraftLifecycleTransition>(
+            getPioneerClientNitro().composerDraftLifecycleTransitionJson(JSON.stringify(input)),
+        );
+    },
+
+    composerSubmissionPlan(input: ClientComposerSubmissionPlanRequest): ComposerSubmissionPlan {
+        return parsePioneerClientResponse<ComposerSubmissionPlan>(
+            getPioneerClientNitro().composerSubmissionPlanJson(JSON.stringify(input)),
+        );
+    },
+
+    composerSkillRowsForTarget(
+        input: ClientComposerSkillRowsForTargetRequest,
+    ): SelectableSkillCapability[] {
+        return parsePioneerClientResponse<SelectableSkillCapability[]>(
+            getPioneerClientNitro().composerSkillRowsForTargetJson(JSON.stringify(input)),
         );
     },
 

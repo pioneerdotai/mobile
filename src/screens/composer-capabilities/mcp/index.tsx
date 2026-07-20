@@ -5,26 +5,22 @@ import { useTranslation } from 'react-i18next';
 import { useUnistyles } from 'react-native-unistyles';
 import { useShallow } from 'zustand/react/shallow';
 
-import { pioneerClient, type ComposerCapability, type SelectableMcpCapability } from '@/client';
+import {
+    pioneerClient,
+    type ClientComposerMcpToggleResult,
+    type ComposerCapability,
+    type SelectableMcpCapability,
+} from '@/client';
 import { HStack } from '@/components/primitives/hstack';
 import { Pressable } from '@/components/primitives/pressable';
 import { Text } from '@/components/primitives/text';
 import { VStack } from '@/components/primitives/vstack';
-import {
-    NATIVE_COMPOSER_CAPABILITY_POLICY,
-    UNSUPPORTED_CLI_COMPOSER_CAPABILITY_POLICY,
-    composerCapabilityPolicySupportsMcpTools,
-    composerCapabilityTargetForProvider,
-    isCliRuntimeProvider,
-} from '@/services/providers/cli-runtime';
-import { refreshCliRuntimeSummaries } from '@/services/providers/cli-runtime-live';
 import { useActiveThreadStore } from '@/stores/active-thread';
 import { useWorkspaceStore } from '@/stores/workspace';
 
 import {
     CapabilityCard,
     Check,
-    isMcpComposerCapability,
     ListHeader,
     ListState,
     SectionHeader,
@@ -43,38 +39,30 @@ type McpDisplayRow =
 const mcpKeyExtractor = (row: McpDisplayRow): string =>
     row.type === 'section' ? `section:${row.id}` : `${row.type}:${row.row.key}`;
 
-export const replaceSelectedMcpComposerCapabilities = (
-    currentCapabilities: readonly ComposerCapability[],
+export const toggleMcpComposerCapabilitySelection = (
+    capabilities: readonly ComposerCapability[],
     selectedKeys: readonly string[],
-    rowsByKey: ReadonlyMap<string, SelectableMcpCapability>,
-    capabilityFromRow: (row: SelectableMcpCapability) => ComposerCapability,
-): ComposerCapability[] => {
-    const nextMcpCapabilities = selectedKeys.flatMap((key) => {
-        const row = rowsByKey.get(key);
-        return row ? [capabilityFromRow(row)] : [];
+    serverRows: readonly SelectableMcpCapability[],
+    toolRows: readonly SelectableMcpCapability[],
+    row: SelectableMcpCapability,
+): ClientComposerMcpToggleResult =>
+    pioneerClient.composerMcpToggle({
+        capabilities: [...capabilities],
+        selected_keys: [...selectedKeys],
+        server_rows: [...serverRows],
+        tool_rows: [...toolRows],
+        row,
     });
-
-    return currentCapabilities
-        .filter((capability) => !isMcpComposerCapability(capability))
-        .concat(nextMcpCapabilities);
-};
 
 export const ComposerMcpCapabilitiesScreen = () => {
     const { t } = useTranslation('threads');
 
     const activeWorkspaceId = useWorkspaceStore((state) => state.activeWorkspaceId);
 
-    const {
-        composerCapabilities,
-        composerSelectedProvider,
-        setComposerCapabilities,
-        syncComposerModelSelection,
-    } = useActiveThreadStore(
+    const { composerCapabilities, setComposerCapabilities } = useActiveThreadStore(
         useShallow((state) => ({
             composerCapabilities: state.composerCapabilities,
-            composerSelectedProvider: state.composerSelectedProvider,
             setComposerCapabilities: state.setComposerCapabilities,
-            syncComposerModelSelection: state.syncComposerModelSelection,
         })),
     );
 
@@ -96,68 +84,32 @@ export const ComposerMcpCapabilitiesScreen = () => {
 
             setState({ loading: true, error: null });
 
-            void (async () => {
-                let policy = NATIVE_COMPOSER_CAPABILITY_POLICY;
-                if (isCliRuntimeProvider(composerSelectedProvider)) {
-                    try {
-                        const runtimes = await refreshCliRuntimeSummaries(activeWorkspaceId);
-                        policy = composerCapabilityTargetForProvider(
-                            composerSelectedProvider,
-                            runtimes,
-                        );
-                    } catch {
-                        policy = UNSUPPORTED_CLI_COMPOSER_CAPABILITY_POLICY;
-                    }
-                }
-
-                if (cancelled) {
-                    return;
-                }
-
-                const storeState = useActiveThreadStore.getState();
-                syncComposerModelSelection(
-                    composerSelectedProvider,
-                    storeState.composerSelectedModel,
-                    storeState.composerSelectedReasoningEffort,
-                    policy,
-                    t('composerCapabilitiesRemovedForProvider'),
-                );
-
-                if (!composerCapabilityPolicySupportsMcpTools(policy)) {
-                    setServerRows([]);
-                    setToolRows([]);
-                    setState({
-                        loading: false,
-                        error: t('composerMcpUnavailableForProvider'),
-                    });
-                    return;
-                }
-
-                try {
-                    const result = await pioneerClient.composerMcpPickerRows({
-                        workspace_id: activeWorkspaceId,
-                        query: '',
-                    });
+            void pioneerClient
+                .composerMcpPickerRows({
+                    workspace_id: activeWorkspaceId,
+                    query: '',
+                })
+                .then((result) => {
                     if (!cancelled) {
                         setServerRows(result.server_rows);
                         setToolRows(result.tool_rows);
                         setState({ loading: false, error: null });
                     }
-                } catch {
+                })
+                .catch(() => {
                     if (!cancelled) {
                         setServerRows([]);
                         setToolRows([]);
                         setState({ loading: false, error: t('composerMcpFailed') });
                     }
-                }
-            })();
+                });
         }, 0);
 
         return () => {
             cancelled = true;
             clearTimeout(timeout);
         };
-    }, [activeWorkspaceId, composerSelectedProvider, syncComposerModelSelection, t]);
+    }, [activeWorkspaceId, t]);
 
     const selectedKeys = useMemo(
         () => selectedCapabilityKeys(composerCapabilities),
@@ -165,14 +117,6 @@ export const ComposerMcpCapabilitiesScreen = () => {
     );
 
     const selectedKeySet = useMemo(() => new Set(selectedKeys), [selectedKeys]);
-
-    const mcpRowsByKey = useMemo(() => {
-        const rowsByKey = new Map<string, SelectableMcpCapability>();
-        for (const row of [...serverRows, ...toolRows]) {
-            rowsByKey.set(row.key, row);
-        }
-        return rowsByKey;
-    }, [serverRows, toolRows]);
 
     const filtered = useMemo(
         () =>
@@ -228,28 +172,21 @@ export const ComposerMcpCapabilitiesScreen = () => {
                 return;
             }
 
-            const result = pioneerClient.composerMcpToggle({
-                row,
-                selected_keys: selectedKeys,
-                server_rows: serverRows,
-                tool_rows: toolRows,
-            });
-
             const currentCapabilities = useActiveThreadStore.getState().composerCapabilities;
-            setComposerCapabilities(
-                replaceSelectedMcpComposerCapabilities(
-                    currentCapabilities,
-                    result.selected_keys,
-                    mcpRowsByKey,
-                    (nextRow) => pioneerClient.composerMcpCapabilityFromRow({ row: nextRow }),
-                ),
+            const result = toggleMcpComposerCapabilitySelection(
+                currentCapabilities,
+                selectedKeys,
+                serverRows,
+                toolRows,
+                row,
             );
+            setComposerCapabilities(result.capabilities);
 
             if (result.collapse_active_server) {
                 setActiveServerId(null);
             }
         },
-        [mcpRowsByKey, selectedKeys, serverRows, setComposerCapabilities, toolRows],
+        [selectedKeys, serverRows, setComposerCapabilities, toolRows],
     );
 
     const toggleServerTools = useCallback((serverId: string) => {

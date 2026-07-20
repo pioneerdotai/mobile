@@ -6,15 +6,14 @@ import { KeyboardGestureArea, KeyboardStickyView } from 'react-native-keyboard-c
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useKeyboardChatComposerInset } from '@legendapp/list/keyboard';
 import type { LegendListRef } from '@legendapp/list/react-native';
-import { useQueryClient } from '@tanstack/react-query';
+import { skipToken, useQuery, useQueryClient } from '@tanstack/react-query';
 import { customAlphabet } from 'nanoid';
 
 import {
     pioneerClient,
     type ClientActiveThreadSnapshot,
     type CLIRuntimeThreadBinding,
-    type ComposerAttachment,
-    type PreparedVoiceComposerSnapshot,
+    type GatewaySettingsGetResponse,
     type VoiceSessionStartContext,
     type Thread,
     type TimelineBlock,
@@ -46,7 +45,7 @@ import {
 import {
     NATIVE_COMPOSER_CAPABILITY_POLICY,
     UNSUPPORTED_CLI_COMPOSER_CAPABILITY_POLICY,
-    composerCapabilitySnapshotForTarget,
+    composerSubmissionPlanForProvider,
     composerCapabilityTargetForProvider,
     isCliRuntimeProvider,
 } from '@/services/providers/cli-runtime';
@@ -62,11 +61,15 @@ import { seedEmptyThreadTimelineCache } from '@/services/threads/semantic-cache-
 import { selectedReasoningEffortRequestFields } from '@/services/threads/reasoning-effort';
 import type { TimelinePendingRequest, TimelineRow } from '@/services/threads/conversation/timeline';
 import {
-    canUseVoiceStatus,
     MobileVoiceCaptureError,
     type MobileVoiceCaptureSession,
     startMobileVoiceCapture,
 } from '@/services/voice/mobile-capture';
+import { resolveVoiceComposerAvailability } from '@/services/voice-input/composer';
+import { useVoiceInputDataSourceState } from '@/services/voice-input/data-source';
+import { requireVoiceInputGatewayTarget } from '@/services/voice-input/gateway-target';
+import { voiceInputPollInterval } from '@/services/voice-input/presentation';
+import { fetchVoiceInputSettings, voiceInputQueryKeys } from '@/services/voice-input/query';
 import { useActiveThreadStore } from '@/stores/active-thread';
 import { useGatewayStore } from '@/stores/gateway';
 import { useThreadTreeStore } from '@/stores/thread-tree';
@@ -109,30 +112,11 @@ type VoiceCommitPendingTurn = {
     turnId: string;
 };
 
-const applyVoiceUploadedAttachmentArtifacts = (
-    attachments: ComposerAttachment[],
-    uploadedArtifacts: PreparedVoiceComposerSnapshot['uploaded_attachment_artifacts'],
-): ComposerAttachment[] => {
-    let changed = false;
-    const nextAttachments = attachments.map((attachment, index) => {
-        const artifact = uploadedArtifacts[index];
-        if (!artifact) {
-            return attachment;
-        }
-
-        changed = true;
-        return {
-            ...attachment,
-            upload_state: {
-                Uploaded: {
-                    artifact,
-                },
-            },
-        };
-    });
-
-    return changed ? nextAttachments : attachments;
-};
+type GatewayVoiceStatusSnapshot = Readonly<{
+    gatewayId: string;
+    connectionId: number;
+    response: VoiceStatusResponse;
+}>;
 
 const modelSelectionFromThread = (
     thread: Thread | null | undefined,
@@ -170,6 +154,21 @@ const ThreadScreen = ({
     const isTaskChildThread = Boolean(threadId && parentThreadId);
 
     const { connectionId, connectionState } = useGateway();
+    const voiceInputDataSource = useVoiceInputDataSourceState();
+    const voiceInputTarget = voiceInputDataSource.target;
+    const voiceInputSettingsQuery = useQuery<GatewaySettingsGetResponse>({
+        queryKey: voiceInputTarget
+            ? voiceInputQueryKeys.settings(voiceInputTarget)
+            : [...voiceInputQueryKeys.all, 'composer-offline'],
+        queryFn: voiceInputTarget ? () => fetchVoiceInputSettings(voiceInputTarget) : skipToken,
+        refetchInterval: (query) =>
+            voiceInputPollInterval(
+                query.state.data?.settings.voice_input,
+                Boolean(voiceInputTarget),
+            ),
+        refetchIntervalInBackground: false,
+        refetchOnReconnect: true,
+    });
 
     const {
         snapshot,
@@ -187,7 +186,6 @@ const ThreadScreen = ({
         canStopTurn,
         composerSelectedMode,
         composerSelectedProvider,
-        composerCapabilityTarget,
         composerSelectedModel,
         composerSelectedReasoningEffort,
         composerSelectedPermissionMode,
@@ -197,8 +195,6 @@ const ThreadScreen = ({
         sendText,
         stopTurn,
         setComposerText,
-        setComposerAttachments,
-        setComposerCapabilities,
         setExpandedKeys,
     } = useActiveThread(activeThread, activeWorkspaceId, focused, threadId);
 
@@ -208,15 +204,30 @@ const ThreadScreen = ({
     const setComposerPermissionModeSwitcherOpen = useActiveThreadStore(
         (state) => state.setComposerPermissionModeSwitcherOpen,
     );
-    const renderedComposerCapabilitySnapshot = useMemo(
+    const markComposerAttachmentsUploading = useActiveThreadStore(
+        (state) => state.markComposerAttachmentsUploading,
+    );
+    const markComposerAttachmentsFailed = useActiveThreadStore(
+        (state) => state.markComposerAttachmentsFailed,
+    );
+    const applyUploadedComposerAttachments = useActiveThreadStore(
+        (state) => state.applyUploadedComposerAttachments,
+    );
+    const removeComposerAttachmentAt = useActiveThreadStore(
+        (state) => state.removeComposerAttachmentAt,
+    );
+    const removeComposerCapability = useActiveThreadStore(
+        (state) => state.removeComposerCapability,
+    );
+    const renderedComposerSubmissionPlan = useMemo(
         () =>
-            composerCapabilitySnapshotForTarget(
+            composerSubmissionPlanForProvider(
+                composerSelectedProvider,
                 composerText,
                 composerAttachments.length > 0,
                 composerCapabilities,
-                composerCapabilityTarget,
             ),
-        [composerAttachments.length, composerCapabilities, composerCapabilityTarget, composerText],
+        [composerAttachments.length, composerCapabilities, composerSelectedProvider, composerText],
     );
     const timelineRef = useRef<LegendListRef>(null);
     const composerRef = useRef<View>(null);
@@ -235,9 +246,8 @@ const ThreadScreen = ({
     );
 
     const [composerHeight, setComposerHeight] = useState(THREAD_COMPOSER_MIN_INPUT_HEIGHT);
-    const [voiceStatusResponse, setVoiceStatusResponse] = useState<VoiceStatusResponse | null>(
-        null,
-    );
+    const [voiceStatusSnapshot, setVoiceStatusSnapshot] =
+        useState<GatewayVoiceStatusSnapshot | null>(null);
     const [voiceLevel, setVoiceLevel] = useState(0);
     const [voiceCaptureBusy, setVoiceCaptureBusy] = useState(false);
     const [voiceCommitPendingTurn, setVoiceCommitPendingTurn] =
@@ -463,6 +473,7 @@ const ThreadScreen = ({
         : composerModelManuallySelected || shouldUseDraftComposerSelection
           ? composerSelectedModel
           : null;
+    const modelSelectionComplete = Boolean(selectedProvider && selectedModel);
     const selectedReasoningEffort = shouldUseThreadModelSelection
         ? activeThreadReasoningEffort
         : composerModelManuallySelected || shouldUseDraftComposerSelection
@@ -493,14 +504,50 @@ const ThreadScreen = ({
         sending,
     );
     const modelSelectionDisabled = Boolean(sending || isTaskChildThread);
+    const voiceStatusResponse =
+        voiceInputTarget &&
+        voiceStatusSnapshot?.gatewayId === voiceInputTarget.gatewayId &&
+        voiceStatusSnapshot.connectionId === voiceInputTarget.connectionId
+            ? voiceStatusSnapshot.response
+            : null;
     const voiceStatus = voiceStatusResponse?.status ?? null;
+    const voiceAvailability = resolveVoiceComposerAvailability({
+        online: voiceInputDataSource.kind === 'online',
+        settingsLoading: voiceInputSettingsQuery.isPending,
+        settingsError: voiceInputSettingsQuery.isError,
+        settings: voiceInputSettingsQuery.data?.settings.voice_input,
+        voiceStatus,
+        voiceStatusError: voiceStatusResponse?.error?.message,
+    });
+    const voiceVisible = voiceAvailability.kind !== 'hidden';
+    const voiceReady = voiceAvailability.kind === 'ready';
+    const voiceAvailabilityMessage =
+        voiceAvailability.kind === 'blocked'
+            ? (voiceAvailability.error ??
+              (voiceAvailability.reason === 'model_not_selected'
+                  ? t('voiceModelNotSelected')
+                  : voiceAvailability.reason === 'missing' ||
+                      voiceAvailability.reason === 'downloading'
+                    ? t('voiceModelDownloading')
+                    : voiceAvailability.reason === 'installing' ||
+                        voiceAvailability.reason === 'loading'
+                      ? t('voiceModelLoading')
+                      : voiceAvailability.reason === 'busy'
+                        ? t('voiceBusy')
+                        : voiceAvailability.reason === 'failed'
+                          ? t('voiceFailed')
+                          : t('voiceNotReady')))
+            : null;
+    const voiceAvailabilityError =
+        voiceAvailability.kind === 'blocked' && voiceAvailability.reason === 'failed';
     const voiceEnabled = Boolean(
         !composerDisabled &&
         !voiceCommitProcessing &&
         !hasInFlightTurn &&
+        modelSelectionComplete &&
         activeWorkspaceId &&
         visibleThreadId &&
-        canUseVoiceStatus(voiceStatus),
+        voiceReady,
     );
 
     const pendingRequests = useMemo(() => {
@@ -592,22 +639,33 @@ const ThreadScreen = ({
     }, [isLiveDraftThread, open, refetchThreadTimelineBlocks]);
 
     const refreshVoiceStatus = useCallback(async () => {
-        if (!connected || !activeWorkspaceId) {
-            setVoiceStatusResponse(null);
+        if (!connected || !activeWorkspaceId || !voiceInputTarget) {
+            setVoiceStatusSnapshot(null);
             return;
         }
 
+        const requestTarget = voiceInputTarget;
         try {
             const response = await pioneerClient.voiceStatus({ workspace_id: activeWorkspaceId });
+            requireVoiceInputGatewayTarget(requestTarget);
             if (voiceMountedRef.current) {
-                setVoiceStatusResponse(response);
+                setVoiceStatusSnapshot({
+                    gatewayId: requestTarget.gatewayId,
+                    connectionId: requestTarget.connectionId,
+                    response,
+                });
             }
         } catch {
             if (voiceMountedRef.current) {
-                setVoiceStatusResponse(null);
+                setVoiceStatusSnapshot((current) =>
+                    current?.gatewayId === requestTarget.gatewayId &&
+                    current.connectionId === requestTarget.connectionId
+                        ? null
+                        : current,
+                );
             }
         }
-    }, [activeWorkspaceId, connected]);
+    }, [activeWorkspaceId, connected, voiceInputTarget]);
 
     useEffect(() => {
         let cancelled = false;
@@ -623,17 +681,9 @@ const ThreadScreen = ({
                 return;
             }
 
-            try {
-                const response = await pioneerClient.voiceStatus({
-                    workspace_id: activeWorkspaceId,
-                });
-                if (!cancelled) {
-                    setVoiceStatusResponse(response);
-                }
-            } catch {
-                if (!cancelled) {
-                    setVoiceStatusResponse(null);
-                }
+            await refreshVoiceStatus();
+            if (cancelled) {
+                return;
             }
         };
 
@@ -644,7 +694,7 @@ const ThreadScreen = ({
             cancelled = true;
             clearInterval(intervalId);
         };
-    }, [activeWorkspaceId, connected, connectionId, focused, voiceCaptureBusy]);
+    }, [activeWorkspaceId, connected, connectionId, focused, refreshVoiceStatus, voiceCaptureBusy]);
 
     const handleTurnWorkRangeChange = useCallback(
         (turnId: string, range: SemanticTurnWorkRange | null) => {
@@ -714,7 +764,7 @@ const ThreadScreen = ({
     );
 
     const handleSend = useCallback(() => {
-        if (!renderedComposerCapabilitySnapshot.hasComposerPayload) {
+        if (!renderedComposerSubmissionPlan.has_composer_payload) {
             return;
         }
 
@@ -725,7 +775,7 @@ const ThreadScreen = ({
         });
     }, [
         composerText,
-        renderedComposerCapabilitySnapshot.hasComposerPayload,
+        renderedComposerSubmissionPlan.has_composer_payload,
         sendText,
         setComposerText,
     ]);
@@ -773,23 +823,14 @@ const ThreadScreen = ({
                 : null;
 
             const attachments = storeState.composerAttachments;
-            const capabilitySnapshot = composerCapabilitySnapshotForTarget(
+            const submissionPlan = composerSubmissionPlanForProvider(
+                selectedProviderForVoice,
                 '',
                 storeState.composerAttachments.length > 0,
                 storeState.composerCapabilities,
-                storeState.composerCapabilityTarget,
             );
             const attachmentsForVoice =
-                attachments.length > 0
-                    ? pioneerClient.composerAttachmentsUpdate({
-                          attachments,
-                          action: 'MarkPendingUploading',
-                      })
-                    : attachments;
-
-            if (attachmentsForVoice !== attachments) {
-                setComposerAttachments(attachmentsForVoice);
-            }
+                attachments.length > 0 ? markComposerAttachmentsUploading() : attachments;
 
             try {
                 const snapshot = await pioneerClient.prepareVoiceComposerSnapshot({
@@ -802,35 +843,26 @@ const ThreadScreen = ({
                     selected_mode: composerSelectedMode,
                     permission_mode: composerSelectedPermissionMode,
                     attachments: attachmentsForVoice,
-                    capabilities: capabilitySnapshot.capabilities,
+                    capabilities: submissionPlan.capabilities,
                 });
 
-                const uploadedAttachments = applyVoiceUploadedAttachmentArtifacts(
-                    attachmentsForVoice,
-                    snapshot.uploaded_attachment_artifacts,
-                );
-                if (uploadedAttachments !== attachmentsForVoice) {
-                    setComposerAttachments(uploadedAttachments);
-                }
+                applyUploadedComposerAttachments(snapshot.uploaded_attachment_artifacts);
 
                 return snapshot.context;
             } catch (prepareError) {
                 if (attachmentsForVoice.length > 0) {
                     const message = voiceComposerErrorMessage(prepareError);
-                    setComposerAttachments(
-                        pioneerClient.composerAttachmentsUpdate({
-                            attachments: useActiveThreadStore.getState().composerAttachments,
-                            action: { MarkUploadingFailed: { error: message } },
-                        }),
-                    );
+                    markComposerAttachmentsFailed(message);
                 }
                 throw prepareError;
             }
         },
         [
+            applyUploadedComposerAttachments,
             composerSelectedMode,
             composerSelectedPermissionMode,
-            setComposerAttachments,
+            markComposerAttachmentsFailed,
+            markComposerAttachmentsUploading,
             voiceComposerErrorMessage,
         ],
     );
@@ -1134,24 +1166,20 @@ const ThreadScreen = ({
 
     const removeAttachment = useCallback(
         (index: number) => {
-            const next = pioneerClient.composerAttachmentsUpdate({
-                attachments: useActiveThreadStore.getState().composerAttachments,
-                action: { RemoveAt: { index } },
-            });
-            setComposerAttachments(next);
+            removeComposerAttachmentAt(index);
         },
-        [setComposerAttachments],
+        [removeComposerAttachmentAt],
     );
 
     const removeCapability = useCallback(
         (index: number) => {
-            const next = pioneerClient.composerCapabilitiesUpdate({
-                capabilities: useActiveThreadStore.getState().composerCapabilities,
-                action: { RemoveAt: { index } },
-            });
-            setComposerCapabilities(next);
+            const capability = renderedComposerSubmissionPlan.capabilities[index];
+            if (!capability) {
+                return;
+            }
+            removeComposerCapability(capability.id);
         },
-        [setComposerCapabilities],
+        [removeComposerCapability, renderedComposerSubmissionPlan.capabilities],
     );
 
     useFocusEffect(
@@ -1394,7 +1422,7 @@ const ThreadScreen = ({
                                 turnCancelling={turnCancelling}
                                 error={composerError}
                                 attachments={composerAttachments}
-                                capabilities={renderedComposerCapabilitySnapshot.capabilities}
+                                capabilities={renderedComposerSubmissionPlan.capabilities}
                                 attachmentsEnabled
                                 attachmentMenuAccessibilityLabel={t('composerAttachmentMenuTitle')}
                                 modelSelectionLabel={modelSelectionLabel}
@@ -1402,10 +1430,14 @@ const ThreadScreen = ({
                                 modelSelectionLoading={modelSelectionLoading}
                                 modelSelectionAccessibilityLabel={t('modelSelectorOpen')}
                                 modelSelectionDisabled={modelSelectionDisabled}
+                                modelSelectionComplete={modelSelectionComplete}
                                 permissionModeOptions={permissionModeOptions}
                                 selectedPermissionMode={composerSelectedPermissionMode}
                                 inputNativeID={THREAD_COMPOSER_INPUT_NATIVE_ID}
+                                voiceVisible={voiceVisible}
                                 voiceEnabled={voiceEnabled}
+                                voiceAvailabilityMessage={voiceAvailabilityMessage}
+                                voiceAvailabilityError={voiceAvailabilityError}
                                 voiceBusy={voiceCaptureBusy || voiceCommitProcessing}
                                 voiceProcessing={voiceCommitProcessing}
                                 voiceLevel={voiceLevel}

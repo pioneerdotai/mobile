@@ -43,9 +43,16 @@ export const useGatewaySession = (
     sessionRevision: number,
 ) => {
     const { t } = useTranslation('gateway');
-    const { setConnectionId, setConnectionState, setLastEvent, setSessionError } = useGatewayStore(
+    const {
+        setConnectionId,
+        setConnectionGatewayId,
+        setConnectionState,
+        setLastEvent,
+        setSessionError,
+    } = useGatewayStore(
         useShallow((state) => ({
             setConnectionId: state.setConnectionId,
+            setConnectionGatewayId: state.setConnectionGatewayId,
             setConnectionState: state.setConnectionState,
             setLastEvent: state.setLastEvent,
             setSessionError: state.setSessionError,
@@ -85,6 +92,7 @@ export const useGatewaySession = (
 
         if (!sessionGateway) {
             setConnectionId(null);
+            setConnectionGatewayId(null);
             setConnectionState('Idle');
             setLastEvent(null);
             setSessionError(null);
@@ -93,6 +101,7 @@ export const useGatewaySession = (
 
         const run = async () => {
             setConnectionId(null);
+            setConnectionGatewayId(null);
             setConnectionState('Connecting');
             setLastEvent(null);
             setSessionError(null);
@@ -103,6 +112,7 @@ export const useGatewaySession = (
                     return;
                 }
                 setConnectionId(connection.connection_id);
+                setConnectionGatewayId(sessionGateway.id);
 
                 while (!cancelled) {
                     const events = await nextGatewayEvents();
@@ -120,7 +130,7 @@ export const useGatewaySession = (
                             break;
                         }
 
-                        setLastEvent(event);
+                        setLastEvent(event, sessionGateway.id, connection.connection_id);
                         if ('GatewayConnectionChanged' in event) {
                             const connectionState = event.GatewayConnectionChanged.connection_state;
                             setConnectionState(connectionState);
@@ -134,6 +144,8 @@ export const useGatewaySession = (
                 }
             } catch (caught) {
                 if (!cancelled) {
+                    setConnectionId(null);
+                    setConnectionGatewayId(null);
                     setConnectionState('Disconnected');
                     setSessionError(errorMessage(caught, t('sessionFailed')));
                 }
@@ -145,6 +157,7 @@ export const useGatewaySession = (
         return () => {
             cancelled = true;
             setConnectionId(null);
+            setConnectionGatewayId(null);
             setConnectionState('Idle');
             void disconnectGateway();
         };
@@ -152,6 +165,7 @@ export const useGatewaySession = (
         sessionGateway,
         sessionRevision,
         setConnectionId,
+        setConnectionGatewayId,
         setConnectionState,
         setLastEvent,
         setSessionError,
