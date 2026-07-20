@@ -165,6 +165,7 @@ export interface GatewayThreadEpisodicSettings {
   [k: string]: unknown;
 }
 export interface GatewayThreadEpisodicVectorSearchSettings {
+  downloaded_bytes?: number | null;
   embedding_dimension?: number | null;
   embedding_normalized?: boolean;
   enabled?: boolean;
@@ -174,6 +175,7 @@ export interface GatewayThreadEpisodicVectorSearchSettings {
   provider?: GatewayThreadEpisodicVectorProvider | null;
   provider_key?: GatewayThreadEpisodicVectorProviderKeyStatus;
   refill_status?: 'disabled' | 'unknown' | 'required' | 'running' | 'complete' | 'failed';
+  total_bytes?: number | null;
   use_search_instructions?: boolean;
   [k: string]: unknown;
 }

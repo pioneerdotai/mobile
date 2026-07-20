@@ -1,14 +1,7 @@
 /* eslint-disable */
 
 export type GatewayVoiceInputRuntimePhase =
-  | 'disabled'
-  | 'model_not_selected'
-  | 'missing'
-  | 'downloading'
-  | 'installing'
-  | 'loading'
-  | 'ready'
-  | 'failed';
+  'disabled' | 'model_not_selected' | 'missing' | 'downloading' | 'installing' | 'loading' | 'ready' | 'failed';
 export type VoiceInputRuntimePresentation = 'disabled' | 'needs_selection' | 'preparing' | 'ready' | 'failed';
 
 export interface VoiceInputStatusReduction {

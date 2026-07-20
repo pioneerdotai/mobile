@@ -25,10 +25,7 @@ export type ComposerCapabilityKind =
     };
 export type McpScopeKind = 'workspace' | 'user';
 export type McpCapabilityUnavailableReason =
-  | 'DisabledByPolicy'
-  | 'RuntimeUnavailable'
-  | 'RuntimeNotReady'
-  | 'NoToolCatalog';
+  'DisabledByPolicy' | 'RuntimeUnavailable' | 'RuntimeNotReady' | 'NoToolCatalog';
 
 export interface ClientComposerMcpToggleRequest {
   capabilities: ComposerCapability[];

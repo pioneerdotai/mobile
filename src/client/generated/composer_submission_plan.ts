@@ -25,9 +25,7 @@ export type ComposerCapabilityKind =
     };
 export type McpScopeKind = 'workspace' | 'user';
 export type ComposerCapabilityRemovalReason =
-  | 'skills_unsupported'
-  | 'skill_source_not_exportable'
-  | 'mcp_tools_unsupported';
+  'skills_unsupported' | 'skill_source_not_exportable' | 'mcp_tools_unsupported';
 export type ComposerCapabilityTargetKind = 'native' | 'cli';
 
 export interface ComposerSubmissionPlan {

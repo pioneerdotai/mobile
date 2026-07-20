@@ -20,11 +20,7 @@ export type TimelineCoalescedToolsKind = 'CompletedTaskTools' | 'RepeatedTaskWai
 export type PermissionBehavior = 'allow' | 'ask' | 'deny';
 export type TurnPermissionMode = 'full_access' | 'auto_accept_edits' | 'supervised';
 export type TurnPermissionProfileSource =
-  | 'composer'
-  | 'defaulted'
-  | 'inherited_from_parent_turn'
-  | 'task_permission_cap'
-  | 'system';
+  'composer' | 'defaulted' | 'inherited_from_parent_turn' | 'task_permission_cap' | 'system';
 export type TurnSecurityCapabilityKind = 'filesystem' | 'network' | 'process' | 'approval' | 'sandbox_backend';
 export type ClientSecurityEnforcementStatus = 'active' | 'degraded' | 'unavailable';
 export type TurnSecurityExecutionBackendKind = 'native' | 'codex_cli' | 'claude_cli';
@@ -33,14 +29,7 @@ export type TurnNetworkMode = 'disabled' | 'restricted' | 'enabled';
 export type SandboxBackendKind = 'nono' | 'windows_restricted_token' | 'provider_native';
 export type TurnSandboxMode = 'unrestricted' | 'read_only' | 'workspace_write';
 export type TurnWorkState =
-  | 'starting'
-  | 'running'
-  | 'waiting_for_approval'
-  | 'stalled'
-  | 'completed'
-  | 'blocked'
-  | 'failed'
-  | 'interrupted';
+  'starting' | 'running' | 'waiting_for_approval' | 'stalled' | 'completed' | 'blocked' | 'failed' | 'interrupted';
 
 export interface TimelineRow {
   key: string;

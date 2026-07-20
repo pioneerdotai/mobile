@@ -507,11 +507,7 @@ export type ThreadStatus = 'Active' | 'Idle' | 'Closed';
 export type PermissionBehavior = 'allow' | 'ask' | 'deny';
 export type TurnPermissionMode = 'full_access' | 'auto_accept_edits' | 'supervised';
 export type TurnPermissionProfileSource =
-  | 'composer'
-  | 'defaulted'
-  | 'inherited_from_parent_turn'
-  | 'task_permission_cap'
-  | 'system';
+  'composer' | 'defaulted' | 'inherited_from_parent_turn' | 'task_permission_cap' | 'system';
 export type PromptManifestDiagnosticCode =
   | 'missing_file'
   | 'file_read_error'
@@ -529,11 +525,7 @@ export type PromptManifestHookPhase =
   | 'turn_pre_prompt_compile'
   | 'runtime_turn_pre_context';
 export type PromptManifestHookContributionKind =
-  | 'prompt_context'
-  | 'thread_context'
-  | 'prompt_section'
-  | 'prompt_manifest_diagnostic'
-  | 'runtime_failure';
+  'prompt_context' | 'thread_context' | 'prompt_section' | 'prompt_manifest_diagnostic' | 'runtime_failure';
 export type PromptManifestHookTruncation = 'none' | 'hook' | 'prompt' | 'hook_and_prompt' | 'unknown';
 export type PromptManifestProfile = 'assistant_full' | 'assistant_minimal' | 'assistant_none' | 'cli_runtime';
 export type TurnStatus = 'InProgress' | 'Completed' | 'Failed' | 'Interrupted' | 'Blocked';
@@ -541,14 +533,7 @@ export type ThreadAgentsDocStatus = 'draft' | 'active' | 'archived';
 export type TimelineChangeReason = 'backfill' | 'live_event' | 'state_changed' | 'page_invalidated';
 export type TurnWorkPresentation = 'expanded_live' | 'collapsed_after_final' | 'expanded_terminal_no_final';
 export type TurnWorkState =
-  | 'starting'
-  | 'running'
-  | 'waiting_for_approval'
-  | 'stalled'
-  | 'completed'
-  | 'blocked'
-  | 'failed'
-  | 'interrupted';
+  'starting' | 'running' | 'waiting_for_approval' | 'stalled' | 'completed' | 'blocked' | 'failed' | 'interrupted';
 export type TurnPermissionActionKind =
   | 'file_read'
   | 'file_write'
@@ -575,14 +560,7 @@ export type TurnPermissionDecisionReason =
   | 'sandbox_denied';
 export type TurnPermissionApprovalResolution = 'allow_once' | 'allow_for_turn' | 'deny' | 'cancelled' | 'expired';
 export type ExecutionWindowStatus =
-  | 'running'
-  | 'exhausted'
-  | 'checkpointed'
-  | 'continued'
-  | 'completed'
-  | 'interrupted'
-  | 'blocked'
-  | 'failed';
+  'running' | 'exhausted' | 'checkpointed' | 'continued' | 'completed' | 'interrupted' | 'blocked' | 'failed';
 export type ExecutionWindowExhaustionReason =
   | 'max_agent_rounds_per_window'
   | 'max_tool_calls_per_window'
@@ -1179,10 +1157,7 @@ export type TurnItemType =
   | 'download'
   | 'dynamic_tool_call';
 export type TurnItemTimeoutReason =
-  | 'start_deadline_exceeded'
-  | 'idle_deadline_exceeded'
-  | 'hard_deadline_exceeded'
-  | 'lease_expired';
+  'start_deadline_exceeded' | 'idle_deadline_exceeded' | 'hard_deadline_exceeded' | 'lease_expired';
 export type RecoveryTrigger =
   | 'timeout'
   | 'provider_error'
@@ -1255,15 +1230,7 @@ export type TaskConcurrencyConflictPolicy = 'queue' | 'reject' | 'cancel_existin
 export type TaskDeliveryFormat = 'summary' | 'full_result';
 export type TaskDeliveryMode = 'none' | 'owner_thread' | 'thread' | 'user_notification' | 'webhook';
 export type TaskErrorClass =
-  | 'cancelled'
-  | 'timeout'
-  | 'provider'
-  | 'tool'
-  | 'validation'
-  | 'dependency'
-  | 'policy'
-  | 'internal'
-  | 'unknown';
+  'cancelled' | 'timeout' | 'provider' | 'tool' | 'validation' | 'dependency' | 'policy' | 'internal' | 'unknown';
 export type TaskValue =
   | {
       kind: 'null';
@@ -1414,12 +1381,7 @@ export type TurnFilesystemSandboxPath =
       [k: string]: unknown;
     };
 export type TurnSecurityRuleProvenance =
-  | 'composer_selection'
-  | 'workspace'
-  | 'project'
-  | 'runtime'
-  | 'task_cap'
-  | 'system';
+  'composer_selection' | 'workspace' | 'project' | 'runtime' | 'task_cap' | 'system';
 export type TurnNetworkMode = 'disabled' | 'restricted' | 'enabled';
 export type TurnSandboxMode = 'unrestricted' | 'read_only' | 'workspace_write';
 export type TaskAgentWriteMode = 'read_only' | 'workspace_write' | 'scoped_write' | 'full_access';
@@ -1561,13 +1523,10 @@ export type GatewayRemoteAccessErrorKind =
   | 'restart_limit_reached'
   | 'io'
   | 'unknown';
+export type GatewayThreadEpisodicVectorLocalModelStatus =
+  'not_selected' | 'unknown' | 'missing' | 'downloading' | 'installed' | 'failed';
 export type GatewayThreadEpisodicVectorRefillStatus =
-  | 'disabled'
-  | 'unknown'
-  | 'required'
-  | 'running'
-  | 'complete'
-  | 'failed';
+  'disabled' | 'unknown' | 'required' | 'running' | 'complete' | 'failed';
 export type GatewayVoiceInputProvider = 'local';
 export type VoiceErrorKind =
   | 'model_unavailable'
@@ -3099,7 +3058,10 @@ export interface GatewayRemoteAccessStatusSnapshot {
   [k: string]: unknown;
 }
 export interface GatewayThreadEpisodicVectorRefillStatusChangedNotification {
+  downloaded_bytes?: number | null;
+  local_model_status?: GatewayThreadEpisodicVectorLocalModelStatus | null;
   status: GatewayThreadEpisodicVectorRefillStatus;
+  total_bytes?: number | null;
   workspace_id: string;
   [k: string]: unknown;
 }

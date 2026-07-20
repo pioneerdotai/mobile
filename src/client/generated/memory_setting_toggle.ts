@@ -1,8 +1,4 @@
 /* eslint-disable */
 
 export type MemorySettingToggle =
-  | 'Enabled'
-  | 'ActiveRecall'
-  | 'ProactiveWrites'
-  | 'BackgroundExtraction'
-  | 'DebugTrace';
+  'Enabled' | 'ActiveRecall' | 'ProactiveWrites' | 'BackgroundExtraction' | 'DebugTrace';

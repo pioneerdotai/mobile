@@ -178,14 +178,7 @@ export type UserInput =
     };
 export type TurnWorkPresentation = 'expanded_live' | 'collapsed_after_final' | 'expanded_terminal_no_final';
 export type TurnWorkState =
-  | 'starting'
-  | 'running'
-  | 'waiting_for_approval'
-  | 'stalled'
-  | 'completed'
-  | 'blocked'
-  | 'failed'
-  | 'interrupted';
+  'starting' | 'running' | 'waiting_for_approval' | 'stalled' | 'completed' | 'blocked' | 'failed' | 'interrupted';
 export type MarkdownBlock =
   | MarkdownInline
   | {
@@ -759,13 +752,7 @@ export type TimelineEntryStatus = 'Running' | 'Completed' | 'Blocked' | 'Failed'
 export type TimelineOriginKind = 'parent_turn' | 'task_event' | 'child_turn';
 export type TimelineLane = 'parent' | 'task' | 'child_agent' | 'child_tool' | 'child_reasoning' | 'child_result';
 export type TurnPermissionAuditDecision =
-  | 'allow'
-  | 'ask'
-  | 'deny'
-  | 'allow_once'
-  | 'allow_for_turn'
-  | 'cancelled'
-  | 'expired';
+  'allow' | 'ask' | 'deny' | 'allow_once' | 'allow_for_turn' | 'cancelled' | 'expired';
 export type TurnPermissionAuditEventKind =
   | 'profile_selected'
   | 'security_snapshot_resolved'
@@ -776,11 +763,7 @@ export type TurnPermissionAuditEventKind =
   | 'decision_allowed'
   | 'decision_denied';
 export type TurnPermissionProfileSource =
-  | 'composer'
-  | 'defaulted'
-  | 'inherited_from_parent_turn'
-  | 'task_permission_cap'
-  | 'system';
+  'composer' | 'defaulted' | 'inherited_from_parent_turn' | 'task_permission_cap' | 'system';
 export type PermissionBehavior = 'allow' | 'ask' | 'deny';
 export type TurnPhase = 'Starting' | 'Running' | 'Completing' | 'Completed' | 'Blocked' | 'Failed' | 'Cancelled';
 export type TimelineRowKind =
@@ -819,11 +802,7 @@ export type PromptManifestHookPhase =
   | 'turn_pre_prompt_compile'
   | 'runtime_turn_pre_context';
 export type PromptManifestHookContributionKind =
-  | 'prompt_context'
-  | 'thread_context'
-  | 'prompt_section'
-  | 'prompt_manifest_diagnostic'
-  | 'runtime_failure';
+  'prompt_context' | 'thread_context' | 'prompt_section' | 'prompt_manifest_diagnostic' | 'runtime_failure';
 export type PromptManifestHookTruncation = 'none' | 'hook' | 'prompt' | 'hook_and_prompt' | 'unknown';
 export type PromptManifestProfile = 'assistant_full' | 'assistant_minimal' | 'assistant_none' | 'cli_runtime';
 export type TurnStatus = 'InProgress' | 'Completed' | 'Failed' | 'Interrupted' | 'Blocked';

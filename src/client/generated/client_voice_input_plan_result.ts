@@ -35,14 +35,7 @@ export type GatewayThreadEpisodicVectorProvider = 'openai' | 'openrouter' | 'loc
 export type GatewayVoiceInputProvider = 'local';
 export type VoiceInputSettingsPlanRejection = 'invalid_provider' | 'missing_model' | 'retry_unavailable';
 export type GatewayVoiceInputRuntimePhase =
-  | 'disabled'
-  | 'model_not_selected'
-  | 'missing'
-  | 'downloading'
-  | 'installing'
-  | 'loading'
-  | 'ready'
-  | 'failed';
+  'disabled' | 'model_not_selected' | 'missing' | 'downloading' | 'installing' | 'loading' | 'ready' | 'failed';
 export type VoiceInputRuntimePresentation = 'disabled' | 'needs_selection' | 'preparing' | 'ready' | 'failed';
 
 export interface GatewaySettingsUpdate {

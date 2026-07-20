@@ -5,11 +5,7 @@ export type ThreadStatus = 'Active' | 'Idle' | 'Closed';
 export type PermissionBehavior = 'allow' | 'ask' | 'deny';
 export type TurnPermissionMode = 'full_access' | 'auto_accept_edits' | 'supervised';
 export type TurnPermissionProfileSource =
-  | 'composer'
-  | 'defaulted'
-  | 'inherited_from_parent_turn'
-  | 'task_permission_cap'
-  | 'system';
+  'composer' | 'defaulted' | 'inherited_from_parent_turn' | 'task_permission_cap' | 'system';
 export type PromptManifestDiagnosticCode =
   | 'missing_file'
   | 'file_read_error'
@@ -27,11 +23,7 @@ export type PromptManifestHookPhase =
   | 'turn_pre_prompt_compile'
   | 'runtime_turn_pre_context';
 export type PromptManifestHookContributionKind =
-  | 'prompt_context'
-  | 'thread_context'
-  | 'prompt_section'
-  | 'prompt_manifest_diagnostic'
-  | 'runtime_failure';
+  'prompt_context' | 'thread_context' | 'prompt_section' | 'prompt_manifest_diagnostic' | 'runtime_failure';
 export type PromptManifestHookTruncation = 'none' | 'hook' | 'prompt' | 'hook_and_prompt' | 'unknown';
 export type PromptManifestProfile = 'assistant_full' | 'assistant_minimal' | 'assistant_none' | 'cli_runtime';
 export type TurnStatus = 'InProgress' | 'Completed' | 'Failed' | 'Interrupted' | 'Blocked';

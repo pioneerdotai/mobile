@@ -178,14 +178,7 @@ export type UserInput =
     };
 export type TurnWorkPresentation = 'expanded_live' | 'collapsed_after_final' | 'expanded_terminal_no_final';
 export type TurnWorkState =
-  | 'starting'
-  | 'running'
-  | 'waiting_for_approval'
-  | 'stalled'
-  | 'completed'
-  | 'blocked'
-  | 'failed'
-  | 'interrupted';
+  'starting' | 'running' | 'waiting_for_approval' | 'stalled' | 'completed' | 'blocked' | 'failed' | 'interrupted';
 export type MarkdownBlock =
   | MarkdownInline
   | {
