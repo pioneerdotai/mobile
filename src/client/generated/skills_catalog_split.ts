@@ -1,5 +1,6 @@
 /* eslint-disable */
 
+export type SkillId = string;
 export interface SkillsCatalogSplit {
   catalog: SkillListItem[];
   installed: SkillListItem[];
@@ -11,7 +12,9 @@ export interface SkillListItem {
   fingerprint: string;
   health: SkillHealthSummary;
   install: SkillInstallState;
+  owner?: string | null;
   policy: SkillPolicyState;
+  skill_id: SkillId;
   slug: string;
   source_kind: string;
   status: string;

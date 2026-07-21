@@ -29,9 +29,16 @@ const row: SelectableMcpCapability = {
 };
 
 const skill: ComposerCapability = {
-    id: 'skill:user:docs',
+    id: 'skill:DDDDDDDDDDDDDDDDDDDDD',
     label: 'docs',
-    kind: { Skill: { slug: 'docs', source_kind: 'user' } },
+    kind: {
+        Skill: {
+            skill_id: 'DDDDDDDDDDDDDDDDDDDDD',
+            owner: null,
+            slug: 'docs',
+            source_kind: 'user',
+        },
+    },
 };
 
 describe('mobile MCP picker native projection adapter', () => {

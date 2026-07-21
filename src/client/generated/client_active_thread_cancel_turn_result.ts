@@ -1,5 +1,6 @@
 /* eslint-disable */
 
+export type SkillId = string;
 export type TurnSecurityCapabilityKind = 'filesystem' | 'network' | 'process' | 'approval' | 'sandbox_backend';
 export type ClientSecurityEnforcementStatus = 'active' | 'degraded' | 'unavailable';
 export type TurnSecurityExecutionBackendKind = 'native' | 'codex_cli' | 'claude_cli';
@@ -862,8 +863,9 @@ export interface ArtifactPreviewRef {
   [k: string]: unknown;
 }
 export interface TurnSkillCapabilitySummary {
-  id: string;
   label: string;
+  owner?: string | null;
+  skillId: SkillId;
   slug: string;
   sourceKind: string;
   [k: string]: unknown;

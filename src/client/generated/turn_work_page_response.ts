@@ -1,5 +1,6 @@
 /* eslint-disable */
 
+export type SkillId = string;
 export type TurnItem =
   | {
       attachments?: UserMessageAttachment[];
@@ -639,8 +640,9 @@ export interface ArtifactPreviewRef {
   [k: string]: unknown;
 }
 export interface TurnSkillCapabilitySummary {
-  id: string;
   label: string;
+  owner?: string | null;
+  skillId: SkillId;
   slug: string;
   sourceKind: string;
   [k: string]: unknown;

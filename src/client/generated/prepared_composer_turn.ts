@@ -1,5 +1,6 @@
 /* eslint-disable */
 
+export type SkillId = string;
 export type ArtifactKind =
   | 'file'
   | 'text'
@@ -35,8 +36,7 @@ export type ComposerAttachmentUploadState =
     };
 export type TurnCapabilityKind =
   | {
-      slug: string;
-      sourceKind: string;
+      skillId: SkillId;
       type: 'skill';
       [k: string]: unknown;
     }
@@ -236,8 +236,9 @@ export interface ByteRange {
   [k: string]: unknown;
 }
 export interface TurnSkillCapabilitySummary {
-  id: string;
   label: string;
+  owner?: string | null;
+  skillId: SkillId;
   slug: string;
   sourceKind: string;
   [k: string]: unknown;

@@ -1,5 +1,6 @@
 /* eslint-disable */
 
+export type SkillId = string;
 export interface SkillsCatalogSnapshot {
   catalog: SkillListItem[];
   health_details: {
@@ -14,7 +15,9 @@ export interface SkillListItem {
   fingerprint: string;
   health: SkillHealthSummary;
   install: SkillInstallState;
+  owner?: string | null;
   policy: SkillPolicyState;
+  skill_id: SkillId;
   slug: string;
   source_kind: string;
   status: string;
@@ -69,6 +72,8 @@ export interface SkillHealthItem {
   dependency_diagnostics?: SkillDependencyDiagnostic[];
   recent_audit?: SkillAuditTimelineItem[];
   security_findings?: SkillSecurityFinding[];
+  owner?: string | null;
+  skill_id: SkillId;
   slug: string;
   source_kind: string;
   trust_gate?: SkillTrustGateStatus[];

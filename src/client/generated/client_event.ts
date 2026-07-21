@@ -1,5 +1,6 @@
 /* eslint-disable */
 
+export type SkillId = string;
 export type ClientEvent =
   | {
       SnapshotChanged: ClientSnapshot;
@@ -1946,8 +1947,9 @@ export interface ArtifactPreviewRef {
   [k: string]: unknown;
 }
 export interface TurnSkillCapabilitySummary {
-  id: string;
   label: string;
+  owner?: string | null;
+  skillId: SkillId;
   slug: string;
   sourceKind: string;
   [k: string]: unknown;
@@ -2259,6 +2261,8 @@ export interface SkillChangedItem {
   change_type: string;
   fingerprint_after?: string | null;
   fingerprint_before?: string | null;
+  owner?: string | null;
+  skill_id: SkillId;
   slug: string;
   source_kind: string;
   [k: string]: unknown;

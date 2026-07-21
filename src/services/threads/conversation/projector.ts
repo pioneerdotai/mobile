@@ -596,7 +596,7 @@ const userMessageAttachmentToTimelineAttachment = (
             };
         case 'skill':
             return {
-                id: attachment.capability.id,
+                id: `skill:${attachment.capability.skillId}`,
                 label: attachment.capability.label,
                 kind: 'skill',
                 artifact: null,

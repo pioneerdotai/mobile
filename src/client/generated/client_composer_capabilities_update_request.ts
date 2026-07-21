@@ -1,5 +1,6 @@
 /* eslint-disable */
 
+export type SkillId = string;
 export type ClientComposerCapabilitiesUpdateAction =
   | {
       Add: {
@@ -22,6 +23,8 @@ export type ClientComposerCapabilitiesUpdateAction =
 export type ComposerCapabilityKind =
   | {
       Skill: {
+        owner?: string | null;
+        skill_id: SkillId;
         slug: string;
         source_kind: string;
         [k: string]: unknown;

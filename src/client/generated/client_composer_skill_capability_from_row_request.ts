@@ -1,5 +1,6 @@
 /* eslint-disable */
 
+export type SkillId = string;
 export type SkillCapabilityUnavailableReason =
   | 'DisabledByPolicy'
   | {
@@ -14,9 +15,12 @@ export interface ClientComposerSkillCapabilityFromRowRequest {
 }
 export interface SelectableSkillCapability {
   description: string;
+  display_name: string;
   key: string;
   label: string;
+  owner?: string | null;
   selectable: boolean;
+  skill_id: SkillId;
   slug: string;
   source_kind: string;
   unavailable_reason?: SkillCapabilityUnavailableReason | null;

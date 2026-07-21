@@ -90,6 +90,43 @@ describe('mobile semantic timeline projector', () => {
         });
     });
 
+    it('projects historical skill attachments from the exact skill ID snapshot', () => {
+        const block = userBlock('001');
+        if (block.kind.kind !== 'user_message') {
+            throw new Error('expected user-message fixture');
+        }
+        block.kind.attachments = [
+            {
+                type: 'skill',
+                capability: {
+                    skillId: 'HHHHHHHHHHHHHHHHHHHHH',
+                    owner: 'alex',
+                    slug: 'humanizer',
+                    sourceKind: 'user',
+                    label: 'alex/humanizer',
+                },
+            },
+        ];
+
+        const rows = projectSemanticTimelineToRows({
+            snapshot: snapshot(),
+            blocks: [block],
+            expandedKeys: [],
+            workRangesByTurn: {},
+            nowMs: 10_000,
+        });
+
+        expect(rows.find((row) => row.type === 'user-message')).toMatchObject({
+            attachments: [
+                {
+                    id: 'skill:HHHHHHHHHHHHHHHHHHHHH',
+                    label: 'alex/humanizer',
+                    kind: 'skill',
+                },
+            ],
+        });
+    });
+
     it('projects native work toggle turn id from the semantic group key', () => {
         const rows = projectConversationToRows({
             ...snapshot(),

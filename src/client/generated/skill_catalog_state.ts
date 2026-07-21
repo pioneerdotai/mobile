@@ -1,5 +1,6 @@
 /* eslint-disable */
 
+export type SkillId = string;
 export interface SkillCatalogState {
   catalog: SkillListItem[];
   error?: string | null;
@@ -8,14 +9,10 @@ export interface SkillCatalogState {
   };
   installed: SkillListItem[];
   loading: boolean;
-  pending_actions: string[];
+  pending_actions: SkillId[];
   poller_started: boolean;
   refresh_requested: boolean;
-  /**
-   * @minItems 2
-   * @maxItems 2
-   */
-  selected_target?: [unknown, unknown] | null;
+  selected_target?: SkillId | null;
   [k: string]: unknown;
 }
 export interface SkillListItem {
@@ -24,7 +21,9 @@ export interface SkillListItem {
   fingerprint: string;
   health: SkillHealthSummary;
   install: SkillInstallState;
+  owner?: string | null;
   policy: SkillPolicyState;
+  skill_id: SkillId;
   slug: string;
   source_kind: string;
   status: string;
@@ -79,6 +78,8 @@ export interface SkillHealthItem {
   dependency_diagnostics?: SkillDependencyDiagnostic[];
   recent_audit?: SkillAuditTimelineItem[];
   security_findings?: SkillSecurityFinding[];
+  owner?: string | null;
+  skill_id: SkillId;
   slug: string;
   source_kind: string;
   trust_gate?: SkillTrustGateStatus[];

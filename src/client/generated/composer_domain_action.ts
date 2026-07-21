@@ -1,5 +1,6 @@
 /* eslint-disable */
 
+export type SkillId = string;
 export type ComposerDomainAction =
   | ('MarkAttachmentsUploading' | 'ClearReasoningEffort' | 'ClearPayload')
   | {
@@ -151,6 +152,8 @@ export type ArtifactStatus = 'ready' | 'pending' | 'quarantined' | 'deleted' | '
 export type ComposerCapabilityKind =
   | {
       Skill: {
+        owner?: string | null;
+        skill_id: SkillId;
         slug: string;
         source_kind: string;
         [k: string]: unknown;

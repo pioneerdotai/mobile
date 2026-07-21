@@ -80,21 +80,46 @@ const runtime = (
 });
 
 const capabilities: ComposerCapability[] = [
-    { id: 'user', label: 'user', kind: { Skill: { slug: 'user', source_kind: 'user' } } },
+    {
+        id: 'skill:UUUUUUUUUUUUUUUUUUUUU',
+        label: 'user',
+        kind: {
+            Skill: {
+                skill_id: 'UUUUUUUUUUUUUUUUUUUUU',
+                owner: null,
+                slug: 'user',
+                source_kind: 'user',
+            },
+        },
+    },
     {
         id: 'server',
         label: 'docs',
         kind: { McpServer: { name: 'docs', scope_kind: 'workspace' } },
     },
     {
-        id: 'registry',
+        id: 'skill:RRRRRRRRRRRRRRRRRRRRR',
         label: 'registry',
-        kind: { Skill: { slug: 'registry', source_kind: 'registry' } },
+        kind: {
+            Skill: {
+                skill_id: 'RRRRRRRRRRRRRRRRRRRRR',
+                owner: null,
+                slug: 'registry',
+                source_kind: 'registry',
+            },
+        },
     },
     {
-        id: 'system',
-        label: 'system',
-        kind: { Skill: { slug: 'system', source_kind: 'system' } },
+        id: 'skill:SSSSSSSSSSSSSSSSSSSSS',
+        label: 'pioneer/system',
+        kind: {
+            Skill: {
+                skill_id: 'SSSSSSSSSSSSSSSSSSSSS',
+                owner: 'pioneer',
+                slug: 'system',
+                source_kind: 'system',
+            },
+        },
     },
     {
         id: 'tool',
@@ -130,9 +155,12 @@ describe('composer CLI runtime capability policy', () => {
         const rows: SelectableSkillCapability[] = [
             {
                 description: 'user skill',
-                key: 'user',
+                display_name: 'User',
+                key: 'skill:UUUUUUUUUUUUUUUUUUUUU',
                 label: 'user',
+                owner: null,
                 selectable: true,
+                skill_id: 'UUUUUUUUUUUUUUUUUUUUU',
                 slug: 'user',
                 source_kind: 'user',
                 unavailable_reason: null,
@@ -173,6 +201,13 @@ describe('composer CLI runtime capability policy', () => {
         );
 
         expect(textPlan.capabilities).toEqual(voicePlan.capabilities);
+        expect(textPlan.capabilities.map((capability) => capability.id)).toEqual([
+            'skill:UUUUUUUUUUUUUUUUUUUUU',
+            'server',
+            'skill:RRRRRRRRRRRRRRRRRRRRR',
+            'skill:SSSSSSSSSSSSSSSSSSSSS',
+            'tool',
+        ]);
         expect(textPlan.has_composer_payload).toBe(true);
         expect(voicePlan.has_composer_payload).toBe(true);
         expect(pioneerClient.composerSubmissionPlan).toHaveBeenNthCalledWith(1, {
@@ -186,6 +221,34 @@ describe('composer CLI runtime capability policy', () => {
             text: '',
             has_attachments: true,
             capabilities,
+        });
+    });
+
+    it('preserves exact skill identity in a rejected capability snapshot', () => {
+        const rejected = capabilities[0];
+        jest.mocked(pioneerClient.composerSubmissionPlan).mockReturnValue({
+            capabilities: [],
+            has_composer_payload: false,
+            removed: [{ capability: rejected, reason: 'skill_source_not_exportable' }],
+            target: cliPolicy(true, true),
+        });
+
+        const plan = composerSubmissionPlanForProvider(
+            'cli_runtime:codex',
+            '',
+            false,
+            [rejected],
+        );
+
+        expect(plan.removed[0]?.capability).toEqual(rejected);
+        expect(plan.removed[0]?.capability.id).toBe('skill:UUUUUUUUUUUUUUUUUUUUU');
+        expect(plan.removed[0]?.capability.kind).toEqual({
+            Skill: {
+                skill_id: 'UUUUUUUUUUUUUUUUUUUUU',
+                owner: null,
+                slug: 'user',
+                source_kind: 'user',
+            },
         });
     });
 

@@ -27,9 +27,28 @@ const tool: ComposerCapability = {
     },
 };
 const skill: ComposerCapability = {
-    id: 'skill:user:docs',
+    id: 'skill:DDDDDDDDDDDDDDDDDDDDD',
     label: 'docs',
-    kind: { Skill: { slug: 'docs', source_kind: 'user' } },
+    kind: {
+        Skill: {
+            skill_id: 'DDDDDDDDDDDDDDDDDDDDD',
+            owner: null,
+            slug: 'docs',
+            source_kind: 'user',
+        },
+    },
+};
+const duplicateLabelSkill: ComposerCapability = {
+    id: 'skill:EEEEEEEEEEEEEEEEEEEEE',
+    label: 'docs',
+    kind: {
+        Skill: {
+            skill_id: 'EEEEEEEEEEEEEEEEEEEEE',
+            owner: null,
+            slug: 'docs',
+            source_kind: 'user',
+        },
+    },
 };
 
 describe('shared composer capability presentation', () => {
@@ -40,10 +59,13 @@ describe('shared composer capability presentation', () => {
     });
 
     it('preserves attachment keys and order for picker selection state', () => {
-        expect(selectedCapabilityKeys([skill, server, tool])).toEqual([
+        expect(selectedCapabilityKeys([skill, duplicateLabelSkill, server, tool])).toEqual([
             skill.id,
+            duplicateLabelSkill.id,
             server.id,
             tool.id,
         ]);
+        expect(skill.label).toBe('docs');
+        expect(duplicateLabelSkill.label).toBe(skill.label);
     });
 });

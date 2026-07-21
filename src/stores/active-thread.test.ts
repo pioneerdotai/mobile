@@ -255,10 +255,28 @@ const resetStore = () => {
     useActiveThreadStore.getState().reset();
 };
 
-const skillCapability = (sourceKind: string, slug: string): ComposerCapability => ({
-    id: `skill:${sourceKind}:${slug}`,
-    label: slug,
-    kind: { Skill: { slug, source_kind: sourceKind } },
+const fixtureSkillId = (sourceKind: string, slug: string): string =>
+    `${sourceKind}${slug}`
+        .replace(/[^A-Za-z0-9]/g, '')
+        .padEnd(21, '0')
+        .slice(0, 21);
+
+const skillCapability = (
+    sourceKind: string,
+    slug: string,
+    skillId = fixtureSkillId(sourceKind, slug),
+    owner: string | null = null,
+): ComposerCapability => ({
+    id: `skill:${skillId}`,
+    label: owner ? `${owner}/${slug}` : slug,
+    kind: {
+        Skill: {
+            skill_id: skillId,
+            owner,
+            slug,
+            source_kind: sourceKind,
+        },
+    },
 });
 
 const mcpCapability: ComposerCapability = {
@@ -362,7 +380,10 @@ describe('active thread reasoning effort state', () => {
             cliPolicy(true, false),
         );
         expect(useActiveThreadStore.getState().composerCapabilities.map((item) => item.id)).toEqual(
-            ['skill:user:user-skill', 'skill:system:memory'],
+            [
+                skillCapability('user', 'user-skill').id,
+                skillCapability('system', 'memory').id,
+            ],
         );
 
         useActiveThreadStore
@@ -378,7 +399,10 @@ describe('active thread reasoning effort state', () => {
             UNSUPPORTED_CLI_COMPOSER_CAPABILITY_POLICY,
         );
         expect(useActiveThreadStore.getState().composerCapabilities.map((item) => item.id)).toEqual(
-            ['skill:user:user-skill', 'skill:system:memory'],
+            [
+                skillCapability('user', 'user-skill').id,
+                skillCapability('system', 'memory').id,
+            ],
         );
     });
 
@@ -522,6 +546,32 @@ describe('active thread keyed composer drafts', () => {
         expect(useActiveThreadStore.getState().composerSelectedProvider).toBe('anthropic');
         expect(useActiveThreadStore.getState().composerSelectedModel).toBe('claude');
         expect(useActiveThreadStore.getState().composerModelManuallySelected).toBe(true);
+    });
+
+    it('restores duplicate skill labels by their exact IDs', () => {
+        const first = skillCapability(
+            'user',
+            'humanizer',
+            'AAAAAAAAAAAAAAAAAAAAA',
+            'alex',
+        );
+        const second = skillCapability(
+            'user',
+            'humanizer',
+            'BBBBBBBBBBBBBBBBBBBBB',
+            'alex',
+        );
+        expect(first.label).toBe(second.label);
+
+        useActiveThreadStore.getState().activateComposerThread('thread-a');
+        useActiveThreadStore.getState().setComposerCapabilities([first, second]);
+        useActiveThreadStore.getState().activateComposerThread('thread-b');
+        useActiveThreadStore.getState().activateComposerThread('thread-a');
+
+        expect(useActiveThreadStore.getState().composerCapabilities).toEqual([first, second]);
+        expect(
+            useActiveThreadStore.getState().composerCapabilities.map((capability) => capability.id),
+        ).toEqual(['skill:AAAAAAAAAAAAAAAAAAAAA', 'skill:BBBBBBBBBBBBBBBBBBBBB']);
     });
 
     it('clears only the active thread payload after send', () => {
