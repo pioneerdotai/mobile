@@ -1,6 +1,7 @@
 /* eslint-disable */
 
 export type SkillId = string;
+
 export interface SkillCatalogState {
   catalog: SkillListItem[];
   error?: string | null;
@@ -74,11 +75,15 @@ export interface SkillPolicyState {
   enabled: boolean;
   [k: string]: unknown;
 }
+/**
+ * This interface was referenced by `undefined`'s JSON-Schema definition
+ * via the `patternProperty` "^[A-Za-z0-9]{21}$".
+ */
 export interface SkillHealthItem {
   dependency_diagnostics?: SkillDependencyDiagnostic[];
+  owner?: string | null;
   recent_audit?: SkillAuditTimelineItem[];
   security_findings?: SkillSecurityFinding[];
-  owner?: string | null;
   skill_id: SkillId;
   slug: string;
   source_kind: string;

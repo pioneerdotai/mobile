@@ -1,6 +1,7 @@
 /* eslint-disable */
 
 export type SkillId = string;
+
 export interface SkillsCatalogSplit {
   catalog: SkillListItem[];
   installed: SkillListItem[];

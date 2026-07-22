@@ -1,6 +1,5 @@
 /* eslint-disable */
 
-export type SkillId = string;
 export type TurnCapabilityKind =
   | {
       skillId: SkillId;
@@ -20,6 +19,7 @@ export type TurnCapabilityKind =
       type: 'mcpTool';
       [k: string]: unknown;
     };
+export type SkillId = string;
 export type McpScopeKind = 'workspace' | 'user';
 export type AgentExecutionBackend =
   | {

@@ -1,6 +1,5 @@
 /* eslint-disable */
 
-export type SkillId = string;
 export type ComposerDraftLifecycleAction =
   | 'ClearAll'
   | {
@@ -83,6 +82,7 @@ export type ComposerCapabilityKind =
         [k: string]: unknown;
       };
     };
+export type SkillId = string;
 export type McpScopeKind = 'workspace' | 'user';
 export type ComposerCapabilityTargetKind = 'native' | 'cli';
 

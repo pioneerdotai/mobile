@@ -1,6 +1,5 @@
 /* eslint-disable */
 
-export type SkillId = string;
 export type ComposerDomainAction =
   | ('MarkAttachmentsUploading' | 'ClearReasoningEffort' | 'ClearPayload')
   | {
@@ -174,6 +173,7 @@ export type ComposerCapabilityKind =
         [k: string]: unknown;
       };
     };
+export type SkillId = string;
 export type McpScopeKind = 'workspace' | 'user';
 export type ThreadMode = 'Chat' | 'Agent';
 export type TurnPermissionMode = 'full_access' | 'auto_accept_edits' | 'supervised';

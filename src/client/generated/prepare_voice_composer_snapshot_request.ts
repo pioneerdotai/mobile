@@ -1,6 +1,5 @@
 /* eslint-disable */
 
-export type SkillId = string;
 export type ComposerAttachmentKind = 'Image' | 'File' | 'Audio' | 'Video';
 export type ComposerAttachmentUploadState =
   | ('Local' | 'Uploading')
@@ -59,6 +58,7 @@ export type ComposerCapabilityKind =
         [k: string]: unknown;
       };
     };
+export type SkillId = string;
 export type McpScopeKind = 'workspace' | 'user';
 export type GatewayEndpointKind = 'local' | 'remote';
 export type AgentExecutionBackend =

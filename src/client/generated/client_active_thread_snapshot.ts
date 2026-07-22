@@ -1,6 +1,5 @@
 /* eslint-disable */
 
-export type SkillId = string;
 export type TurnSecurityCapabilityKind = 'filesystem' | 'network' | 'process' | 'approval' | 'sandbox_backend';
 export type ClientSecurityEnforcementStatus = 'active' | 'degraded' | 'unavailable';
 export type TurnSecurityExecutionBackendKind = 'native' | 'codex_cli' | 'claude_cli';
@@ -371,6 +370,7 @@ export type ArtifactKind =
 export type ArtifactProjectionKind = 'plain_text' | 'thumbnail' | 'json_summary' | 'pdf_text';
 export type ArtifactProjectionStatus = 'pending' | 'ready' | 'failed' | 'stale';
 export type ArtifactStatus = 'ready' | 'pending' | 'quarantined' | 'deleted' | 'missing_external_source' | 'failed';
+export type SkillId = string;
 export type McpScopeKind = 'workspace' | 'user';
 export type AgentMessagePhase = 'final_answer' | 'commentary';
 export type SystemEventLevel = 'info' | 'warning' | 'error';

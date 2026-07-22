@@ -1,6 +1,5 @@
 /* eslint-disable */
 
-export type SkillId = string;
 export type ClientComposerCapabilitiesUpdateAction =
   | {
       Add: {
@@ -45,6 +44,7 @@ export type ComposerCapabilityKind =
         [k: string]: unknown;
       };
     };
+export type SkillId = string;
 export type McpScopeKind = 'workspace' | 'user';
 
 export interface ClientComposerCapabilitiesUpdateRequest {

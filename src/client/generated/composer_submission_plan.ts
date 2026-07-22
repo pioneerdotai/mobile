@@ -1,6 +1,5 @@
 /* eslint-disable */
 
-export type SkillId = string;
 export type ComposerCapabilityKind =
   | {
       Skill: {
@@ -26,6 +25,7 @@ export type ComposerCapabilityKind =
         [k: string]: unknown;
       };
     };
+export type SkillId = string;
 export type McpScopeKind = 'workspace' | 'user';
 export type ComposerCapabilityRemovalReason =
   'skills_unsupported' | 'skill_source_not_exportable' | 'mcp_tools_unsupported';
