@@ -24,6 +24,9 @@ export const CommandExecutionRow = ({ row, expanded, onToggle }: CommandExecutio
     const terminalText = row.terminalText.trim() ? row.terminalText : row.outputPreview;
     const hasOutput = terminalText.trim().length > 0;
     const showTerminal = hasOutput && expanded;
+    const commandTitle =
+        row.command.trim().replace(/[\r\n]+/g, ' ') ||
+        (row.streaming ? t('timelineRunningCommand') : t('timelineCommandCompleted'));
     const iconSize = theme.space(4);
     const iconColor = theme.colors.typography;
 
@@ -49,9 +52,7 @@ export const CommandExecutionRow = ({ row, expanded, onToggle }: CommandExecutio
                         numberOfLines={1}
                         style={row.streaming ? styles.runningTitle : styles.title}
                     >
-                        {row.streaming
-                            ? t('timelineRunningCommand')
-                            : t('timelineCommandCompleted')}
+                        {commandTitle}
                     </Text>
                 </HStack>
                 <HStack style={styles.meta}>

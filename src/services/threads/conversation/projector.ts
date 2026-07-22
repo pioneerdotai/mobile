@@ -17,6 +17,7 @@ import type {
     TimelineRow,
     TimelineUserAttachment,
 } from './timeline';
+import { commandLineFromCommandExecution } from './command-display';
 
 const FILE_CHANGE_OUTPUT_LIMIT = 4_000;
 const DYNAMIC_TOOL_RESULT_LIMIT = 4_000;
@@ -716,27 +717,6 @@ const capabilityLabel = (kind: Record<string, unknown>): string => {
         default:
             return tt('timelineCapability');
     }
-};
-
-const commandLineFromCommandExecution = (
-    item: Extract<TurnItem, { type: 'commandExecution' }>,
-): string => {
-    if (item.command?.length) {
-        return item.command.join(' ');
-    }
-
-    const args = asRecord(item.arguments);
-    const cmd = readString(args, 'cmd');
-    if (cmd?.trim()) {
-        return cmd.trim();
-    }
-
-    const command = args.command;
-    if (Array.isArray(command)) {
-        return command.filter((part): part is string => typeof part === 'string').join(' ');
-    }
-
-    return '';
 };
 
 const fileChangeSummary = (
