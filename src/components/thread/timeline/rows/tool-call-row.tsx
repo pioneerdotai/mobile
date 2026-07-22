@@ -42,7 +42,6 @@ export const ToolCallRow = ({
 
     const iconColor = theme.colors.typography;
     const isRunning = isRunningStatus(row.status);
-    const hasDetail = !isRunning;
     const mcpServerIdToOpen =
         row.mcpServerId ??
         (row.mcpServerName ? (mcpServerIdByName[row.mcpServerName] ?? null) : null);
@@ -60,44 +59,29 @@ export const ToolCallRow = ({
     const smallIconSize = theme.space(3.5);
     const mcpButtonIconSize = theme.space(3.75);
 
-    if (isRunning) {
-        return (
-            <VStack style={styles.container}>
-                <HStack style={styles.headerStatic}>
-                    <ToolTitle
-                        row={row}
-                        iconColor={iconColor}
-                        iconSize={iconSize}
-                        running={isRunning}
-                    />
-                </HStack>
-                <HStack style={styles.runningRow}>
-                    <HStack style={styles.runningLabel}>
-                        <Spinner size={theme.space(4)} color={iconColor} />
-                        <Text numberOfLines={1} style={styles.runningText}>
-                            {row.finalStatus}
-                        </Text>
-                    </HStack>
-                    {!!row.elapsedLabel && (
-                        <Text numberOfLines={1} style={styles.metaText}>
-                            {row.elapsedLabel}
-                        </Text>
-                    )}
-                </HStack>
-            </VStack>
-        );
-    }
-
     return (
         <VStack style={styles.container}>
             <Pressable
                 accessibilityRole="button"
                 onPress={onToggle}
-                style={({ pressed }) => [styles.header, pressed && styles.pressed]}
+                style={({ pressed }) => [
+                    styles.header,
+                    isRunning && styles.activeHeader,
+                    pressed && styles.pressed,
+                ]}
             >
-                <ToolTitle row={row} iconColor={iconColor} iconSize={iconSize} running={false} />
+                <ToolTitle
+                    row={row}
+                    iconColor={iconColor}
+                    iconSize={iconSize}
+                    running={isRunning}
+                />
                 <HStack style={styles.meta}>
-                    {row.toolKind === 'webSearch' ? (
+                    {isRunning ? (
+                        <Text numberOfLines={1} style={styles.metaText}>
+                            {row.finalStatus}
+                        </Text>
+                    ) : row.toolKind === 'webSearch' ? (
                         <Text numberOfLines={1} style={styles.metaText}>
                             {t('timelineResults', {
                                 count: row.resultCount ?? row.results.length,
@@ -123,7 +107,7 @@ export const ToolCallRow = ({
                     )}
                 </HStack>
             </Pressable>
-            {hasDetail && expanded && (
+            {expanded && (
                 <VStack style={styles.details}>
                     {(row.toolKind === 'webFetch' || row.toolKind === 'download') && row.url ? (
                         <Pressable onPress={() => void Linking.openURL(row.url!)}>
@@ -136,7 +120,7 @@ export const ToolCallRow = ({
                     ) : null}
                     {(row.toolKind === 'webFetch' || row.toolKind === 'download') && (
                         <HStack style={styles.statusRow}>
-                            <StatusIcon size={smallIconSize} color={iconColor} />
+                            {!isRunning && <StatusIcon size={smallIconSize} color={iconColor} />}
                             <Text style={styles.metaText}>{row.finalStatus}</Text>
                         </HStack>
                     )}
@@ -211,13 +195,12 @@ const ToolTitle = ({
     iconSize: number;
     running: boolean;
 }) => {
-    const { theme } = useUnistyles();
     const { t } = useTranslation('threads');
 
     return (
         <HStack style={styles.titleWrap}>
-            {running && row.toolKind === 'dynamicToolCall' ? (
-                <Spinner size={theme.space(4)} color={iconColor} />
+            {running ? (
+                <Spinner size={iconSize} color={iconColor} />
             ) : (
                 renderToolIcon(row.toolKind, iconColor, iconSize)
             )}
@@ -262,10 +245,8 @@ const styles = StyleSheet.create((theme) => ({
         gap: theme.space(2),
         opacity: 0.7,
     },
-    headerStatic: {
-        minHeight: theme.space(9),
-        alignItems: 'center',
-        gap: theme.space(2),
+    activeHeader: {
+        opacity: 1,
     },
     pressed: {
         opacity: 0.9,
@@ -288,26 +269,6 @@ const styles = StyleSheet.create((theme) => ({
         alignItems: 'center',
         gap: theme.space(2),
     },
-    runningRow: {
-        minHeight: theme.space(7),
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: theme.space(3),
-    },
-    runningLabel: {
-        flex: 1,
-        minWidth: 0,
-        alignItems: 'center',
-        gap: theme.space(2),
-    },
-    runningText: {
-        flex: 1,
-        minWidth: 0,
-        color: theme.colors.text,
-        fontSize: theme.fontSize.sm.fontSize,
-        lineHeight: theme.fontSize.sm.lineHeight,
-        fontWeight: theme.fontWeight.semibold.fontWeight,
-    },
     details: {
         gap: theme.space(2),
     },
@@ -320,11 +281,6 @@ const styles = StyleSheet.create((theme) => ({
         fontSize: theme.fontSize.sm.fontSize,
         lineHeight: theme.fontSize.sm.lineHeight,
         textDecorationLine: 'underline',
-    },
-    metaRow: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: theme.space(2),
     },
     metaText: {
         color: theme.colors.textMuted,

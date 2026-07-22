@@ -46,6 +46,7 @@ import {
 } from './rows';
 import { viewportPrefetchPlan } from './viewport-prefetch';
 import type { TimelineViewportPrefetchPlan } from './viewport-prefetch';
+import { defaultTimelineRowExpanded } from './row-expansion';
 import { VStack } from '@/components/primitives/vstack';
 
 export type {
@@ -200,7 +201,7 @@ const ThreadTimelineContent = ({
     const toggleExpandedRow = useCallback((row: TimelineRow) => {
         setExpandedRows((current) => ({
             ...current,
-            [row.key]: !(current[row.key] ?? defaultExpanded(row)),
+            [row.key]: !(current[row.key] ?? defaultTimelineRowExpanded(row)),
         }));
     }, []);
 
@@ -224,7 +225,7 @@ const ThreadTimelineContent = ({
         ({ item }: { item: TimelineRow }) => (
             <TimelineRowContainer
                 row={item}
-                expanded={expandedRows[item.key] ?? defaultExpanded(item)}
+                expanded={expandedRows[item.key] ?? defaultTimelineRowExpanded(item)}
                 mcpServerIdByName={mcpServerIdByName}
                 onOpenArtifact={onOpenArtifact}
                 onOpenMcpServer={onOpenMcpServer}
@@ -469,25 +470,6 @@ const TimelineRowRenderer = ({
             return <ArtifactRow row={row} />;
         case 'unknown':
             return <UnknownRow row={row} />;
-    }
-};
-
-const defaultExpanded = (row: TimelineRow) => {
-    switch (row.type) {
-        case 'reasoning':
-            return row.streaming || !row.collapsed;
-        case 'command-execution':
-        case 'file-change':
-        case 'tool-call':
-            return isActiveStatus(row.status);
-        case 'work-group':
-        case 'tool-group':
-            return row.expanded;
-        case 'running':
-        case 'pending-request':
-            return false;
-        default:
-            return false;
     }
 };
 

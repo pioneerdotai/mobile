@@ -26,45 +26,29 @@ export const ReasoningRow = ({ row, expanded, onToggle }: ReasoningRowProps) => 
     const iconSize = theme.space(4);
     const iconColor = theme.colors.typography;
 
-    if (row.streaming) {
-        return (
-            <VStack style={styles.container}>
-                {hasText && (
-                    <MarkdownContent
-                        text={row.text}
-                        document={row.markdown}
-                        streaming={row.streaming}
-                    />
-                )}
-                <HStack style={styles.runningRow}>
-                    <HStack style={styles.headerLabel}>
-                        <Spinner size={theme.space(4)} color={iconColor} />
-                        <Text numberOfLines={1} style={styles.runningTitle}>
-                            {t('timelineThinking')}
-                        </Text>
-                    </HStack>
-                    {!!row.elapsedLabel && (
-                        <Text numberOfLines={1} style={styles.elapsed}>
-                            {row.elapsedLabel}
-                        </Text>
-                    )}
-                </HStack>
-            </VStack>
-        );
-    }
-
     return (
         <VStack style={styles.container}>
             <Pressable
                 accessibilityRole="button"
                 disabled={!hasText}
                 onPress={onToggle}
-                style={({ pressed }) => [styles.header, pressed && styles.pressed]}
+                style={({ pressed }) => [
+                    styles.header,
+                    row.streaming && styles.activeHeader,
+                    pressed && styles.pressed,
+                ]}
             >
                 <HStack style={styles.headerLabel}>
-                    <Lightbulb size={iconSize} color={iconColor} />
-                    <Text numberOfLines={1} style={styles.title}>
-                        {t('timelineThought')}
+                    {row.streaming ? (
+                        <Spinner size={iconSize} color={iconColor} />
+                    ) : (
+                        <Lightbulb size={iconSize} color={iconColor} />
+                    )}
+                    <Text
+                        numberOfLines={1}
+                        style={row.streaming ? styles.runningTitle : styles.title}
+                    >
+                        {row.streaming ? t('timelineThinking') : t('timelineThought')}
                     </Text>
                 </HStack>
                 <HStack style={styles.meta}>
@@ -86,6 +70,7 @@ export const ReasoningRow = ({ row, expanded, onToggle }: ReasoningRowProps) => 
                     <MarkdownContent
                         text={row.text}
                         document={row.markdown}
+                        streaming={row.streaming}
                         highlightCodeBlocks
                         tone="muted"
                     />
@@ -110,6 +95,9 @@ const styles = StyleSheet.create((theme) => ({
         gap: theme.space(3),
         opacity: 0.6,
     },
+    activeHeader: {
+        opacity: 1,
+    },
     pressed: {
         opacity: 0.8,
     },
@@ -124,12 +112,6 @@ const styles = StyleSheet.create((theme) => ({
         color: theme.colors.textMuted,
         fontSize: theme.fontSize.sm.fontSize,
         lineHeight: theme.fontSize.sm.lineHeight,
-    },
-    runningRow: {
-        minHeight: theme.space(9),
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: theme.space(3),
     },
     runningTitle: {
         color: theme.colors.text,

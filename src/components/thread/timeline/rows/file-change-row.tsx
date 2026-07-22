@@ -23,44 +23,31 @@ export const FileChangeRow = ({ row, expanded, onToggle }: FileChangeRowProps) =
     const { t } = useTranslation('threads');
 
     const isRunning = isRunningStatus(row.status);
-    const hasDetails = !isRunning;
     const StatusIcon = row.successful ? Check : TriangleAlert;
     const iconSize = theme.space(4);
     const smallIconSize = theme.space(3.5);
     const pathIconSize = theme.space(3);
     const iconColor = theme.colors.typography;
 
-    if (isRunning) {
-        return (
-            <VStack style={styles.container}>
-                <FileChangeSummary row={row} iconColor={iconColor} iconSize={iconSize} />
-                <HStack style={styles.runningRow}>
-                    <HStack style={styles.runningLabel}>
-                        <Spinner size={theme.space(4)} color={iconColor} />
-                        <Text numberOfLines={1} style={styles.runningText}>
-                            {row.finalStatus}
-                        </Text>
-                    </HStack>
-                    {!!row.elapsedLabel && (
-                        <Text numberOfLines={1} style={styles.statusText}>
-                            {row.elapsedLabel}
-                        </Text>
-                    )}
-                </HStack>
-            </VStack>
-        );
-    }
-
     return (
         <VStack style={styles.container}>
             <Pressable
                 accessibilityRole="button"
                 onPress={onToggle}
-                style={({ pressed }) => [styles.header, pressed && styles.pressed]}
+                style={({ pressed }) => [
+                    styles.header,
+                    isRunning && styles.activeHeader,
+                    pressed && styles.pressed,
+                ]}
             >
-                <FileChangeSummary row={row} iconColor={iconColor} iconSize={iconSize} />
+                <FileChangeSummary
+                    row={row}
+                    iconColor={iconColor}
+                    iconSize={iconSize}
+                    running={isRunning}
+                />
                 <HStack style={styles.meta}>
-                    <StatusIcon size={smallIconSize} color={iconColor} />
+                    {!isRunning && <StatusIcon size={smallIconSize} color={iconColor} />}
                     <Text numberOfLines={1} style={styles.statusText}>
                         {row.finalStatus}
                     </Text>
@@ -69,15 +56,14 @@ export const FileChangeRow = ({ row, expanded, onToggle }: FileChangeRowProps) =
                             {row.elapsedLabel}
                         </Text>
                     )}
-                    {hasDetails &&
-                        (expanded ? (
-                            <ChevronUp size={iconSize} color={iconColor} />
-                        ) : (
-                            <ChevronDown size={iconSize} color={iconColor} />
-                        ))}
+                    {expanded ? (
+                        <ChevronUp size={iconSize} color={iconColor} />
+                    ) : (
+                        <ChevronDown size={iconSize} color={iconColor} />
+                    )}
                 </HStack>
             </Pressable>
-            {hasDetails && expanded && (
+            {expanded && (
                 <VStack style={styles.details}>
                     {row.exitCode !== null && (
                         <BodyText>{t('timelineExitCode', { code: row.exitCode })}</BodyText>
@@ -122,16 +108,22 @@ const FileChangeSummary = ({
     row,
     iconColor,
     iconSize,
+    running,
 }: {
     row: Extract<TimelineRow, { type: 'file-change' }>;
     iconColor: string;
     iconSize: number;
+    running: boolean;
 }) => {
     const { t } = useTranslation('threads');
 
     return (
         <HStack style={styles.titleWrap}>
-            <FileCode size={iconSize} color={iconColor} />
+            {running ? (
+                <Spinner size={iconSize} color={iconColor} />
+            ) : (
+                <FileCode size={iconSize} color={iconColor} />
+            )}
             <Text numberOfLines={1} style={styles.title}>
                 {row.summary || row.path || t('timelineFileChanges')}
             </Text>
@@ -154,28 +146,11 @@ const styles = StyleSheet.create((theme) => ({
         gap: theme.space(2),
         opacity: 0.7,
     },
+    activeHeader: {
+        opacity: 1,
+    },
     pressed: {
         opacity: 0.9,
-    },
-    runningRow: {
-        minHeight: theme.space(7),
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: theme.space(3),
-    },
-    runningLabel: {
-        flex: 1,
-        minWidth: 0,
-        alignItems: 'center',
-        gap: theme.space(2),
-    },
-    runningText: {
-        flex: 1,
-        minWidth: 0,
-        color: theme.colors.text,
-        fontSize: theme.fontSize.sm.fontSize,
-        lineHeight: theme.fontSize.sm.lineHeight,
-        fontWeight: theme.fontWeight.semibold.fontWeight,
     },
     titleWrap: {
         flex: 1,

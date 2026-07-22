@@ -23,30 +23,9 @@ export const CommandExecutionRow = ({ row, expanded, onToggle }: CommandExecutio
 
     const terminalText = row.terminalText.trim() ? row.terminalText : row.outputPreview;
     const hasOutput = terminalText.trim().length > 0;
-    const showTerminal = hasOutput && (expanded || row.streaming);
+    const showTerminal = hasOutput && expanded;
     const iconSize = theme.space(4);
     const iconColor = theme.colors.typography;
-
-    if (row.streaming) {
-        return (
-            <VStack style={styles.container}>
-                {showTerminal && <TerminalBlock text={terminalText} />}
-                <HStack style={styles.runningRow}>
-                    <HStack style={styles.titleWrap}>
-                        <Spinner size={theme.space(4)} color={iconColor} />
-                        <Text numberOfLines={1} style={styles.runningTitle}>
-                            {t('timelineRunningCommand')}
-                        </Text>
-                    </HStack>
-                    {!!row.elapsedLabel && (
-                        <Text numberOfLines={1} style={styles.metaText}>
-                            {row.elapsedLabel}
-                        </Text>
-                    )}
-                </HStack>
-            </VStack>
-        );
-    }
 
     return (
         <VStack style={styles.container}>
@@ -54,12 +33,25 @@ export const CommandExecutionRow = ({ row, expanded, onToggle }: CommandExecutio
                 accessibilityRole="button"
                 disabled={!hasOutput}
                 onPress={onToggle}
-                style={({ pressed }) => [styles.header, pressed && hasOutput && styles.pressed]}
+                style={({ pressed }) => [
+                    styles.header,
+                    row.streaming && styles.activeHeader,
+                    pressed && hasOutput && styles.pressed,
+                ]}
             >
                 <HStack style={styles.titleWrap}>
-                    <Terminal size={iconSize} color={iconColor} />
-                    <Text numberOfLines={1} style={styles.title}>
-                        {t('timelineCommandCompleted')}
+                    {row.streaming ? (
+                        <Spinner size={iconSize} color={iconColor} />
+                    ) : (
+                        <Terminal size={iconSize} color={iconColor} />
+                    )}
+                    <Text
+                        numberOfLines={1}
+                        style={row.streaming ? styles.runningTitle : styles.title}
+                    >
+                        {row.streaming
+                            ? t('timelineRunningCommand')
+                            : t('timelineCommandCompleted')}
                     </Text>
                 </HStack>
                 <HStack style={styles.meta}>
@@ -118,6 +110,9 @@ const styles = StyleSheet.create((theme) => ({
         gap: theme.space(2),
         opacity: 0.6,
     },
+    activeHeader: {
+        opacity: 1,
+    },
     pressed: {
         opacity: 0.8,
     },
@@ -133,12 +128,6 @@ const styles = StyleSheet.create((theme) => ({
         color: theme.colors.textMuted,
         fontSize: theme.fontSize.sm.fontSize,
         lineHeight: theme.fontSize.sm.lineHeight,
-    },
-    runningRow: {
-        minHeight: theme.space(9),
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: theme.space(3),
     },
     runningTitle: {
         flex: 1,
