@@ -380,10 +380,7 @@ describe('active thread reasoning effort state', () => {
             cliPolicy(true, false),
         );
         expect(useActiveThreadStore.getState().composerCapabilities.map((item) => item.id)).toEqual(
-            [
-                skillCapability('user', 'user-skill').id,
-                skillCapability('system', 'memory').id,
-            ],
+            [skillCapability('user', 'user-skill').id, skillCapability('system', 'memory').id],
         );
 
         useActiveThreadStore
@@ -399,10 +396,7 @@ describe('active thread reasoning effort state', () => {
             UNSUPPORTED_CLI_COMPOSER_CAPABILITY_POLICY,
         );
         expect(useActiveThreadStore.getState().composerCapabilities.map((item) => item.id)).toEqual(
-            [
-                skillCapability('user', 'user-skill').id,
-                skillCapability('system', 'memory').id,
-            ],
+            [skillCapability('user', 'user-skill').id, skillCapability('system', 'memory').id],
         );
     });
 
@@ -549,18 +543,8 @@ describe('active thread keyed composer drafts', () => {
     });
 
     it('restores duplicate skill labels by their exact IDs', () => {
-        const first = skillCapability(
-            'user',
-            'humanizer',
-            'AAAAAAAAAAAAAAAAAAAAA',
-            'alex',
-        );
-        const second = skillCapability(
-            'user',
-            'humanizer',
-            'BBBBBBBBBBBBBBBBBBBBB',
-            'alex',
-        );
+        const first = skillCapability('user', 'humanizer', 'AAAAAAAAAAAAAAAAAAAAA', 'alex');
+        const second = skillCapability('user', 'humanizer', 'BBBBBBBBBBBBBBBBBBBBB', 'alex');
         expect(first.label).toBe(second.label);
 
         useActiveThreadStore.getState().activateComposerThread('thread-a');

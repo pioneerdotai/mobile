@@ -233,12 +233,7 @@ describe('composer CLI runtime capability policy', () => {
             target: cliPolicy(true, true),
         });
 
-        const plan = composerSubmissionPlanForProvider(
-            'cli_runtime:codex',
-            '',
-            false,
-            [rejected],
-        );
+        const plan = composerSubmissionPlanForProvider('cli_runtime:codex', '', false, [rejected]);
 
         expect(plan.removed[0]?.capability).toEqual(rejected);
         expect(plan.removed[0]?.capability.id).toBe('skill:UUUUUUUUUUUUUUUUUUUUU');
