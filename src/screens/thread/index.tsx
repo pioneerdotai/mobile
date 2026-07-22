@@ -1565,9 +1565,7 @@ const activeSemanticTurnWorkQueryTargets = (
 
         const work = block.kind.work;
         const expanded = expandedTurnIds.has(work.turnId);
-        const protocolVisible =
-            work.presentation === 'expanded_live' ||
-            work.presentation === 'expanded_terminal_no_final';
+        const protocolVisible = work.presentation === 'expanded_live';
         const liveVisible = protocolVisible || work.turnId === liveTurnId;
 
         if (!expanded && !liveVisible) {

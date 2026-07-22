@@ -32,6 +32,9 @@ export type SystemEventLabel =
 export type SystemEventLevel = 'info' | 'warning' | 'error';
 export type SystemEventMessage =
   | (
+      | 'TurnCancelled'
+      | 'TurnFailed'
+      | 'TurnBlocked'
       | 'RecoveryOpened'
       | 'RecoveryAttached'
       | 'RetryScheduled'

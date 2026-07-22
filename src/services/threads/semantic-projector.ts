@@ -259,12 +259,9 @@ const pushTurnWorkBlock = (
 
     const work = block.kind.work;
     const toggleKey = semanticTurnWorkToggleKey(work.turnId);
-    const expanded =
-        work.presentation === 'expanded_live' ||
-        work.presentation === 'expanded_terminal_no_final' ||
-        expandedKeys.has(toggleKey);
+    const expanded = work.presentation === 'expanded_live' || expandedKeys.has(toggleKey);
 
-    if (work.presentation === 'collapsed_after_final' && work.workCount > 0) {
+    if (work.presentation !== 'expanded_live' && work.workCount > 0) {
         semantic.rows.push({
             key: toggleKey,
             kind: {
@@ -319,12 +316,47 @@ const pushTurnStateRow = (
     if (block.kind.kind !== 'turn_state') {
         return;
     }
-    if (!isRunningTurnState(block.kind.state)) {
+
+    const turnId = block.turnId ?? null;
+    if (!turnId) {
         return;
     }
 
-    const turnId = block.turnId ?? null;
-    if (!turnId || insertedRunningRows.has(turnId)) {
+    if (!isRunningTurnState(block.kind.state)) {
+        const event = terminalTurnStateEvent(block.kind.state);
+        if (!event) {
+            return;
+        }
+        const message = block.kind.message?.trim() || event.fallbackMessage;
+        const itemId = `${block.blockId}:event`;
+        const details = { error_message: message };
+        pushItemRow(semantic, {
+            entryId: block.blockId,
+            itemId,
+            turnId,
+            itemType: 'system_event',
+            status: 'Completed',
+            startedAtUnixMs: block.startedAtUnixMs ?? block.updatedAtUnixMs ?? null,
+            updatedAtUnixMs: block.updatedAtUnixMs ?? block.startedAtUnixMs ?? null,
+            completedAtUnixMs: block.updatedAtUnixMs ?? block.startedAtUnixMs ?? null,
+            partialText: message,
+            finalText: message,
+            partialMarkdown: null,
+            finalMarkdown: null,
+            item: {
+                type: 'systemEvent',
+                id: itemId,
+                level: event.level,
+                message,
+                code: event.code,
+                details,
+            } as LegacyTurnItem,
+            opaqueMeta: details,
+        });
+        return;
+    }
+
+    if (insertedRunningRows.has(turnId)) {
         return;
     }
 
@@ -340,6 +372,21 @@ const pushTurnStateRow = (
 
 const isRunningTurnState = (state: TurnWorkState): boolean =>
     state === 'starting' || state === 'running' || state === 'stalled';
+
+const terminalTurnStateEvent = (
+    state: TurnWorkState,
+): { level: 'warning' | 'error'; code: string; fallbackMessage: string } | null => {
+    switch (state) {
+        case 'failed':
+            return { level: 'error', code: 'turn_failed', fallbackMessage: 'Turn failed' };
+        case 'interrupted':
+            return { level: 'warning', code: 'turn_cancelled', fallbackMessage: 'Turn cancelled' };
+        case 'blocked':
+            return { level: 'warning', code: 'turn_blocked', fallbackMessage: 'Turn blocked' };
+        default:
+            return null;
+    }
+};
 
 const pushRunningRow = (
     semantic: MutableSemanticProjection,

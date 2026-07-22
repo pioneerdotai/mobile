@@ -140,10 +140,17 @@ const presentationMessage = (
             return permissionAuditMessage(row, t);
         case 'turn_blocked_resumable':
             return row.message;
+        case 'turn_cancelled':
+            return row.message === 'Turn cancelled' ? t('timelineTurnCancelled') : row.message;
         case 'turn_failed':
+            if (row.message === 'Turn failed') {
+                return t('timelineTurnFailed');
+            }
             return isRecoveryFailureMessage(row.message)
                 ? t('timelineRecoveryFailed')
                 : row.message;
+        case 'turn_blocked':
+            return row.message === 'Turn blocked' ? t('timelineTurnBlocked') : row.message;
         default:
             return row.message;
     }

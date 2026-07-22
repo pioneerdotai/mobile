@@ -90,6 +90,62 @@ describe('mobile semantic timeline projector', () => {
         });
     });
 
+    it('collapses terminal work without a final answer and renders the outcome banner', () => {
+        const rows = projectSemanticTimelineToRows({
+            snapshot: snapshot(),
+            blocks: [
+                userBlock('001'),
+                workBlock('002', {
+                    presentation: 'collapsed_after_final',
+                    state: 'failed',
+                    workCount: 50,
+                    visibleWorkCount: 50,
+                }),
+                turnStateBlock('003', 'failed', 'provider disconnected'),
+            ],
+            expandedKeys: [],
+            workRangesByTurn: {},
+            nowMs: 10_000,
+        });
+
+        expect(rows.map((row) => row.type)).toEqual(['user-message', 'work-group', 'system-event']);
+        expect(rows.find((row) => row.type === 'work-group')).toMatchObject({
+            turnId: 'turn_a',
+            expanded: false,
+        });
+        expect(rows.find((row) => row.type === 'system-event')).toMatchObject({
+            turnId: 'turn_a',
+            level: 'error',
+            message: 'provider disconnected',
+            code: 'turn_failed',
+        });
+    });
+
+    it('renders fallback banners for every unsuccessful terminal state', () => {
+        for (const [state, level, code, message] of [
+            ['failed', 'error', 'turn_failed', 'Turn failed'],
+            ['interrupted', 'warning', 'turn_cancelled', 'Turn cancelled'],
+            ['blocked', 'warning', 'turn_blocked', 'Turn blocked'],
+        ] as const) {
+            const rows = projectSemanticTimelineToRows({
+                snapshot: snapshot(),
+                blocks: [turnStateBlock('003', state, null)],
+                expandedKeys: [],
+                workRangesByTurn: {},
+                nowMs: 10_000,
+            });
+
+            expect(rows).toHaveLength(1);
+            expect(rows[0]).toMatchObject({
+                type: 'system-event',
+                turnId: 'turn_a',
+                level,
+                code,
+                message,
+            });
+        }
+    });
+
     it('projects historical skill attachments from the exact skill ID snapshot', () => {
         const block = userBlock('001');
         if (block.kind.kind !== 'user_message') {
