@@ -1,5 +1,6 @@
 /* eslint-disable */
 
+export type SkillPackId = string;
 export type SkillId = string;
 
 export interface SkillsCatalogSnapshot {
@@ -8,6 +9,7 @@ export interface SkillsCatalogSnapshot {
     [k: string]: SkillHealthItem;
   };
   installed: SkillListItem[];
+  management?: SkillManagementProjection;
   [k: string]: unknown;
 }
 export interface SkillListItem {
@@ -17,6 +19,7 @@ export interface SkillListItem {
   health: SkillHealthSummary;
   install: SkillInstallState;
   owner?: string | null;
+  pack?: SkillPackMembership | null;
   policy: SkillPolicyState;
   skill_id: SkillId;
   slug: string;
@@ -63,6 +66,11 @@ export interface SkillInstallState {
   updated_at?: number | null;
   [k: string]: unknown;
 }
+export interface SkillPackMembership {
+  member_key: string;
+  pack_id: SkillPackId;
+  [k: string]: unknown;
+}
 export interface SkillPolicyState {
   allow_implicit_invocation: boolean;
   allow_implicit_invocation_editable?: boolean;
@@ -98,5 +106,24 @@ export interface SkillTrustGateStatus {
   allowed: boolean;
   minimum_trust: string;
   tool_kind: string;
+  [k: string]: unknown;
+}
+export interface SkillManagementProjection {
+  packs: SkillPackManagementRow[];
+  standalone: SkillListItem[];
+  [k: string]: unknown;
+}
+export interface SkillPackManagementRow {
+  attachable: boolean;
+  children: SkillListItem[];
+  pack: SkillPackInstallationItem;
+  [k: string]: unknown;
+}
+export interface SkillPackInstallationItem {
+  created_at: number;
+  id: SkillPackId;
+  name: string;
+  source_kind: string;
+  updated_at: number;
   [k: string]: unknown;
 }

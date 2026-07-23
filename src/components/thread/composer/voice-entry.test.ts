@@ -29,12 +29,27 @@ describe('thread composer primary action', () => {
         { label: 'nothing selected', text: '', attachments: 0, capabilities: 0, payload: false },
         { label: 'an attachment', text: '', attachments: 1, capabilities: 0, payload: true },
         { label: 'a capability', text: '', attachments: 0, capabilities: 1, payload: true },
+        {
+            label: 'a skill selection',
+            text: '',
+            attachments: 0,
+            capabilities: 0,
+            skillSelections: 1,
+            payload: true,
+        },
         { label: 'typed text', text: 'hello', attachments: 0, capabilities: 0, payload: true },
         { label: 'whitespace', text: '   ', attachments: 0, capabilities: 0, payload: false },
     ])(
         'separates empty text from payload for $label',
-        ({ text, attachments, capabilities, payload }) => {
-            expect(resolveThreadComposerDraftPresence(text, attachments, capabilities)).toEqual({
+        ({ text, attachments, capabilities, skillSelections = 0, payload }) => {
+            expect(
+                resolveThreadComposerDraftPresence(
+                    text,
+                    attachments,
+                    capabilities,
+                    skillSelections,
+                ),
+            ).toEqual({
                 composerTextEmpty: text.trim().length === 0,
                 hasComposerPayload: payload,
             });

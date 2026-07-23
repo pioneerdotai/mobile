@@ -29,6 +29,7 @@ import type {
     ComposerAttachment,
     ComposerCapability,
     ComposerPermissionModeOption,
+    ComposerSkillChip,
     TurnPermissionMode,
 } from '@/client';
 import { McpIcon } from '@/components/icons/mcp-icon';
@@ -63,6 +64,7 @@ type ThreadComposerProps = {
     error: string | null;
     attachments: ComposerAttachment[];
     capabilities: ComposerCapability[];
+    skillChips: ComposerSkillChip[];
     attachmentsEnabled: boolean;
     attachmentMenuAccessibilityLabel: string;
     modelSelectionLabel: string;
@@ -83,6 +85,7 @@ type ThreadComposerProps = {
     onOpenPermissionModeSelector: () => void;
     onRemoveAttachment: (index: number) => void;
     onRemoveCapability: (index: number) => void;
+    onRemoveSkillChip: (chip: ComposerSkillChip) => void;
     onHeightChange?: (height: number) => void;
     voiceVisible: boolean;
     voiceEnabled: boolean;
@@ -127,6 +130,7 @@ export const ThreadComposer = ({
     error,
     attachments,
     capabilities,
+    skillChips,
     attachmentsEnabled,
     attachmentMenuAccessibilityLabel,
     modelSelectionLabel,
@@ -147,6 +151,7 @@ export const ThreadComposer = ({
     onOpenPermissionModeSelector,
     onRemoveAttachment,
     onRemoveCapability,
+    onRemoveSkillChip,
     onHeightChange,
     voiceVisible,
     voiceEnabled,
@@ -174,6 +179,7 @@ export const ThreadComposer = ({
         value,
         attachments.length,
         capabilities.length,
+        skillChips.length,
     );
     const canSubmit = hasComposerPayload && canSend && !disabled && !sending;
     const { primaryAction, actionDisabled, actionLoading, activeVoiceMode, voiceModeDisabled } =
@@ -198,7 +204,9 @@ export const ThreadComposer = ({
     const actionDimmed = actionDisabled && !voiceProcessing;
     const actionLabel = actionIsStop ? stopLabel : actionIsVoice ? voiceMicrophoneLabel : sendLabel;
     const actionColor = rt.themeName === 'dark' ? theme.colors.neutral[950] : theme.colors.white;
-    const hasChips = attachmentsEnabled && (attachments.length > 0 || capabilities.length > 0);
+    const hasChips =
+        attachmentsEnabled &&
+        (attachments.length > 0 || capabilities.length > 0 || skillChips.length > 0);
     const steerDisabled = !canSteerTurn || disabled || steering;
     const permissionSelectionDisabled = disabled || sending || hasInFlightTurn;
     const voiceActive = voiceGesture !== 'idle';
@@ -399,9 +407,11 @@ export const ThreadComposer = ({
                         <ComposerChipRail
                             attachments={attachments}
                             capabilities={capabilities}
+                            skillChips={skillChips}
                             disabled={disabled || sending}
                             onRemoveAttachment={onRemoveAttachment}
                             onRemoveCapability={onRemoveCapability}
+                            onRemoveSkillChip={onRemoveSkillChip}
                         />
                     ) : null}
                     <VStack style={styles.inputRow}>
@@ -634,17 +644,21 @@ const PermissionModeIcon = ({
 type ComposerChipRailProps = {
     attachments: ComposerAttachment[];
     capabilities: ComposerCapability[];
+    skillChips: ComposerSkillChip[];
     disabled: boolean;
     onRemoveAttachment: (index: number) => void;
     onRemoveCapability: (index: number) => void;
+    onRemoveSkillChip: (chip: ComposerSkillChip) => void;
 };
 
 const ComposerChipRail = ({
     attachments,
     capabilities,
+    skillChips,
     disabled,
     onRemoveAttachment,
     onRemoveCapability,
+    onRemoveSkillChip,
 }: ComposerChipRailProps) => {
     return (
         <ScrollView
@@ -668,6 +682,14 @@ const ComposerChipRail = ({
                     capability={capability}
                     disabled={disabled}
                     onRemove={() => onRemoveCapability(index)}
+                />
+            ))}
+            {skillChips.map((chip) => (
+                <ComposerSkillSelectionChip
+                    key={chip.key}
+                    chip={chip}
+                    disabled={disabled}
+                    onRemove={() => onRemoveSkillChip(chip)}
                 />
             ))}
         </ScrollView>
@@ -748,6 +770,37 @@ const ComposerCapabilityChip = ({
             </Box>
             <Text numberOfLines={1} style={styles.chipText}>
                 {capability.label}
+            </Text>
+            <Pressable
+                accessibilityRole="button"
+                disabled={disabled}
+                onPress={onRemove}
+                style={styles.chipRemoveButton}
+            >
+                <X size={theme.space(3.5)} color={theme.colors.textMuted} />
+            </Pressable>
+        </HStack>
+    );
+};
+
+const ComposerSkillSelectionChip = ({
+    chip,
+    disabled,
+    onRemove,
+}: {
+    chip: ComposerSkillChip;
+    disabled: boolean;
+    onRemove: () => void;
+}) => {
+    const { theme } = useUnistyles();
+
+    return (
+        <HStack style={styles.chip}>
+            <Box style={styles.chipIconWrap}>
+                <Zap size={theme.space(3.5)} color={theme.colors.typography} />
+            </Box>
+            <Text numberOfLines={1} style={styles.chipText}>
+                {chip.label}
             </Text>
             <Pressable
                 accessibilityRole="button"

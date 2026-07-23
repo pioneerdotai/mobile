@@ -146,12 +146,33 @@ describe('mobile semantic timeline projector', () => {
         }
     });
 
-    it('projects historical skill attachments from the exact skill ID snapshot', () => {
+    it('projects standalone, full-pack, and partial historical snapshots without live catalog data', () => {
         const block = userBlock('001');
         if (block.kind.kind !== 'user_message') {
             throw new Error('expected user-message fixture');
         }
         block.kind.attachments = [
+            {
+                type: 'skillPack',
+                capability: {
+                    packId: 'PPPPPPPPPPPPPPPPPPPPP',
+                    label: 'Research Pack',
+                },
+            },
+            {
+                type: 'skill',
+                capability: {
+                    skillId: 'SSSSSSSSSSSSSSSSSSSSS',
+                    owner: 'alex',
+                    slug: 'search',
+                    sourceKind: 'user',
+                    label: 'alex/search',
+                    pack: {
+                        packId: 'PPPPPPPPPPPPPPPPPPPPP',
+                        label: 'Research Pack',
+                    },
+                },
+            },
             {
                 type: 'skill',
                 capability: {
@@ -174,6 +195,16 @@ describe('mobile semantic timeline projector', () => {
 
         expect(rows.find((row) => row.type === 'user-message')).toMatchObject({
             attachments: [
+                {
+                    id: 'skill-pack:PPPPPPPPPPPPPPPPPPPPP',
+                    label: 'Research Pack',
+                    kind: 'skill',
+                },
+                {
+                    id: 'skill:SSSSSSSSSSSSSSSSSSSSS',
+                    label: 'Research Pack / alex/search',
+                    kind: 'skill',
+                },
                 {
                     id: 'skill:HHHHHHHHHHHHHHHHHHHHH',
                     label: 'alex/humanizer',

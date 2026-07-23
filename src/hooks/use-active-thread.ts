@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useShallow } from 'zustand/react/shallow';
 
-import type { Thread } from '@/client';
+import type { ComposerSkillPickerProjection, Thread } from '@/client';
 import {
     activeThreadSnapshot,
     applyActiveThreadEvent,
@@ -13,11 +13,16 @@ import {
     sendActiveThreadText,
 } from '@/services/threads/active';
 import { selectedReasoningEffortRequestFields } from '@/services/threads/reasoning-effort';
+import { skillSelectionRequestFields } from '@/services/threads/skill-selection-request';
 import {
     invalidateTimelineQueriesForActiveThreadEvent,
     isActiveThreadTimelineEvent,
 } from '@/services/threads/live-timeline-events';
-import { invalidateTimelineQueriesForThread } from '@/services/threads/timeline-query';
+import {
+    invalidateTimelineQueriesForThread,
+    invalidateTurnWorkQueries,
+} from '@/services/threads/timeline-query';
+import { reconcileTurnWorkItemsForEvent } from '@/services/threads/turn-work-reconciliation';
 import { composerSubmissionPlanForProvider } from '@/services/providers/cli-runtime';
 import { useActiveThreadStore } from '@/stores/active-thread';
 import { useGatewayStore } from '@/stores/gateway';
@@ -52,6 +57,7 @@ export const useActiveThread = (
         composerError,
         composerAttachments,
         composerCapabilities,
+        composerSkillSelections,
         composerSelectedMode,
         composerSelectedProvider,
         composerCapabilityTarget,
@@ -69,6 +75,7 @@ export const useActiveThread = (
         setComposerError,
         setComposerAttachments,
         setComposerCapabilities,
+        setComposerSkillSelections,
         markComposerAttachmentsUploading,
         markComposerAttachmentsFailed,
         clearComposerPayload,
@@ -83,6 +90,7 @@ export const useActiveThread = (
             composerError: state.composerError,
             composerAttachments: state.composerAttachments,
             composerCapabilities: state.composerCapabilities,
+            composerSkillSelections: state.composerSkillSelections,
             composerSelectedMode: state.composerSelectedMode,
             composerSelectedProvider: state.composerSelectedProvider,
             composerCapabilityTarget: state.composerCapabilityTarget,
@@ -100,6 +108,7 @@ export const useActiveThread = (
             setComposerError: state.setComposerError,
             setComposerAttachments: state.setComposerAttachments,
             setComposerCapabilities: state.setComposerCapabilities,
+            setComposerSkillSelections: state.setComposerSkillSelections,
             markComposerAttachmentsUploading: state.markComposerAttachmentsUploading,
             markComposerAttachmentsFailed: state.markComposerAttachmentsFailed,
             clearComposerPayload: state.clearComposerPayload,
@@ -302,6 +311,39 @@ export const useActiveThread = (
                         result.snapshot.thread_id,
                     );
                     setSnapshot(result.snapshot);
+
+                    void reconcileTurnWorkItemsForEvent(queryClient, event)
+                        .then((changed) => {
+                            if (
+                                !changed ||
+                                useGatewayStore.getState().connectionId !== connectionId ||
+                                activeThreadIdRef.current !== subscribedThreadId
+                            ) {
+                                return;
+                            }
+
+                            const nextSnapshot = activeThreadSnapshot({
+                                expanded_keys: useActiveThreadStore.getState().expandedKeys,
+                            });
+                            if (nextSnapshot.thread_id === subscribedThreadId) {
+                                setSnapshot(nextSnapshot);
+                            }
+                        })
+                        .catch(() => {
+                            if (
+                                useGatewayStore.getState().connectionId !== connectionId ||
+                                activeThreadIdRef.current !== subscribedThreadId ||
+                                event.GatewayNotification.kind !== 'turn_work_items_changed'
+                            ) {
+                                return;
+                            }
+
+                            void invalidateTurnWorkQueries(
+                                queryClient,
+                                event.GatewayNotification.params.threadId,
+                                event.GatewayNotification.params.turnId,
+                            );
+                        });
                 })
                 .catch((caught) => {
                     if (
@@ -332,7 +374,7 @@ export const useActiveThread = (
     );
 
     const sendText = useCallback(
-        async (text: string): Promise<boolean> => {
+        async (text: string, skillPicker: ComposerSkillPickerProjection): Promise<boolean> => {
             const normalizedText = text.trim();
             if (!active) {
                 return false;
@@ -363,7 +405,8 @@ export const useActiveThread = (
                 (!thread && !workspaceId) ||
                 !connected ||
                 connectionId === null ||
-                !submissionPlan.has_composer_payload
+                (!submissionPlan.has_composer_payload &&
+                    storeState.composerSkillSelections.length === 0)
             ) {
                 return false;
             }
@@ -418,6 +461,7 @@ export const useActiveThread = (
                     permission_mode: storeState.composerSelectedPermissionMode,
                     attachments: attachmentsForSend,
                     capabilities: submissionPlan.capabilities,
+                    ...skillSelectionRequestFields(storeState.composerSkillSelections, skillPicker),
                     expanded_keys: useActiveThreadStore.getState().expandedKeys,
                 });
 
@@ -589,6 +633,7 @@ export const useActiveThread = (
             composerText,
             composerAttachments,
             composerCapabilities,
+            composerSkillSelections,
             composerSelectedMode,
             connected,
             canSend,
@@ -607,6 +652,7 @@ export const useActiveThread = (
             setComposerText,
             setComposerAttachments,
             setComposerCapabilities,
+            setComposerSkillSelections,
             setExpandedKeys: updateExpandedKeys,
         }),
         [
@@ -616,6 +662,7 @@ export const useActiveThread = (
             composerText,
             composerAttachments,
             composerCapabilities,
+            composerSkillSelections,
             composerModelManuallySelected,
             composerSelectedMode,
             composerSelectedModel,
@@ -635,6 +682,7 @@ export const useActiveThread = (
             setComposerText,
             setComposerAttachments,
             setComposerCapabilities,
+            setComposerSkillSelections,
             snapshot,
             turnActionLoading,
             updateExpandedKeys,

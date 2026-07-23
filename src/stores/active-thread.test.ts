@@ -50,7 +50,7 @@ const reduceDomainForStoreAdapterTest = (
 ): ComposerDomainState => {
     if (typeof action === 'string') {
         if (action === 'ClearPayload') {
-            return { ...state, attachments: [], capabilities: [] };
+            return { ...state, attachments: [], capabilities: [], skill_selections: [] };
         }
         if (action === 'ClearReasoningEffort') {
             return { ...state, selected_reasoning_effort: null };
@@ -117,6 +117,9 @@ const reduceDomainForStoreAdapterTest = (
     }
     if ('SetCapabilities' in action) {
         return { ...state, capabilities: action.SetCapabilities.capabilities };
+    }
+    if ('SetSkillSelections' in action) {
+        return { ...state, skill_selections: action.SetSkillSelections.selections };
     }
     if ('AddCapability' in action) {
         const capabilities = state.capabilities ?? [];
@@ -556,6 +559,32 @@ describe('active thread keyed composer drafts', () => {
         expect(
             useActiveThreadStore.getState().composerCapabilities.map((capability) => capability.id),
         ).toEqual(['skill:AAAAAAAAAAAAAAAAAAAAA', 'skill:BBBBBBBBBBBBBBBBBBBBB']);
+    });
+
+    it('preserves pack-aware skill selections in keyed drafts and clears them after send', () => {
+        const packSelection = {
+            kind: 'skill_pack' as const,
+            pack_id: 'PPPPPPPPPPPPPPPPPPPPP',
+        };
+        const childSelection = {
+            kind: 'skill' as const,
+            skill_id: 'SSSSSSSSSSSSSSSSSSSSS',
+            pack_id: 'QQQQQQQQQQQQQQQQQQQQQ',
+        };
+
+        useActiveThreadStore.getState().activateComposerThread('thread-a');
+        useActiveThreadStore.getState().setComposerSkillSelections([packSelection, childSelection]);
+        useActiveThreadStore.getState().activateComposerThread('thread-b');
+        useActiveThreadStore.getState().activateComposerThread('thread-a');
+
+        expect(useActiveThreadStore.getState().composerSkillSelections).toEqual([
+            packSelection,
+            childSelection,
+        ]);
+
+        useActiveThreadStore.getState().clearComposerPayload();
+
+        expect(useActiveThreadStore.getState().composerSkillSelections).toEqual([]);
     });
 
     it('clears only the active thread payload after send', () => {

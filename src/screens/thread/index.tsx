@@ -13,6 +13,9 @@ import {
     pioneerClient,
     type ClientActiveThreadSnapshot,
     type CLIRuntimeThreadBinding,
+    type ComposerSkillChip,
+    type ComposerSkillPickerProjection,
+    type ComposerSkillSelection,
     type GatewaySettingsGetResponse,
     type VoiceSessionStartContext,
     type Thread,
@@ -59,6 +62,7 @@ import { projectConversationToRows } from '@/services/threads/conversation/proje
 import { activeThreadSnapshot } from '@/services/threads/active';
 import { seedEmptyThreadTimelineCache } from '@/services/threads/semantic-cache-patch';
 import { selectedReasoningEffortRequestFields } from '@/services/threads/reasoning-effort';
+import { skillSelectionRequestFields } from '@/services/threads/skill-selection-request';
 import type { TimelinePendingRequest, TimelineRow } from '@/services/threads/conversation/timeline';
 import {
     MobileVoiceCaptureError,
@@ -84,6 +88,7 @@ type ThreadScreenProps = {
 const THREAD_COMPOSER_INPUT_NATIVE_ID = 'thread-composer-input';
 const STICKY_KEYBOARD_OFFSET_CLOSED = 0;
 const EMPTY_MCP_SERVER_ID_BY_NAME: Readonly<Record<string, string>> = {};
+const EMPTY_SKILL_PICKER: ComposerSkillPickerProjection = { packs: [], standalone: [] };
 const SEMANTIC_TURN_WORK_GROUP_PREFIX = 'semantic-turn-work-group::';
 const EMPTY_SEMANTIC_WORK_RANGES: Readonly<Record<string, SemanticTurnWorkRange>> = {};
 const VOICE_TURN_ID_LEN = 21;
@@ -180,6 +185,7 @@ const ThreadScreen = ({
         composerText,
         composerAttachments,
         composerCapabilities,
+        composerSkillSelections,
         connected,
         canSend,
         hasInFlightTurn,
@@ -195,6 +201,7 @@ const ThreadScreen = ({
         sendText,
         stopTurn,
         setComposerText,
+        setComposerSkillSelections,
         setExpandedKeys,
     } = useActiveThread(activeThread, activeWorkspaceId, focused, threadId);
 
@@ -228,6 +235,44 @@ const ThreadScreen = ({
                 composerCapabilities,
             ),
         [composerAttachments.length, composerCapabilities, composerSelectedProvider, composerText],
+    );
+    const [composerSkillPicker, setComposerSkillPicker] =
+        useState<ComposerSkillPickerProjection>(EMPTY_SKILL_PICKER);
+    useEffect(() => {
+        let cancelled = false;
+
+        if (!focused || !connected || !activeWorkspaceId) {
+            return () => {
+                cancelled = true;
+            };
+        }
+
+        void pioneerClient
+            .composerSkillPackPicker({ workspace_id: activeWorkspaceId, query: '' })
+            .then((picker) => {
+                if (!cancelled) {
+                    setComposerSkillPicker(picker);
+                }
+            })
+            .catch(() => {
+                if (!cancelled) {
+                    setComposerSkillPicker(EMPTY_SKILL_PICKER);
+                }
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [activeWorkspaceId, connected, focused]);
+    const activeComposerSkillPicker =
+        focused && connected && activeWorkspaceId ? composerSkillPicker : EMPTY_SKILL_PICKER;
+    const composerSkillChips = useMemo(
+        () =>
+            pioneerClient.composerSkillChips({
+                selections: composerSkillSelections,
+                picker: activeComposerSkillPicker,
+            }),
+        [activeComposerSkillPicker, composerSkillSelections],
     );
     const timelineRef = useRef<LegendListRef>(null);
     const composerRef = useRef<View>(null);
@@ -589,7 +634,8 @@ const ThreadScreen = ({
         visibleTurnId &&
         composerText.trim().length > 0 &&
         composerAttachments.length === 0 &&
-        composerCapabilities.length === 0,
+        composerCapabilities.length === 0 &&
+        composerSkillSelections.length === 0,
     );
 
     useFocusEffect(
@@ -764,17 +810,22 @@ const ThreadScreen = ({
     );
 
     const handleSend = useCallback(() => {
-        if (!renderedComposerSubmissionPlan.has_composer_payload) {
+        if (
+            !renderedComposerSubmissionPlan.has_composer_payload &&
+            composerSkillSelections.length === 0
+        ) {
             return;
         }
 
-        void sendText(composerText).then((sent) => {
+        void sendText(composerText, activeComposerSkillPicker).then((sent) => {
             if (sent) {
                 setComposerText('');
             }
         });
     }, [
         composerText,
+        activeComposerSkillPicker,
+        composerSkillSelections.length,
         renderedComposerSubmissionPlan.has_composer_payload,
         sendText,
         setComposerText,
@@ -844,6 +895,10 @@ const ThreadScreen = ({
                     permission_mode: composerSelectedPermissionMode,
                     attachments: attachmentsForVoice,
                     capabilities: submissionPlan.capabilities,
+                    ...skillSelectionRequestFields(
+                        storeState.composerSkillSelections,
+                        activeComposerSkillPicker,
+                    ),
                 });
 
                 applyUploadedComposerAttachments(snapshot.uploaded_attachment_artifacts);
@@ -859,6 +914,7 @@ const ThreadScreen = ({
         },
         [
             applyUploadedComposerAttachments,
+            activeComposerSkillPicker,
             composerSelectedMode,
             composerSelectedPermissionMode,
             markComposerAttachmentsFailed,
@@ -1182,6 +1238,32 @@ const ThreadScreen = ({
         [removeComposerCapability, renderedComposerSubmissionPlan.capabilities],
     );
 
+    const removeSkillChip = useCallback(
+        (chip: ComposerSkillChip) => {
+            let selection: ComposerSkillSelection | null = null;
+            if (chip.kind === 'skill_pack' && chip.pack_id) {
+                selection = { kind: 'skill_pack', pack_id: chip.pack_id };
+            } else if (chip.skill_id) {
+                selection = {
+                    kind: 'skill',
+                    skill_id: chip.skill_id,
+                    pack_id: chip.kind === 'packed_skill' ? (chip.pack_id ?? null) : null,
+                };
+            }
+            if (!selection) {
+                return;
+            }
+
+            const result = pioneerClient.composerSkillSelectionToggle({
+                selections: useActiveThreadStore.getState().composerSkillSelections,
+                picker: activeComposerSkillPicker,
+                selection,
+            });
+            setComposerSkillSelections(result.selections);
+        },
+        [activeComposerSkillPicker, setComposerSkillSelections],
+    );
+
     useFocusEffect(
         useCallback(() => {
             let cancelled = false;
@@ -1423,6 +1505,7 @@ const ThreadScreen = ({
                                 error={composerError}
                                 attachments={composerAttachments}
                                 capabilities={renderedComposerSubmissionPlan.capabilities}
+                                skillChips={composerSkillChips}
                                 attachmentsEnabled
                                 attachmentMenuAccessibilityLabel={t('composerAttachmentMenuTitle')}
                                 modelSelectionLabel={modelSelectionLabel}
@@ -1452,6 +1535,7 @@ const ThreadScreen = ({
                                 onOpenPermissionModeSelector={openPermissionModeSelector}
                                 onRemoveAttachment={removeAttachment}
                                 onRemoveCapability={removeCapability}
+                                onRemoveSkillChip={removeSkillChip}
                                 onSend={handleSend}
                                 onSteerTurn={handleSteerTurn}
                                 onStopTurn={handleStopTurn}

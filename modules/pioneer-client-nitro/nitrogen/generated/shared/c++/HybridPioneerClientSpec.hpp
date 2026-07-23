@@ -96,6 +96,9 @@ namespace margelo::nitro::pioneer::client {
       virtual std::string composerAttachmentsUpdateJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> composerSkillPickerRowsJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> composerMcpPickerRowsJson(const std::string& inputJson) = 0;
+      virtual std::shared_ptr<Promise<std::string>> composerSkillPackPickerJson(const std::string& inputJson) = 0;
+      virtual std::string composerSkillSelectionToggleJson(const std::string& inputJson) = 0;
+      virtual std::string composerSkillChipsJson(const std::string& inputJson) = 0;
       virtual std::string composerCapabilitiesUpdateJson(const std::string& inputJson) = 0;
       virtual std::string composerCapabilityTargetJson(const std::string& inputJson) = 0;
       virtual std::string composerCapabilityMenuVisibilityJson(const std::string& inputJson) = 0;
@@ -113,6 +116,7 @@ namespace margelo::nitro::pioneer::client {
       virtual std::string threadTreeLevelJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> threadTimelinePageJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> turnWorkPageJson(const std::string& inputJson) = 0;
+      virtual std::shared_ptr<Promise<std::string>> turnWorkItemsGetJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> agentsDocGetJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> agentsDocSaveJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> agentsDocArchiveJson(const std::string& inputJson) = 0;

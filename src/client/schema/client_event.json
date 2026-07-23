@@ -5375,6 +5375,39 @@
       "minLength": 21,
       "pattern": "^[A-Za-z0-9]{21}$"
     },
+    "SkillPackChangedItem": {
+      "type": "object",
+      "properties": {
+        "change_type": {
+          "type": "string"
+        },
+        "name_after": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "name_before": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "pack_id": {
+          "$ref": "#/$defs/SkillPackId"
+        }
+      },
+      "required": [
+        "pack_id",
+        "change_type"
+      ]
+    },
+    "SkillPackId": {
+      "type": "string",
+      "maxLength": 21,
+      "minLength": 21,
+      "pattern": "^[A-Za-z0-9]{21}$"
+    },
     "SkillsChangedNotification": {
       "type": "object",
       "properties": {
@@ -5388,6 +5421,13 @@
         "created_at": {
           "type": "integer",
           "format": "int64"
+        },
+        "pack_changes": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/SkillPackChangedItem"
+          }
         },
         "reason": {
           "type": "string"
@@ -11346,6 +11386,16 @@
             "null"
           ]
         },
+        "pack": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TurnSkillPackPresentationSummary"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "skillId": {
           "$ref": "#/$defs/SkillId"
         },
@@ -11361,6 +11411,36 @@
         "label",
         "slug",
         "sourceKind"
+      ]
+    },
+    "TurnSkillPackCapabilitySummary": {
+      "type": "object",
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "packId": {
+          "$ref": "#/$defs/SkillPackId"
+        }
+      },
+      "required": [
+        "packId",
+        "label"
+      ]
+    },
+    "TurnSkillPackPresentationSummary": {
+      "type": "object",
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "packId": {
+          "$ref": "#/$defs/SkillPackId"
+        }
+      },
+      "required": [
+        "packId",
+        "label"
       ]
     },
     "TurnStartedNotification": {
@@ -11613,8 +11693,18 @@
     "TurnWorkStateChangedNotification": {
       "type": "object",
       "properties": {
+        "projectionUpdatedAtUnixMicros": {
+          "type": "integer",
+          "format": "int64",
+          "default": 0
+        },
         "reason": {
           "$ref": "#/$defs/TimelineChangeReason"
+        },
+        "sourceHighWatermark": {
+          "type": "integer",
+          "format": "int64",
+          "default": 0
         },
         "threadId": {
           "type": "string"
@@ -11829,6 +11919,22 @@
             "type": {
               "type": "string",
               "const": "skill"
+            }
+          },
+          "required": [
+            "type",
+            "capability"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "capability": {
+              "$ref": "#/$defs/TurnSkillPackCapabilitySummary"
+            },
+            "type": {
+              "type": "string",
+              "const": "skillPack"
             }
           },
           "required": [

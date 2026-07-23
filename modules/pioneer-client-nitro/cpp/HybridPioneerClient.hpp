@@ -118,6 +118,10 @@ public:
       const std::string& inputJson) override;
   std::shared_ptr<margelo::nitro::Promise<std::string>> composerMcpPickerRowsJson(
       const std::string& inputJson) override;
+  std::shared_ptr<margelo::nitro::Promise<std::string>> composerSkillPackPickerJson(
+      const std::string& inputJson) override;
+  std::string composerSkillSelectionToggleJson(const std::string& inputJson) override;
+  std::string composerSkillChipsJson(const std::string& inputJson) override;
   std::string composerCapabilitiesUpdateJson(const std::string& inputJson) override;
   std::string composerCapabilityTargetJson(const std::string& inputJson) override;
   std::string composerCapabilityMenuVisibilityJson(const std::string& inputJson) override;
@@ -137,6 +141,8 @@ public:
   std::shared_ptr<margelo::nitro::Promise<std::string>> threadTimelinePageJson(
       const std::string& inputJson) override;
   std::shared_ptr<margelo::nitro::Promise<std::string>> turnWorkPageJson(
+      const std::string& inputJson) override;
+  std::shared_ptr<margelo::nitro::Promise<std::string>> turnWorkItemsGetJson(
       const std::string& inputJson) override;
   std::shared_ptr<margelo::nitro::Promise<std::string>> agentsDocGetJson(
       const std::string& inputJson) override;

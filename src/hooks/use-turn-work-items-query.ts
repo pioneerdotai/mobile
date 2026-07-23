@@ -13,12 +13,17 @@ import {
     type TurnWorkPageResponse,
 } from '@/client';
 import { requestTurnWorkPage } from '@/services/threads/timeline-page-requests';
-import { protocolKeyCompare } from '@/services/threads/protocol-key-order';
 import {
     DEFAULT_TURN_WORK_PAGE_LIMIT,
     TIMELINE_FFI_ERROR_CODES,
     timelineQueryKeys,
 } from '@/services/threads/timeline-query';
+import {
+    flattenTurnWorkItems as mergeTurnWorkItems,
+    latestTurnWorkBlock,
+    mergeTurnWorkInfiniteData,
+    type TurnWorkInfiniteData,
+} from '@/services/threads/turn-work-cache';
 
 const NEWEST_WORK_ANCHOR: TimelinePageAnchor = { kind: 'newest' };
 
@@ -115,11 +120,16 @@ export const useTurnWorkItemsQuery = ({
 
             return { kind: 'after', cursor: firstPage.page.afterCursor };
         },
+        structuralSharing: (existing, incoming) =>
+            mergeTurnWorkInfiniteData(
+                existing as TurnWorkInfiniteData | undefined,
+                incoming as TurnWorkInfiniteData,
+            ),
     });
 
     const pages = useMemo(() => query.data?.pages ?? [], [query.data?.pages]);
     const items = useMemo(() => flattenTurnWorkItems(pages), [pages]);
-    const latestWork = pages.at(-1)?.work ?? work ?? null;
+    const latestWork = latestTurnWorkBlock(pages, work ?? null);
 
     const {
         fetchNextPage,
@@ -145,19 +155,7 @@ export const useTurnWorkItemsQuery = ({
 };
 
 export const flattenTurnWorkItems = (pages: readonly TurnWorkPageResponse[]): TurnWorkItem[] => {
-    const itemsById = new Map<string, TurnWorkItem>();
-
-    for (const page of pages) {
-        for (const item of page.items ?? []) {
-            itemsById.set(item.workItemId, item);
-        }
-    }
-
-    return Array.from(itemsById.values()).sort(
-        (left, right) =>
-            protocolKeyCompare(left.orderKey, right.orderKey) ||
-            protocolKeyCompare(left.workItemId, right.workItemId),
-    );
+    return mergeTurnWorkItems(pages);
 };
 
 const throwIfTimelineQueryAborted = (signal: AbortSignal) => {

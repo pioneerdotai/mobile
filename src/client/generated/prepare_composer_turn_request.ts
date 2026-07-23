@@ -61,11 +61,34 @@ export type ComposerCapabilityKind =
 export type SkillId = string;
 export type McpScopeKind = 'workspace' | 'user';
 export type GatewayEndpointKind = 'local' | 'remote';
+export type SkillPackId = string;
+export type SkillCapabilityUnavailableReason =
+  | 'DisabledByPolicy'
+  | {
+      Inactive: {
+        status_reason?: string | null;
+        [k: string]: unknown;
+      };
+    };
+export type ComposerSkillSelection =
+  | {
+      kind: 'skill';
+      pack_id?: SkillPackId | null;
+      skill_id: SkillId;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'skill_pack';
+      pack_id: SkillPackId;
+      [k: string]: unknown;
+    };
 
 export interface PrepareComposerTurnRequest {
   attachments: ComposerAttachment[];
   capabilities: ComposerCapability[];
   endpoint_kind?: GatewayEndpointKind | null;
+  skill_picker?: ComposerSkillPickerProjection;
+  skill_selections?: ComposerSkillSelection[];
   text: string;
   thread_id: string;
   turn_id: string;
@@ -106,5 +129,37 @@ export interface ComposerCapability {
   id: string;
   kind: ComposerCapabilityKind;
   label: string;
+  [k: string]: unknown;
+}
+export interface ComposerSkillPickerProjection {
+  packs: SelectableSkillPackCapability[];
+  standalone: SelectableSkillCapability[];
+  [k: string]: unknown;
+}
+export interface SelectableSkillPackCapability {
+  children: SelectablePackedSkillCapability[];
+  key: string;
+  label: string;
+  pack_id: SkillPackId;
+  selectable: boolean;
+  [k: string]: unknown;
+}
+export interface SelectablePackedSkillCapability {
+  member_key: string;
+  pack_id: SkillPackId;
+  skill: SelectableSkillCapability;
+  [k: string]: unknown;
+}
+export interface SelectableSkillCapability {
+  description: string;
+  display_name: string;
+  key: string;
+  label: string;
+  owner?: string | null;
+  selectable: boolean;
+  skill_id: SkillId;
+  slug: string;
+  source_kind: string;
+  unavailable_reason?: SkillCapabilityUnavailableReason | null;
   [k: string]: unknown;
 }

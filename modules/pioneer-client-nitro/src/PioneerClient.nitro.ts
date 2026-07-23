@@ -47,6 +47,9 @@ export interface PioneerClient extends HybridObject<{ ios: 'c++'; android: 'c++'
     composerAttachmentsUpdateJson(inputJson: string): string;
     composerSkillPickerRowsJson(inputJson: string): Promise<string>;
     composerMcpPickerRowsJson(inputJson: string): Promise<string>;
+    composerSkillPackPickerJson(inputJson: string): Promise<string>;
+    composerSkillSelectionToggleJson(inputJson: string): string;
+    composerSkillChipsJson(inputJson: string): string;
     composerCapabilitiesUpdateJson(inputJson: string): string;
     composerCapabilityTargetJson(inputJson: string): string;
     composerCapabilityMenuVisibilityJson(inputJson: string): string;
@@ -64,6 +67,7 @@ export interface PioneerClient extends HybridObject<{ ios: 'c++'; android: 'c++'
     threadTreeLevelJson(inputJson: string): string;
     threadTimelinePageJson(inputJson: string): Promise<string>;
     turnWorkPageJson(inputJson: string): Promise<string>;
+    turnWorkItemsGetJson(inputJson: string): Promise<string>;
     agentsDocGetJson(inputJson: string): Promise<string>;
     agentsDocSaveJson(inputJson: string): Promise<string>;
     agentsDocArchiveJson(inputJson: string): Promise<string>;

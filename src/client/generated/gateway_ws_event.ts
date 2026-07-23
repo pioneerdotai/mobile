@@ -805,6 +805,11 @@ export type UserMessageAttachment =
       [k: string]: unknown;
     }
   | {
+      capability: TurnSkillPackCapabilitySummary;
+      type: 'skillPack';
+      [k: string]: unknown;
+    }
+  | {
       capability: TurnMcpServerCapabilitySummary;
       type: 'mcpServer';
       [k: string]: unknown;
@@ -832,6 +837,7 @@ export type ArtifactKind =
 export type ArtifactProjectionKind = 'plain_text' | 'thumbnail' | 'json_summary' | 'pdf_text';
 export type ArtifactProjectionStatus = 'pending' | 'ready' | 'failed' | 'stale';
 export type ArtifactStatus = 'ready' | 'pending' | 'quarantined' | 'deleted' | 'missing_external_source' | 'failed';
+export type SkillPackId = string;
 export type SkillId = string;
 export type McpScopeKind = 'workspace' | 'user';
 export type MarkdownBlock =
@@ -1753,7 +1759,9 @@ export interface TurnWorkItemsChangedNotification {
   [k: string]: unknown;
 }
 export interface TurnWorkStateChangedNotification {
+  projectionUpdatedAtUnixMicros?: number;
   reason: TimelineChangeReason;
+  sourceHighWatermark?: number;
   threadId: string;
   turnId: string;
   work: TurnWorkBlock;
@@ -1912,9 +1920,20 @@ export interface ArtifactPreviewRef {
 export interface TurnSkillCapabilitySummary {
   label: string;
   owner?: string | null;
+  pack?: TurnSkillPackPresentationSummary | null;
   skillId: SkillId;
   slug: string;
   sourceKind: string;
+  [k: string]: unknown;
+}
+export interface TurnSkillPackPresentationSummary {
+  label: string;
+  packId: SkillPackId;
+  [k: string]: unknown;
+}
+export interface TurnSkillPackCapabilitySummary {
+  label: string;
+  packId: SkillPackId;
   [k: string]: unknown;
 }
 export interface TurnMcpServerCapabilitySummary {
@@ -2215,6 +2234,7 @@ export interface ContextCompressedNotification {
 export interface SkillsChangedNotification {
   changes?: SkillChangedItem[];
   created_at: number;
+  pack_changes?: SkillPackChangedItem[];
   reason: string;
   snapshot_version: number;
   workspace_id: string;
@@ -2228,6 +2248,13 @@ export interface SkillChangedItem {
   skill_id: SkillId;
   slug: string;
   source_kind: string;
+  [k: string]: unknown;
+}
+export interface SkillPackChangedItem {
+  change_type: string;
+  name_after?: string | null;
+  name_before?: string | null;
+  pack_id: SkillPackId;
   [k: string]: unknown;
 }
 export interface SkillsUploadChunkAckNotification {

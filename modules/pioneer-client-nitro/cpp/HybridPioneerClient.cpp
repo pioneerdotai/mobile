@@ -297,6 +297,20 @@ HybridPioneerClient::composerMcpPickerRowsJson(const std::string& inputJson) {
   return callWithClientAsync(pioneer_client_ffi_composer_mcp_picker_rows, inputJson);
 }
 
+std::shared_ptr<margelo::nitro::Promise<std::string>>
+HybridPioneerClient::composerSkillPackPickerJson(const std::string& inputJson) {
+  return callWithClientAsync(pioneer_client_ffi_composer_skill_pack_picker, inputJson);
+}
+
+std::string HybridPioneerClient::composerSkillSelectionToggleJson(
+    const std::string& inputJson) {
+  return callWithClient(pioneer_client_ffi_composer_skill_selection_toggle, inputJson);
+}
+
+std::string HybridPioneerClient::composerSkillChipsJson(const std::string& inputJson) {
+  return callWithClient(pioneer_client_ffi_composer_skill_chips, inputJson);
+}
+
 std::string HybridPioneerClient::composerCapabilitiesUpdateJson(const std::string& inputJson) {
   return callWithClient(pioneer_client_ffi_composer_capabilities_update, inputJson);
 }
@@ -367,6 +381,11 @@ HybridPioneerClient::threadTimelinePageJson(const std::string& inputJson) {
 std::shared_ptr<margelo::nitro::Promise<std::string>>
 HybridPioneerClient::turnWorkPageJson(const std::string& inputJson) {
   return callWithClientAsync(pioneer_client_ffi_turn_work_page, inputJson);
+}
+
+std::shared_ptr<margelo::nitro::Promise<std::string>>
+HybridPioneerClient::turnWorkItemsGetJson(const std::string& inputJson) {
+  return callWithClientAsync(pioneer_client_ffi_turn_work_items_get, inputJson);
 }
 
 std::shared_ptr<margelo::nitro::Promise<std::string>>

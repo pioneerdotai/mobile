@@ -73,7 +73,7 @@ describe('active thread live timeline events', () => {
         await invalidateTimelineQueriesForActiveThreadEvent(queryClient, event, null);
 
         expect(invalidateSpy).toHaveBeenCalledWith({
-            queryKey: timelineQueryKeys.thread('thread_a'),
+            queryKey: timelineQueryKeys.threadPages('thread_a'),
             refetchType: 'active',
         });
     });
@@ -92,7 +92,7 @@ describe('active thread live timeline events', () => {
         await invalidateTimelineQueriesForActiveThreadEvent(queryClient, event, null);
 
         expect(invalidateSpy).toHaveBeenCalledWith({
-            queryKey: timelineQueryKeys.thread('thread_a'),
+            queryKey: timelineQueryKeys.threadPages('thread_a'),
             refetchType: 'active',
         });
     });
@@ -111,7 +111,7 @@ describe('active thread live timeline events', () => {
         await invalidateTimelineQueriesForActiveThreadEvent(queryClient, event, null);
 
         expect(invalidateSpy).toHaveBeenCalledWith({
-            queryKey: timelineQueryKeys.thread('thread_a'),
+            queryKey: timelineQueryKeys.threadPages('thread_a'),
             refetchType: 'active',
         });
     });

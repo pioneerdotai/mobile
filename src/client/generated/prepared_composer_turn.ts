@@ -35,8 +35,14 @@ export type ComposerAttachmentUploadState =
     };
 export type TurnCapabilityKind =
   | {
+      packId?: SkillPackId | null;
       skillId: SkillId;
       type: 'skill';
+      [k: string]: unknown;
+    }
+  | {
+      packId: SkillPackId;
+      type: 'skillPack';
       [k: string]: unknown;
     }
   | {
@@ -52,6 +58,7 @@ export type TurnCapabilityKind =
       type: 'mcpTool';
       [k: string]: unknown;
     };
+export type SkillPackId = string;
 export type SkillId = string;
 export type McpScopeKind = 'workspace' | 'user';
 export type UserInput =
@@ -165,6 +172,11 @@ export type UserMessageAttachment =
       [k: string]: unknown;
     }
   | {
+      capability: TurnSkillPackCapabilitySummary;
+      type: 'skillPack';
+      [k: string]: unknown;
+    }
+  | {
       capability: TurnMcpServerCapabilitySummary;
       type: 'mcpServer';
       [k: string]: unknown;
@@ -238,9 +250,20 @@ export interface ByteRange {
 export interface TurnSkillCapabilitySummary {
   label: string;
   owner?: string | null;
+  pack?: TurnSkillPackPresentationSummary | null;
   skillId: SkillId;
   slug: string;
   sourceKind: string;
+  [k: string]: unknown;
+}
+export interface TurnSkillPackPresentationSummary {
+  label: string;
+  packId: SkillPackId;
+  [k: string]: unknown;
+}
+export interface TurnSkillPackCapabilitySummary {
+  label: string;
+  packId: SkillPackId;
   [k: string]: unknown;
 }
 export interface TurnMcpServerCapabilitySummary {

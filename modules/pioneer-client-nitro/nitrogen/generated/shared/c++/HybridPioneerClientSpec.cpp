@@ -60,6 +60,9 @@ namespace margelo::nitro::pioneer::client {
       prototype.registerHybridMethod("composerAttachmentsUpdateJson", &HybridPioneerClientSpec::composerAttachmentsUpdateJson);
       prototype.registerHybridMethod("composerSkillPickerRowsJson", &HybridPioneerClientSpec::composerSkillPickerRowsJson);
       prototype.registerHybridMethod("composerMcpPickerRowsJson", &HybridPioneerClientSpec::composerMcpPickerRowsJson);
+      prototype.registerHybridMethod("composerSkillPackPickerJson", &HybridPioneerClientSpec::composerSkillPackPickerJson);
+      prototype.registerHybridMethod("composerSkillSelectionToggleJson", &HybridPioneerClientSpec::composerSkillSelectionToggleJson);
+      prototype.registerHybridMethod("composerSkillChipsJson", &HybridPioneerClientSpec::composerSkillChipsJson);
       prototype.registerHybridMethod("composerCapabilitiesUpdateJson", &HybridPioneerClientSpec::composerCapabilitiesUpdateJson);
       prototype.registerHybridMethod("composerCapabilityTargetJson", &HybridPioneerClientSpec::composerCapabilityTargetJson);
       prototype.registerHybridMethod("composerCapabilityMenuVisibilityJson", &HybridPioneerClientSpec::composerCapabilityMenuVisibilityJson);
@@ -77,6 +80,7 @@ namespace margelo::nitro::pioneer::client {
       prototype.registerHybridMethod("threadTreeLevelJson", &HybridPioneerClientSpec::threadTreeLevelJson);
       prototype.registerHybridMethod("threadTimelinePageJson", &HybridPioneerClientSpec::threadTimelinePageJson);
       prototype.registerHybridMethod("turnWorkPageJson", &HybridPioneerClientSpec::turnWorkPageJson);
+      prototype.registerHybridMethod("turnWorkItemsGetJson", &HybridPioneerClientSpec::turnWorkItemsGetJson);
       prototype.registerHybridMethod("agentsDocGetJson", &HybridPioneerClientSpec::agentsDocGetJson);
       prototype.registerHybridMethod("agentsDocSaveJson", &HybridPioneerClientSpec::agentsDocSaveJson);
       prototype.registerHybridMethod("agentsDocArchiveJson", &HybridPioneerClientSpec::agentsDocArchiveJson);

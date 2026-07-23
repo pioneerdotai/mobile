@@ -598,6 +598,15 @@ const userMessageAttachmentToTimelineAttachment = (
         case 'skill':
             return {
                 id: `skill:${attachment.capability.skillId}`,
+                label: attachment.capability.pack
+                    ? `${attachment.capability.pack.label} / ${attachment.capability.label}`
+                    : attachment.capability.label,
+                kind: 'skill',
+                artifact: null,
+            };
+        case 'skillPack':
+            return {
+                id: `skill-pack:${attachment.capability.packId}`,
                 label: attachment.capability.label,
                 kind: 'skill',
                 artifact: null,

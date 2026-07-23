@@ -85,6 +85,19 @@ export type ComposerCapabilityKind =
 export type SkillId = string;
 export type McpScopeKind = 'workspace' | 'user';
 export type ComposerCapabilityTargetKind = 'native' | 'cli';
+export type ComposerSkillSelection =
+  | {
+      kind: 'skill';
+      pack_id?: SkillPackId | null;
+      skill_id: SkillId;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'skill_pack';
+      pack_id: SkillPackId;
+      [k: string]: unknown;
+    };
+export type SkillPackId = string;
 
 /**
  * Complete, shell-neutral draft payload used by desktop and mobile.
@@ -108,6 +121,7 @@ export interface ComposerDomainState {
   selected_permission_mode?: 'full_access' | 'auto_accept_edits' | 'supervised';
   selected_provider?: string | null;
   selected_reasoning_effort?: string | null;
+  skill_selections?: ComposerSkillSelection[];
 }
 export interface ComposerAttachment {
   file_name: string;

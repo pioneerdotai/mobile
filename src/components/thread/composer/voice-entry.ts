@@ -34,12 +34,17 @@ export const resolveThreadComposerDraftPresence = (
     text: string,
     attachmentCount: number,
     capabilityCount: number,
+    skillSelectionCount = 0,
 ): ThreadComposerDraftPresence => {
     const composerTextEmpty = text.trim().length === 0;
 
     return {
         composerTextEmpty,
-        hasComposerPayload: !composerTextEmpty || attachmentCount > 0 || capabilityCount > 0,
+        hasComposerPayload:
+            !composerTextEmpty ||
+            attachmentCount > 0 ||
+            capabilityCount > 0 ||
+            skillSelectionCount > 0,
     };
 };
 

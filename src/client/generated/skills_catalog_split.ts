@@ -1,5 +1,6 @@
 /* eslint-disable */
 
+export type SkillPackId = string;
 export type SkillId = string;
 
 export interface SkillsCatalogSplit {
@@ -14,6 +15,7 @@ export interface SkillListItem {
   health: SkillHealthSummary;
   install: SkillInstallState;
   owner?: string | null;
+  pack?: SkillPackMembership | null;
   policy: SkillPolicyState;
   skill_id: SkillId;
   slug: string;
@@ -58,6 +60,11 @@ export interface SkillInstallState {
   lifecycle_editable?: boolean;
   managed: boolean;
   updated_at?: number | null;
+  [k: string]: unknown;
+}
+export interface SkillPackMembership {
+  member_key: string;
+  pack_id: SkillPackId;
   [k: string]: unknown;
 }
 export interface SkillPolicyState {

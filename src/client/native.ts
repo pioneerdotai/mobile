@@ -39,7 +39,10 @@ import type { ClientPendingRequestPresentationRequest } from './generated/client
 import type { ClientPendingRequestPresentationResult } from './generated/client_pending_request_presentation_result';
 import type { ClientPrepareVoiceComposerSnapshotRequest } from './generated/client_prepare_voice_composer_snapshot_request';
 import type { ClientComposerSkillCapabilityFromRowRequest } from './generated/client_composer_skill_capability_from_row_request';
+import type { ClientComposerSkillChipsRequest } from './generated/client_composer_skill_chips_request';
+import type { ClientComposerSkillPackPickerRequest } from './generated/client_composer_skill_pack_picker_request';
 import type { ClientComposerSkillPickerRowsRequest } from './generated/client_composer_skill_picker_rows_request';
+import type { ClientComposerSkillSelectionToggleRequest } from './generated/client_composer_skill_selection_toggle_request';
 import type { ClientComposerSkillToggleRequest } from './generated/client_composer_skill_toggle_request';
 import type { ClientComposerSkillToggleResult } from './generated/client_composer_skill_toggle_result';
 import type { ClientComposerSkillRowsForTargetRequest } from './generated/client_composer_skill_rows_for_target_request';
@@ -75,6 +78,9 @@ import type { ComposerCapabilityTarget } from './generated/composer_capability_t
 import type { ComposerDomainTransition } from './generated/composer_domain_transition';
 import type { ComposerDraftLifecycleTransition } from './generated/composer_draft_lifecycle_transition';
 import type { ComposerPermissionModeOption } from './generated/composer_permission_mode_option';
+import type { ComposerSkillChip } from './generated/composer_skill_chip';
+import type { ComposerSkillPickerProjection } from './generated/composer_skill_picker_projection';
+import type { ComposerSkillSelectionReduction } from './generated/composer_skill_selection_reduction';
 import type { ComposerSubmissionPlan } from './generated/composer_submission_plan';
 import type { DeleteRemoteGatewayRegistryPlan } from './generated/delete_remote_gateway_registry_plan';
 import type { GatewaySettingsGetResponse } from './generated/gateway_settings_get_response';
@@ -109,6 +115,8 @@ import type { ThreadAgentsDocGetParams } from './generated/thread_agents_doc_get
 import type { ThreadAgentsDocGetResponse } from './generated/thread_agents_doc_get_response';
 import type { ThreadAgentsDocSaveParams } from './generated/thread_agents_doc_save_params';
 import type { ThreadAgentsDocSaveResponse } from './generated/thread_agents_doc_save_response';
+import type { TurnWorkItemsGetParams } from './generated/turn_work_items_get_params';
+import type { TurnWorkItemsGetResponse } from './generated/turn_work_items_get_response';
 import type { TurnWorkPageParams } from './generated/turn_work_page_params';
 import type { TurnWorkPageResponse } from './generated/turn_work_page_response';
 import type { TurnPermissionRequestRespondParams } from './generated/turn_permission_request_respond_params';
@@ -170,7 +178,10 @@ export type { ClientPendingRequestPresentationRequest } from './generated/client
 export type { ClientPendingRequestPresentationResult } from './generated/client_pending_request_presentation_result';
 export type { ClientPrepareVoiceComposerSnapshotRequest } from './generated/client_prepare_voice_composer_snapshot_request';
 export type { ClientComposerSkillCapabilityFromRowRequest } from './generated/client_composer_skill_capability_from_row_request';
+export type { ClientComposerSkillChipsRequest } from './generated/client_composer_skill_chips_request';
+export type { ClientComposerSkillPackPickerRequest } from './generated/client_composer_skill_pack_picker_request';
 export type { ClientComposerSkillPickerRowsRequest } from './generated/client_composer_skill_picker_rows_request';
+export type { ClientComposerSkillSelectionToggleRequest } from './generated/client_composer_skill_selection_toggle_request';
 export type { ClientComposerSkillToggleRequest } from './generated/client_composer_skill_toggle_request';
 export type { ClientComposerSkillToggleResult } from './generated/client_composer_skill_toggle_result';
 export type { ClientComposerSkillRowsForTargetRequest } from './generated/client_composer_skill_rows_for_target_request';
@@ -223,6 +234,11 @@ export type { ComposerDomainDraft } from './generated/composer_domain_draft';
 export type { ComposerDraftLifecycleAction } from './generated/composer_draft_lifecycle_action';
 export type { ComposerDraftLifecycleState } from './generated/composer_draft_lifecycle_state';
 export type { ComposerDraftLifecycleTransition } from './generated/composer_draft_lifecycle_transition';
+export type { ComposerSkillChip } from './generated/composer_skill_chip';
+export type { ComposerSkillChipKind } from './generated/composer_skill_chip_kind';
+export type { ComposerSkillPickerProjection } from './generated/composer_skill_picker_projection';
+export type { ComposerSkillSelection } from './generated/composer_skill_selection';
+export type { ComposerSkillSelectionReduction } from './generated/composer_skill_selection_reduction';
 export type { ComposerSubmissionPlan } from './generated/composer_submission_plan';
 export type {
     ComposerPermissionModeOption,
@@ -271,6 +287,8 @@ export type { ReasoningEffortRowsResponse } from './generated/reasoning_effort_r
 export type { RemoteGatewayValidation } from './generated/remote_gateway_validation';
 export type { RemoteGatewayValidationRequest } from './generated/remote_gateway_validation_request';
 export type { SelectableSkillCapability } from './generated/selectable_skill_capability';
+export type { SelectablePackedSkillCapability } from './generated/selectable_packed_skill_capability';
+export type { SelectableSkillPackCapability } from './generated/selectable_skill_pack_capability';
 export type { SetGatewayWorkspaceRegistryPlan } from './generated/set_gateway_workspace_registry_plan';
 export type { SelectableMcpCapability } from './generated/selectable_mcp_capability';
 export type { ClientThreadTreeLevel } from './generated/thread_tree_level';
@@ -306,6 +324,8 @@ export type { ThreadAgentsDocStatus } from './generated/thread_agents_doc_status
 export type { TurnWorkBlock } from './generated/turn_work_block';
 export type { TurnWorkItem } from './generated/turn_work_item';
 export type { TurnWorkItemStatus } from './generated/turn_work_item_status';
+export type { TurnWorkItemsGetParams } from './generated/turn_work_items_get_params';
+export type { TurnWorkItemsGetResponse } from './generated/turn_work_items_get_response';
 export type { TurnWorkPageParams } from './generated/turn_work_page_params';
 export type { TurnWorkPageResponse, TurnItem } from './generated/turn_work_page_response';
 export type { TurnPermissionApprovalRequest } from './generated/turn_permission_approval_request';
@@ -710,6 +730,28 @@ export const pioneerClient = {
         );
     },
 
+    async composerSkillPackPicker(
+        input: ClientComposerSkillPackPickerRequest,
+    ): Promise<ComposerSkillPickerProjection> {
+        return parsePioneerClientResponse<ComposerSkillPickerProjection>(
+            await getPioneerClientNitro().composerSkillPackPickerJson(JSON.stringify(input)),
+        );
+    },
+
+    composerSkillSelectionToggle(
+        input: ClientComposerSkillSelectionToggleRequest,
+    ): ComposerSkillSelectionReduction {
+        return parsePioneerClientResponse<ComposerSkillSelectionReduction>(
+            getPioneerClientNitro().composerSkillSelectionToggleJson(JSON.stringify(input)),
+        );
+    },
+
+    composerSkillChips(input: ClientComposerSkillChipsRequest): ComposerSkillChip[] {
+        return parsePioneerClientResponse<ComposerSkillChip[]>(
+            getPioneerClientNitro().composerSkillChipsJson(JSON.stringify(input)),
+        );
+    },
+
     composerCapabilitiesUpdate(
         input: ClientComposerCapabilitiesUpdateRequest,
     ): ComposerCapability[] {
@@ -829,6 +871,12 @@ export const pioneerClient = {
     async turnWorkPage(input: TurnWorkPageParams): Promise<TurnWorkPageResponse> {
         return parsePioneerClientResponse<TurnWorkPageResponse>(
             await getPioneerClientNitro().turnWorkPageJson(JSON.stringify(input)),
+        );
+    },
+
+    async turnWorkItemsGet(input: TurnWorkItemsGetParams): Promise<TurnWorkItemsGetResponse> {
+        return parsePioneerClientResponse<TurnWorkItemsGetResponse>(
+            await getPioneerClientNitro().turnWorkItemsGetJson(JSON.stringify(input)),
         );
     },
 

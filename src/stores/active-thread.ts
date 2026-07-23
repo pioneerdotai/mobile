@@ -8,6 +8,7 @@ import type {
     ComposerDomainDraft,
     ComposerDomainState,
     ComposerDraftLifecycleState,
+    ComposerSkillSelection,
     PreparedVoiceComposerSnapshot,
     ThreadMode,
     TurnPermissionMode,
@@ -31,6 +32,7 @@ type ActiveThreadStoreState = {
     composerError: string | null;
     composerAttachments: ComposerAttachment[];
     composerCapabilities: ComposerCapability[];
+    composerSkillSelections: ComposerSkillSelection[];
     showComposerAttachmentMenu: boolean;
     showComposerModeSwitcher: boolean;
     showComposerPermissionModeSwitcher: boolean;
@@ -66,6 +68,7 @@ type ActiveThreadStoreState = {
         artifacts: PreparedVoiceComposerSnapshot['uploaded_attachment_artifacts'],
     ) => ComposerAttachment[];
     setComposerCapabilities: (capabilities: ComposerCapability[]) => void;
+    setComposerSkillSelections: (selections: ComposerSkillSelection[]) => void;
     addComposerCapability: (capability: ComposerCapability) => void;
     removeComposerCapability: (id: string) => void;
     setComposerAttachmentMenuOpen: (open: boolean) => void;
@@ -111,6 +114,7 @@ type ComposerDraftState = {
     text: string;
     attachments: ComposerAttachment[];
     capabilities: ComposerCapability[];
+    skillSelections: ComposerSkillSelection[];
     selectedMode: ThreadMode;
     modeManuallySelected: boolean;
     selectedProvider: string | null;
@@ -152,6 +156,7 @@ const modelSelection = (
 const composerDomainStateFromStore = (state: ActiveThreadStoreState): ComposerDomainState => ({
     attachments: state.composerAttachments,
     capabilities: state.composerCapabilities,
+    skill_selections: state.composerSkillSelections,
     selected_mode: state.composerSelectedMode,
     mode_manually_selected: state.composerModeManuallySelected,
     selected_provider: state.composerSelectedProvider,
@@ -165,6 +170,7 @@ const composerDomainStateFromStore = (state: ActiveThreadStoreState): ComposerDo
 const composerDomainStateFromDraft = (draft: ComposerDraftState): ComposerDomainState => ({
     attachments: draft.attachments,
     capabilities: draft.capabilities,
+    skill_selections: draft.skillSelections,
     selected_mode: draft.selectedMode,
     mode_manually_selected: draft.modeManuallySelected,
     selected_provider: draft.selectedProvider,
@@ -181,6 +187,7 @@ const composerDomainPatch = (
     ActiveThreadStoreState,
     | 'composerAttachments'
     | 'composerCapabilities'
+    | 'composerSkillSelections'
     | 'composerSelectedMode'
     | 'composerModeManuallySelected'
     | 'composerSelectedProvider'
@@ -192,6 +199,7 @@ const composerDomainPatch = (
 > => ({
     composerAttachments: domain.attachments ?? [],
     composerCapabilities: domain.capabilities ?? [],
+    composerSkillSelections: domain.skill_selections ?? [],
     composerSelectedMode: domain.selected_mode ?? DEFAULT_COMPOSER_MODE,
     composerModeManuallySelected: domain.mode_manually_selected ?? false,
     composerSelectedProvider: domain.selected_provider ?? null,
@@ -208,6 +216,7 @@ const composerDraftDomainPatch = (
 ): Omit<ComposerDraftState, 'text'> => ({
     attachments: domain.attachments ?? [],
     capabilities: domain.capabilities ?? [],
+    skillSelections: domain.skill_selections ?? [],
     selectedMode: domain.selected_mode ?? DEFAULT_COMPOSER_MODE,
     modeManuallySelected: domain.mode_manually_selected ?? false,
     selectedProvider: domain.selected_provider ?? null,
@@ -262,6 +271,7 @@ const draftFromState = (state: ActiveThreadStoreState): ComposerDraftState => ({
     text: state.composerText,
     attachments: state.composerAttachments,
     capabilities: state.composerCapabilities,
+    skillSelections: state.composerSkillSelections,
     selectedMode: state.composerSelectedMode,
     modeManuallySelected: state.composerModeManuallySelected,
     selectedProvider: state.composerSelectedProvider,
@@ -276,6 +286,7 @@ const defaultDraftForThread = (state: ActiveThreadStoreState): ComposerDraftStat
     text: '',
     attachments: [],
     capabilities: [],
+    skillSelections: [],
     selectedMode: state.composerSelectedMode,
     modeManuallySelected: false,
     selectedProvider: state.defaultComposerProvider,
@@ -337,6 +348,7 @@ export const useActiveThreadStore = create<ActiveThreadStoreState>((set) => ({
     composerError: null,
     composerAttachments: [],
     composerCapabilities: [],
+    composerSkillSelections: [],
     showComposerAttachmentMenu: false,
     showComposerModeSwitcher: false,
     showComposerPermissionModeSwitcher: false,
@@ -509,6 +521,20 @@ export const useActiveThreadStore = create<ActiveThreadStoreState>((set) => ({
         set((state) => {
             const domain = reduceComposerDomain(state, {
                 SetCapabilities: { capabilities: composerCapabilities },
+            });
+
+            return {
+                ...composerDomainPatch(domain),
+                composerError: null,
+                ...updateActiveDraft(state, composerDraftDomainPatch(domain)),
+            };
+        });
+    },
+
+    setComposerSkillSelections: (composerSkillSelections) => {
+        set((state) => {
+            const domain = reduceComposerDomain(state, {
+                SetSkillSelections: { selections: composerSkillSelections },
             });
 
             return {
@@ -786,6 +812,7 @@ export const useActiveThreadStore = create<ActiveThreadStoreState>((set) => ({
                     defaults: {
                         attachments: [],
                         capabilities: [],
+                        skill_selections: [],
                         selected_mode: composerModeContext?.mode ?? DEFAULT_COMPOSER_MODE,
                         mode_manually_selected: false,
                         selected_provider: state.defaultComposerProvider,

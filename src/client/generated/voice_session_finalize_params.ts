@@ -2,8 +2,14 @@
 
 export type TurnCapabilityKind =
   | {
+      packId?: SkillPackId | null;
       skillId: SkillId;
       type: 'skill';
+      [k: string]: unknown;
+    }
+  | {
+      packId: SkillPackId;
+      type: 'skillPack';
       [k: string]: unknown;
     }
   | {
@@ -19,6 +25,7 @@ export type TurnCapabilityKind =
       type: 'mcpTool';
       [k: string]: unknown;
     };
+export type SkillPackId = string;
 export type SkillId = string;
 export type McpScopeKind = 'workspace' | 'user';
 export type AgentExecutionBackend =
