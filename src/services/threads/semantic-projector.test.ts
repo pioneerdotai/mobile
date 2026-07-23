@@ -90,6 +90,54 @@ describe('mobile semantic timeline projector', () => {
         });
     });
 
+    it('keeps a detached task card top-level while later messages and delivery follow it', () => {
+        const result = assistantBlock('003');
+        result.turnId = 'task_turn_a';
+        const rows = projectSemanticTimelineToRows({
+            snapshot: snapshot(),
+            blocks: [
+                detachedTaskRunBlock('001', 'running'),
+                {
+                    ...userBlock('002'),
+                    turnId: 'user_turn_b',
+                },
+                result,
+            ],
+            expandedKeys: [],
+            workRangesByTurn: {},
+            nowMs: 10_000,
+        });
+
+        expect(rows.map((row) => row.type)).toEqual([
+            'task-anchor',
+            'user-message',
+            'assistant-message',
+        ]);
+        expect(rows[0]).toMatchObject({
+            type: 'task-anchor',
+            turnId: 'task_turn_a',
+            taskId: 'task_a',
+            status: 'running',
+            progressPreview: 'Collecting sources',
+        });
+        expect(rows[0]?.semanticWorkItem).toBeUndefined();
+        expect(rows.some((row) => row.type === 'work-group')).toBe(false);
+
+        const completedRows = projectSemanticTimelineToRows({
+            snapshot: snapshot(),
+            blocks: [detachedTaskRunBlock('001', 'completed')],
+            expandedKeys: [],
+            workRangesByTurn: {},
+            nowMs: 11_000,
+        });
+        expect(completedRows[0]).toMatchObject({
+            type: 'task-anchor',
+            key: rows[0]?.key,
+            status: 'completed',
+            resultPreview: 'Analysis complete',
+        });
+    });
+
     it('collapses terminal work without a final answer and renders the outcome banner', () => {
         const rows = projectSemanticTimelineToRows({
             snapshot: snapshot(),
@@ -524,6 +572,42 @@ const assistantBlock = (sortKey: string): TimelineBlock => ({
         itemId: `assistant_${sortKey}`,
         text: 'final **markdown**',
         markdown,
+    },
+});
+
+const detachedTaskRunBlock = (sortKey: string, status: 'running' | 'completed'): TimelineBlock => ({
+    workspaceId: 'workspace_a',
+    threadId: 'thread_a',
+    blockId: 'block_detached_task_a',
+    turnId: 'task_turn_a',
+    sortKey,
+    startedAtUnixMs: 1,
+    updatedAtUnixMs: status === 'completed' ? 4 : 1,
+    kind: {
+        kind: 'detached_task_run',
+        task: {
+            id: 'task_anchor_a',
+            taskId: 'task_a',
+            runId: 'run_a',
+            parentTaskId: null,
+            rootTaskId: null,
+            title: 'Background analysis',
+            status,
+            attachment: 'detached',
+            triggerKind: 'immediate',
+            executorKind: 'agent',
+            childThreadId: 'child_a',
+            childTurnId: 'child_turn_a',
+            agentRole: null,
+            depth: 0,
+            maxDepth: 3,
+            nextFireAt: null,
+            progressPreview: status === 'running' ? 'Collecting sources' : null,
+            resultPreview: status === 'completed' ? 'Analysis complete' : null,
+            errorPreview: null,
+            createdAt: 1,
+            updatedAt: status === 'completed' ? 4 : 1,
+        },
     },
 });
 

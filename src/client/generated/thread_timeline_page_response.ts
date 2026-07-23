@@ -15,6 +15,11 @@ export type TimelineBlockKind =
       [k: string]: unknown;
     }
   | {
+      kind: 'detached_task_run';
+      task: TaskTurnItem;
+      [k: string]: unknown;
+    }
+  | {
       itemId: string;
       kind: 'assistant_message';
       markdown?: MarkdownDocument | null;
@@ -186,6 +191,19 @@ export type UserInput =
 export type TurnWorkPresentation = 'expanded_live' | 'collapsed_after_final' | 'expanded_terminal_no_final';
 export type TurnWorkState =
   'starting' | 'running' | 'waiting_for_approval' | 'stalled' | 'completed' | 'blocked' | 'failed' | 'interrupted';
+export type TaskExecutorKind = 'agent' | 'tool' | 'workflow' | 'webhook' | 'system';
+export type TaskStatus =
+  | 'draft'
+  | 'scheduled'
+  | 'queued'
+  | 'running'
+  | 'waiting'
+  | 'waiting_review'
+  | 'completed'
+  | 'failed'
+  | 'blocked'
+  | 'cancelled';
+export type TaskTriggerKind = 'immediate' | 'scheduled_at' | 'interval' | 'cron' | 'manual' | 'external' | 'dependency';
 export type MarkdownBlock =
   | MarkdownInline
   | {
@@ -341,6 +359,30 @@ export interface TurnWorkBlock {
 }
 export interface TimelineCursor {
   value: string;
+  [k: string]: unknown;
+}
+export interface TaskTurnItem {
+  agentRole?: string | null;
+  attachment?: 'attached' | 'detached';
+  childThreadId?: string | null;
+  childTurnId?: string | null;
+  createdAt: number;
+  depth: number;
+  errorPreview?: string | null;
+  executorKind: TaskExecutorKind;
+  id: string;
+  maxDepth: number;
+  nextFireAt?: number | null;
+  parentTaskId?: string | null;
+  progressPreview?: string | null;
+  resultPreview?: string | null;
+  rootTaskId?: string | null;
+  runId?: string | null;
+  status: TaskStatus;
+  taskId: string;
+  title: string;
+  triggerKind: TaskTriggerKind;
+  updatedAt: number;
   [k: string]: unknown;
 }
 export interface MarkdownDocument {

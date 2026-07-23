@@ -65,6 +65,9 @@ export const projectSemanticTimelineToRows = ({
             case 'turn_work':
                 pushTurnWorkBlock(semantic, block, expanded, workRangesByTurn);
                 break;
+            case 'detached_task_run':
+                pushDetachedTaskRunBlock(semantic, block);
+                break;
             case 'turn_state':
                 pushTurnStateRow(semantic, block, insertedRunningRows);
                 break;
@@ -244,6 +247,40 @@ const pushAssistantBlock = (semantic: MutableSemanticProjection, block: Timeline
             markdownVersion: null,
         } as LegacyTurnItem,
         opaqueMeta: null,
+    });
+};
+
+const pushDetachedTaskRunBlock = (semantic: MutableSemanticProjection, block: TimelineBlock) => {
+    if (block.kind.kind !== 'detached_task_run') {
+        return;
+    }
+
+    const task = block.kind.task;
+    const terminal = isTerminalTaskStatus(task.status);
+    pushItemRow(semantic, {
+        entryId: block.blockId,
+        itemId: task.id,
+        turnId: block.turnId ?? block.blockId,
+        itemType: 'task',
+        status: taskTimelineEntryStatus(task.status),
+        startedAtUnixMs: block.startedAtUnixMs ?? block.updatedAtUnixMs ?? null,
+        updatedAtUnixMs: block.updatedAtUnixMs ?? block.startedAtUnixMs ?? null,
+        completedAtUnixMs: terminal
+            ? (block.updatedAtUnixMs ?? block.startedAtUnixMs ?? null)
+            : null,
+        partialText: task.title,
+        finalText: terminal ? task.title : null,
+        partialMarkdown: null,
+        finalMarkdown: null,
+        item: {
+            type: 'task',
+            ...task,
+        } as LegacyTurnItem,
+        opaqueMeta: {
+            attachment: 'detached',
+            taskId: task.taskId,
+            runId: task.runId ?? null,
+        },
     });
 };
 
@@ -499,6 +536,29 @@ const turnWorkItemStatus = (status: TurnWorkItem['status']): TimelineEntryStatus
             return 'Completed';
     }
 };
+
+type DetachedTaskStatus = Extract<
+    TimelineBlock['kind'],
+    { kind: 'detached_task_run' }
+>['task']['status'];
+
+const taskTimelineEntryStatus = (status: DetachedTaskStatus): TimelineEntryStatus => {
+    switch (status) {
+        case 'completed':
+            return 'Completed';
+        case 'blocked':
+            return 'Blocked';
+        case 'failed':
+            return 'Failed';
+        case 'cancelled':
+            return 'Cancelled';
+        default:
+            return 'Running';
+    }
+};
+
+const isTerminalTaskStatus = (status: DetachedTaskStatus): boolean =>
+    status === 'completed' || status === 'blocked' || status === 'failed' || status === 'cancelled';
 
 const turnItemTypeLabel = (itemType: TurnWorkItem['itemType']) => {
     switch (itemType) {

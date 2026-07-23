@@ -35,6 +35,7 @@ export type TurnItem =
     }
   | {
       agentRole?: string | null;
+      attachment?: 'attached' | 'detached';
       childThreadId?: string | null;
       childTurnId?: string | null;
       createdAt: number;

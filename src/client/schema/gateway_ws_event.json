@@ -10053,6 +10053,10 @@
                 "null"
               ]
             },
+            "attachment": {
+              "$ref": "#/$defs/TaskAttachmentMode",
+              "default": "attached"
+            },
             "childThreadId": {
               "type": [
                 "string",
