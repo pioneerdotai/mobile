@@ -33,7 +33,7 @@ export const TaskAnchorRow = ({ row, onOpenTaskThread }: TaskAnchorRowProps) => 
                     <Text numberOfLines={1} style={styles.title}>
                         {row.title || t('timelineTask')}
                     </Text>
-                    <ChevronRight size={theme.space(4)} color={theme.colors.textMuted} />
+                    <ChevronRight size={theme.space(4)} color={theme.colors.typography} />
                 </HStack>
                 <VStack style={styles.divider} />
                 <VStack style={styles.statusSection}>
@@ -59,11 +59,11 @@ const styles = StyleSheet.create((theme) => ({
     card: {
         width: '100%',
         maxWidth: '100%',
-        borderWidth: 1,
+        borderWidth: StyleSheet.hairlineWidth,
         borderColor: theme.colors.border,
         borderRadius: theme.radius['2xl'],
         paddingHorizontal: theme.space(4),
-        paddingVertical: theme.space(2.5),
+        paddingVertical: theme.space(3),
         backgroundColor: theme.colors.background,
     },
     pressed: {
@@ -85,17 +85,17 @@ const styles = StyleSheet.create((theme) => ({
         color: theme.colors.text,
         fontSize: theme.fontSize.sm.fontSize,
         lineHeight: theme.fontSize.sm.lineHeight,
-        ...theme.fontWeight.medium,
     },
     divider: {
         width: '100%',
-        height: 1,
+        height: StyleSheet.hairlineWidth,
         marginTop: theme.space(2),
         backgroundColor: theme.colors.border,
     },
     statusSection: {
         width: '100%',
-        paddingVertical: theme.space(2),
+        paddingTop: theme.space(4),
+        paddingBottom: theme.space(2),
         gap: theme.space(1),
     },
     status: {

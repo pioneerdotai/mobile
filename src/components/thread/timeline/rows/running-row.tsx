@@ -157,7 +157,7 @@ const styles = StyleSheet.create((theme) => ({
         fontWeight: theme.fontWeight.semibold.fontWeight,
     },
     meta: {
-        color: theme.colors.textMuted,
+        color: theme.colors.typography,
         fontSize: theme.fontSize.sm.fontSize,
         fontWeight: theme.fontWeight.semibold.fontWeight,
     },
