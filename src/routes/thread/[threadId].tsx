@@ -34,14 +34,7 @@ const ExistingThreadRoute = () => {
     return (
         <>
             <Stack.Screen options={options} />
-            {threadId ? (
-                <ThreadScreen
-                    threadId={threadId}
-                    parentThreadId={normalizeRouteParam(params.parentThreadId)}
-                />
-            ) : (
-                <InvalidThreadRoute />
-            )}
+            {threadId ? <ThreadScreen threadId={threadId} /> : <InvalidThreadRoute />}
         </>
     );
 };

@@ -359,6 +359,7 @@ export interface TaskTurnItem {
   childThreadId?: string | null;
   childTurnId?: string | null;
   createdAt: number;
+  createdByTurnId?: string | null;
   depth: number;
   errorPreview?: string | null;
   executorKind: TaskExecutorKind;
@@ -370,6 +371,7 @@ export interface TaskTurnItem {
   resultPreview?: string | null;
   rootTaskId?: string | null;
   runId?: string | null;
+  startedAt?: number | null;
   status: TaskStatus;
   taskId: string;
   title: string;

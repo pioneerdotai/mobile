@@ -1,4 +1,4 @@
-import { describe, expect, it, mock } from 'bun:test';
+import { describe, expect, it, jest } from '@jest/globals';
 
 import type { TimelineBlock } from '@/client/generated/timeline_block';
 import type { TurnWorkBlock } from '@/client/generated/turn_work_block';
@@ -9,16 +9,16 @@ import type {
     MarkdownDocument,
 } from '@/client/generated/client_active_thread_snapshot';
 
-mock.module('@/locale/i18n', () => ({
+import { projectConversationToRows } from './conversation/projector';
+import { projectSemanticTimelineToRows } from './semantic-projector';
+
+jest.mock('@/locale/i18n', () => ({
     __esModule: true,
     default: {
         t: (key: string, options?: Record<string, unknown>) =>
             options?.count !== undefined ? `${key}:${options.count}` : key,
     },
 }));
-
-const { projectConversationToRows } = await import('./conversation/projector');
-const { projectSemanticTimelineToRows } = await import('./semantic-projector');
 
 const snapshot = (
     projectionOverrides: Partial<ClientActiveThreadSnapshot['projection']> = {},
@@ -118,6 +118,8 @@ describe('mobile semantic timeline projector', () => {
             turnId: 'task_turn_a',
             taskId: 'task_a',
             status: 'running',
+            startedAtUnixMs: 9_000,
+            elapsedLabel: 'threads:timelineElapsedSeconds',
             progressPreview: 'Collecting sources',
         });
         expect(rows[0]?.semanticWorkItem).toBeUndefined();
@@ -500,7 +502,7 @@ describe('mobile semantic timeline projector', () => {
         });
     });
 
-    it('keeps child request scope for pending request blocks projected on a parent page', () => {
+    it('keeps grandchild request scope for pending request blocks projected on a root page', () => {
         const basePendingBlock = pendingRequestBlock('003');
         if (basePendingBlock.kind.kind !== 'pending_request') {
             throw new Error('expected pending request block');
@@ -511,11 +513,11 @@ describe('mobile semantic timeline projector', () => {
             blocks: [
                 {
                     ...basePendingBlock,
-                    threadId: 'child_thread',
-                    turnId: 'child_turn',
+                    threadId: 'grandchild_thread',
+                    turnId: 'grandchild_turn',
                     kind: {
                         ...basePendingBlock.kind,
-                        requestId: 'child_request',
+                        requestId: 'grandchild_request',
                     },
                 },
             ],
@@ -527,15 +529,15 @@ describe('mobile semantic timeline projector', () => {
         const requestRow = rows.find((row) => row.type === 'pending-request');
 
         expect(requestRow).toMatchObject({
-            key: 'timeline-pending-request::child_request',
-            turnId: 'child_turn',
+            key: 'timeline-pending-request::grandchild_request',
+            turnId: 'grandchild_turn',
             entry: {
-                thread_id: 'child_thread',
-                turn_id: 'child_turn',
+                thread_id: 'grandchild_thread',
+                turn_id: 'grandchild_turn',
                 request: {
-                    request_id: 'child_request',
-                    thread_id: 'child_thread',
-                    turn_id: 'child_turn',
+                    request_id: 'grandchild_request',
+                    thread_id: 'grandchild_thread',
+                    turn_id: 'grandchild_turn',
                 },
             },
         });
@@ -605,6 +607,7 @@ const detachedTaskRunBlock = (sortKey: string, status: 'running' | 'completed'):
             progressPreview: status === 'running' ? 'Collecting sources' : null,
             resultPreview: status === 'completed' ? 'Analysis complete' : null,
             errorPreview: null,
+            startedAt: 9,
             createdAt: 1,
             updatedAt: status === 'completed' ? 4 : 1,
         },

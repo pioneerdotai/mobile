@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FlashList, type ListRenderItem } from '@shopify/flash-list';
 import { ChevronDown, ChevronUp } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
@@ -17,6 +17,7 @@ import { HStack } from '@/components/primitives/hstack';
 import { Pressable } from '@/components/primitives/pressable';
 import { Text } from '@/components/primitives/text';
 import { VStack } from '@/components/primitives/vstack';
+import { composerTargetThreadIsActive } from '@/services/threads/composer-target';
 import { useActiveThreadStore } from '@/stores/active-thread';
 import { useWorkspaceStore } from '@/stores/workspace';
 
@@ -80,6 +81,7 @@ const selectionForDisplayRow = (row: SkillDisplayRow): ComposerSkillSelection =>
 
 export const ComposerSkillCapabilitiesScreen = () => {
     const { t } = useTranslation('threads');
+    const targetThreadIdRef = useRef(useActiveThreadStore.getState().activeComposerThreadId);
     const activeWorkspaceId = useWorkspaceStore((state) => state.activeWorkspaceId);
     const { composerSkillSelections, setComposerSkillSelections } = useActiveThreadStore(
         useShallow((state) => ({
@@ -106,13 +108,25 @@ export const ComposerSkillCapabilitiesScreen = () => {
             void pioneerClient
                 .composerSkillPackPicker({ workspace_id: activeWorkspaceId, query })
                 .then((nextPicker) => {
-                    if (!cancelled) {
+                    if (
+                        !cancelled &&
+                        composerTargetThreadIsActive(
+                            targetThreadIdRef.current,
+                            useActiveThreadStore.getState().activeComposerThreadId,
+                        )
+                    ) {
                         setPicker(nextPicker);
                         setState({ loading: false, error: null });
                     }
                 })
                 .catch(() => {
-                    if (!cancelled) {
+                    if (
+                        !cancelled &&
+                        composerTargetThreadIsActive(
+                            targetThreadIdRef.current,
+                            useActiveThreadStore.getState().activeComposerThreadId,
+                        )
+                    ) {
                         setPicker(EMPTY_PICKER);
                         setState({ loading: false, error: t('composerSkillsFailed') });
                     }
@@ -137,6 +151,14 @@ export const ComposerSkillCapabilitiesScreen = () => {
 
     const toggleSelection = useCallback(
         (row: SkillDisplayRow) => {
+            if (
+                !composerTargetThreadIsActive(
+                    targetThreadIdRef.current,
+                    useActiveThreadStore.getState().activeComposerThreadId,
+                )
+            ) {
+                return;
+            }
             const selectable =
                 row.type === 'pack'
                     ? row.pack.selectable

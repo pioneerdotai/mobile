@@ -90,7 +90,9 @@ const skillChips: ComposerSkillChip[] = [
 ];
 
 const chipForLabel = (root: ReactTestInstance, label: string): ReactTestInstance => {
-    const text = root.find((node) => node.type === 'Text' && node.props.children === label);
+    const text = root.find(
+        (node) => (node.type as unknown) === 'Text' && node.props.children === label,
+    );
     return text.parent!;
 };
 
@@ -167,7 +169,7 @@ describe('mobile Composer skill chips', () => {
         expect(chipForLabel(tree!.root, 'Docs')).toBeDefined();
 
         await act(async () => {
-            partial.findByType('Pressable').props.onPress();
+            partial.find((node) => (node.type as unknown) === 'Pressable').props.onPress();
         });
         expect(onRemoveSkillChip).toHaveBeenCalledTimes(1);
         expect(onRemoveSkillChip).toHaveBeenCalledWith(skillChips[1]);

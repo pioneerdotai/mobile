@@ -11,6 +11,9 @@ jest.mock('react-native-unistyles', () => ({
 }));
 jest.mock('@/components/feedback/spinner', () => () => null);
 jest.mock('@/client', () => ({}));
+jest.mock('lucide-react-native', () => ({
+    ChevronRight: () => null,
+}));
 jest.mock('@/hooks/use-provider-model-display-name', () => ({
     useProviderDisplayName: () => ({ label: null, loading: false }),
     useProviderModelDisplayName: () => ({ label: null, loading: false }),

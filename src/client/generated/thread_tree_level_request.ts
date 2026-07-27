@@ -89,7 +89,7 @@ export interface Thread {
   model: string;
   model_provider: string;
   name?: string | null;
-  origin_kind?: 'user' | 'task_run' | 'system';
+  origin_kind?: ('task_run' | 'system') | 'collaborative' | 'direct_message' | 'user';
   preview: string;
   reasoning_effort?: string | null;
   sidebar_visibility?: 'visible' | 'hidden';

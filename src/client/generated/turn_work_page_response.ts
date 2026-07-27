@@ -39,6 +39,7 @@ export type TurnItem =
       childThreadId?: string | null;
       childTurnId?: string | null;
       createdAt: number;
+      createdByTurnId?: string | null;
       depth: number;
       errorPreview?: string | null;
       executorKind: TaskExecutorKind;
@@ -50,6 +51,7 @@ export type TurnItem =
       resultPreview?: string | null;
       rootTaskId?: string | null;
       runId?: string | null;
+      startedAt?: number | null;
       status: TaskStatus;
       taskId: string;
       title: string;

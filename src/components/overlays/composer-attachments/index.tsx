@@ -20,6 +20,7 @@ import {
     pickComposerFileAttachments,
     pickComposerMediaAttachments,
 } from '@/services/threads/composer-attachments';
+import { composerTargetThreadIsActive } from '@/services/threads/composer-target';
 import { useActiveThreadStore } from '@/stores/active-thread';
 
 const ComposerAttachmentMenuSheet = () => {
@@ -90,19 +91,57 @@ const ComposerAttachmentMenuSheet = () => {
     );
 
     const pickMedia = useCallback(() => {
+        const targetThreadId = useActiveThreadStore.getState().activeComposerThreadId;
         close();
         void pickComposerMediaAttachments()
-            .then(addAttachments)
+            .then((attachments) => {
+                if (
+                    !composerTargetThreadIsActive(
+                        targetThreadId,
+                        useActiveThreadStore.getState().activeComposerThreadId,
+                    )
+                ) {
+                    return;
+                }
+                addAttachments(attachments);
+            })
             .catch((error) => {
+                if (
+                    !composerTargetThreadIsActive(
+                        targetThreadId,
+                        useActiveThreadStore.getState().activeComposerThreadId,
+                    )
+                ) {
+                    return;
+                }
                 setComposerError(errorMessage(error, t('composerPickMediaFailed')));
             });
     }, [addAttachments, close, errorMessage, setComposerError, t]);
 
     const pickFiles = useCallback(() => {
+        const targetThreadId = useActiveThreadStore.getState().activeComposerThreadId;
         close();
         void pickComposerFileAttachments()
-            .then(addAttachments)
+            .then((attachments) => {
+                if (
+                    !composerTargetThreadIsActive(
+                        targetThreadId,
+                        useActiveThreadStore.getState().activeComposerThreadId,
+                    )
+                ) {
+                    return;
+                }
+                addAttachments(attachments);
+            })
             .catch((error) => {
+                if (
+                    !composerTargetThreadIsActive(
+                        targetThreadId,
+                        useActiveThreadStore.getState().activeComposerThreadId,
+                    )
+                ) {
+                    return;
+                }
                 setComposerError(errorMessage(error, t('composerPickFileFailed')));
             });
     }, [addAttachments, close, errorMessage, setComposerError, t]);

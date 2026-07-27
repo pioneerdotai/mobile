@@ -491,6 +491,8 @@ const timelineRowIsStreaming = (row: TimelineRow) => {
         case 'file-change':
         case 'tool-call':
             return isActiveStatus(row.status);
+        case 'task-anchor':
+            return row.status.toLowerCase() === 'running';
         default:
             return false;
     }
@@ -537,7 +539,8 @@ const insertPendingRequestRows = (
 
 const hydrateRunningRowsElapsed = (rows: readonly TimelineRow[], nowMs: number): TimelineRow[] =>
     rows.map((row) => {
-        if (row.type !== 'running') {
+        const runningTask = row.type === 'task-anchor' && row.status.toLowerCase() === 'running';
+        if (row.type !== 'running' && !runningTask) {
             return row;
         }
 

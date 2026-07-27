@@ -607,6 +607,7 @@ export type TurnItem =
       childThreadId?: string | null;
       childTurnId?: string | null;
       createdAt: number;
+      createdByTurnId?: string | null;
       depth: number;
       errorPreview?: string | null;
       executorKind: TaskExecutorKind;
@@ -618,6 +619,7 @@ export type TurnItem =
       resultPreview?: string | null;
       rootTaskId?: string | null;
       runId?: string | null;
+      startedAt?: number | null;
       status: TaskStatus;
       taskId: string;
       title: string;
@@ -1279,6 +1281,109 @@ export type TaskValue =
 export type TaskAttachmentMode = 'attached' | 'detached';
 export type TaskCompletionBehavior = 'complete_on_terminal_run' | 'keep_active_for_recurring' | 'manual';
 export type TaskParentTerminalAction = 'cancel' | 'detach' | 'keep_running';
+export type TurnCapabilityKind =
+  | {
+      packId?: SkillPackId | null;
+      skillId: SkillId;
+      type: 'skill';
+      [k: string]: unknown;
+    }
+  | {
+      packId: SkillPackId;
+      type: 'skillPack';
+      [k: string]: unknown;
+    }
+  | {
+      name: string;
+      scopeKind: McpScopeKind;
+      type: 'mcpServer';
+      [k: string]: unknown;
+    }
+  | {
+      rawToolName: string;
+      scopeKind: McpScopeKind;
+      serverName: string;
+      type: 'mcpTool';
+      [k: string]: unknown;
+    };
+export type AgentExecutionBackend =
+  | {
+      provider: string;
+      type: 'apiProvider';
+      [k: string]: unknown;
+    }
+  | {
+      runtime_id: string;
+      runtime_kind: CLIAgentRuntimeKind;
+      type: 'cliAgentRuntime';
+      [k: string]: unknown;
+    }
+  | {
+      runtime_id: string;
+      type: 'acpAgentRuntime';
+      [k: string]: unknown;
+    };
+export type CLIAgentRuntimeKind = 'codex' | 'claude';
+export type UserInput =
+  | {
+      text: string;
+      textElements?: TextElement[];
+      type: 'text';
+      [k: string]: unknown;
+    }
+  | {
+      type: 'image';
+      url: string;
+      [k: string]: unknown;
+    }
+  | {
+      path: string;
+      type: 'localImage';
+      [k: string]: unknown;
+    }
+  | {
+      type: 'file';
+      url: string;
+      [k: string]: unknown;
+    }
+  | {
+      path: string;
+      type: 'localFile';
+      [k: string]: unknown;
+    }
+  | {
+      type: 'audio';
+      url: string;
+      [k: string]: unknown;
+    }
+  | {
+      path: string;
+      type: 'localAudio';
+      [k: string]: unknown;
+    }
+  | {
+      type: 'video';
+      url: string;
+      [k: string]: unknown;
+    }
+  | {
+      path: string;
+      type: 'localVideo';
+      [k: string]: unknown;
+    }
+  | {
+      artifactId: string;
+      type: 'artifact';
+      versionId?: string | null;
+      [k: string]: unknown;
+    }
+  | {
+      name: string;
+      path: string;
+      type: 'mention';
+      [k: string]: unknown;
+    };
+export type SandboxMode = 'FullAccess';
 export type TaskOwnerKind = 'user' | 'thread' | 'workspace' | 'system';
 export type TaskRetryBackoffKind = 'none' | 'fixed' | 'exponential';
 export type TaskTriggerSpec =
@@ -1445,7 +1550,6 @@ export type MemoryCandidateStatus =
   | 'merged_duplicate'
   | 'expired';
 export type RuntimeDiagnosticLevel = 'info' | 'warning' | 'error';
-export type CLIAgentRuntimeKind = 'codex' | 'claude';
 export type RuntimeStatus =
   | {
       state: 'disabled';
@@ -1578,7 +1682,7 @@ export interface Thread {
   model: string;
   model_provider: string;
   name?: string | null;
-  origin_kind?: 'user' | 'task_run' | 'system';
+  origin_kind?: ('task_run' | 'system') | 'collaborative' | 'direct_message' | 'user';
   preview: string;
   reasoning_effort?: string | null;
   sidebar_visibility?: 'visible' | 'hidden';
@@ -2468,8 +2572,69 @@ export interface TaskLifecyclePolicy {
   [k: string]: unknown;
 }
 export interface TaskMetadata {
+  composerWork?: TaskComposerWork | null;
   data?: TaskValue | null;
   labels?: string[];
+  [k: string]: unknown;
+}
+export interface TaskComposerWork {
+  launch: TurnStartParams;
+  version: number;
+  [k: string]: unknown;
+}
+export interface TurnStartParams {
+  capabilities?: TurnCapability[];
+  cli_runtime_options?: TurnCLIRuntimeOptions | null;
+  execution_backend?: AgentExecutionBackend | null;
+  input?: UserInput[];
+  mode?: ThreadMode | null;
+  model?: string | null;
+  model_provider?: string | null;
+  permission_profile?: TurnPermissionProfileSelection | null;
+  reasoning?: TurnReasoningSelection | null;
+  sandbox_policy?: SandboxPolicy | null;
+  thread_id: string;
+  turn_id: string;
+  [k: string]: unknown;
+}
+export interface TurnCapability {
+  id: string;
+  kind: TurnCapabilityKind;
+  label?: string | null;
+  [k: string]: unknown;
+}
+export interface TurnCLIRuntimeOptions {
+  effort?: string | null;
+  personality?: string | null;
+  sandbox?: unknown;
+  steer_if_active?: boolean | null;
+  summary?: string | null;
+  [k: string]: unknown;
+}
+export interface TextElement {
+  byte_range: ByteRange;
+  placeholder?: string | null;
+  [k: string]: unknown;
+}
+export interface ByteRange {
+  end: number;
+  start: number;
+  [k: string]: unknown;
+}
+export interface TurnPermissionProfileSelection {
+  mode: TurnPermissionMode;
+  [k: string]: unknown;
+}
+export interface TurnReasoningSelection {
+  /**
+   * String-valued because CLI runtimes may advertise efforts newer than
+   * Pioneer API-provider adapters understand.
+   */
+  effort: string;
+  [k: string]: unknown;
+}
+export interface SandboxPolicy {
+  mode: SandboxMode;
   [k: string]: unknown;
 }
 export interface TaskResult {

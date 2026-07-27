@@ -471,6 +471,8 @@ const projectItemToRow = (item: ItemView, nowMs?: number): TimelineRow => {
                 maxDepth: turnItem.maxDepth ?? 0,
                 title: turnItem.title,
                 status: turnItem.status,
+                startedAtUnixMs: item.started_at_unix_ms ?? null,
+                elapsedLabel: formatElapsed(item, nowMs),
                 progressPreview:
                     typeof turnItem.progressPreview === 'string' ? turnItem.progressPreview : null,
                 resultPreview: turnItem.resultPreview ?? null,

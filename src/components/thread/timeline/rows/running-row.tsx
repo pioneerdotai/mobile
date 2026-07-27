@@ -20,28 +20,38 @@ type RunningRowProps = {
     row: Extract<TimelineRow, { type: 'running' }>;
 };
 
+type RunningActivityContentProps = {
+    elapsedLabel: string | null;
+};
+
 export const RunningRow = ({ row }: RunningRowProps) => {
+    return (
+        <VStack style={styles.wrap}>
+            <RunningActivityContent elapsedLabel={row.elapsedLabel} />
+            {row.securitySummary ? <RunningSecuritySummary summary={row.securitySummary} /> : null}
+        </VStack>
+    );
+};
+
+export const RunningActivityContent = ({ elapsedLabel }: RunningActivityContentProps) => {
     const { t } = useTranslation('threads');
     const { rt } = useUnistyles();
     const dinoSource = rt.themeName === 'dark' ? DINO_DARK : DINO_LIGHT;
 
     return (
-        <VStack style={styles.wrap}>
-            <HStack style={styles.mainRow}>
-                <HStack style={styles.labelGroup}>
-                    <Image contentFit="contain" source={dinoSource} style={styles.dino} autoplay />
-                    <Text numberOfLines={1} style={styles.title}>
-                        {t('timelineRunning')}
-                    </Text>
-                </HStack>
-                {!!row.elapsedLabel && (
-                    <Text numberOfLines={1} style={styles.meta}>
-                        {row.elapsedLabel}
-                    </Text>
-                )}
+        <HStack style={styles.mainRow}>
+            <HStack style={styles.labelGroup}>
+                <Image contentFit="contain" source={dinoSource} style={styles.dino} autoplay />
+                <Text numberOfLines={1} style={styles.title}>
+                    {t('timelineRunning')}
+                </Text>
             </HStack>
-            {row.securitySummary ? <RunningSecuritySummary summary={row.securitySummary} /> : null}
-        </VStack>
+            {!!elapsedLabel && (
+                <Text numberOfLines={1} style={styles.meta}>
+                    {elapsedLabel}
+                </Text>
+            )}
+        </HStack>
     );
 };
 

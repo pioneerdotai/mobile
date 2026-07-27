@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FlashList, type ListRenderItem } from '@shopify/flash-list';
 import { ChevronDown, ChevronUp } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
@@ -15,6 +15,7 @@ import { HStack } from '@/components/primitives/hstack';
 import { Pressable } from '@/components/primitives/pressable';
 import { Text } from '@/components/primitives/text';
 import { VStack } from '@/components/primitives/vstack';
+import { composerTargetThreadIsActive } from '@/services/threads/composer-target';
 import { useActiveThreadStore } from '@/stores/active-thread';
 import { useWorkspaceStore } from '@/stores/workspace';
 
@@ -56,6 +57,7 @@ export const toggleMcpComposerCapabilitySelection = (
 
 export const ComposerMcpCapabilitiesScreen = () => {
     const { t } = useTranslation('threads');
+    const targetThreadIdRef = useRef(useActiveThreadStore.getState().activeComposerThreadId);
 
     const activeWorkspaceId = useWorkspaceStore((state) => state.activeWorkspaceId);
 
@@ -90,14 +92,26 @@ export const ComposerMcpCapabilitiesScreen = () => {
                     query: '',
                 })
                 .then((result) => {
-                    if (!cancelled) {
+                    if (
+                        !cancelled &&
+                        composerTargetThreadIsActive(
+                            targetThreadIdRef.current,
+                            useActiveThreadStore.getState().activeComposerThreadId,
+                        )
+                    ) {
                         setServerRows(result.server_rows);
                         setToolRows(result.tool_rows);
                         setState({ loading: false, error: null });
                     }
                 })
                 .catch(() => {
-                    if (!cancelled) {
+                    if (
+                        !cancelled &&
+                        composerTargetThreadIsActive(
+                            targetThreadIdRef.current,
+                            useActiveThreadStore.getState().activeComposerThreadId,
+                        )
+                    ) {
                         setServerRows([]);
                         setToolRows([]);
                         setState({ loading: false, error: t('composerMcpFailed') });
@@ -168,7 +182,13 @@ export const ComposerMcpCapabilitiesScreen = () => {
 
     const toggleCapability = useCallback(
         (row: SelectableMcpCapability) => {
-            if (!row.selectable) {
+            if (
+                !row.selectable ||
+                !composerTargetThreadIsActive(
+                    targetThreadIdRef.current,
+                    useActiveThreadStore.getState().activeComposerThreadId,
+                )
+            ) {
                 return;
             }
 

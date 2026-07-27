@@ -13,6 +13,10 @@ jest.mock('@/client', () => ({
         composerMcpToggle: jest.fn(),
     },
 }));
+jest.mock('lucide-react-native', () => ({
+    ChevronDown: () => null,
+    ChevronUp: () => null,
+}));
 jest.mock('@/components/feedback/spinner', () => () => null);
 
 const row: SelectableMcpCapability = {

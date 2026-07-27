@@ -82,7 +82,6 @@ import { useWorkspaceStore } from '@/stores/workspace';
 type ThreadScreenProps = {
     threadId: string;
     initialThread?: Thread | null;
-    parentThreadId?: string | null;
 };
 
 const THREAD_COMPOSER_INPUT_NATIVE_ID = 'thread-composer-input';
@@ -138,11 +137,7 @@ const modelSelectionFromThread = (
     return { provider, model, selectedReasoningEffort };
 };
 
-const ThreadScreen = ({
-    threadId,
-    initialThread = null,
-    parentThreadId = null,
-}: ThreadScreenProps) => {
+const ThreadScreen = ({ threadId, initialThread = null }: ThreadScreenProps) => {
     const { t } = useTranslation('threads');
     const { theme, rt } = useUnistyles();
     const queryClient = useQueryClient();
@@ -156,8 +151,6 @@ const ThreadScreen = ({
 
     const thread = treeSnapshot?.threads_by_id[threadId] ?? null;
     const activeThread = thread ?? initialThread ?? null;
-    const isTaskChildThread = Boolean(threadId && parentThreadId);
-
     const { connectionId, connectionState } = useGateway();
     const voiceInputDataSource = useVoiceInputDataSourceState();
     const voiceInputTarget = voiceInputDataSource.target;
@@ -542,13 +535,9 @@ const ThreadScreen = ({
     const modelSelectionEffortLabel =
         modelSelectionLoading || reasoningEffortLabelLoading ? null : selectedReasoningEffortLabel;
     const composerDisabled = Boolean(
-        isTaskChildThread ||
-        !connected ||
-        closed ||
-        visibleSnapshot?.projection.composer_locked ||
-        sending,
+        !connected || closed || visibleSnapshot?.projection.composer_locked || sending,
     );
-    const modelSelectionDisabled = Boolean(sending || isTaskChildThread);
+    const modelSelectionDisabled = Boolean(sending);
     const voiceStatusResponse =
         voiceInputTarget &&
         voiceStatusSnapshot?.gatewayId === voiceInputTarget.gatewayId &&
@@ -641,11 +630,14 @@ const ThreadScreen = ({
     useFocusEffect(
         useCallback(() => {
             setFocused(true);
+            if (!isLiveDraftThread && threadTimelineBlocksQueryRef.current.hasLoadedPage) {
+                void threadTimelineBlocksQueryRef.current.refetch();
+            }
 
             return () => {
                 setFocused(false);
             };
-        }, []),
+        }, [isLiveDraftThread]),
     );
 
     useEffect(() => {
@@ -1496,11 +1488,11 @@ const ThreadScreen = ({
                                 steerLabel={t('steerTurn')}
                                 disabled={composerDisabled}
                                 sending={sending}
-                                canSend={!isTaskChildThread && canSend}
-                                canSteerTurn={!isTaskChildThread && canSteerCliRuntimeTurn}
+                                canSend={canSend}
+                                canSteerTurn={canSteerCliRuntimeTurn}
                                 steering={steering}
-                                hasInFlightTurn={!isTaskChildThread && hasInFlightTurn}
-                                canStopTurn={!isTaskChildThread && canStopTurn}
+                                hasInFlightTurn={hasInFlightTurn}
+                                canStopTurn={canStopTurn}
                                 turnCancelling={turnCancelling}
                                 error={composerError}
                                 attachments={composerAttachments}

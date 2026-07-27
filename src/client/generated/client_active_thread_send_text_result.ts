@@ -291,6 +291,7 @@ export type TurnItem =
       childThreadId?: string | null;
       childTurnId?: string | null;
       createdAt: number;
+      createdByTurnId?: string | null;
       depth: number;
       errorPreview?: string | null;
       executorKind: TaskExecutorKind;
@@ -302,6 +303,7 @@ export type TurnItem =
       resultPreview?: string | null;
       rootTaskId?: string | null;
       runId?: string | null;
+      startedAt?: number | null;
       status: TaskStatus;
       taskId: string;
       title: string;
@@ -943,6 +945,7 @@ export interface TaskTurnItem {
   childThreadId?: string | null;
   childTurnId?: string | null;
   createdAt: number;
+  createdByTurnId?: string | null;
   depth: number;
   errorPreview?: string | null;
   executorKind: TaskExecutorKind;
@@ -954,6 +957,7 @@ export interface TaskTurnItem {
   resultPreview?: string | null;
   rootTaskId?: string | null;
   runId?: string | null;
+  startedAt?: number | null;
   status: TaskStatus;
   taskId: string;
   title: string;
@@ -1308,7 +1312,7 @@ export interface Thread {
   model: string;
   model_provider: string;
   name?: string | null;
-  origin_kind?: 'user' | 'task_run' | 'system';
+  origin_kind?: ('task_run' | 'system') | 'collaborative' | 'direct_message' | 'user';
   preview: string;
   reasoning_effort?: string | null;
   sidebar_visibility?: 'visible' | 'hidden';

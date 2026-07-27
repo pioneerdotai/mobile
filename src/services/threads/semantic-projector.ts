@@ -257,13 +257,17 @@ const pushDetachedTaskRunBlock = (semantic: MutableSemanticProjection, block: Ti
 
     const task = block.kind.task;
     const terminal = isTerminalTaskStatus(task.status);
+    const startedAtUnixMs =
+        task.startedAt == null
+            ? (block.startedAtUnixMs ?? block.updatedAtUnixMs ?? null)
+            : task.startedAt * 1_000;
     pushItemRow(semantic, {
         entryId: block.blockId,
         itemId: task.id,
         turnId: block.turnId ?? block.blockId,
         itemType: 'task',
         status: taskTimelineEntryStatus(task.status),
-        startedAtUnixMs: block.startedAtUnixMs ?? block.updatedAtUnixMs ?? null,
+        startedAtUnixMs,
         updatedAtUnixMs: block.updatedAtUnixMs ?? block.startedAtUnixMs ?? null,
         completedAtUnixMs: terminal
             ? (block.updatedAtUnixMs ?? block.startedAtUnixMs ?? null)

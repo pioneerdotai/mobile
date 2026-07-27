@@ -151,6 +151,8 @@ export type TimelineRow = TimelineRowMeta &
               maxDepth: number;
               title: string;
               status: string;
+              startedAtUnixMs: number | null;
+              elapsedLabel: string | null;
               progressPreview: string | null;
               resultPreview: string | null;
               errorPreview: string | null;
