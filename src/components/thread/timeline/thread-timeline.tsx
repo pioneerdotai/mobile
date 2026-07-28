@@ -48,6 +48,7 @@ import { viewportPrefetchPlan } from './viewport-prefetch';
 import type { TimelineViewportPrefetchPlan } from './viewport-prefetch';
 import { defaultTimelineRowExpanded } from './row-expansion';
 import { timelineRowsAreEqual } from './timeline-row-equality';
+import { ensureTimelineRowRenderFingerprint } from '@/services/threads/conversation/render-fingerprint';
 import { VStack } from '@/components/primitives/vstack';
 
 export type {
@@ -538,12 +539,12 @@ const insertPendingRequestRows = (
         }
 
         return [
-            {
+            ensureTimelineRowRenderFingerprint({
                 type: 'pending-request',
                 key,
                 turnId: entry.turn_id,
                 entry,
-            },
+            }),
         ];
     });
     if (requestRows.length === 0) {

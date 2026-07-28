@@ -104,6 +104,7 @@ export const projectSemanticTimelineToRows = ({
             revision: semanticRevision(blocks, semantic.rows),
         },
         rows: semantic.rows,
+        row_render_fingerprints: {},
     };
 
     return projectConversationToRows(semanticSnapshot, {

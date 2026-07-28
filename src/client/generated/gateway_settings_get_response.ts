@@ -26,6 +26,7 @@ export interface GatewaySettingsSnapshot {
   general?: GatewayGeneralSettings;
   memory: GatewayMemorySettings;
   remote_access?: GatewayRemoteAccessSettings;
+  self_improvement?: GatewaySelfImprovementSettings;
   thread_episodic?: GatewayThreadEpisodicSettings;
   voice_input?: GatewayVoiceInputSettings;
   [k: string]: unknown;
@@ -88,6 +89,18 @@ export interface GatewayRemoteAccessStatusSnapshot {
   state?: 'disabled' | 'starting' | 'connected' | 'reconnecting' | 'failed' | 'stopped';
   updated_at_unix?: number | null;
   [k: string]: unknown;
+}
+/**
+ * Effective Self-improvement settings for the workspace bound to this RPC connection.
+ */
+export interface GatewaySelfImprovementSettings {
+  default_model?: GatewaySelfImprovementModelSelection | null;
+  enabled?: boolean;
+  reviewer_model?: GatewaySelfImprovementModelSelection | null;
+}
+export interface GatewaySelfImprovementModelSelection {
+  model: string;
+  provider: string;
 }
 export interface GatewayThreadEpisodicSettings {
   default_max_candidates: number;

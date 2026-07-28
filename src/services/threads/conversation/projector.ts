@@ -18,6 +18,7 @@ import type {
     TimelineUserAttachment,
 } from './timeline';
 import { commandLineFromCommandExecution } from './command-display';
+import { ensureTimelineRowRenderFingerprint } from './render-fingerprint';
 
 const FILE_CHANGE_OUTPUT_LIMIT = 4_000;
 const DYNAMIC_TOOL_RESULT_LIMIT = 4_000;
@@ -28,6 +29,7 @@ type ProjectConversationRowsOptions = {
     nowMs?: number;
     pendingRequests?: readonly TimelinePendingRequest[];
     semanticWorkItemKeys?: ReadonlySet<string>;
+    rowRenderFingerprints?: Readonly<Record<string, string>>;
 };
 
 type CoalescedToolsModel = Extract<TimelineRow, { type: 'tool-group' }>;
@@ -43,8 +45,13 @@ export const projectConversationToRows = (
     conversation: ClientActiveThreadSnapshot,
     options: ProjectConversationRowsOptions = {},
 ): TimelineRow[] => {
-    const rows = projectClientConversationRows(conversation.projection, conversation.rows, options);
-    return insertPendingRequestRows(rows, options.pendingRequests ?? []);
+    const rows = projectClientConversationRows(conversation.projection, conversation.rows, {
+        ...options,
+        rowRenderFingerprints: conversation.row_render_fingerprints ?? {},
+    });
+    return insertPendingRequestRows(rows, options.pendingRequests ?? []).map((row) =>
+        ensureTimelineRowRenderFingerprint(row),
+    );
 };
 
 const projectClientConversationRows = (
@@ -85,6 +92,28 @@ const projectPendingRequestToRow = (entry: TimelinePendingRequest): TimelineRow 
 });
 
 const projectClientConversationRow = (
+    projection: ConversationViewState,
+    clientRows: ClientTimelineRow[],
+    itemsById: ReadonlyMap<string, ItemView>,
+    row: ClientTimelineRow,
+    options: ProjectConversationRowsOptions,
+): TimelineRow | null => {
+    const projected = projectClientConversationRowContent(
+        projection,
+        clientRows,
+        itemsById,
+        row,
+        options,
+    );
+    return projected
+        ? ensureTimelineRowRenderFingerprint(
+              projected,
+              options.rowRenderFingerprints?.[row.key] ?? null,
+          )
+        : null;
+};
+
+const projectClientConversationRowContent = (
     projection: ConversationViewState,
     clientRows: ClientTimelineRow[],
     itemsById: ReadonlyMap<string, ItemView>,

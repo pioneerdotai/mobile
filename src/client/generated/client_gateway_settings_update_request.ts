@@ -12,6 +12,10 @@ export interface GatewaySettingsUpdate {
   general?: GatewayGeneralSettingsUpdate | null;
   memory?: GatewayMemorySettings | null;
   remote_access?: GatewayRemoteAccessSettingsUpdate | null;
+  /**
+   * Self-improvement settings for the workspace bound to this RPC connection.
+   */
+  self_improvement?: GatewaySelfImprovementSettings | null;
   thread_episodic?: GatewayThreadEpisodicSettingsUpdate | null;
   voice_input?: GatewayVoiceInputSettingsUpdate | null;
   [k: string]: unknown;
@@ -65,6 +69,15 @@ export interface GatewayRemoteAccessSettingsUpdate {
   key?: string | null;
   server?: string | null;
   [k: string]: unknown;
+}
+export interface GatewaySelfImprovementSettings {
+  default_model?: GatewaySelfImprovementModelSelection | null;
+  enabled?: boolean;
+  reviewer_model?: GatewaySelfImprovementModelSelection | null;
+}
+export interface GatewaySelfImprovementModelSelection {
+  model: string;
+  provider: string;
 }
 export interface GatewayThreadEpisodicSettingsUpdate {
   default_max_candidates?: number | null;

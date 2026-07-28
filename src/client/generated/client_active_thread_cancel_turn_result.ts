@@ -723,6 +723,9 @@ export interface ClientActiveThreadSnapshot {
   last_active_thread_id?: string | null;
   pending_requests?: PendingRequest[];
   projection: ConversationViewState;
+  row_render_fingerprints?: {
+    [k: string]: string;
+  };
   rows: TimelineRow[];
   session_revision?: number;
   thread?: Thread | null;

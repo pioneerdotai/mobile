@@ -27,6 +27,7 @@ export interface GatewaySettingsSnapshot {
   general?: GatewayGeneralSettings;
   memory: GatewayMemorySettings;
   remote_access?: GatewayRemoteAccessSettings;
+  self_improvement?: GatewaySelfImprovementSettings;
   thread_episodic?: GatewayThreadEpisodicSettings;
   voice_input?: GatewayVoiceInputSettings;
   [k: string]: unknown;
@@ -90,6 +91,18 @@ export interface GatewayRemoteAccessStatusSnapshot {
   updated_at_unix?: number | null;
   [k: string]: unknown;
 }
+/**
+ * Effective Self-improvement settings for the workspace bound to this RPC connection.
+ */
+export interface GatewaySelfImprovementSettings {
+  default_model?: GatewaySelfImprovementModelSelection | null;
+  enabled?: boolean;
+  reviewer_model?: GatewaySelfImprovementModelSelection | null;
+}
+export interface GatewaySelfImprovementModelSelection {
+  model: string;
+  provider: string;
+}
 export interface GatewayThreadEpisodicSettings {
   default_max_candidates: number;
   default_prompt_chars: number;
@@ -152,6 +165,10 @@ export interface GatewaySettingsUpdate {
   general?: GatewayGeneralSettingsUpdate | null;
   memory?: GatewayMemorySettings | null;
   remote_access?: GatewayRemoteAccessSettingsUpdate | null;
+  /**
+   * Self-improvement settings for the workspace bound to this RPC connection.
+   */
+  self_improvement?: GatewaySelfImprovementSettings1 | null;
   thread_episodic?: GatewayThreadEpisodicSettingsUpdate | null;
   voice_input?: GatewayVoiceInputSettingsUpdate | null;
   [k: string]: unknown;
@@ -177,6 +194,11 @@ export interface GatewayRemoteAccessSettingsUpdate {
   key?: string | null;
   server?: string | null;
   [k: string]: unknown;
+}
+export interface GatewaySelfImprovementSettings1 {
+  default_model?: GatewaySelfImprovementModelSelection | null;
+  enabled?: boolean;
+  reviewer_model?: GatewaySelfImprovementModelSelection | null;
 }
 export interface GatewayThreadEpisodicSettingsUpdate {
   default_max_candidates?: number | null;

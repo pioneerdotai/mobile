@@ -273,6 +273,13 @@
         "projection": {
           "$ref": "#/$defs/ConversationViewState"
         },
+        "row_render_fingerprints": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {}
+        },
         "rows": {
           "type": "array",
           "items": {

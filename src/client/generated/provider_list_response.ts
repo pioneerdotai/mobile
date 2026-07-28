@@ -13,6 +13,11 @@ export interface ProviderSummary {
 }
 export interface ProviderSummaryCapabilities {
   embeddings?: boolean;
+  /**
+   * Gateway-authoritative eligibility for the API-only self-improvement
+   * model selectors.
+   */
+  self_improvement?: boolean;
   transcription?: boolean;
   [k: string]: unknown;
 }

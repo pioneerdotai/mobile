@@ -323,6 +323,9 @@ describe('mobile semantic timeline projector', () => {
                 kind: { Item: { timeline_index: 0 } },
             },
         ];
+        nativeSnapshot.row_render_fingerprints = {
+            [workItem.workItemId]: '0123456789abcdef',
+        };
 
         const [row] = projectConversationToRows(nativeSnapshot, {
             semanticWorkItemKeys: new Set([workItem.workItemId]),
@@ -334,6 +337,7 @@ describe('mobile semantic timeline projector', () => {
             startedAtUnixMs: 1_000,
             elapsedLabel: null,
             semanticWorkItem: true,
+            renderFingerprint: 'rust:0123456789abcdef',
         });
 
         const runningSnapshot = {

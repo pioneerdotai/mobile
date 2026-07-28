@@ -30,6 +30,7 @@ export type TimelinePendingRequest = {
 export type TimelineRowMeta = {
     semanticWorkItem?: boolean;
     startedAtUnixMs?: number | null;
+    renderFingerprint?: string;
 };
 
 export type TimelineRow = TimelineRowMeta &
