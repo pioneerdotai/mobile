@@ -47,6 +47,7 @@ import {
 import { viewportPrefetchPlan } from './viewport-prefetch';
 import type { TimelineViewportPrefetchPlan } from './viewport-prefetch';
 import { defaultTimelineRowExpanded } from './row-expansion';
+import { timelineRowsAreEqual } from './timeline-row-equality';
 import { VStack } from '@/components/primitives/vstack';
 
 export type {
@@ -66,6 +67,7 @@ type ThreadTimelineProps = {
     disconnectedLabel: string;
     loadingLabel: string;
     pendingRequests: TimelinePendingRequest[];
+    semanticWorkItemKeys?: ReadonlySet<string>;
     contentTopInset?: number;
     contentBottomInset?: number;
     emptyReady?: boolean;
@@ -112,6 +114,7 @@ const ThreadTimelineContent = ({
     disconnectedLabel,
     loadingLabel,
     pendingRequests,
+    semanticWorkItemKeys,
     contentTopInset = 0,
     contentBottomInset = 0,
     emptyReady = true,
@@ -164,8 +167,16 @@ const ThreadTimelineContent = ({
                       expandedKeys: expandedRows,
                       nowMs: timelineNowMs,
                       pendingRequests,
+                      semanticWorkItemKeys,
                   }),
-        [conversation, expandedRows, pendingRequests, rowsOverride, timelineNowMs],
+        [
+            conversation,
+            expandedRows,
+            pendingRequests,
+            rowsOverride,
+            semanticWorkItemKeys,
+            timelineNowMs,
+        ],
     );
 
     const rowCount = rows.length;
@@ -282,6 +293,7 @@ const ThreadTimelineContent = ({
                 extraData={listExtraData}
                 getItemType={(row) => row.type}
                 initialScrollAtEnd
+                itemsAreEqual={timelineRowsAreEqual}
                 keyExtractor={(row) => row.key}
                 keyboardDismissMode="interactive"
                 keyboardLiftBehavior={TIMELINE_KEYBOARD_LIFT_BEHAVIOR}
@@ -482,7 +494,17 @@ const isActiveStatus = (status: string) => {
     );
 };
 
-const timelineRowIsStreaming = (row: TimelineRow) => {
+type StreamingTimelineRow = Extract<
+    TimelineRow,
+    | { type: 'assistant-message' }
+    | { type: 'reasoning' }
+    | { type: 'command-execution' }
+    | { type: 'file-change' }
+    | { type: 'tool-call' }
+    | { type: 'task-anchor' }
+>;
+
+const timelineRowIsStreaming = (row: TimelineRow): row is StreamingTimelineRow => {
     switch (row.type) {
         case 'assistant-message':
         case 'reasoning':
@@ -539,8 +561,7 @@ const insertPendingRequestRows = (
 
 const hydrateRunningRowsElapsed = (rows: readonly TimelineRow[], nowMs: number): TimelineRow[] =>
     rows.map((row) => {
-        const runningTask = row.type === 'task-anchor' && row.status.toLowerCase() === 'running';
-        if (row.type !== 'running' && !runningTask) {
+        if (row.type !== 'running' && !timelineRowIsStreaming(row)) {
             return row;
         }
 

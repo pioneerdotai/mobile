@@ -105,6 +105,7 @@
         "nanoid-dictionary": "^5.0.0",
         "react": "19.2.3",
         "react-dom": "19.2.3",
+        "react-fast-compare": "3.2.2",
         "react-hook-form": "^7.82.0",
         "react-i18next": "^17.0.10",
         "react-native": "0.86.0",

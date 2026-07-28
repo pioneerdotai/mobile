@@ -326,6 +326,10 @@ const pushTurnWorkBlock = (
 };
 
 const pushTurnWorkItem = (semantic: MutableSemanticProjection, item: TurnWorkItem) => {
+    if (!workItemIsVisibleInTimeline(item)) {
+        return;
+    }
+
     const { text, markdown } = turnItemTextAndMarkdown(item.item);
     const terminal = item.status !== 'running';
 
@@ -347,6 +351,16 @@ const pushTurnWorkItem = (semantic: MutableSemanticProjection, item: TurnWorkIte
         item: item.item as LegacyTurnItem,
         opaqueMeta: item.metadata ?? null,
     });
+};
+
+const workItemIsVisibleInTimeline = (item: TurnWorkItem): boolean => {
+    if (item.status === 'running' || item.item.type !== 'reasoning') {
+        return true;
+    }
+
+    return [...(item.item.summary ?? []), ...(item.item.content ?? [])].some(
+        (part) => part.trim().length > 0,
+    );
 };
 
 const pushTurnStateRow = (

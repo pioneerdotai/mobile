@@ -136,6 +136,7 @@ describe('mobile semantic timeline projector', () => {
             type: 'task-anchor',
             key: rows[0]?.key,
             status: 'completed',
+            elapsedLabel: null,
             resultPreview: 'Analysis complete',
         });
     });
@@ -291,6 +292,75 @@ describe('mobile semantic timeline projector', () => {
         });
     });
 
+    it('keeps native work elapsed only while running', () => {
+        const workItem = commandWorkItem('work_001', '001');
+        const nativeSnapshot = snapshot({
+            items: [
+                {
+                    id: workItem.itemId,
+                    turn_id: workItem.turnId,
+                    item_type: workItem.itemType,
+                    status: 'Completed',
+                    started_at_unix_ms: 1_000,
+                    updated_at_unix_ms: 3_000,
+                    completed_at_unix_ms: 3_000,
+                    partial_text: '',
+                    item: workItem.item,
+                },
+            ],
+            timeline: [
+                {
+                    id: workItem.workItemId,
+                    turn_id: workItem.turnId,
+                    item_id: workItem.itemId,
+                    item_index: 0,
+                },
+            ],
+        });
+        nativeSnapshot.rows = [
+            {
+                key: workItem.workItemId,
+                kind: { Item: { timeline_index: 0 } },
+            },
+        ];
+
+        const [row] = projectConversationToRows(nativeSnapshot, {
+            semanticWorkItemKeys: new Set([workItem.workItemId]),
+        });
+
+        expect(row).toMatchObject({
+            type: 'command-execution',
+            turnId: 'turn_a',
+            startedAtUnixMs: 1_000,
+            elapsedLabel: null,
+            semanticWorkItem: true,
+        });
+
+        const runningSnapshot = {
+            ...nativeSnapshot,
+            projection: {
+                ...nativeSnapshot.projection,
+                items: nativeSnapshot.projection.items.map((item) => ({
+                    ...item,
+                    status: 'Running' as const,
+                    updated_at_unix_ms: 1_000,
+                    completed_at_unix_ms: null,
+                })),
+            },
+        };
+        const [runningRow] = projectConversationToRows(runningSnapshot, {
+            nowMs: 3_000,
+            semanticWorkItemKeys: new Set([workItem.workItemId]),
+        });
+
+        expect(runningRow).toMatchObject({
+            type: 'command-execution',
+            streaming: true,
+            startedAtUnixMs: 1_000,
+            elapsedLabel: 'threads:timelineElapsedSeconds',
+        });
+    });
+
     it('preserves stalled state and message from native running rows', () => {
         const rows = projectConversationToRows(
             {
@@ -369,6 +439,65 @@ describe('mobile semantic timeline projector', () => {
         expect(rows.find((row) => row.type === 'assistant-message')?.semanticWorkItem).toBe(
             undefined,
         );
+    });
+
+    it('hides empty terminal reasoning but keeps running and contentful thoughts', () => {
+        const emptyCompleted = reasoningWorkItem(
+            'work_completed_empty',
+            '001',
+            'completed',
+            ['  '],
+            [],
+        );
+        const emptyRunning = reasoningWorkItem('work_running_empty', '002', 'running', [], []);
+        const contentCompleted = reasoningWorkItem(
+            'work_completed_content',
+            '003',
+            'completed',
+            [],
+            ['analysis'],
+        );
+        const work = workSummary({
+            presentation: 'expanded_live',
+            state: 'running',
+            workCount: 3,
+            visibleWorkCount: 3,
+        });
+        const rows = projectSemanticTimelineToRows({
+            snapshot: snapshot(),
+            blocks: [
+                workBlock('002', {
+                    presentation: 'expanded_live',
+                    state: 'running',
+                    workCount: 3,
+                    visibleWorkCount: 3,
+                }),
+            ],
+            expandedKeys: [],
+            workRangesByTurn: {
+                turn_a: {
+                    work,
+                    items: [emptyCompleted, emptyRunning, contentCompleted],
+                    hasLoadedPage: true,
+                },
+            },
+            nowMs: 10_000,
+        });
+        const reasoningRows = rows.filter((row) => row.type === 'reasoning');
+
+        expect(reasoningRows.map((row) => row.itemId)).toEqual([
+            emptyRunning.itemId,
+            contentCompleted.itemId,
+        ]);
+        expect(reasoningRows[0]).toMatchObject({
+            streaming: true,
+            elapsedLabel: 'threads:timelineElapsedSeconds',
+        });
+        expect(reasoningRows[1]).toMatchObject({
+            streaming: false,
+            text: 'analysis',
+            elapsedLabel: null,
+        });
     });
 
     it('renders running row for live no-final work without a collapsed toggle', () => {
@@ -743,5 +872,29 @@ const commandWorkItem = (workItemId: string, orderKey: string): TurnWorkItem => 
         recoveryPolicy: null,
         outcome: null,
         observation: null,
+    },
+});
+
+const reasoningWorkItem = (
+    workItemId: string,
+    orderKey: string,
+    status: TurnWorkItem['status'],
+    summary: string[],
+    content: string[],
+): TurnWorkItem => ({
+    workItemId,
+    itemId: `item_${workItemId}`,
+    turnId: 'turn_a',
+    orderKey,
+    itemType: 'reasoning',
+    status,
+    startedAtUnixMs: 1_000,
+    completedAtUnixMs: status === 'running' ? null : 3_000,
+    metadata: null,
+    item: {
+        type: 'reasoning',
+        id: `item_${workItemId}`,
+        summary,
+        content,
     },
 });

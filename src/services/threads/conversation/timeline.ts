@@ -29,6 +29,7 @@ export type TimelinePendingRequest = {
 
 export type TimelineRowMeta = {
     semanticWorkItem?: boolean;
+    startedAtUnixMs?: number | null;
 };
 
 export type TimelineRow = TimelineRowMeta &

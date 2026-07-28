@@ -332,6 +332,15 @@ const ThreadScreen = ({ threadId, initialThread = null }: ThreadScreenProps) => 
         semanticWorkRangesState.threadId === visibleThreadId
             ? semanticWorkRangesState.ranges
             : EMPTY_SEMANTIC_WORK_RANGES;
+    const nativeSemanticWorkItemKeys = useMemo(() => {
+        const keys = new Set<string>();
+        for (const range of Object.values(semanticWorkRangesByTurn)) {
+            for (const item of range.items) {
+                keys.add(item.workItemId);
+            }
+        }
+        return keys;
+    }, [semanticWorkRangesByTurn]);
 
     useTimelineQueryCancellation(visibleThreadId, focused);
     useTimelineReconnectInvalidation(visibleThreadId, focused);
@@ -1449,6 +1458,7 @@ const ThreadScreen = ({ threadId, initialThread = null }: ThreadScreenProps) => 
                             disconnectedLabel={t('disconnected')}
                             loadingLabel={t('loadingThread')}
                             pendingRequests={pendingRequests}
+                            semanticWorkItemKeys={nativeSemanticWorkItemKeys}
                             contentTopInset={contentTopInset}
                             contentBottomInset={timelineContentBottomInset}
                             emptyReady={composerMeasured}

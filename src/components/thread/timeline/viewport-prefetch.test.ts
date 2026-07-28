@@ -39,6 +39,28 @@ describe('mobile timeline viewport prefetch', () => {
             nearEnd: true,
         });
     });
+
+    it('changes the work boundary key when an older page is prepended', () => {
+        const initialRows = [
+            userRow(),
+            workGroupRow(),
+            ...Array.from({ length: 50 }, (_, index) => workItemRow(index + 50)),
+            assistantRow(),
+        ];
+        const prependedRows = [
+            userRow(),
+            workGroupRow(),
+            ...Array.from({ length: 100 }, (_, index) => workItemRow(index)),
+            assistantRow(),
+        ];
+
+        const initial = viewportPrefetchPlan(initialRows, [2, 3, 4], 2, 4);
+        const prepended = viewportPrefetchPlan(prependedRows, [2, 3, 4], 2, 4);
+
+        expect(initial?.turnWork.turn_a.nearStart).toBe(true);
+        expect(prepended?.turnWork.turn_a.nearStart).toBe(true);
+        expect(prepended?.turnWork.turn_a.key).not.toBe(initial?.turnWork.turn_a.key);
+    });
 });
 
 const userRow = (): TimelineRow => ({

@@ -84,9 +84,21 @@ export const viewportPrefetchPlan = (
         const visibleEnd = Math.max(...visibleForTurn);
         const turnNearStart = visibleStart <= span.start + TIMELINE_PREFETCH_THRESHOLD_ROWS;
         const turnNearEnd = visibleEnd >= span.end - TIMELINE_PREFETCH_THRESHOLD_ROWS;
+        const spanStartKey = rows[span.start]?.key ?? String(span.start);
+        const spanEndKey = rows[span.end]?.key ?? String(span.end);
+        const visibleStartKey = rows[visibleStart]?.key ?? String(visibleStart);
+        const visibleEndKey = rows[visibleEnd]?.key ?? String(visibleEnd);
 
         acc[turnId] = {
-            key: `${turnId}:${visibleStart}:${visibleEnd}:${turnNearStart ? 'S' : '-'}:${turnNearEnd ? 'E' : '-'}`,
+            key: JSON.stringify([
+                turnId,
+                spanStartKey,
+                spanEndKey,
+                visibleStartKey,
+                visibleEndKey,
+                turnNearStart,
+                turnNearEnd,
+            ]),
             turnId,
             visible: true,
             nearStart: turnNearStart,

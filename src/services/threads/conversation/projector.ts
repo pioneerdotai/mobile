@@ -27,6 +27,7 @@ type ProjectConversationRowsOptions = {
     expandedKeys?: ReadonlySet<string> | Readonly<Record<string, boolean>>;
     nowMs?: number;
     pendingRequests?: readonly TimelinePendingRequest[];
+    semanticWorkItemKeys?: ReadonlySet<string>;
 };
 
 type CoalescedToolsModel = Extract<TimelineRow, { type: 'tool-group' }>;
@@ -93,7 +94,16 @@ const projectClientConversationRow = (
     if ('Item' in row.kind) {
         const entry = projection.timeline[row.kind.Item.timeline_index];
         const item = entry ? itemsById.get(entry.item_id) : null;
-        return item ? projectItemToRow(item, options.nowMs) : null;
+        const projected = item ? projectItemToRow(item, options.nowMs) : null;
+        if (!projected || !item) {
+            return null;
+        }
+
+        return {
+            ...projected,
+            startedAtUnixMs: item.started_at_unix_ms ?? null,
+            ...(options.semanticWorkItemKeys?.has(row.key) ? { semanticWorkItem: true } : {}),
+        };
     }
 
     if ('TurnWorkToggle' in row.kind) {
@@ -269,15 +279,15 @@ const itemFinalText = (item: ItemView): string => {
 };
 
 const formatElapsed = (item: ItemView, nowMs?: number): string | null => {
+    if (!isRunningStatus(item.status)) {
+        return null;
+    }
     const started = item.started_at_unix_ms ?? null;
     if (started === null) {
         return null;
     }
 
-    const ended = isRunningStatus(item.status)
-        ? (nowMs ?? Date.now())
-        : (item.completed_at_unix_ms ?? item.updated_at_unix_ms ?? started);
-    return formatElapsedMs(Math.max(0, ended - started));
+    return formatElapsedMs(Math.max(0, (nowMs ?? Date.now()) - started));
 };
 
 const formatTimelineTimestamp = (item: ItemView): string => {
