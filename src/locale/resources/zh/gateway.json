@@ -3,16 +3,18 @@
     "setupDescription": "Pioneer Mobile 仅支持远程网关端点。",
     "nameLabel": "名称",
     "addressLabel": "地址",
-    "tokenLabel": "Token",
+    "activationCodeLabel": "一次性设备注册码",
     "addButton": "添加远程网关",
+    "authenticateTitle": "认证网关",
+    "authenticateButton": "认证此设备",
     "saveButton": "保存网关",
     "manageButton": "管理网关",
     "addressRequired": "网关地址为必填项。",
     "invalidAddress": "网关地址无效。",
     "notFound": "未找到网关。",
     "validationUnreachable": "网关不可达。",
-    "invalidToken": "网关 token 无效。",
-    "connectionFailed": "无法连接到网关。请检查地址和 token。",
+    "invalidActivation": "设备注册码无效、已过期或已使用。",
+    "connectionFailed": "无法连接到网关。请检查地址。",
     "operationFailed": "网关操作失败。",
     "manageTitle": "网关",
     "editTitle": "编辑网关",
@@ -34,5 +36,67 @@
     "sessionDisconnected": "已断开",
     "sessionListening": "正在监听网关事件",
     "sessionConfigured": "已配置",
-    "sessionFailed": "网关会话失败"
+    "sessionFailed": "网关会话失败",
+    "activation": {
+        "openAction": "使用注册链接",
+        "acceptTitle": "注册设备",
+        "acceptDescription": "打开注册链接，或输入受保护的端点和完整的设备注册码。",
+        "endpointLabel": "受保护的 Gateway 端点",
+        "codeLabel": "设备注册码",
+        "connectAction": "注册并连接",
+        "invalidPresentation": "注册链接或设备注册码无效。",
+        "gatewayMismatch": "此设备注册码属于另一个 Gateway。",
+        "activationFailed": "无法使用设备激活码。它可能已过期或已被使用。",
+        "storageFailed": "无法安全保存新的设备会话。"
+    },
+    "devices": {
+        "sessionsTitle": "设备",
+        "loadFailed": "无法加载设备。",
+        "current": "此设备",
+        "sessionMeta": "{{kind}} · 最近活动 {{date}}",
+        "revokeTitle": "撤销设备会话？",
+        "revokeCurrentMessage": "此设备将立即退出登录。",
+        "revokeOtherMessage": "所选设备将立即失去访问权限。",
+        "revokeAction": "撤销",
+        "revokeFailed": "无法撤销会话。",
+        "activationTitle": "添加另一台设备",
+        "createDeviceActivation": "创建设备注册码",
+        "activationFailed": "无法创建设备注册码。",
+        "activationQrLabel": "设备注册二维码",
+        "copyCode": "复制设备注册码",
+        "copyLink": "复制注册链接",
+        "logoutTitle": "退出此设备？",
+        "logoutMessage": "会话将被撤销，本地凭据将被删除。",
+        "logoutAction": "退出登录",
+        "logoutFailed": "无法退出此设备。"
+    },
+    "terminal": {
+        "activateAction": "注册此设备",
+        "authentication_required": {
+            "title": "需要认证",
+            "description": "请使用新的一次性设备注册码授权此设备。"
+        },
+        "session_revoked": { "title": "会话已撤销", "description": "此设备不再有权访问 Gateway。" },
+        "session_expired": { "title": "会话已过期", "description": "此设备必须重新注册。" },
+        "session_compromised": {
+            "title": "会话安全问题",
+            "description": "为保护 Gateway，凭据系列已被撤销。"
+        },
+        "gateway_identity_mismatch": {
+            "title": "Gateway 不匹配",
+            "description": "服务器与固定的 Gateway identity 不匹配。"
+        },
+        "secure_storage_failed": {
+            "title": "安全存储不可用",
+            "description": "无法安全保存轮换后的会话凭据。"
+        },
+        "refresh_outcome_unknown": {
+            "title": "刷新结果未知",
+            "description": "已停止自动重试，以免重复使用已轮换的凭据。"
+        },
+        "refresh_credential_invalid": {
+            "title": "会话凭据无效",
+            "description": "此设备必须重新注册。"
+        }
+    }
 }

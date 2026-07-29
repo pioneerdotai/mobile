@@ -2,15 +2,9 @@ import { PioneerClientNativeError, pioneerClient } from '@/client';
 import type { ClientDiagnosticEvent } from '@/client';
 import { reportError } from '@/services/error-reporting';
 import { isSentryEnabled, Sentry } from '@/services/sentry';
+import { redactAuthText } from '@/services/auth-redaction';
 
 const FFI_PANIC_CODE = 'pioneer_client_ffi_panic';
-
-const redactDiagnosticMessage = (message: string): string => {
-    return message
-        .replace(/\bBearer\s+[A-Za-z0-9._~+/=-]+/gi, 'Bearer [redacted]')
-        .replace(/\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g, '[redacted-jwt]')
-        .replace(/\b(key|password|token)=([^&\s]+)/gi, '$1=[redacted]');
-};
 
 const addClientBreadcrumb = (operation: string, message: string): void => {
     if (!isSentryEnabled) {
@@ -35,7 +29,7 @@ const addDiagnosticBreadcrumb = (event: ClientDiagnosticEvent): void => {
     Sentry.addBreadcrumb({
         category: 'pioneer.client_ffi',
         level: event.level === 'error' ? 'error' : 'info',
-        message: redactDiagnosticMessage(event.message),
+        message: redactAuthText(event.message),
         data: {
             code: event.code ?? null,
             operation: event.operation,
@@ -53,8 +47,7 @@ const isFfiPanicError = (error: unknown): boolean => {
 };
 
 const reportFfiPanic = (error: unknown, operation: string, event?: ClientDiagnosticEvent): void => {
-    const reportedError =
-        error instanceof Error ? new Error(redactDiagnosticMessage(error.message)) : error;
+    const reportedError = error instanceof Error ? new Error(redactAuthText(error.message)) : error;
 
     reportError(reportedError, 'Pioneer client FFI panic', {
         tags: {

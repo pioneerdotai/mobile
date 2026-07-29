@@ -1,5 +1,6 @@
 import Constants from 'expo-constants';
 import * as Sentry from '@sentry/react-native';
+import { redactAuthValue } from '@/services/auth-redaction';
 
 type SentryExtra = {
     dsn?: string | null;
@@ -45,6 +46,8 @@ export const initializeSentry = (): void => {
         enableAutoSessionTracking: true,
         enableNativeCrashHandling: true,
         sendDefaultPii: false,
+        beforeSend: (event) => redactAuthValue(event) as typeof event,
+        beforeBreadcrumb: (breadcrumb) => redactAuthValue(breadcrumb) as typeof breadcrumb,
     });
 };
 

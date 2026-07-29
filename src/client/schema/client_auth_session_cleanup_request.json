@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ClientAuthSessionCleanupRequest",
+  "type": "object",
+  "properties": {
+    "access_token": {
+      "type": "string"
+    },
+    "address": {
+      "type": "string"
+    },
+    "session_id": {
+      "$ref": "#/$defs/AuthSessionId"
+    },
+    "timeout_ms": {
+      "type": "integer",
+      "format": "uint64",
+      "default": 15000,
+      "minimum": 0
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "address",
+    "access_token",
+    "session_id"
+  ],
+  "$defs": {
+    "AuthSessionId": {
+      "type": "string",
+      "maxLength": 21,
+      "minLength": 21,
+      "pattern": "^[A-Za-z0-9]{21}$"
+    }
+  }
+}

@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ClientAuthDeviceActivateRequest",
+  "type": "object",
+  "properties": {
+    "address": {
+      "type": "string"
+    },
+    "credential": {
+      "type": "string"
+    },
+    "params": {
+      "$ref": "#/$defs/AuthDeviceActivateParams"
+    },
+    "timeout_ms": {
+      "type": "integer",
+      "format": "uint64",
+      "default": 15000,
+      "minimum": 0
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "address",
+    "credential",
+    "params"
+  ],
+  "$defs": {
+    "AuthDeviceActivateParams": {
+      "type": "object",
+      "properties": {
+        "installation": {
+          "$ref": "#/$defs/ClientInstallationDescriptor"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "installation"
+      ]
+    },
+    "ClientInstallationDescriptor": {
+      "type": "object",
+      "properties": {
+        "client_kind": {
+          "$ref": "#/$defs/ClientKind"
+        },
+        "client_version": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "display_name": {
+          "type": "string"
+        },
+        "installation_id": {
+          "type": "string"
+        },
+        "platform": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "installation_id",
+        "display_name",
+        "client_kind"
+      ]
+    },
+    "ClientKind": {
+      "type": "string",
+      "enum": [
+        "desktop",
+        "mobile",
+        "other"
+      ]
+    }
+  }
+}

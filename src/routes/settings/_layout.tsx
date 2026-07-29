@@ -44,6 +44,12 @@ export default function SettingsStackLayout() {
                     headerTitle: t('theme.eyebrow'),
                 }}
             />
+            <Stack.Screen
+                name="devices"
+                options={{
+                    headerTitle: t('devices.eyebrow'),
+                }}
+            />
         </Stack>
     );
 }

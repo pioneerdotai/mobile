@@ -3,16 +3,18 @@
     "setupDescription": "Pioneer Mobile はリモートゲートウェイ endpoint のみで動作します。",
     "nameLabel": "名前",
     "addressLabel": "アドレス",
-    "tokenLabel": "Token",
+    "activationCodeLabel": "ワンタイムデバイス登録コード",
     "addButton": "リモートゲートウェイを追加",
+    "authenticateTitle": "ゲートウェイを認証",
+    "authenticateButton": "このデバイスを認証",
     "saveButton": "ゲートウェイを保存",
     "manageButton": "ゲートウェイを管理",
     "addressRequired": "ゲートウェイアドレスは必須です。",
     "invalidAddress": "ゲートウェイアドレスが無効です。",
     "notFound": "ゲートウェイが見つかりませんでした。",
     "validationUnreachable": "ゲートウェイに到達できません。",
-    "invalidToken": "ゲートウェイ token が無効です。",
-    "connectionFailed": "ゲートウェイに接続できませんでした。アドレスと token を確認してください。",
+    "invalidActivation": "登録コードが無効、期限切れ、または使用済みです。",
+    "connectionFailed": "ゲートウェイに接続できませんでした。アドレスを確認してください。",
     "operationFailed": "ゲートウェイ操作に失敗しました。",
     "manageTitle": "ゲートウェイ",
     "editTitle": "ゲートウェイを編集",
@@ -34,5 +36,73 @@
     "sessionDisconnected": "切断済み",
     "sessionListening": "ゲートウェイイベントを受信中",
     "sessionConfigured": "設定済み",
-    "sessionFailed": "ゲートウェイセッションに失敗しました"
+    "sessionFailed": "ゲートウェイセッションに失敗しました",
+    "activation": {
+        "openAction": "登録リンクを使用",
+        "acceptTitle": "デバイスを登録",
+        "acceptDescription": "登録リンクを開くか、保護されたエンドポイントと完全な登録コードを入力してください。",
+        "endpointLabel": "保護されたGatewayエンドポイント",
+        "codeLabel": "登録コード",
+        "connectAction": "登録して接続",
+        "invalidPresentation": "登録リンクまたはコードが無効です。",
+        "gatewayMismatch": "この登録コードは別のGateway用です。",
+        "activationFailed": "アクティベーションコードを使用できませんでした。期限切れか、すでに使用済みの可能性があります。",
+        "storageFailed": "新しいデバイスセッションを安全に保存できませんでした。"
+    },
+    "devices": {
+        "sessionsTitle": "デバイス",
+        "loadFailed": "デバイスを読み込めませんでした。",
+        "current": "このデバイス",
+        "sessionMeta": "{{kind}} · 最終使用 {{date}}",
+        "revokeTitle": "デバイスセッションを無効化しますか？",
+        "revokeCurrentMessage": "このデバイスは直ちにサインアウトされます。",
+        "revokeOtherMessage": "選択したデバイスは直ちにアクセスを失います。",
+        "revokeAction": "無効化",
+        "revokeFailed": "セッションを無効化できませんでした。",
+        "activationTitle": "別のデバイスを追加",
+        "createDeviceActivation": "登録コードを作成",
+        "activationFailed": "登録コードを作成できませんでした。",
+        "activationQrLabel": "デバイス登録QRコード",
+        "copyCode": "コードをコピー",
+        "copyLink": "リンクをコピー",
+        "logoutTitle": "このデバイスからサインアウトしますか？",
+        "logoutMessage": "セッションを無効化し、ローカル認証情報を削除します。",
+        "logoutAction": "サインアウト",
+        "logoutFailed": "サインアウトできませんでした。"
+    },
+    "terminal": {
+        "activateAction": "このデバイスを登録",
+        "authentication_required": {
+            "title": "認証が必要です",
+            "description": "新しいワンタイム登録コードでこのデバイスを認証してください。"
+        },
+        "session_revoked": {
+            "title": "セッションは無効です",
+            "description": "このデバイスはGatewayにアクセスできません。"
+        },
+        "session_expired": {
+            "title": "セッション期限切れ",
+            "description": "このデバイスを再度登録してください。"
+        },
+        "session_compromised": {
+            "title": "セキュリティ上の問題",
+            "description": "Gateway保護のため認証情報ファミリーを無効化しました。"
+        },
+        "gateway_identity_mismatch": {
+            "title": "Gateway不一致",
+            "description": "サーバーが固定されたGateway identityと一致しません。"
+        },
+        "secure_storage_failed": {
+            "title": "安全なストレージを利用できません",
+            "description": "更新されたセッション認証情報を安全に保存できませんでした。"
+        },
+        "refresh_outcome_unknown": {
+            "title": "更新結果が不明です",
+            "description": "ローテーション済み認証情報の再利用を防ぐため自動再試行を停止しました。"
+        },
+        "refresh_credential_invalid": {
+            "title": "セッション認証情報が無効です",
+            "description": "このデバイスを再度登録してください。"
+        }
+    }
 }

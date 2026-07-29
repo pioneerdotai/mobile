@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AuthSessionRevokeParams",
+  "type": "object",
+  "properties": {
+    "expected_status": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/AuthSessionStatus"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "session_id": {
+      "$ref": "#/$defs/AuthSessionId"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "session_id"
+  ],
+  "$defs": {
+    "AuthSessionId": {
+      "type": "string",
+      "maxLength": 21,
+      "minLength": 21,
+      "pattern": "^[A-Za-z0-9]{21}$"
+    },
+    "AuthSessionStatus": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "active",
+        "revoked",
+        "expired"
+      ]
+    }
+  }
+}

@@ -11,6 +11,8 @@ const EditorScreen = () => {
             return <GatewayEditorScreen />;
         case 'gateway__edit':
             return <GatewayEditorScreen {...state.payload} />;
+        case 'gateway__authenticate':
+            return <GatewayEditorScreen {...state.payload} authenticateOnly />;
         case 'workspace__create':
             return <WorkspaceEditorScreen />;
         case 'workspace__edit':

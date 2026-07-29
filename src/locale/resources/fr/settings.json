@@ -44,6 +44,7 @@
             }
         }
     },
+    "devices": { "eyebrow": "Appareils" },
     "theme": {
         "eyebrow": "Thème",
         "title": "Apparence",

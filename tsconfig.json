@@ -5,7 +5,8 @@
         "jsx": "react-native",
         "paths": {
             "@/*": ["./src/*"],
-        },
+            "@pioneer/client-nitro": ["./modules/pioneer-client-nitro/src/index.ts"]
+        }
     },
-    "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts"],
+    "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts"]
 }

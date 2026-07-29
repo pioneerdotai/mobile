@@ -1,0 +1,380 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ClientGatewaySessionLifecycleRequest",
+  "type": "object",
+  "properties": {
+    "endpoint_id": {
+      "type": "string"
+    },
+    "event": {
+      "$ref": "#/$defs/SessionLifecycleEvent"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "endpoint_id",
+    "event"
+  ],
+  "$defs": {
+    "AuthSessionId": {
+      "type": "string",
+      "maxLength": 21,
+      "minLength": 21,
+      "pattern": "^[A-Za-z0-9]{21}$"
+    },
+    "DeviceId": {
+      "type": "string",
+      "maxLength": 21,
+      "minLength": 21,
+      "pattern": "^[A-Za-z0-9]{21}$"
+    },
+    "GatewayId": {
+      "type": "string",
+      "maxLength": 21,
+      "minLength": 21,
+      "pattern": "^[A-Za-z0-9]{21}$"
+    },
+    "GatewaySessionMetadata": {
+      "type": "object",
+      "properties": {
+        "device_id": {
+          "$ref": "#/$defs/DeviceId"
+        },
+        "gateway_id": {
+          "$ref": "#/$defs/GatewayId"
+        },
+        "refresh_expires_at_unix": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "refresh_generation": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "session_id": {
+          "$ref": "#/$defs/AuthSessionId"
+        }
+      },
+      "required": [
+        "gateway_id",
+        "device_id",
+        "session_id",
+        "refresh_generation",
+        "refresh_expires_at_unix"
+      ]
+    },
+    "SessionLifecycleEvent": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "no_stored_session"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "device_activation_required"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "data": {
+              "$ref": "#/$defs/GatewaySessionMetadata"
+            },
+            "kind": {
+              "type": "string",
+              "const": "stored_session_loaded"
+            }
+          },
+          "required": [
+            "kind",
+            "data"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "data": {
+              "type": "object",
+              "properties": {
+                "access_expires_at_unix": {
+                  "type": "integer",
+                  "format": "uint64",
+                  "minimum": 0
+                },
+                "intent_id": {
+                  "type": "integer",
+                  "format": "uint64",
+                  "minimum": 0
+                },
+                "metadata": {
+                  "$ref": "#/$defs/GatewaySessionMetadata"
+                }
+              },
+              "required": [
+                "intent_id",
+                "metadata",
+                "access_expires_at_unix"
+              ]
+            },
+            "kind": {
+              "type": "string",
+              "const": "refresh_grant_received"
+            }
+          },
+          "required": [
+            "kind",
+            "data"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "data": {
+              "type": "object",
+              "properties": {
+                "intent_id": {
+                  "type": "integer",
+                  "format": "uint64",
+                  "minimum": 0
+                }
+              },
+              "required": [
+                "intent_id"
+              ]
+            },
+            "kind": {
+              "type": "string",
+              "const": "secure_storage_committed"
+            }
+          },
+          "required": [
+            "kind",
+            "data"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "data": {
+              "type": "object",
+              "properties": {
+                "intent_id": {
+                  "type": "integer",
+                  "format": "uint64",
+                  "minimum": 0
+                }
+              },
+              "required": [
+                "intent_id"
+              ]
+            },
+            "kind": {
+              "type": "string",
+              "const": "secure_storage_failed"
+            }
+          },
+          "required": [
+            "kind",
+            "data"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "data": {
+              "type": "object",
+              "properties": {
+                "generation": {
+                  "type": "integer",
+                  "format": "uint64",
+                  "minimum": 0
+                }
+              },
+              "required": [
+                "generation"
+              ]
+            },
+            "kind": {
+              "type": "string",
+              "const": "connection_established"
+            }
+          },
+          "required": [
+            "kind",
+            "data"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "data": {
+              "type": "object",
+              "properties": {
+                "generation": {
+                  "type": "integer",
+                  "format": "uint64",
+                  "minimum": 0
+                },
+                "now_unix": {
+                  "type": "integer",
+                  "format": "uint64",
+                  "minimum": 0
+                }
+              },
+              "required": [
+                "generation",
+                "now_unix"
+              ]
+            },
+            "kind": {
+              "type": "string",
+              "const": "connection_transport_failed"
+            }
+          },
+          "required": [
+            "kind",
+            "data"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "data": {
+              "type": "object",
+              "properties": {
+                "generation": {
+                  "type": "integer",
+                  "format": "uint64",
+                  "minimum": 0
+                }
+              },
+              "required": [
+                "generation"
+              ]
+            },
+            "kind": {
+              "type": "string",
+              "const": "connection_event_observed"
+            }
+          },
+          "required": [
+            "kind",
+            "data"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "data": {
+              "type": "object",
+              "properties": {
+                "now_unix": {
+                  "type": "integer",
+                  "format": "uint64",
+                  "minimum": 0
+                },
+                "refresh_leeway_seconds": {
+                  "type": "integer",
+                  "format": "uint64",
+                  "minimum": 0
+                }
+              },
+              "required": [
+                "now_unix",
+                "refresh_leeway_seconds"
+              ]
+            },
+            "kind": {
+              "type": "string",
+              "const": "clock_advanced"
+            }
+          },
+          "required": [
+            "kind",
+            "data"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "data": {
+              "type": "object",
+              "properties": {
+                "intent_id": {
+                  "type": "integer",
+                  "format": "uint64",
+                  "minimum": 0
+                }
+              },
+              "required": [
+                "intent_id"
+              ]
+            },
+            "kind": {
+              "type": "string",
+              "const": "refresh_transport_lost"
+            }
+          },
+          "required": [
+            "kind",
+            "data"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "data": {
+              "type": "object",
+              "properties": {
+                "reason": {
+                  "$ref": "#/$defs/SessionTerminalReason"
+                }
+              },
+              "required": [
+                "reason"
+              ]
+            },
+            "kind": {
+              "type": "string",
+              "const": "auth_failed"
+            }
+          },
+          "required": [
+            "kind",
+            "data"
+          ]
+        }
+      ]
+    },
+    "SessionTerminalReason": {
+      "type": "string",
+      "enum": [
+        "authentication_required",
+        "session_revoked",
+        "session_expired",
+        "session_compromised",
+        "gateway_identity_mismatch",
+        "secure_storage_failed",
+        "refresh_outcome_unknown",
+        "refresh_credential_invalid"
+      ]
+    }
+  }
+}

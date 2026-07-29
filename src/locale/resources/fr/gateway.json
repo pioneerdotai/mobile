@@ -3,16 +3,18 @@
     "setupDescription": "Pioneer Mobile fonctionne uniquement avec des endpoints de gateway distants.",
     "nameLabel": "Nom",
     "addressLabel": "Adresse",
-    "tokenLabel": "Token",
+    "activationCodeLabel": "Code d’inscription d’appareil à usage unique",
     "addButton": "Ajouter un gateway distant",
+    "authenticateTitle": "Authentifier le gateway",
+    "authenticateButton": "Authentifier cet appareil",
     "saveButton": "Enregistrer le gateway",
     "manageButton": "Gérer les gateways",
     "addressRequired": "L'adresse du gateway est requise.",
     "invalidAddress": "L'adresse du gateway est invalide.",
     "notFound": "Gateway introuvable.",
     "validationUnreachable": "Gateway inaccessible.",
-    "invalidToken": "Token de gateway invalide.",
-    "connectionFailed": "Impossible de se connecter au gateway. Vérifiez l'adresse et le token.",
+    "invalidActivation": "Le code d’inscription est invalide, expiré ou déjà utilisé.",
+    "connectionFailed": "Impossible de se connecter au gateway. Vérifiez l’adresse.",
     "operationFailed": "Échec de l’opération du gateway.",
     "manageTitle": "Passerelles",
     "editTitle": "Modifier le gateway",
@@ -34,5 +36,73 @@
     "sessionDisconnected": "Déconnecté",
     "sessionListening": "Écoute des événements du gateway",
     "sessionConfigured": "Configuré",
-    "sessionFailed": "La session de passerelle a échoué"
+    "sessionFailed": "La session de passerelle a échoué",
+    "activation": {
+        "openAction": "Utiliser un lien d’inscription",
+        "acceptTitle": "Inscrire un appareil",
+        "acceptDescription": "Ouvrez un lien d’inscription ou saisissez le point d’accès protégé et le code d’inscription complet.",
+        "endpointLabel": "Point d’accès Gateway protégé",
+        "codeLabel": "Code d’inscription",
+        "connectAction": "Inscrire et connecter",
+        "invalidPresentation": "Le lien ou le code d’inscription est invalide.",
+        "gatewayMismatch": "Le code d’inscription appartient à un autre Gateway.",
+        "activationFailed": "Impossible d’utiliser le code d’activation. Il a peut-être expiré ou déjà été utilisé.",
+        "storageFailed": "Impossible d’enregistrer la nouvelle session en toute sécurité."
+    },
+    "devices": {
+        "sessionsTitle": "Appareils",
+        "loadFailed": "Impossible de charger les appareils.",
+        "current": "Cet appareil",
+        "sessionMeta": "{{kind}} · Dernière activité : {{date}}",
+        "revokeTitle": "Révoquer la session ?",
+        "revokeCurrentMessage": "Cet appareil sera immédiatement déconnecté.",
+        "revokeOtherMessage": "L’appareil sélectionné perdra immédiatement l’accès.",
+        "revokeAction": "Révoquer",
+        "revokeFailed": "Impossible de révoquer la session.",
+        "activationTitle": "Ajouter un appareil",
+        "createDeviceActivation": "Créer un code d’inscription",
+        "activationFailed": "Impossible de créer le code d’inscription.",
+        "activationQrLabel": "Code QR d’inscription de l’appareil",
+        "copyCode": "Copier le code",
+        "copyLink": "Copier le lien",
+        "logoutTitle": "Déconnecter cet appareil ?",
+        "logoutMessage": "La session sera révoquée et l’identifiant local supprimé.",
+        "logoutAction": "Se déconnecter",
+        "logoutFailed": "Impossible de déconnecter cet appareil."
+    },
+    "terminal": {
+        "activateAction": "Inscrire cet appareil",
+        "authentication_required": {
+            "title": "Authentification requise",
+            "description": "Autorisez cet appareil avec un nouveau code d’inscription à usage unique."
+        },
+        "session_revoked": {
+            "title": "Session révoquée",
+            "description": "Cet appareil n’a plus accès au Gateway."
+        },
+        "session_expired": {
+            "title": "Session expirée",
+            "description": "Cet appareil doit être inscrit à nouveau."
+        },
+        "session_compromised": {
+            "title": "Problème de sécurité",
+            "description": "La famille d’identifiants a été révoquée pour protéger le Gateway."
+        },
+        "gateway_identity_mismatch": {
+            "title": "Gateway différent",
+            "description": "Le serveur ne correspond pas à l’identité Gateway enregistrée."
+        },
+        "secure_storage_failed": {
+            "title": "Stockage sécurisé indisponible",
+            "description": "L’identifiant renouvelé n’a pas pu être enregistré en sécurité."
+        },
+        "refresh_outcome_unknown": {
+            "title": "Résultat du renouvellement inconnu",
+            "description": "Les nouvelles tentatives sont arrêtées pour éviter de réutiliser un identifiant renouvelé."
+        },
+        "refresh_credential_invalid": {
+            "title": "Identifiant de session invalide",
+            "description": "Cet appareil doit être inscrit à nouveau."
+        }
+    }
 }

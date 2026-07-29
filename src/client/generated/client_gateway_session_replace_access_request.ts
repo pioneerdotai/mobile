@@ -1,19 +1,28 @@
 /* eslint-disable */
 
+export type DeviceId = string;
 export type GatewayEndpointKind = 'local' | 'remote';
+export type GatewayId = string;
+export type AuthSessionId = string;
 
-export interface ClientGatewayConnectRequest {
-  auth_token?: string | null;
+export interface ClientGatewaySessionReplaceAccessRequest {
+  access_expires_at_unix: number;
+  access_token: string;
+  device_id: DeviceId;
   endpoint: GatewayEndpoint;
+  refresh_leeway_seconds: number;
+  server_gateway_id: GatewayId;
+  session_id: AuthSessionId;
   timings: ClientGatewayWsTimings;
 }
 export interface GatewayEndpoint {
   address: string;
-  auth_token_ref?: string | null;
   id: string;
   kind: GatewayEndpointKind;
   name: string;
+  server_gateway_id?: GatewayId | null;
   service_name?: string | null;
+  session_ref?: string | null;
   workspace_id?: string | null;
 }
 export interface ClientGatewayWsTimings {

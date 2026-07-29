@@ -3,6 +3,14 @@ import { Platform } from 'react-native';
 import { getPioneerClientNitro } from '@pioneer/client-nitro';
 
 import type { ActivateGatewayRegistryPlan } from './generated/activate_gateway_registry_plan';
+import type { AuthLogoutResponse } from './generated/auth_logout_response';
+import type { AuthMeResponse } from './generated/auth_me_response';
+import type { AuthDeviceCreateResponse } from './generated/auth_device_create_response';
+import type { AuthRefreshGrant } from './generated/auth_refresh_grant';
+import type { AuthSessionGrant } from './generated/auth_session_grant';
+import type { AuthSessionListResponse } from './generated/auth_session_list_response';
+import type { AuthSessionRevokeParams } from './generated/auth_session_revoke_params';
+import type { AuthSessionRevokeResponse } from './generated/auth_session_revoke_response';
 import type { AddRemoteGatewayPlan } from './generated/add_remote_gateway_plan';
 import type { AddAndActivateRemoteGatewayRegistryPlan } from './generated/add_and_activate_remote_gateway_registry_plan';
 import type { ClientActiveThreadCancelTurnRequest } from './generated/client_active_thread_cancel_turn_request';
@@ -49,8 +57,17 @@ import type { ClientComposerSkillRowsForTargetRequest } from './generated/client
 import type { ClientComposerSubmissionPlanRequest } from './generated/client_composer_submission_plan_request';
 import type { ClientDiagnosticEvent } from './generated/client_diagnostic_event';
 import type { ClientEvent } from './generated/client_event';
-import type { ClientGatewayConnectRequest } from './generated/client_gateway_connect_request';
-import type { ClientGatewayConnectResult } from './generated/client_gateway_connect_result';
+import type { ClientAuthDeviceActivateRequest } from './generated/client_auth_activate_device_request';
+import type { ClientAuthRefreshRequest } from './generated/client_auth_refresh_request';
+import type { ClientAuthSessionCleanupRequest } from './generated/client_auth_session_cleanup_request';
+import type { ClientGatewaySessionReplaceAccessRequest } from './generated/client_gateway_session_replace_access_request';
+import type { ClientGatewaySessionReplaceAccessResult } from './generated/client_gateway_session_replace_access_result';
+import type { ClientGatewaySessionLifecycleRequest } from './generated/client_gateway_session_lifecycle_request';
+import type { ClientGatewaySessionLifecycleResult } from './generated/client_gateway_session_lifecycle_result';
+import type { ClientDeviceActivationParseRequest } from './generated/client_device_activation_parse_request';
+import type { ClientDeviceActivationParseResult } from './generated/client_device_activation_parse_result';
+import type { ClientDeviceActivationPresentationRequest } from './generated/client_device_activation_presentation_request';
+import type { ClientDeviceActivationPresentationResult } from './generated/client_device_activation_presentation_result';
 import type { ClientGatewaySettingsUpdateRequest } from './generated/client_gateway_settings_update_request';
 import type { ClientVoiceInputPlanRequest } from './generated/client_voice_input_plan_request';
 import type { ClientVoiceInputPlanResult } from './generated/client_voice_input_plan_result';
@@ -142,6 +159,17 @@ import type { WorkspaceSwitchResult } from './generated/workspace_switch_result'
 import { parsePioneerClientResponse } from './response';
 
 export type { ActivateGatewayRegistryPlan } from './generated/activate_gateway_registry_plan';
+export type { AuthLogoutResponse } from './generated/auth_logout_response';
+export type { AuthMeResponse } from './generated/auth_me_response';
+export type { AuthDeviceCreateResponse } from './generated/auth_device_create_response';
+export type { AuthRefreshGrant } from './generated/auth_refresh_grant';
+export type { AuthSessionGrant } from './generated/auth_session_grant';
+export type {
+    AuthSessionListItem,
+    AuthSessionListResponse,
+} from './generated/auth_session_list_response';
+export type { AuthSessionRevokeParams } from './generated/auth_session_revoke_params';
+export type { AuthSessionRevokeResponse } from './generated/auth_session_revoke_response';
 export type { AddRemoteGatewayPlan } from './generated/add_remote_gateway_plan';
 export type { AddAndActivateRemoteGatewayRegistryPlan } from './generated/add_and_activate_remote_gateway_registry_plan';
 export type { ClientActiveThreadCancelTurnRequest } from './generated/client_active_thread_cancel_turn_request';
@@ -188,8 +216,13 @@ export type { ClientComposerSkillRowsForTargetRequest } from './generated/client
 export type { ClientComposerSubmissionPlanRequest } from './generated/client_composer_submission_plan_request';
 export type { ClientDiagnosticEvent } from './generated/client_diagnostic_event';
 export type { ClientEvent } from './generated/client_event';
-export type { ClientGatewayConnectRequest } from './generated/client_gateway_connect_request';
-export type { ClientGatewayConnectResult } from './generated/client_gateway_connect_result';
+export type { ClientAuthDeviceActivateRequest } from './generated/client_auth_activate_device_request';
+export type { ClientAuthRefreshRequest } from './generated/client_auth_refresh_request';
+export type { ClientAuthSessionCleanupRequest } from './generated/client_auth_session_cleanup_request';
+export type { ClientGatewaySessionReplaceAccessRequest } from './generated/client_gateway_session_replace_access_request';
+export type { ClientGatewaySessionReplaceAccessResult } from './generated/client_gateway_session_replace_access_result';
+export type { ClientGatewaySessionLifecycleRequest } from './generated/client_gateway_session_lifecycle_request';
+export type { ClientGatewaySessionLifecycleResult } from './generated/client_gateway_session_lifecycle_result';
 export type { ClientGatewaySettingsUpdateRequest } from './generated/client_gateway_settings_update_request';
 export type { ClientVoiceInputPlanRequest } from './generated/client_voice_input_plan_request';
 export type { ClientVoiceInputPlanResult } from './generated/client_voice_input_plan_result';
@@ -246,8 +279,6 @@ export type {
 } from './generated/composer_permission_mode_option';
 export type { ClientGatewayWsTimings } from './generated/client_gateway_ws_timings';
 export type { DeleteRemoteGatewayRegistryPlan } from './generated/delete_remote_gateway_registry_plan';
-export type { GatewayAuthTokenWrite } from './generated/gateway_auth_token_write';
-export type { GatewayAuthTokenUpdate } from './generated/gateway_auth_token_update';
 export type { GatewayConnectionState } from './generated/gateway_connection_state';
 export type { GatewayEndpoint } from './generated/gateway_endpoint';
 export type { GatewayEndpointKind } from './generated/gateway_endpoint_kind';
@@ -290,6 +321,11 @@ export type { SelectableSkillCapability } from './generated/selectable_skill_cap
 export type { SelectablePackedSkillCapability } from './generated/selectable_packed_skill_capability';
 export type { SelectableSkillPackCapability } from './generated/selectable_skill_pack_capability';
 export type { SetGatewayWorkspaceRegistryPlan } from './generated/set_gateway_workspace_registry_plan';
+export type { SessionTerminalReason } from './generated/session_terminal_reason';
+export type { ClientDeviceActivationParseRequest } from './generated/client_device_activation_parse_request';
+export type { ClientDeviceActivationParseResult } from './generated/client_device_activation_parse_result';
+export type { ClientDeviceActivationPresentationRequest } from './generated/client_device_activation_presentation_request';
+export type { ClientDeviceActivationPresentationResult } from './generated/client_device_activation_presentation_result';
 export type { SelectableMcpCapability } from './generated/selectable_mcp_capability';
 export type { ClientThreadTreeLevel } from './generated/thread_tree_level';
 export type { ThreadTreeLevelRequest } from './generated/thread_tree_level_request';
@@ -478,9 +514,91 @@ export const pioneerClient = {
         );
     },
 
-    async gatewayConnect(input: ClientGatewayConnectRequest): Promise<ClientGatewayConnectResult> {
-        return parsePioneerClientResponse<ClientGatewayConnectResult>(
-            await getPioneerClientNitro().gatewayConnectJson(JSON.stringify(input)),
+    async gatewaySessionLifecycleReduce(
+        input: ClientGatewaySessionLifecycleRequest,
+    ): Promise<ClientGatewaySessionLifecycleResult> {
+        return parsePioneerClientResponse<ClientGatewaySessionLifecycleResult>(
+            await getPioneerClientNitro().gatewaySessionLifecycleReduceJson(JSON.stringify(input)),
+        );
+    },
+
+    async gatewayDeviceActivationPresentation(
+        input: ClientDeviceActivationPresentationRequest,
+    ): Promise<ClientDeviceActivationPresentationResult> {
+        return parsePioneerClientResponse<ClientDeviceActivationPresentationResult>(
+            await getPioneerClientNitro().gatewayDeviceActivationPresentationJson(
+                JSON.stringify(input),
+            ),
+        );
+    },
+
+    async gatewayDeviceActivationParse(
+        input: ClientDeviceActivationParseRequest,
+    ): Promise<ClientDeviceActivationParseResult> {
+        return parsePioneerClientResponse<ClientDeviceActivationParseResult>(
+            await getPioneerClientNitro().gatewayDeviceActivationParseJson(JSON.stringify(input)),
+        );
+    },
+
+    async gatewayAuthRefresh(input: ClientAuthRefreshRequest): Promise<AuthRefreshGrant> {
+        return parsePioneerClientResponse<AuthRefreshGrant>(
+            await getPioneerClientNitro().gatewayAuthRefreshJson(JSON.stringify(input)),
+        );
+    },
+
+    async gatewayAuthDeviceActivate(
+        input: ClientAuthDeviceActivateRequest,
+    ): Promise<AuthSessionGrant> {
+        return parsePioneerClientResponse<AuthSessionGrant>(
+            await getPioneerClientNitro().gatewayAuthDeviceActivateJson(JSON.stringify(input)),
+        );
+    },
+
+    async gatewayAuthSessionCleanup(
+        input: ClientAuthSessionCleanupRequest,
+    ): Promise<AuthSessionRevokeResponse> {
+        return parsePioneerClientResponse<AuthSessionRevokeResponse>(
+            await getPioneerClientNitro().gatewayAuthSessionCleanupJson(JSON.stringify(input)),
+        );
+    },
+
+    async gatewayAuthMe(): Promise<AuthMeResponse> {
+        return parsePioneerClientResponse<AuthMeResponse>(
+            await getPioneerClientNitro().gatewayAuthMeJson('{}'),
+        );
+    },
+
+    async gatewayAuthSessionList(): Promise<AuthSessionListResponse> {
+        return parsePioneerClientResponse<AuthSessionListResponse>(
+            await getPioneerClientNitro().gatewayAuthSessionListJson('{}'),
+        );
+    },
+
+    async gatewayAuthSessionRevoke(
+        input: AuthSessionRevokeParams,
+    ): Promise<AuthSessionRevokeResponse> {
+        return parsePioneerClientResponse<AuthSessionRevokeResponse>(
+            await getPioneerClientNitro().gatewayAuthSessionRevokeJson(JSON.stringify(input)),
+        );
+    },
+
+    async gatewayAuthLogout(): Promise<AuthLogoutResponse> {
+        return parsePioneerClientResponse<AuthLogoutResponse>(
+            await getPioneerClientNitro().gatewayAuthLogoutJson('{}'),
+        );
+    },
+
+    async gatewayAuthDeviceCreate(): Promise<AuthDeviceCreateResponse> {
+        return parsePioneerClientResponse<AuthDeviceCreateResponse>(
+            await getPioneerClientNitro().gatewayAuthDeviceCreateJson('{}'),
+        );
+    },
+
+    async gatewaySessionReplaceAccess(
+        input: ClientGatewaySessionReplaceAccessRequest,
+    ): Promise<ClientGatewaySessionReplaceAccessResult> {
+        return parsePioneerClientResponse<ClientGatewaySessionReplaceAccessResult>(
+            await getPioneerClientNitro().gatewaySessionReplaceAccessJson(JSON.stringify(input)),
         );
     },
 

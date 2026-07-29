@@ -42,6 +42,16 @@ export type ActiveThreadStatusSnapshot =
 export type GatewayConnectionState = 'Idle' | 'Connecting' | 'Connected' | 'Reconnecting' | 'Disconnected';
 export type GatewayNotification =
   | {
+      kind: 'auth_session_revoked';
+      params: AuthSessionRevokedNotification;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'auth_access_expiring';
+      params: AuthAccessExpiringNotification;
+      [k: string]: unknown;
+    }
+  | {
       kind: 'workspace_changed';
       params: WorkspaceChangedNotification;
       [k: string]: unknown;
@@ -481,6 +491,8 @@ export type GatewayNotification =
       params: UnknownGatewayNotification;
       [k: string]: unknown;
     };
+export type AuthSessionTerminationReason = 'session_revoked' | 'session_expired' | 'session_compromised';
+export type AuthSessionId = string;
 export type WorkspaceChangeKind = 'created' | 'updated' | 'current_changed';
 export type ThreadMode = 'Chat' | 'Agent';
 export type ThreadStatus = 'Active' | 'Idle' | 'Closed';
@@ -1694,6 +1706,16 @@ export interface WorkspaceSnapshot {
 export interface ClientGatewayConnectionEvent {
   connection_state: GatewayConnectionState;
   gateway_error?: string | null;
+  [k: string]: unknown;
+}
+export interface AuthSessionRevokedNotification {
+  reason: AuthSessionTerminationReason;
+  session_id: AuthSessionId;
+  [k: string]: unknown;
+}
+export interface AuthAccessExpiringNotification {
+  access_expires_at_unix: number;
+  session_id: AuthSessionId;
   [k: string]: unknown;
 }
 export interface WorkspaceChangedNotification {

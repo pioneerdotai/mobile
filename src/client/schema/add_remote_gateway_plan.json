@@ -15,53 +15,17 @@
           "type": "null"
         }
       ]
-    },
-    "token_write": {
-      "anyOf": [
-        {
-          "$ref": "#/$defs/GatewayAuthTokenWrite"
-        },
-        {
-          "type": "null"
-        }
-      ]
     }
   },
   "required": [
     "endpoint"
   ],
   "$defs": {
-    "GatewayAuthTokenWrite": {
-      "type": "object",
-      "properties": {
-        "label": {
-          "type": "string"
-        },
-        "token": {
-          "type": "string"
-        },
-        "token_ref": {
-          "type": "string"
-        }
-      },
-      "additionalProperties": false,
-      "required": [
-        "token_ref",
-        "token",
-        "label"
-      ]
-    },
     "GatewayEndpoint": {
       "type": "object",
       "properties": {
         "address": {
           "type": "string"
-        },
-        "auth_token_ref": {
-          "type": [
-            "string",
-            "null"
-          ]
         },
         "id": {
           "type": "string"
@@ -72,7 +36,23 @@
         "name": {
           "type": "string"
         },
+        "server_gateway_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/GatewayId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "service_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "session_ref": {
           "type": [
             "string",
             "null"
@@ -100,6 +80,12 @@
         "local",
         "remote"
       ]
+    },
+    "GatewayId": {
+      "type": "string",
+      "maxLength": 21,
+      "minLength": 21,
+      "pattern": "^[A-Za-z0-9]{21}$"
     }
   }
 }

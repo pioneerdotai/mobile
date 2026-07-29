@@ -44,6 +44,7 @@
             }
         }
     },
+    "devices": { "eyebrow": "デバイス" },
     "theme": {
         "eyebrow": "テーマ",
         "title": "外観",

@@ -44,6 +44,9 @@
             }
         }
     },
+    "devices": {
+        "eyebrow": "Devices"
+    },
     "theme": {
         "eyebrow": "Theme",
         "title": "Appearance",

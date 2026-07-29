@@ -3,16 +3,18 @@
     "setupDescription": "Pioneer Mobile केवल रिमोट गेटवे endpoints के साथ काम करता है.",
     "nameLabel": "नाम",
     "addressLabel": "पता",
-    "tokenLabel": "Token",
+    "activationCodeLabel": "एक बार उपयोग होने वाला डिवाइस पंजीकरण कोड",
     "addButton": "रिमोट गेटवे जोड़ें",
+    "authenticateTitle": "गेटवे प्रमाणित करें",
+    "authenticateButton": "इस डिवाइस को प्रमाणित करें",
     "saveButton": "गेटवे सहेजें",
     "manageButton": "गेटवे प्रबंधित करें",
     "addressRequired": "गेटवे पता आवश्यक है.",
     "invalidAddress": "गेटवे पता अमान्य है.",
     "notFound": "गेटवे नहीं मिला.",
     "validationUnreachable": "गेटवे तक पहुँचा नहीं जा सकता.",
-    "invalidToken": "गेटवे token अमान्य है.",
-    "connectionFailed": "गेटवे से कनेक्ट नहीं हो सका. पता और token जाँचें.",
+    "invalidActivation": "पंजीकरण कोड अमान्य है, समाप्त हो चुका है या पहले उपयोग किया जा चुका है.",
+    "connectionFailed": "गेटवे से कनेक्ट नहीं हो सका. पता जाँचें.",
     "operationFailed": "गेटवे ऑपरेशन विफल हुआ.",
     "manageTitle": "गेटवे",
     "editTitle": "गेटवे संपादित करें",
@@ -34,5 +36,73 @@
     "sessionDisconnected": "डिस्कनेक्टेड",
     "sessionListening": "गेटवे events सुने जा रहे हैं",
     "sessionConfigured": "कॉन्फ़िगर किया गया",
-    "sessionFailed": "गेटवे सेशन विफल हुआ"
+    "sessionFailed": "गेटवे सेशन विफल हुआ",
+    "activation": {
+        "openAction": "पंजीकरण लिंक उपयोग करें",
+        "acceptTitle": "डिवाइस पंजीकृत करें",
+        "acceptDescription": "पंजीकरण लिंक खोलें या सुरक्षित एंडपॉइंट और पूरा पंजीकरण कोड दर्ज करें।",
+        "endpointLabel": "सुरक्षित Gateway एंडपॉइंट",
+        "codeLabel": "पंजीकरण कोड",
+        "connectAction": "पंजीकृत करके कनेक्ट करें",
+        "invalidPresentation": "पंजीकरण लिंक या कोड अमान्य है।",
+        "gatewayMismatch": "यह पंजीकरण कोड किसी दूसरे Gateway का है।",
+        "activationFailed": "सक्रियण कोड का उपयोग नहीं किया जा सका। यह समाप्त हो चुका है या पहले ही उपयोग किया जा चुका है।",
+        "storageFailed": "नई डिवाइस सेशन सुरक्षित रूप से सहेजी नहीं जा सकी।"
+    },
+    "devices": {
+        "sessionsTitle": "डिवाइस",
+        "loadFailed": "डिवाइस लोड नहीं हो सके।",
+        "current": "यह डिवाइस",
+        "sessionMeta": "{{kind}} · अंतिम सक्रियता {{date}}",
+        "revokeTitle": "डिवाइस सेशन रद्द करें?",
+        "revokeCurrentMessage": "यह डिवाइस तुरंत साइन आउट हो जाएगा।",
+        "revokeOtherMessage": "चुना हुआ डिवाइस तुरंत एक्सेस खो देगा।",
+        "revokeAction": "रद्द करें",
+        "revokeFailed": "सेशन रद्द नहीं हो सकी।",
+        "activationTitle": "दूसरा डिवाइस जोड़ें",
+        "createDeviceActivation": "पंजीकरण कोड बनाएँ",
+        "activationFailed": "पंजीकरण कोड नहीं बन सका।",
+        "activationQrLabel": "डिवाइस पंजीकरण QR कोड",
+        "copyCode": "कोड कॉपी करें",
+        "copyLink": "पंजीकरण लिंक कॉपी करें",
+        "logoutTitle": "इस डिवाइस से साइन आउट करें?",
+        "logoutMessage": "सेशन रद्द होगी और स्थानीय क्रेडेंशियल हटा दिया जाएगा।",
+        "logoutAction": "साइन आउट",
+        "logoutFailed": "साइन आउट नहीं हो सका।"
+    },
+    "terminal": {
+        "activateAction": "इस डिवाइस को पंजीकृत करें",
+        "authentication_required": {
+            "title": "प्रमाणीकरण आवश्यक",
+            "description": "नए एक-बार उपयोग वाले पंजीकरण कोड से इस डिवाइस को अधिकृत करें।"
+        },
+        "session_revoked": {
+            "title": "सेशन रद्द",
+            "description": "इस डिवाइस के पास अब Gateway एक्सेस नहीं है।"
+        },
+        "session_expired": {
+            "title": "सेशन समाप्त",
+            "description": "इस डिवाइस को फिर से पंजीकृत करना होगा।"
+        },
+        "session_compromised": {
+            "title": "सुरक्षा समस्या",
+            "description": "Gateway की सुरक्षा के लिए क्रेडेंशियल परिवार रद्द किया गया।"
+        },
+        "gateway_identity_mismatch": {
+            "title": "Gateway मेल नहीं खाता",
+            "description": "सर्वर पिन की गई Gateway identity से मेल नहीं खाता।"
+        },
+        "secure_storage_failed": {
+            "title": "सुरक्षित स्टोरेज उपलब्ध नहीं",
+            "description": "नवीनीकृत सेशन क्रेडेंशियल सुरक्षित रूप से सहेजा नहीं जा सका।"
+        },
+        "refresh_outcome_unknown": {
+            "title": "Refresh परिणाम अज्ञात",
+            "description": "रोटेटेड क्रेडेंशियल के पुनः उपयोग से बचने के लिए दोबारा प्रयास रोक दिए गए हैं।"
+        },
+        "refresh_credential_invalid": {
+            "title": "सेशन क्रेडेंशियल अमान्य",
+            "description": "इस डिवाइस को फिर से पंजीकृत करना होगा।"
+        }
+    }
 }

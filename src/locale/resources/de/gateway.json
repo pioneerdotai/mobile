@@ -3,16 +3,18 @@
     "setupDescription": "Pioneer Mobile funktioniert nur mit entfernten Gateway-Endpunkten.",
     "nameLabel": "Name",
     "addressLabel": "Adresse",
-    "tokenLabel": "Token",
+    "activationCodeLabel": "Einmaliger Geräteregistrierungscode",
     "addButton": "Entferntes Gateway hinzufügen",
+    "authenticateTitle": "Gateway authentifizieren",
+    "authenticateButton": "Dieses Gerät authentifizieren",
     "saveButton": "Gateway speichern",
     "manageButton": "Gateways verwalten",
     "addressRequired": "Gateway-Adresse ist erforderlich.",
     "invalidAddress": "Gateway-Adresse ist ungültig.",
     "notFound": "Gateway wurde nicht gefunden.",
     "validationUnreachable": "Gateway ist nicht erreichbar.",
-    "invalidToken": "Gateway-Token ist ungültig.",
-    "connectionFailed": "Verbindung zum Gateway konnte nicht hergestellt werden. Prüfe Adresse und Token.",
+    "invalidActivation": "Der Registrierungscode ist ungültig, abgelaufen oder bereits verwendet.",
+    "connectionFailed": "Verbindung zum Gateway konnte nicht hergestellt werden. Prüfe die Adresse.",
     "operationFailed": "Gateway-Vorgang fehlgeschlagen.",
     "manageTitle": "Gateway-Verwaltung",
     "editTitle": "Gateway bearbeiten",
@@ -34,5 +36,73 @@
     "sessionDisconnected": "Getrennt",
     "sessionListening": "Gateway-Ereignisse werden empfangen",
     "sessionConfigured": "Konfiguriert",
-    "sessionFailed": "Gateway-Sitzung fehlgeschlagen"
+    "sessionFailed": "Gateway-Sitzung fehlgeschlagen",
+    "activation": {
+        "openAction": "Registrierungslink verwenden",
+        "acceptTitle": "Gerät registrieren",
+        "acceptDescription": "Öffne einen Registrierungslink oder gib den geschützten Endpunkt und den vollständigen Registrierungscode ein.",
+        "endpointLabel": "Geschützter Gateway-Endpunkt",
+        "codeLabel": "Registrierungscode",
+        "connectAction": "Registrieren und verbinden",
+        "invalidPresentation": "Der Registrierungslink oder Code ist ungültig.",
+        "gatewayMismatch": "Der Registrierungscode gehört zu einem anderen Gateway.",
+        "activationFailed": "Der Aktivierungscode konnte nicht verwendet werden. Er ist möglicherweise abgelaufen oder wurde bereits verwendet.",
+        "storageFailed": "Die neue Gerätesitzung konnte nicht sicher gespeichert werden."
+    },
+    "devices": {
+        "sessionsTitle": "Geräte",
+        "loadFailed": "Geräte konnten nicht geladen werden.",
+        "current": "Dieses Gerät",
+        "sessionMeta": "{{kind}} · Zuletzt gesehen {{date}}",
+        "revokeTitle": "Gerätesitzung widerrufen?",
+        "revokeCurrentMessage": "Dieses Gerät wird sofort abgemeldet.",
+        "revokeOtherMessage": "Das ausgewählte Gerät verliert sofort den Zugriff.",
+        "revokeAction": "Widerrufen",
+        "revokeFailed": "Die Sitzung konnte nicht widerrufen werden.",
+        "activationTitle": "Weiteres Gerät hinzufügen",
+        "createDeviceActivation": "Registrierungscode erstellen",
+        "activationFailed": "Registrierungscode konnte nicht erstellt werden.",
+        "activationQrLabel": "QR-Code zur Geräteregistrierung",
+        "copyCode": "Code kopieren",
+        "copyLink": "Registrierungslink kopieren",
+        "logoutTitle": "Dieses Gerät abmelden?",
+        "logoutMessage": "Die Sitzung wird widerrufen und der lokale Berechtigungsnachweis entfernt.",
+        "logoutAction": "Abmelden",
+        "logoutFailed": "Dieses Gerät konnte nicht abgemeldet werden."
+    },
+    "terminal": {
+        "activateAction": "Dieses Gerät registrieren",
+        "authentication_required": {
+            "title": "Authentifizierung erforderlich",
+            "description": "Autorisiere dieses Gerät mit einem neuen einmaligen Registrierungscode."
+        },
+        "session_revoked": {
+            "title": "Sitzung widerrufen",
+            "description": "Dieses Gerät hat keinen Zugriff mehr auf das Gateway."
+        },
+        "session_expired": {
+            "title": "Sitzung abgelaufen",
+            "description": "Dieses Gerät muss erneut registriert werden."
+        },
+        "session_compromised": {
+            "title": "Sicherheitsproblem",
+            "description": "Die Berechtigungsfamilie wurde zum Schutz des Gateways widerrufen."
+        },
+        "gateway_identity_mismatch": {
+            "title": "Gateway stimmt nicht überein",
+            "description": "Der Server entspricht nicht der gespeicherten Gateway-Identität."
+        },
+        "secure_storage_failed": {
+            "title": "Sicherer Speicher nicht verfügbar",
+            "description": "Der erneuerte Sitzungsnachweis konnte nicht sicher gespeichert werden."
+        },
+        "refresh_outcome_unknown": {
+            "title": "Refresh-Ergebnis unbekannt",
+            "description": "Automatische Wiederholungen wurden gestoppt, um keinen rotierten Nachweis wiederzuverwenden."
+        },
+        "refresh_credential_invalid": {
+            "title": "Sitzungsnachweis ungültig",
+            "description": "Dieses Gerät muss erneut registriert werden."
+        }
+    }
 }

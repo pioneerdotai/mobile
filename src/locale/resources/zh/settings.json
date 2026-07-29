@@ -44,6 +44,7 @@
             }
         }
     },
+    "devices": { "eyebrow": "设备" },
     "theme": {
         "eyebrow": "主题",
         "title": "外观",

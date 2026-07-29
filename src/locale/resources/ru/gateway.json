@@ -3,16 +3,18 @@
     "setupDescription": "Pioneer Mobile работает только с удаленными гейтвеями.",
     "nameLabel": "Название",
     "addressLabel": "Адрес",
-    "tokenLabel": "Токен",
+    "activationCodeLabel": "Одноразовый код регистрации устройства",
     "addButton": "Добавить удаленный гейтвей",
+    "authenticateTitle": "Авторизация в гейтвее",
+    "authenticateButton": "Авторизовать это устройство",
     "saveButton": "Сохранить гейтвей",
     "manageButton": "Управление гейтвеями",
     "addressRequired": "Укажите адрес гейтвея.",
     "invalidAddress": "Некорректный адрес гейтвея.",
     "notFound": "Гейтвей не найден.",
     "validationUnreachable": "Гейтвей недоступен.",
-    "invalidToken": "Неверный токен гейтвея.",
-    "connectionFailed": "Не удалось подключиться к гейтвею. Проверьте адрес и токен.",
+    "invalidActivation": "Код регистрации неверен, истёк или уже использован.",
+    "connectionFailed": "Не удалось подключиться к гейтвею. Проверьте адрес.",
     "operationFailed": "Не удалось выполнить операцию с гейтвеем.",
     "manageTitle": "Гейтвеи",
     "editTitle": "Редактировать гейтвей",
@@ -34,5 +36,73 @@
     "sessionDisconnected": "Отключено",
     "sessionListening": "Получение событий гейтвея",
     "sessionConfigured": "Настроен",
-    "sessionFailed": "Сессия gateway завершилась ошибкой"
+    "sessionFailed": "Сессия gateway завершилась ошибкой",
+    "activation": {
+        "openAction": "Подключить это устройство",
+        "acceptTitle": "Подключение устройства",
+        "acceptDescription": "Откройте ссылку регистрации или введите защищённый адрес Gateway и полный код регистрации.",
+        "endpointLabel": "Защищённый адрес Gateway",
+        "codeLabel": "Код регистрации",
+        "connectAction": "Зарегистрировать и подключить",
+        "invalidPresentation": "Ссылка или код регистрации недействительны.",
+        "gatewayMismatch": "Код регистрации предназначен для другого Gateway.",
+        "activationFailed": "Не удалось активировать устройство этим кодом. Возможно, код истёк или уже использован.",
+        "storageFailed": "Не удалось безопасно сохранить новую сессию."
+    },
+    "devices": {
+        "sessionsTitle": "Устройства",
+        "loadFailed": "Не удалось загрузить устройства.",
+        "current": "Это устройство",
+        "sessionMeta": "{{kind}} · Последняя активность: {{date}}",
+        "revokeTitle": "Отозвать сессию?",
+        "revokeCurrentMessage": "Это устройство будет немедленно отключено.",
+        "revokeOtherMessage": "Выбранное устройство немедленно потеряет доступ.",
+        "revokeAction": "Отозвать",
+        "revokeFailed": "Не удалось отозвать сессию.",
+        "activationTitle": "Добавить устройство",
+        "createDeviceActivation": "Создать код регистрации",
+        "activationFailed": "Не удалось создать код регистрации.",
+        "activationQrLabel": "QR-код регистрации устройства",
+        "copyCode": "Скопировать код",
+        "copyLink": "Скопировать ссылку",
+        "logoutTitle": "Выйти на этом устройстве?",
+        "logoutMessage": "Сессия будет отозвана, а локальный credential удалён.",
+        "logoutAction": "Выйти",
+        "logoutFailed": "Не удалось выйти на этом устройстве."
+    },
+    "terminal": {
+        "activateAction": "Зарегистрировать это устройство",
+        "authentication_required": {
+            "title": "Требуется авторизация",
+            "description": "Авторизуйте устройство с помощью нового одноразового кода регистрации."
+        },
+        "session_revoked": {
+            "title": "Сессия отозвана",
+            "description": "Это устройство больше не имеет доступа к Gateway."
+        },
+        "session_expired": {
+            "title": "Сессия истекла",
+            "description": "Устройство нужно подключить заново."
+        },
+        "session_compromised": {
+            "title": "Проблема безопасности",
+            "description": "Семейство credentials отозвано для защиты Gateway."
+        },
+        "gateway_identity_mismatch": {
+            "title": "Другой Gateway",
+            "description": "Сервер не совпадает с закреплённой identity Gateway."
+        },
+        "secure_storage_failed": {
+            "title": "Secure storage недоступно",
+            "description": "Не удалось безопасно сохранить обновлённый credential."
+        },
+        "refresh_outcome_unknown": {
+            "title": "Результат refresh неизвестен",
+            "description": "Автоповтор остановлен, чтобы не использовать уже заменённый credential."
+        },
+        "refresh_credential_invalid": {
+            "title": "Credential сессии недействителен",
+            "description": "Устройство нужно подключить заново."
+        }
+    }
 }

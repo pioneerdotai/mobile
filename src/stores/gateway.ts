@@ -1,8 +1,17 @@
 import { create } from 'zustand';
 
-import type { ClientEvent, GatewayConnectionState, GatewayRegistry } from '@/client';
+import type {
+    ClientEvent,
+    GatewayConnectionState,
+    GatewayRegistry,
+    SessionTerminalReason,
+} from '@/client';
 import { defaultGatewayRegistry } from '@/services/gateway/registry';
 import type { GatewayOperationErrorCode } from '@/services/gateway/registry';
+import type {
+    MobileSessionLifecyclePhase,
+    MobileSessionProjection,
+} from '@/services/gateway/session-coordinator';
 
 type GatewayStoreState = {
     registry: GatewayRegistry;
@@ -18,6 +27,12 @@ type GatewayStoreState = {
     lastEventConnectionId: number | null;
     sessionError: string | null;
     sessionRevision: number;
+    sessionLifecyclePhase: MobileSessionLifecyclePhase;
+    sessionDeviceId: string | null;
+    sessionId: string | null;
+    sessionAccessExpiresAtUnix: number | null;
+    sessionTerminalReason: SessionTerminalReason | null;
+    sessionConnectionGeneration: number | null;
     showGatewaySwitcher: boolean;
     setRegistry: (registry: GatewayRegistry) => void;
     setBootstrapped: (bootstrapped: boolean) => void;
@@ -33,6 +48,7 @@ type GatewayStoreState = {
     ) => void;
     setSessionError: (error: string | null) => void;
     bumpSessionRevision: () => void;
+    setSessionProjection: (projection: MobileSessionProjection) => void;
     clearError: () => void;
     setGatewaySwitcherOpen: (open: boolean) => void;
 };
@@ -51,6 +67,12 @@ export const useGatewayStore = create<GatewayStoreState>((set) => ({
     lastEventConnectionId: null,
     sessionError: null,
     sessionRevision: 0,
+    sessionLifecyclePhase: 'needs_authentication',
+    sessionDeviceId: null,
+    sessionId: null,
+    sessionAccessExpiresAtUnix: null,
+    sessionTerminalReason: null,
+    sessionConnectionGeneration: null,
     showGatewaySwitcher: false,
 
     setRegistry: (registry) => {
@@ -96,6 +118,17 @@ export const useGatewayStore = create<GatewayStoreState>((set) => ({
 
     bumpSessionRevision: () => {
         set((state) => ({ sessionRevision: state.sessionRevision + 1 }));
+    },
+
+    setSessionProjection: (projection) => {
+        set({
+            sessionLifecyclePhase: projection.phase,
+            sessionDeviceId: projection.deviceId,
+            sessionId: projection.sessionId,
+            sessionAccessExpiresAtUnix: projection.accessExpiresAtUnix,
+            sessionTerminalReason: projection.terminalReason,
+            sessionConnectionGeneration: projection.connectionGeneration,
+        });
     },
 
     clearError: () => {

@@ -3,16 +3,18 @@
     "setupDescription": "Pioneer Mobile solo funciona con endpoints de gateway remotos.",
     "nameLabel": "Nombre",
     "addressLabel": "Dirección",
-    "tokenLabel": "Token",
+    "activationCodeLabel": "Código de registro de dispositivo de un solo uso",
     "addButton": "Añadir gateway remoto",
+    "authenticateTitle": "Autenticar gateway",
+    "authenticateButton": "Autenticar este dispositivo",
     "saveButton": "Guardar gateway",
     "manageButton": "Administrar gateways",
     "addressRequired": "La dirección del gateway es obligatoria.",
     "invalidAddress": "La dirección del gateway no es válida.",
     "notFound": "No se encontró el gateway.",
     "validationUnreachable": "No se puede acceder al gateway.",
-    "invalidToken": "El token del gateway no es válido.",
-    "connectionFailed": "No se pudo conectar al gateway. Comprueba la dirección y el token.",
+    "invalidActivation": "El código de registro no es válido, ha caducado o ya se utilizó.",
+    "connectionFailed": "No se pudo conectar al gateway. Comprueba la dirección.",
     "operationFailed": "Error en la operación del gateway.",
     "manageTitle": "Pasarelas",
     "editTitle": "Editar gateway",
@@ -34,5 +36,73 @@
     "sessionDisconnected": "Desconectado",
     "sessionListening": "Escuchando eventos del gateway",
     "sessionConfigured": "Configurado",
-    "sessionFailed": "La sesión del gateway falló"
+    "sessionFailed": "La sesión del gateway falló",
+    "activation": {
+        "openAction": "Usar un enlace de registro",
+        "acceptTitle": "Registrar dispositivo",
+        "acceptDescription": "Abre un enlace de registro o introduce el endpoint protegido y el código de registro completo.",
+        "endpointLabel": "Endpoint protegido del gateway",
+        "codeLabel": "Código de registro",
+        "connectAction": "Registrar y conectar",
+        "invalidPresentation": "El enlace o código de registro no es válido.",
+        "gatewayMismatch": "El código de registro pertenece a otro gateway.",
+        "activationFailed": "No se pudo usar el código de activación. Puede haber caducado o ya haberse utilizado.",
+        "storageFailed": "No se pudo guardar de forma segura la nueva sesión."
+    },
+    "devices": {
+        "sessionsTitle": "Dispositivos",
+        "loadFailed": "No se pudieron cargar los dispositivos.",
+        "current": "Este dispositivo",
+        "sessionMeta": "{{kind}} · Última actividad: {{date}}",
+        "revokeTitle": "¿Revocar la sesión?",
+        "revokeCurrentMessage": "Este dispositivo cerrará sesión inmediatamente.",
+        "revokeOtherMessage": "El dispositivo seleccionado perderá el acceso inmediatamente.",
+        "revokeAction": "Revocar",
+        "revokeFailed": "No se pudo revocar la sesión.",
+        "activationTitle": "Añadir otro dispositivo",
+        "createDeviceActivation": "Crear código de registro",
+        "activationFailed": "No se pudo crear el código de registro.",
+        "activationQrLabel": "Código QR de registro de dispositivo",
+        "copyCode": "Copiar código",
+        "copyLink": "Copiar enlace",
+        "logoutTitle": "¿Cerrar sesión en este dispositivo?",
+        "logoutMessage": "La sesión se revocará y se eliminará la credencial local.",
+        "logoutAction": "Cerrar sesión",
+        "logoutFailed": "No se pudo cerrar la sesión."
+    },
+    "terminal": {
+        "activateAction": "Registrar este dispositivo",
+        "authentication_required": {
+            "title": "Autenticación necesaria",
+            "description": "Autoriza este dispositivo con un nuevo código de registro de un solo uso."
+        },
+        "session_revoked": {
+            "title": "Sesión revocada",
+            "description": "Este dispositivo ya no tiene acceso al gateway."
+        },
+        "session_expired": {
+            "title": "Sesión caducada",
+            "description": "Este dispositivo debe registrarse de nuevo."
+        },
+        "session_compromised": {
+            "title": "Problema de seguridad",
+            "description": "La familia de credenciales se revocó para proteger el gateway."
+        },
+        "gateway_identity_mismatch": {
+            "title": "Gateway diferente",
+            "description": "El servidor no coincide con la identidad fijada del gateway."
+        },
+        "secure_storage_failed": {
+            "title": "Almacenamiento seguro no disponible",
+            "description": "No se pudo guardar con seguridad la credencial renovada."
+        },
+        "refresh_outcome_unknown": {
+            "title": "Resultado de renovación desconocido",
+            "description": "Se detuvieron los reintentos para no reutilizar una credencial rotada."
+        },
+        "refresh_credential_invalid": {
+            "title": "Credencial de sesión no válida",
+            "description": "Este dispositivo debe registrarse de nuevo."
+        }
+    }
 }

@@ -6,9 +6,6 @@
     "address": {
       "type": "string"
     },
-    "auth_token_update": {
-      "$ref": "#/$defs/GatewayAuthTokenUpdate"
-    },
     "default_remote_name": {
       "type": "string"
     },
@@ -28,65 +25,14 @@
     "gateway_id",
     "name",
     "address",
-    "auth_token_update",
     "default_remote_name"
   ],
   "$defs": {
-    "GatewayAuthTokenUpdate": {
-      "oneOf": [
-        {
-          "type": "object",
-          "properties": {
-            "mode": {
-              "type": "string",
-              "const": "preserve"
-            }
-          },
-          "required": [
-            "mode"
-          ]
-        },
-        {
-          "type": "object",
-          "properties": {
-            "mode": {
-              "type": "string",
-              "const": "replace"
-            },
-            "token": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "mode",
-            "token"
-          ]
-        },
-        {
-          "type": "object",
-          "properties": {
-            "mode": {
-              "type": "string",
-              "const": "clear"
-            }
-          },
-          "required": [
-            "mode"
-          ]
-        }
-      ]
-    },
     "GatewayEndpoint": {
       "type": "object",
       "properties": {
         "address": {
           "type": "string"
-        },
-        "auth_token_ref": {
-          "type": [
-            "string",
-            "null"
-          ]
         },
         "id": {
           "type": "string"
@@ -97,7 +43,23 @@
         "name": {
           "type": "string"
         },
+        "server_gateway_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/GatewayId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "service_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "session_ref": {
           "type": [
             "string",
             "null"
@@ -126,10 +88,22 @@
         "remote"
       ]
     },
+    "GatewayId": {
+      "type": "string",
+      "maxLength": 21,
+      "minLength": 21,
+      "pattern": "^[A-Za-z0-9]{21}$"
+    },
     "GatewayRegistry": {
       "type": "object",
       "properties": {
         "active_gateway_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "installation_id": {
           "type": [
             "string",
             "null"

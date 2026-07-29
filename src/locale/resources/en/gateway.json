@@ -3,16 +3,18 @@
     "setupDescription": "Pioneer mobile works only with remote gateway endpoints.",
     "nameLabel": "Name",
     "addressLabel": "Address",
-    "tokenLabel": "Token",
+    "activationCodeLabel": "One-time device activation code",
     "addButton": "Add remote gateway",
+    "authenticateTitle": "Authenticate gateway",
+    "authenticateButton": "Authenticate this device",
     "saveButton": "Save gateway",
     "manageButton": "Manage gateways",
     "addressRequired": "Gateway address is required.",
     "invalidAddress": "Gateway address is invalid.",
     "notFound": "Gateway was not found.",
     "validationUnreachable": "Gateway is unreachable.",
-    "invalidToken": "Gateway token is invalid.",
-    "connectionFailed": "Could not connect to the gateway. Check the address and token.",
+    "invalidActivation": "The activation code is invalid, expired, or already used.",
+    "connectionFailed": "Could not connect to the gateway. Check the address.",
     "operationFailed": "Gateway operation failed.",
     "manageTitle": "Gateways",
     "editTitle": "Edit gateway",
@@ -34,5 +36,73 @@
     "sessionDisconnected": "Disconnected",
     "sessionListening": "Listening for gateway events",
     "sessionConfigured": "Configured",
-    "sessionFailed": "Gateway session failed"
+    "sessionFailed": "Gateway session failed",
+    "activation": {
+        "openAction": "Use an activation link",
+        "acceptTitle": "Activate device",
+        "acceptDescription": "Open an activation link or enter the protected endpoint and full activation code.",
+        "endpointLabel": "Protected gateway endpoint",
+        "codeLabel": "Activation code",
+        "connectAction": "Activate and connect",
+        "invalidPresentation": "The activation link or code is invalid.",
+        "gatewayMismatch": "The activation code belongs to a different gateway.",
+        "activationFailed": "The device could not be activated with this code. It may be expired or already used.",
+        "storageFailed": "The new device session could not be stored securely."
+    },
+    "devices": {
+        "sessionsTitle": "Devices",
+        "loadFailed": "Could not load devices.",
+        "current": "This device",
+        "sessionMeta": "{{kind}} · Last seen {{date}}",
+        "revokeTitle": "Revoke device session?",
+        "revokeCurrentMessage": "This device will be signed out immediately.",
+        "revokeOtherMessage": "The selected device will lose access immediately.",
+        "revokeAction": "Revoke",
+        "revokeFailed": "Could not revoke the session.",
+        "activationTitle": "Add another device",
+        "createDeviceActivation": "Create activation code",
+        "activationFailed": "Could not create an activation code.",
+        "activationQrLabel": "Device activation QR code",
+        "copyCode": "Copy manual code",
+        "copyLink": "Copy activation link",
+        "logoutTitle": "Sign out this device?",
+        "logoutMessage": "This session will be revoked and its local credential removed.",
+        "logoutAction": "Sign out",
+        "logoutFailed": "Could not sign out this device."
+    },
+    "terminal": {
+        "activateAction": "Activate this device",
+        "authentication_required": {
+            "title": "Authentication required",
+            "description": "Use a new one-time activation code to authorize this device."
+        },
+        "session_revoked": {
+            "title": "Session revoked",
+            "description": "This device no longer has access to the gateway."
+        },
+        "session_expired": {
+            "title": "Session expired",
+            "description": "This device must be activated again."
+        },
+        "session_compromised": {
+            "title": "Session security issue",
+            "description": "The credential family was revoked to protect the gateway."
+        },
+        "gateway_identity_mismatch": {
+            "title": "Gateway mismatch",
+            "description": "The connected server does not match the pinned gateway identity."
+        },
+        "secure_storage_failed": {
+            "title": "Secure storage unavailable",
+            "description": "Pioneer could not safely store the rotated session credential."
+        },
+        "refresh_outcome_unknown": {
+            "title": "Refresh outcome unknown",
+            "description": "Automatic retry is stopped to avoid reusing a rotated credential."
+        },
+        "refresh_credential_invalid": {
+            "title": "Session credential invalid",
+            "description": "This device must be activated again."
+        }
+    }
 }

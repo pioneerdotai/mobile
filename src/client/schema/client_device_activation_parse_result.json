@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ClientDeviceActivationParseResult",
+  "type": "object",
+  "properties": {
+    "activation_code": {
+      "type": "string"
+    },
+    "gateway_id": {
+      "$ref": "#/$defs/GatewayId"
+    },
+    "protected_endpoint": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "protected_endpoint",
+    "gateway_id",
+    "activation_code"
+  ],
+  "$defs": {
+    "GatewayId": {
+      "type": "string",
+      "maxLength": 21,
+      "minLength": 21,
+      "pattern": "^[A-Za-z0-9]{21}$"
+    }
+  }
+}

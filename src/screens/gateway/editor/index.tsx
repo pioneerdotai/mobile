@@ -6,38 +6,54 @@ import { useForm } from 'react-hook-form';
 import { StyleSheet } from 'react-native-unistyles';
 
 import { ControlledInput } from '@/components/forms/controlled/input';
+import { ControlledOtpInput } from '@/components/forms/controlled/otp-input';
 import { useGateway } from '@/hooks/use-gateway';
 import { Title } from '@/components/typography/title';
 import { Box } from '@/components/primitives/box';
 import { GatewayOperationError } from '@/services/gateway/registry';
 import type { GatewayOperationErrorCode } from '@/services/gateway/registry';
 import { Container } from '@/screens/editor/components/container';
+import { Button } from '@/components/buttons/base';
+import { normalizeDeviceActivationCode } from '@/services/gateway/device-activation-code';
 
 type GatewaySetupFormValues = {
     name: string;
     address: string;
-    token: string;
+    activationCode: string;
 };
 
 type GatewaySetupScreenProps = {
+    authenticateOnly?: boolean;
     blocker?: boolean;
     gatewayId?: string;
 };
 
 const gatewayErrorTranslationKeys: Record<GatewayOperationErrorCode, string> = {
     invalidAddress: 'invalidAddress',
-    invalidToken: 'invalidToken',
+    invalidActivation: 'invalidActivation',
     notFound: 'notFound',
     unreachable: 'validationUnreachable',
     connectionFailed: 'connectionFailed',
     operationFailed: 'operationFailed',
 };
 
-const GatewayEditorScreen = ({ blocker = false, gatewayId }: GatewaySetupScreenProps) => {
+const GatewayEditorScreen = ({
+    authenticateOnly = false,
+    blocker = false,
+    gatewayId,
+}: GatewaySetupScreenProps) => {
     const { t } = useTranslation('gateway');
     const router = useRouter();
-    const { addRemote, updateRemote, registry, busy, error: storeError } = useGateway();
-    const isEdit = Boolean(gatewayId);
+    const {
+        addRemote,
+        authenticateRemote,
+        updateRemote,
+        registry,
+        busy,
+        error: storeError,
+    } = useGateway();
+    const hasExistingGateway = Boolean(gatewayId);
+    const isEdit = hasExistingGateway && !authenticateOnly;
     const editingGateway = useMemo(
         () =>
             gatewayId ? (registry.remotes ?? []).find((remote) => remote.id === gatewayId) : null,
@@ -55,7 +71,7 @@ const GatewayEditorScreen = ({ blocker = false, gatewayId }: GatewaySetupScreenP
         defaultValues: {
             name: '',
             address: '',
-            token: '',
+            activationCode: '',
         },
     });
     const submitting = busy || isSubmitting;
@@ -64,22 +80,26 @@ const GatewayEditorScreen = ({ blocker = false, gatewayId }: GatewaySetupScreenP
     }, []);
 
     useEffect(() => {
-        if (!isEdit || !editingGateway) {
-            reset({ name: '', address: '', token: '' });
+        if (!hasExistingGateway || !editingGateway) {
+            reset({ name: '', address: '', activationCode: '' });
             return;
         }
 
         reset({
             name: editingGateway.name,
             address: editingGateway.address,
-            token: '',
+            activationCode: '',
         });
-    }, [editingGateway, isEdit, reset]);
+    }, [editingGateway, hasExistingGateway, reset]);
 
     const requiredAddress = useCallback(
         (value: string) => {
             return value.trim() ? true : t('addressRequired');
         },
+        [t],
+    );
+    const validActivationCode = useCallback(
+        (value: string) => normalizeDeviceActivationCode(value) !== null || t('invalidActivation'),
         [t],
     );
 
@@ -104,9 +124,21 @@ const GatewayEditorScreen = ({ blocker = false, gatewayId }: GatewaySetupScreenP
     const onSubmit = handleSubmit(async (values) => {
         setFormError(null);
 
-        const token = values.token.trim();
+        const activationCode = values.activationCode.trim();
 
         try {
+            if (authenticateOnly) {
+                if (!gatewayId || !editingGateway) {
+                    throw new GatewayOperationError('notFound');
+                }
+                if (!activationCode) {
+                    throw new GatewayOperationError('invalidActivation');
+                }
+                await authenticateRemote(gatewayId, activationCode);
+                router.back();
+                return;
+            }
+
             if (isEdit) {
                 if (!gatewayId || !editingGateway) {
                     throw new GatewayOperationError('notFound');
@@ -116,21 +148,20 @@ const GatewayEditorScreen = ({ blocker = false, gatewayId }: GatewaySetupScreenP
                     gatewayId,
                     name: values.name,
                     address: values.address.trim(),
-                    token: token || null,
                 });
 
                 router.back();
                 return;
             }
 
-            if (!token) {
-                throw new GatewayOperationError('invalidToken');
+            if (!activationCode) {
+                throw new GatewayOperationError('invalidActivation');
             }
 
             await addRemote({
                 name: values.name,
                 address: values.address.trim(),
-                token: token || null,
+                activationCode,
             });
 
             router.replace('/');
@@ -141,9 +172,17 @@ const GatewayEditorScreen = ({ blocker = false, gatewayId }: GatewaySetupScreenP
 
     const storeErrorMessage = storeError ? gatewayErrorMessage(storeError) : null;
     const handleClose = () => router.back();
-    const title = isEdit ? t('editTitle') : t('setupTitle');
-    const buttonLabel = isEdit ? t('saveButton') : t('addButton');
-    const submitDisabled = submitting || (isEdit && !editingGateway);
+    const title = authenticateOnly
+        ? t('authenticateTitle')
+        : isEdit
+          ? t('editTitle')
+          : t('setupTitle');
+    const buttonLabel = authenticateOnly
+        ? t('authenticateButton')
+        : isEdit
+          ? t('saveButton')
+          : t('addButton');
+    const submitDisabled = submitting || (hasExistingGateway && !editingGateway);
 
     return (
         <Container
@@ -163,6 +202,7 @@ const GatewayEditorScreen = ({ blocker = false, gatewayId }: GatewaySetupScreenP
                     name="name"
                     label={t('nameLabel')}
                     autoCapitalize="words"
+                    editable={!authenticateOnly}
                     onValueChange={clearFormError}
                 />
                 <ControlledInput
@@ -176,21 +216,29 @@ const GatewayEditorScreen = ({ blocker = false, gatewayId }: GatewaySetupScreenP
                     autoCorrect={false}
                     spellCheck={false}
                     keyboardType="url"
+                    editable={!authenticateOnly}
                     onValueChange={clearFormError}
                 />
-                <ControlledInput
-                    control={control}
-                    name="token"
-                    label={t('tokenLabel')}
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    spellCheck={false}
-                    secureTextEntry
-                    onValueChange={clearFormError}
-                />
+                {!isEdit ? (
+                    <ControlledOtpInput
+                        control={control}
+                        name="activationCode"
+                        rules={{ validate: validActivationCode }}
+                        label={t('activationCodeLabel')}
+                        disabled={submitting}
+                        onValueChange={clearFormError}
+                    />
+                ) : null}
 
                 {formError || storeErrorMessage ? (
                     <Text style={styles.error}>{formError ?? storeErrorMessage}</Text>
+                ) : null}
+                {!isEdit ? (
+                    <Button
+                        type="link"
+                        title={t('activation.openAction')}
+                        onPress={() => router.navigate('/activate')}
+                    />
                 ) : null}
             </Box>
         </Container>

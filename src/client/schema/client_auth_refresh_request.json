@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ClientAuthRefreshRequest",
+  "type": "object",
+  "properties": {
+    "address": {
+      "type": "string"
+    },
+    "credential": {
+      "type": "string"
+    },
+    "params": {
+      "$ref": "#/$defs/AuthRefreshParams"
+    },
+    "timeout_ms": {
+      "type": "integer",
+      "format": "uint64",
+      "default": 15000,
+      "minimum": 0
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "address",
+    "credential",
+    "params"
+  ],
+  "$defs": {
+    "AuthRefreshParams": {
+      "type": "object",
+      "properties": {
+        "client_version": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "refresh_request_id": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "refresh_request_id"
+      ]
+    }
+  }
+}

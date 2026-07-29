@@ -11,6 +11,13 @@ type GatewayEdit = {
     };
 };
 
+type GatewayAuthenticate = {
+    type: 'gateway__authenticate';
+    payload: {
+        gatewayId: string;
+    };
+};
+
 type WorkspaceCreate = {
     type: 'workspace__create';
 };
@@ -29,7 +36,7 @@ type Unknown = {
 export type EditorState = {
     title?: string;
     description?: string;
-} & (GatewayCreate | GatewayEdit | WorkspaceCreate | WorkspaceEdit | Unknown);
+} & (GatewayCreate | GatewayEdit | GatewayAuthenticate | WorkspaceCreate | WorkspaceEdit | Unknown);
 
 type EditorActions = {
     setState: (state: EditorState) => void;

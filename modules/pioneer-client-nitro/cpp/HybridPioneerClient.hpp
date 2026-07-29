@@ -54,7 +54,29 @@ public:
       const std::string& inputJson) override;
   std::shared_ptr<margelo::nitro::Promise<std::string>> gatewayPlanSetWorkspaceRegistryJson(
       const std::string& inputJson) override;
-  std::shared_ptr<margelo::nitro::Promise<std::string>> gatewayConnectJson(
+  std::shared_ptr<margelo::nitro::Promise<std::string>> gatewaySessionLifecycleReduceJson(
+      const std::string& inputJson) override;
+  std::shared_ptr<margelo::nitro::Promise<std::string>> gatewayDeviceActivationPresentationJson(
+      const std::string& inputJson) override;
+  std::shared_ptr<margelo::nitro::Promise<std::string>> gatewayDeviceActivationParseJson(
+      const std::string& inputJson) override;
+  std::shared_ptr<margelo::nitro::Promise<std::string>> gatewayAuthRefreshJson(
+      const std::string& inputJson) override;
+  std::shared_ptr<margelo::nitro::Promise<std::string>> gatewayAuthDeviceActivateJson(
+      const std::string& inputJson) override;
+  std::shared_ptr<margelo::nitro::Promise<std::string>> gatewayAuthSessionCleanupJson(
+      const std::string& inputJson) override;
+  std::shared_ptr<margelo::nitro::Promise<std::string>> gatewayAuthMeJson(
+      const std::string& inputJson) override;
+  std::shared_ptr<margelo::nitro::Promise<std::string>> gatewayAuthSessionListJson(
+      const std::string& inputJson) override;
+  std::shared_ptr<margelo::nitro::Promise<std::string>> gatewayAuthSessionRevokeJson(
+      const std::string& inputJson) override;
+  std::shared_ptr<margelo::nitro::Promise<std::string>> gatewayAuthLogoutJson(
+      const std::string& inputJson) override;
+  std::shared_ptr<margelo::nitro::Promise<std::string>> gatewayAuthDeviceCreateJson(
+      const std::string& inputJson) override;
+  std::shared_ptr<margelo::nitro::Promise<std::string>> gatewaySessionReplaceAccessJson(
       const std::string& inputJson) override;
   std::shared_ptr<margelo::nitro::Promise<std::string>> gatewaySettingsGetJson(
       const std::string& inputJson) override;
@@ -181,6 +203,9 @@ private:
       const std::string& payload,
       const std::vector<uint8_t>& bytes);
   std::shared_ptr<margelo::nitro::Promise<std::string>> callWithClientAsync(
+      char* (*operation)(PioneerClientFfi*, const char*),
+      const std::string& payload);
+  std::shared_ptr<margelo::nitro::Promise<std::string>> callWithClientAsyncSensitive(
       char* (*operation)(PioneerClientFfi*, const char*),
       const std::string& payload);
   std::shared_ptr<margelo::nitro::Promise<std::string>> callWithClientAsync(

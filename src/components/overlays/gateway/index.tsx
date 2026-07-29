@@ -22,7 +22,7 @@ import { Box } from '@/components/primitives/box';
 
 const gatewayErrorTranslationKeys: Record<GatewayOperationErrorCode, string> = {
     invalidAddress: 'invalidAddress',
-    invalidToken: 'invalidToken',
+    invalidActivation: 'invalidActivation',
     notFound: 'notFound',
     unreachable: 'validationUnreachable',
     connectionFailed: 'connectionFailed',

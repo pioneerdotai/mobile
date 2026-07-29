@@ -1,4 +1,5 @@
 import { isSentryEnabled, Sentry } from '@/services/sentry';
+import { redactAuthText, redactAuthValue } from '@/services/auth-redaction';
 
 type ErrorMetadata = {
     extras?: Record<string, unknown>;
@@ -7,11 +8,13 @@ type ErrorMetadata = {
 
 const toError = (error: unknown, context: string): Error => {
     if (error instanceof Error) {
-        return error;
+        const redacted = new Error(redactAuthText(error.message));
+        redacted.name = error.name;
+        return redacted;
     }
 
     if (typeof error === 'string' && error.trim().length > 0) {
-        return new Error(`${context} ${error}`);
+        return new Error(redactAuthText(`${context} ${error}`));
     }
 
     return new Error(context);
@@ -22,23 +25,26 @@ export const reportError = (
     context: string,
     metadata: ErrorMetadata = {},
 ): void => {
+    const safeError = redactAuthValue(error);
+    const safeContext = redactAuthText(context);
+    const safeExtras = redactAuthValue(metadata.extras ?? {}) as Record<string, unknown>;
     if (__DEV__ || !isSentryEnabled) {
         if (metadata.extras) {
-            console.error(context, {
-                error,
-                ...metadata.extras,
+            console.error(safeContext, {
+                error: safeError,
+                ...safeExtras,
             });
             return;
         }
 
-        console.error(context, error);
+        console.error(safeContext, safeError);
         return;
     }
 
     Sentry.withScope((scope) => {
-        scope.setExtra('errorContext', context);
+        scope.setExtra('errorContext', safeContext);
 
-        for (const [key, value] of Object.entries(metadata.extras ?? {})) {
+        for (const [key, value] of Object.entries(safeExtras)) {
             scope.setExtra(key, value);
         }
 
@@ -46,11 +52,11 @@ export const reportError = (
             scope.setTag(key, value);
         }
 
-        if (!(error instanceof Error)) {
-            scope.setExtra('errorValue', error);
+        if (!(safeError instanceof Error)) {
+            scope.setExtra('errorValue', safeError);
         }
 
-        Sentry.captureException(toError(error, context));
+        Sentry.captureException(toError(safeError, safeContext));
     });
 };
 

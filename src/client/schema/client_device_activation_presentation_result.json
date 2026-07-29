@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ClientDeviceActivationPresentationResult",
+  "type": "object",
+  "properties": {
+    "deep_link": {
+      "type": "string"
+    },
+    "device_id": {
+      "$ref": "#/$defs/DeviceId"
+    },
+    "expires_at_unix": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0
+    },
+    "gateway_id": {
+      "$ref": "#/$defs/GatewayId"
+    },
+    "manual_code": {
+      "type": "string"
+    },
+    "protected_endpoint": {
+      "type": "string"
+    },
+    "qr_modules": {
+      "type": "array",
+      "items": {
+        "type": "boolean"
+      }
+    },
+    "qr_width": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0
+    },
+    "session_id": {
+      "$ref": "#/$defs/AuthSessionId"
+    }
+  },
+  "required": [
+    "device_id",
+    "session_id",
+    "gateway_id",
+    "protected_endpoint",
+    "expires_at_unix",
+    "manual_code",
+    "deep_link",
+    "qr_width",
+    "qr_modules"
+  ],
+  "$defs": {
+    "AuthSessionId": {
+      "type": "string",
+      "maxLength": 21,
+      "minLength": 21,
+      "pattern": "^[A-Za-z0-9]{21}$"
+    },
+    "DeviceId": {
+      "type": "string",
+      "maxLength": 21,
+      "minLength": 21,
+      "pattern": "^[A-Za-z0-9]{21}$"
+    },
+    "GatewayId": {
+      "type": "string",
+      "maxLength": 21,
+      "minLength": 21,
+      "pattern": "^[A-Za-z0-9]{21}$"
+    }
+  }
+}

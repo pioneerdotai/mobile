@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { ChevronRight, Globe, Sun } from 'lucide-react-native';
+import { ChevronRight, Globe, Smartphone, Sun } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 
@@ -77,6 +77,11 @@ const SettingsScreen = () => {
             icon: Sun,
             title: t('theme.eyebrow'),
             onPress: () => router.navigate({ pathname: '/settings/theme' }),
+        },
+        {
+            icon: Smartphone,
+            title: t('devices.eyebrow'),
+            onPress: () => router.navigate({ pathname: '/settings/devices' }),
         },
     ];
 

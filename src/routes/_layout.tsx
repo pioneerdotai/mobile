@@ -8,6 +8,7 @@ import * as SystemUI from 'expo-system-ui';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { Stack } from 'expo-router/js-stack';
+import { usePathname } from 'expo-router';
 import { SystemBars } from 'react-native-edge-to-edge';
 
 import i18n from '@/locale/i18n';
@@ -27,6 +28,7 @@ import WorkspaceSwitcherSheet from '@/components/overlays/workspace';
 import ComposerAttachmentMenuSheet from '@/components/overlays/composer-attachments';
 import ThreadModeSwitcherSheet from '@/components/overlays/thread-mode';
 import ThreadPermissionModeSwitcherSheet from '@/components/overlays/thread-permission';
+import { TerminalGatewaySession } from '@/components/gateway/session-terminal';
 import { initializeSentry, isSentryEnabled, Sentry } from '@/services/sentry';
 import { pioneerQueryClient } from '@/services/query/client';
 import { preventAppSplashAutoHide, useHideAppSplashWhen } from '@/services/app-splash';
@@ -133,6 +135,7 @@ const AppSystemBars = () => {
 
 const RootContent = () => {
     const { registry, bootstrapped, connectionId, connectionState, sessionRevision } = useGateway();
+    const pathname = usePathname();
     useVoiceInputGatewayQueryLifecycle();
 
     const remotes = registry.remotes ?? [];
@@ -144,23 +147,28 @@ const RootContent = () => {
         return null;
     }
 
-    if (!activeGateway) {
+    if (!activeGateway && pathname !== '/activate') {
         return <GatewaySetupRoute />;
     }
 
     return (
         <>
-            <GatewaySessionController
-                activeGateway={activeGateway}
-                sessionRevision={sessionRevision}
-            />
-            <WorkspaceBootstrapController
-                activeGateway={activeGateway}
-                connectionId={connectionId}
-                connectionState={connectionState}
-            />
-            <ThreadTreeController />
+            {activeGateway ? (
+                <>
+                    <GatewaySessionController
+                        activeGateway={activeGateway}
+                        sessionRevision={sessionRevision}
+                    />
+                    <WorkspaceBootstrapController
+                        activeGateway={activeGateway}
+                        connectionId={connectionId}
+                        connectionState={connectionState}
+                    />
+                    <ThreadTreeController />
+                </>
+            ) : null}
             <RootStack />
+            <TerminalGatewaySession />
         </>
     );
 };
@@ -286,6 +294,15 @@ const RootStack = () => {
                     }}
                 />
                 <Stack.Screen name="settings" />
+                <Stack.Screen
+                    name="activate"
+                    options={{
+                        presentation: 'card',
+                        animationTypeForReplace: 'pop',
+                        cardOverlayEnabled: false,
+                        animation: 'slide_from_bottom',
+                    }}
+                />
                 <Stack.Screen
                     name="composer-capabilities"
                     options={{

@@ -1,13 +1,12 @@
-import * as SecureStore from 'expo-secure-store';
+import { nanoid } from 'nanoid';
 
 import { PioneerClientNativeError, pioneerClient } from '@/client';
 import { captureClientDiagnosticsOnError } from '@/services/client-diagnostics';
+import { deleteMobileGatewaySession } from '@/services/gateway/session-storage';
 import type {
     ActivateGatewayRegistryPlan,
     AddAndActivateRemoteGatewayRegistryPlan,
     DeleteRemoteGatewayRegistryPlan,
-    GatewayAuthTokenWrite,
-    GatewayAuthTokenUpdate,
     GatewayEndpoint,
     GatewayRegistry,
     RemoteGatewayValidation,
@@ -15,27 +14,40 @@ import type {
 } from '@/client';
 import { storage } from '@/storage';
 
-const REGISTRY_STORAGE_KEY = 'pioneer.gateway.registry.v1';
-const TOKEN_STORAGE_KEY_PREFIX = 'pioneer.gateway.token';
+const REGISTRY_STORAGE_KEY = 'pioneer.gateway.registry.v2';
 const REMOTE_GATEWAY_VALIDATION_TIMEOUT_MS = 2_500;
+const REGISTRY_KEYS = new Set([
+    'version',
+    'installation_id',
+    'active_gateway_id',
+    'local',
+    'remotes',
+]);
+const ENDPOINT_KEYS = new Set([
+    'id',
+    'name',
+    'address',
+    'kind',
+    'session_ref',
+    'server_gateway_id',
+    'workspace_id',
+    'service_name',
+]);
 
 export type AddRemoteGatewayInput = {
     name: string;
     address: string;
-    token?: string | null;
 };
 
 export type UpdateRemoteGatewayInput = {
     gatewayId: string;
     name: string;
     address: string;
-    token?: string | null;
-    clearToken?: boolean;
 };
 
 export type GatewayOperationErrorCode =
     | 'invalidAddress'
-    | 'invalidToken'
+    | 'invalidActivation'
     | 'notFound'
     | 'unreachable'
     | 'connectionFailed'
@@ -53,30 +65,135 @@ export class GatewayOperationError extends Error {
     }
 }
 
+export class GatewayRegistryStorageError extends Error {
+    readonly code = 'corrupted' as const;
+
+    constructor(cause?: unknown) {
+        super('Gateway registry is corrupted');
+        this.name = 'GatewayRegistryStorageError';
+        this.cause = cause;
+    }
+}
+
 export const defaultGatewayRegistry = (): GatewayRegistry => ({
-    version: 1,
+    version: 2,
+    installation_id: nanoid(21),
     active_gateway_id: null,
+    local: null,
     remotes: [],
 });
 
-const tokenStorageKey = (tokenRef: string): string => {
-    return `${TOKEN_STORAGE_KEY_PREFIX}.${tokenRef}`;
-};
-
-const normalizeStoredRegistry = (value: unknown): GatewayRegistry => {
-    if (!value || typeof value !== 'object') {
-        return defaultGatewayRegistry();
+export const normalizeStoredRegistry = (value: unknown): GatewayRegistry => {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        throw new GatewayRegistryStorageError();
     }
 
-    const registry = value as GatewayRegistry;
+    const candidate = value as Partial<GatewayRegistry> & Record<string, unknown>;
+    if (!hasOnlyKeys(candidate, REGISTRY_KEYS) || candidate.version !== 2) {
+        throw new GatewayRegistryStorageError();
+    }
+    if (
+        candidate.local !== null &&
+        candidate.local !== undefined &&
+        !isStoredGatewayEndpoint(candidate.local)
+    ) {
+        throw new GatewayRegistryStorageError();
+    }
+    if (!Array.isArray(candidate.remotes) || !candidate.remotes.every(isStoredGatewayEndpoint)) {
+        throw new GatewayRegistryStorageError();
+    }
+    if (
+        candidate.active_gateway_id !== null &&
+        candidate.active_gateway_id !== undefined &&
+        !isBoundedRegistryString(candidate.active_gateway_id)
+    ) {
+        throw new GatewayRegistryStorageError();
+    }
 
+    const local = candidate.local ?? null;
+    const remotes = candidate.remotes;
+    const endpoints = [local, ...remotes].filter(
+        (endpoint): endpoint is GatewayEndpoint => endpoint !== null,
+    );
+    if (local?.kind !== undefined && local.kind !== 'local') {
+        throw new GatewayRegistryStorageError();
+    }
+    if (remotes.some((endpoint) => endpoint.kind !== 'remote')) {
+        throw new GatewayRegistryStorageError();
+    }
+    const endpointIds = new Set<string>();
+    const sessionRefs = new Set<string>();
+    let hasSessionBinding = false;
+    for (const endpoint of endpoints) {
+        if (endpointIds.has(endpoint.id)) {
+            throw new GatewayRegistryStorageError();
+        }
+        endpointIds.add(endpoint.id);
+        const sessionRef = endpoint.session_ref ?? null;
+        const serverGatewayId = endpoint.server_gateway_id ?? null;
+        if ((sessionRef === null) !== (serverGatewayId === null)) {
+            throw new GatewayRegistryStorageError();
+        }
+        if (sessionRef !== null && serverGatewayId !== null) {
+            if (
+                !/^[A-Za-z0-9_-]{1,255}$/.test(sessionRef) ||
+                !/^[A-Za-z0-9]{21}$/.test(serverGatewayId) ||
+                sessionRefs.has(sessionRef)
+            ) {
+                throw new GatewayRegistryStorageError();
+            }
+            sessionRefs.add(sessionRef);
+            hasSessionBinding = true;
+        }
+    }
+    const storedInstallationId =
+        typeof candidate.installation_id === 'string' ? candidate.installation_id.trim() : '';
+    const installationIdIsValid =
+        storedInstallationId.length > 0 &&
+        storedInstallationId.length <= 255 &&
+        !/[\u0000-\u001F\u007F]/.test(storedInstallationId);
+    if (!installationIdIsValid && hasSessionBinding) {
+        throw new GatewayRegistryStorageError();
+    }
     return {
-        version: typeof registry.version === 'number' ? registry.version : 1,
+        version: 2,
+        installation_id: installationIdIsValid ? storedInstallationId : nanoid(21),
         active_gateway_id:
-            typeof registry.active_gateway_id === 'string' ? registry.active_gateway_id : null,
-        remotes: Array.isArray(registry.remotes) ? registry.remotes : [],
+            typeof candidate.active_gateway_id === 'string' ? candidate.active_gateway_id : null,
+        local,
+        remotes,
     };
 };
+
+const isStoredGatewayEndpoint = (value: unknown): value is GatewayEndpoint => {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        return false;
+    }
+    const endpoint = value as Partial<GatewayEndpoint> & Record<string, unknown>;
+    return (
+        hasOnlyKeys(endpoint, ENDPOINT_KEYS) &&
+        isBoundedRegistryString(endpoint.id) &&
+        isBoundedRegistryString(endpoint.name) &&
+        isBoundedRegistryString(endpoint.address, 2_048) &&
+        (endpoint.kind === 'local' || endpoint.kind === 'remote') &&
+        isOptionalBoundedRegistryString(endpoint.session_ref) &&
+        isOptionalBoundedRegistryString(endpoint.server_gateway_id) &&
+        isOptionalBoundedRegistryString(endpoint.workspace_id) &&
+        isOptionalBoundedRegistryString(endpoint.service_name)
+    );
+};
+
+const isBoundedRegistryString = (value: unknown, maxLength = 255): value is string =>
+    typeof value === 'string' &&
+    value.length > 0 &&
+    value.length <= maxLength &&
+    !/[\u0000-\u001F\u007F]/.test(value);
+
+const isOptionalBoundedRegistryString = (value: unknown): value is string | null | undefined =>
+    value === null || value === undefined || isBoundedRegistryString(value);
+
+const hasOnlyKeys = (value: Record<string, unknown>, allowed: ReadonlySet<string>): boolean =>
+    Object.keys(value).every((key) => allowed.has(key));
 
 export const loadGatewayRegistry = (): GatewayRegistry => {
     const raw = storage.getString(REGISTRY_STORAGE_KEY);
@@ -87,47 +204,54 @@ export const loadGatewayRegistry = (): GatewayRegistry => {
         return registry;
     }
 
+    let decoded: unknown;
     try {
-        return normalizeStoredRegistry(JSON.parse(raw));
-    } catch {
-        const registry = defaultGatewayRegistry();
-        saveGatewayRegistry(registry);
-        return registry;
+        decoded = JSON.parse(raw);
+    } catch (error) {
+        // Never overwrite an unreadable registry: it may be the only durable
+        // pointer to a SecureStore session envelope.
+        throw new GatewayRegistryStorageError(error);
     }
+    const registry = normalizeStoredRegistry(decoded);
+    saveGatewayRegistry(registry);
+    return registry;
 };
 
 export const saveGatewayRegistry = (registry: GatewayRegistry): void => {
     const mobileRegistry: GatewayRegistry = {
         version: registry.version,
+        installation_id: registry.installation_id ?? null,
         active_gateway_id: registry.active_gateway_id ?? null,
+        local: registry.local ?? null,
         remotes: registry.remotes ?? [],
     };
 
     storage.set(REGISTRY_STORAGE_KEY, JSON.stringify(mobileRegistry));
 };
 
-export const getGatewayAuthToken = async (tokenRef: string): Promise<string | null> => {
-    return SecureStore.getItemAsync(tokenStorageKey(tokenRef));
+export const findGatewayEndpoint = (
+    registry: GatewayRegistry,
+    gatewayId: string,
+): GatewayEndpoint | null => {
+    if (registry.local?.id === gatewayId) {
+        return registry.local;
+    }
+    return (registry.remotes ?? []).find((endpoint) => endpoint.id === gatewayId) ?? null;
 };
 
-export const deleteGatewayAuthToken = async (tokenRef: string): Promise<void> => {
-    await SecureStore.deleteItemAsync(tokenStorageKey(tokenRef));
-};
-
-export const writeGatewayAuthToken = async (
-    tokenWrite: GatewayAuthTokenWrite | null | undefined,
-): Promise<void> => {
-    if (!tokenWrite) {
-        return;
+export const replaceGatewayEndpoint = (
+    registry: GatewayRegistry,
+    endpoint: GatewayEndpoint,
+): GatewayRegistry => {
+    if (registry.local?.id === endpoint.id) {
+        return { ...registry, local: endpoint };
     }
-
-    const token = tokenWrite.token.trim();
-    if (!token) {
-        await deleteGatewayAuthToken(tokenWrite.token_ref);
-        return;
-    }
-
-    await SecureStore.setItemAsync(tokenStorageKey(tokenWrite.token_ref), token);
+    return {
+        ...registry,
+        remotes: (registry.remotes ?? []).map((candidate) =>
+            candidate.id === endpoint.id ? endpoint : candidate,
+        ),
+    };
 };
 
 const remoteGatewayDefaultName = (index: number): string => {
@@ -148,44 +272,11 @@ const requireRemoteGateway = (registry: GatewayRegistry, gatewayId: string): Gat
     return endpoint;
 };
 
-const tokenUpdateFromInput = (input: UpdateRemoteGatewayInput): GatewayAuthTokenUpdate => {
-    if (input.clearToken) {
-        return { mode: 'clear' };
-    }
-
-    const token = input.token?.trim();
-    if (token) {
-        return { mode: 'replace', token };
-    }
-
-    return { mode: 'preserve' };
-};
-
-const tokenForValidation = async (
-    endpoint: GatewayEndpoint,
-    authTokenUpdate: GatewayAuthTokenUpdate,
-): Promise<string | null> => {
-    switch (authTokenUpdate.mode) {
-        case 'replace':
-            return authTokenUpdate.token;
-        case 'clear':
-            return null;
-        case 'preserve':
-            return endpoint.auth_token_ref
-                ? getGatewayAuthToken(endpoint.auth_token_ref)
-                : Promise.resolve(null);
-    }
-};
-
-export const validateRemoteGateway = async (
-    address: string,
-    token?: string | null,
-): Promise<RemoteGatewayValidation> => {
+export const validateRemoteGateway = async (address: string): Promise<RemoteGatewayValidation> => {
     try {
         const validation = await captureClientDiagnosticsOnError('gateway_validate_remote', () =>
             pioneerClient.gatewayValidateRemote({
                 address,
-                auth_token: token ?? null,
                 timeout_ms: REMOTE_GATEWAY_VALIDATION_TIMEOUT_MS,
             }),
         );
@@ -205,7 +296,7 @@ export const addRemoteGateway = async (
 ): Promise<AddAndActivateRemoteGatewayRegistryPlan> => {
     const registry = loadGatewayRegistry();
     const remoteCount = registry.remotes?.length ?? 0;
-    const validation = await validateRemoteGateway(input.address, input.token);
+    const validation = await validateRemoteGateway(input.address);
 
     if (validation.state !== 'reachable') {
         throw new GatewayOperationError('unreachable');
@@ -216,12 +307,10 @@ export const addRemoteGateway = async (
             registry,
             name: input.name,
             address: validation.address,
-            auth_token: input.token ?? null,
             new_endpoint_id: null,
             default_remote_name: remoteGatewayDefaultName(remoteCount + 1),
         });
 
-        await writeGatewayAuthToken(plan.token_write);
         saveGatewayRegistry(plan.registry);
 
         return plan;
@@ -256,15 +345,12 @@ export const updateRemoteGateway = async (
     const registry = loadGatewayRegistry();
     const endpoint = requireRemoteGateway(registry, input.gatewayId);
     const endpointIndex = remoteGatewayIndex(registry, input.gatewayId);
-    const authTokenUpdate = tokenUpdateFromInput(input);
     const address = input.address.trim();
     const addressChanged = address !== endpoint.address;
-    const tokenChanged = authTokenUpdate.mode !== 'preserve';
     let plannedAddress = address;
 
-    if (addressChanged || tokenChanged) {
-        const validationToken = await tokenForValidation(endpoint, authTokenUpdate);
-        const validation = await validateRemoteGateway(address, validationToken);
+    if (addressChanged) {
+        const validation = await validateRemoteGateway(address);
         plannedAddress = validation.address;
     }
 
@@ -274,18 +360,12 @@ export const updateRemoteGateway = async (
             gateway_id: input.gatewayId,
             name: input.name,
             address: plannedAddress,
-            auth_token_update: authTokenUpdate,
             default_remote_name: remoteGatewayDefaultName(
                 endpointIndex >= 0 ? endpointIndex + 1 : (registry.remotes?.length ?? 0) + 1,
             ),
         });
 
-        await writeGatewayAuthToken(plan.token_write);
         saveGatewayRegistry(plan.registry);
-        if (plan.deleted_token_ref) {
-            await deleteGatewayAuthToken(plan.deleted_token_ref);
-        }
-
         return plan;
     } catch (error) {
         throw normalizeGatewayOperationError(error, 'operationFailed');
@@ -303,18 +383,37 @@ export const deleteRemoteGateway = async (
             registry,
             gateway_id: gatewayId,
             local_gateway_id: null,
-            local_gateway_has_auth_token: false,
         });
 
-        saveGatewayRegistry(plan.registry);
-        if (plan.deleted_token_ref) {
-            await deleteGatewayAuthToken(plan.deleted_token_ref);
-        }
+        await commitRemoteGatewayDeletion(plan);
 
         return plan;
     } catch (error) {
         throw normalizeGatewayOperationError(error, 'operationFailed');
     }
+};
+
+type RemoteGatewayDeletionStorage = {
+    deleteSession: (sessionRef: string) => Promise<void>;
+    saveRegistry: (registry: GatewayRegistry) => void;
+};
+
+const defaultRemoteGatewayDeletionStorage: RemoteGatewayDeletionStorage = {
+    deleteSession: deleteMobileGatewaySession,
+    saveRegistry: saveGatewayRegistry,
+};
+
+export const commitRemoteGatewayDeletion = async (
+    plan: DeleteRemoteGatewayRegistryPlan,
+    persistence: RemoteGatewayDeletionStorage = defaultRemoteGatewayDeletionStorage,
+): Promise<void> => {
+    // Delete credentials while the old registry still points at them. Any
+    // partial failure is therefore retryable; saving the registry first would
+    // orphan a refresh credential with no durable reference for later cleanup.
+    if (plan.endpoint.session_ref) {
+        await persistence.deleteSession(plan.endpoint.session_ref);
+    }
+    persistence.saveRegistry(plan.registry);
 };
 
 const normalizeGatewayOperationError = (
@@ -334,7 +433,7 @@ const normalizeGatewayOperationError = (
             return new GatewayOperationError('invalidAddress', error);
         }
         if (/\b401\b|unauthorized/i.test(message)) {
-            return new GatewayOperationError('invalidToken', error);
+            return new GatewayOperationError('invalidActivation', error);
         }
         if (/failed to connect|websocket handshake failed|timeout/i.test(message)) {
             return new GatewayOperationError('connectionFailed', error);
