@@ -1,7 +1,10 @@
 import * as SecureStore from 'expo-secure-store';
 
-export const MOBILE_GATEWAY_SESSION_SCHEMA_VERSION = 1 as const;
+import { isRefreshCredential } from './refresh-credential';
+
+export const MOBILE_GATEWAY_SESSION_SCHEMA_VERSION = 2 as const;
 export const MOBILE_GATEWAY_SESSION_KEY_PREFIX = 'pioneer.gateway.session.v1';
+const RETIRED_MOBILE_GATEWAY_SESSION_SCHEMA_VERSION = 1;
 const MOBILE_GATEWAY_SESSION_ENVELOPE_KEYS = new Set([
     'schema_version',
     'gateway_id',
@@ -56,9 +59,10 @@ export const readMobileGatewaySession = async (
     sessionRef: string,
     secureStore: MobileGatewaySecureStore = SecureStore,
 ): Promise<MobileGatewaySessionEnvelope | null> => {
+    const storageKey = mobileGatewaySessionStorageKey(sessionRef);
     let raw: string | null;
     try {
-        raw = await secureStore.getItemAsync(mobileGatewaySessionStorageKey(sessionRef));
+        raw = await secureStore.getItemAsync(storageKey);
     } catch (error) {
         throw new MobileGatewaySessionStorageError('read_failed', error);
     }
@@ -67,15 +71,38 @@ export const readMobileGatewaySession = async (
     }
     try {
         const decoded = JSON.parse(raw) as unknown;
+        if (isRetiredMobileGatewaySessionEnvelope(decoded)) {
+            try {
+                await secureStore.deleteItemAsync(storageKey);
+            } catch (error) {
+                throw new MobileGatewaySessionStorageError('delete_failed', error);
+            }
+            return null;
+        }
         if (!isMobileGatewaySessionEnvelope(decoded)) {
             throw new Error('invalid mobile Gateway session envelope');
         }
         return decoded;
     } catch (error) {
+        if (error instanceof MobileGatewaySessionStorageError) {
+            throw error;
+        }
         throw new MobileGatewaySessionStorageError('corrupted', error);
     } finally {
         raw = null;
     }
+};
+
+const isRetiredMobileGatewaySessionEnvelope = (
+    value: unknown,
+): value is Record<string, unknown> => {
+    return (
+        !!value &&
+        typeof value === 'object' &&
+        !Array.isArray(value) &&
+        (value as Record<string, unknown>).schema_version ===
+            RETIRED_MOBILE_GATEWAY_SESSION_SCHEMA_VERSION
+    );
 };
 
 export const writeMobileGatewaySession = async (
@@ -127,8 +154,7 @@ export const isMobileGatewaySessionEnvelope = (
         (envelope.refresh_generation ?? -1) >= 0 &&
         Number.isSafeInteger(envelope.refresh_expires_at_unix) &&
         (envelope.refresh_expires_at_unix ?? 0) > 0 &&
-        typeof envelope.refresh_token === 'string' &&
-        /^prf_[A-Za-z0-9_-]{43,171}$/.test(envelope.refresh_token)
+        isRefreshCredential(envelope.refresh_token)
     );
 };
 

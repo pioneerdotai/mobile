@@ -1,6 +1,7 @@
 import { describe, expect, it } from '@jest/globals';
 import {
     deleteMobileGatewaySession,
+    MOBILE_GATEWAY_SESSION_SCHEMA_VERSION,
     mobileGatewaySessionStorageKey,
     readMobileGatewaySession,
     writeMobileGatewaySession,
@@ -9,7 +10,7 @@ import type { MobileGatewaySessionEnvelope } from './session-storage';
 import { FakeGatewaySecureStore } from './test-support';
 
 const envelope = (): MobileGatewaySessionEnvelope => ({
-    schema_version: 1,
+    schema_version: MOBILE_GATEWAY_SESSION_SCHEMA_VERSION,
     gateway_id: 'G00000000000000000001',
     principal_id: 'P00000000000000000001',
     device_id: 'D00000000000000000001',
@@ -18,7 +19,7 @@ const envelope = (): MobileGatewaySessionEnvelope => ({
     installation_id: 'installation-mobile-1',
     refresh_generation: 3,
     refresh_expires_at_unix: 1_900_000_000,
-    refresh_token: `prf_${'r'.repeat(48)}`,
+    refresh_token: `prf2_${'r'.repeat(164)}`,
 });
 
 const storageFailureCases: [operation: 'read' | 'write' | 'delete', expectedCode: string][] = [
@@ -37,6 +38,39 @@ describe('mobile Gateway session SecureStore adapter', () => {
         );
         await deleteMobileGatewaySession('remote-1', secureStore);
         await expect(readMobileGatewaySession('remote-1', secureStore)).resolves.toBeNull();
+    });
+
+    it('deletes a retired v1 session envelope and requires authentication again', async () => {
+        const secureStore = new FakeGatewaySecureStore();
+        const key = mobileGatewaySessionStorageKey('remote-1');
+        await secureStore.setItemAsync(
+            key,
+            JSON.stringify({
+                ...envelope(),
+                schema_version: 1,
+                refresh_token: `prf_${'r'.repeat(43)}`,
+            }),
+        );
+
+        await expect(readMobileGatewaySession('remote-1', secureStore)).resolves.toBeNull();
+        await expect(secureStore.getItemAsync(key)).resolves.toBeNull();
+    });
+
+    it('reports failure to delete a retired v1 session envelope', async () => {
+        const secureStore = new FakeGatewaySecureStore();
+        const key = mobileGatewaySessionStorageKey('remote-1');
+        await secureStore.setItemAsync(
+            key,
+            JSON.stringify({
+                ...envelope(),
+                schema_version: 1,
+            }),
+        );
+        secureStore.failNext('delete');
+
+        await expect(readMobileGatewaySession('remote-1', secureStore)).rejects.toMatchObject({
+            code: 'delete_failed',
+        });
     });
 
     it.each(storageFailureCases)(

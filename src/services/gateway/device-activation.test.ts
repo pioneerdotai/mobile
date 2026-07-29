@@ -25,6 +25,7 @@ jest.mock('./registry', () => ({
 }));
 
 jest.mock('./session-storage', () => ({
+    MOBILE_GATEWAY_SESSION_SCHEMA_VERSION: 2,
     readMobileGatewaySession: jest.fn(),
     writeMobileGatewaySession: jest.fn(),
     deleteMobileGatewaySession: jest.fn(),
@@ -119,10 +120,10 @@ const registry = (): GatewayRegistry => ({
 const grant = (): AuthSessionGrant => ({
     access_token: 'access_direct_only',
     access_expires_at_unix: 1_800_000_000,
-    refresh_token: `prf_${'r'.repeat(48)}`,
+    refresh_token: `prf2_${'r'.repeat(164)}`,
     refresh_expires_at_unix: 1_900_000_000,
     refresh_generation: 0,
-    auth_protocol_version: 2,
+    auth_protocol_version: 3,
     credential_storage_order: 'persist_refresh_before_activating_access',
     gateway: { id: gatewayId },
     principal: {
@@ -408,7 +409,7 @@ describe('mobile device activation service', () => {
             order.push('registry');
             const snapshot = JSON.stringify(next);
             expect(snapshot).not.toContain('access_direct_only');
-            expect(snapshot).not.toContain('prf_');
+            expect(snapshot).not.toContain('prf2_');
             expect(snapshot).not.toContain(activationCode);
         });
 
@@ -422,7 +423,7 @@ describe('mobile device activation service', () => {
         expect(activationMetadataWrites).not.toHaveLength(0);
         for (const value of activationMetadataWrites) {
             expect(value).not.toContain(activationCode);
-            expect(value).not.toContain('prf_');
+            expect(value).not.toContain('prf2_');
             expect(value).not.toContain('access_direct_only');
         }
     });
@@ -491,7 +492,7 @@ describe('mobile device activation service', () => {
             return activationMetadata.get(key);
         });
         mockReadMobileGatewaySession.mockResolvedValue({
-            schema_version: 1,
+            schema_version: 2,
             gateway_id: recoverableGatewayId,
             principal_id: 'P00000000000000000001',
             device_id: 'D00000000000000000001',
@@ -500,7 +501,7 @@ describe('mobile device activation service', () => {
             installation_id: 'installation-mobile-1',
             refresh_generation: 0,
             refresh_expires_at_unix: 1_900_000_000,
-            refresh_token: `prf_${'r'.repeat(48)}`,
+            refresh_token: `prf2_${'r'.repeat(164)}`,
         });
 
         const recovered = await recoverPendingMobileDeviceActivationCommits();
@@ -613,7 +614,7 @@ describe('mobile device activation service', () => {
             workspace_id: null,
         };
         const durable = {
-            schema_version: 1 as const,
+            schema_version: 2 as const,
             gateway_id: gatewayId,
             principal_id: 'P00000000000000000001',
             device_id: 'D00000000000000000001',
@@ -622,7 +623,7 @@ describe('mobile device activation service', () => {
             installation_id: 'installation-mobile-1',
             refresh_generation: 0,
             refresh_expires_at_unix: 1_900_000_000,
-            refresh_token: `prf_${'r'.repeat(48)}`,
+            refresh_token: `prf2_${'r'.repeat(164)}`,
         };
         mockLoadGatewayRegistry.mockReturnValue({
             ...registry(),
@@ -669,7 +670,7 @@ describe('mobile device activation service', () => {
         });
         mockFindGatewayEndpoint.mockReturnValue(changedEndpoint);
         mockReadMobileGatewaySession.mockResolvedValue({
-            schema_version: 1,
+            schema_version: 2,
             gateway_id: gatewayId,
             principal_id: 'P00000000000000000001',
             device_id: 'D00000000000000000001',
@@ -678,7 +679,7 @@ describe('mobile device activation service', () => {
             installation_id: 'installation-mobile-1',
             refresh_generation: 0,
             refresh_expires_at_unix: 1_900_000_000,
-            refresh_token: `prf_${'r'.repeat(48)}`,
+            refresh_token: `prf2_${'r'.repeat(164)}`,
         });
         activationMetadata.set(
             `pioneer.gateway.device-activation-commit.v1.${gatewayId}`,
@@ -722,7 +723,7 @@ describe('mobile device activation service', () => {
         });
         mockFindGatewayEndpoint.mockReturnValue(unboundEndpoint);
         mockReadMobileGatewaySession.mockResolvedValue({
-            schema_version: 1,
+            schema_version: 2,
             gateway_id: gatewayId,
             principal_id: 'P00000000000000000001',
             device_id: 'D00000000000000000001',
@@ -731,7 +732,7 @@ describe('mobile device activation service', () => {
             installation_id: 'installation-mobile-1',
             refresh_generation: 0,
             refresh_expires_at_unix: 1_900_000_000,
-            refresh_token: `prf_${'r'.repeat(48)}`,
+            refresh_token: `prf2_${'r'.repeat(164)}`,
         });
         activationMetadata.set(
             `pioneer.gateway.device-activation-commit.v1.${gatewayId}`,
@@ -779,7 +780,7 @@ describe('mobile device activation service', () => {
         });
         mockFindGatewayEndpoint.mockReturnValue(newerEndpoint);
         mockReadMobileGatewaySession.mockResolvedValue({
-            schema_version: 1,
+            schema_version: 2,
             gateway_id: gatewayId,
             principal_id: 'P00000000000000000001',
             device_id: 'D00000000000000000001',
@@ -788,7 +789,7 @@ describe('mobile device activation service', () => {
             installation_id: 'installation-mobile-1',
             refresh_generation: 0,
             refresh_expires_at_unix: 1_900_000_000,
-            refresh_token: `prf_${'r'.repeat(48)}`,
+            refresh_token: `prf2_${'r'.repeat(164)}`,
         });
         activationMetadata.set(
             `pioneer.gateway.device-activation-commit.v1.${gatewayId}`,
@@ -864,7 +865,7 @@ describe('mobile device activation service', () => {
         });
         mockFindGatewayEndpoint.mockReturnValue(existingEndpoint);
         mockReadMobileGatewaySession.mockResolvedValue({
-            schema_version: 1,
+            schema_version: 2,
             gateway_id: gatewayId,
             principal_id: 'P00000000000000000001',
             device_id: 'D00000000000000000099',
@@ -873,7 +874,7 @@ describe('mobile device activation service', () => {
             installation_id: 'installation-mobile-1',
             refresh_generation: 4,
             refresh_expires_at_unix: 1_800_000_000,
-            refresh_token: `prf_${'o'.repeat(48)}`,
+            refresh_token: `prf2_${'o'.repeat(164)}`,
         });
         mockGatewayAuthDeviceActivate.mockResolvedValue(grant());
 

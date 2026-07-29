@@ -1209,7 +1209,8 @@ export type ToolRetryErrorClass =
 export type ToolRetryResolution = 'succeeded' | 'non_retryable';
 export type ToolRetryExhaustionKind = 'total_retry_rounds' | 'error_class' | 'tool_name' | 'failure_signature';
 export type ToolLoopBudgetAction = 'continue_in_next_window';
-export type ToolLoopBudgetLimitKind = 'agent_rounds' | 'tool_calls' | 'provider_returned_tools_after_tools_disabled';
+export type ToolLoopBudgetLimitKind =
+  'agent_rounds' | 'tool_calls' | 'wall_clock_ms' | 'provider_tokens' | 'provider_returned_tools_after_tools_disabled';
 export type McpChangedAction = 'install' | 'policy' | 'update' | 'uninstall';
 export type McpSourceKind = 'config';
 export type McpRuntimeState =

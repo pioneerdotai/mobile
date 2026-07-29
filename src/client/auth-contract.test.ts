@@ -28,7 +28,7 @@ const refreshGrant = {
         client_kind: 'mobile',
         status: 'active',
     },
-    auth_protocol_version: 2,
+    auth_protocol_version: 3,
     credential_storage_order: 'persist_refresh_before_activating_access',
 };
 

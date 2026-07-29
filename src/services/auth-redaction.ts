@@ -24,7 +24,7 @@ export const redactAuthText = (value: string): string => {
         .replace(/pioneer:\/\/activate[^\s"']*/gi, 'pioneer://activate?[redacted]')
         .replace(/\bBearer\s+[A-Za-z0-9._~+/=-]+/gi, 'Bearer [redacted]')
         .replace(/\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g, '[redacted-jwt]')
-        .replace(/\b(?:prf_|device_)[A-Za-z0-9._~+/=-]{20,}/g, '[redacted-credential]')
+        .replace(/\b(?:prf2_|prf_|device_)[A-Za-z0-9._~+/=-]{20,}/g, '[redacted-credential]')
         .replace(/\b(key|password|token|credential)=([^&\s]+)/gi, '$1=[redacted]');
 };
 

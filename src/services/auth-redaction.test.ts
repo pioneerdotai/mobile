@@ -3,7 +3,7 @@ import { redactAuthText, redactAuthValue } from './auth-redaction';
 
 const secrets = {
     access_token: 'eyJheader.payload.signature',
-    refresh_token: `prf_${'r'.repeat(48)}`,
+    refresh_token: `prf2_${'r'.repeat(164)}`,
     activation_code: 'K7M4-P9Q2',
     authorization: 'Bearer top.secret.value',
 };

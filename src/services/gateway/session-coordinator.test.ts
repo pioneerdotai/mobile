@@ -38,6 +38,7 @@ jest.mock('./session-storage', () => {
     }
 
     return {
+        MOBILE_GATEWAY_SESSION_SCHEMA_VERSION: 2,
         MobileGatewaySessionStorageError: MockMobileGatewaySessionStorageError,
         readMobileGatewaySession: jest.fn(),
         writeMobileGatewaySession: jest.fn(),
@@ -102,10 +103,11 @@ const timings = {
 };
 
 const accessToken = 'test_access_header.test_access_payload.test_access_signature';
-const refreshToken = (generation: number) => `prf_test_${generation.toString().padStart(48, '0')}`;
+const refreshToken = (generation: number) =>
+    `prf2_${generation.toString().padStart(20, '0')}${'0'.repeat(144)}`;
 
 const envelope = (generation: number): MobileGatewaySessionEnvelope => ({
-    schema_version: 1,
+    schema_version: 2,
     gateway_id: 'G00000000000000000001',
     principal_id: 'P00000000000000000001',
     device_id: 'D00000000000000000001',
@@ -130,7 +132,7 @@ const refreshGrant = (generation: number, accessExpiry: number): AuthRefreshGran
     refresh_token: refreshToken(generation),
     refresh_expires_at_unix: 1_900_000_000,
     refresh_generation: generation,
-    auth_protocol_version: 2,
+    auth_protocol_version: 3,
     credential_storage_order: 'persist_refresh_before_activating_access',
     device: {
         id: 'D00000000000000000001',
@@ -529,7 +531,7 @@ describe('mobile Gateway session coordinator', () => {
     it('reloads the refresh credential from SecureStore for an in-foreground rotation', async () => {
         mockGatewayAuthRefresh.mockResolvedValueOnce(refreshGrant(1, nowSeconds + 61));
         await ensureMobileGatewaySession(endpoint, timings);
-        const durableOnlyRefresh = `prf_durable_${'2'.repeat(48)}`;
+        const durableOnlyRefresh = `prf2_${'2'.repeat(164)}`;
         durableEnvelope = {
             ...durableEnvelope,
             refresh_token: durableOnlyRefresh,

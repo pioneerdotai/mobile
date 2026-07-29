@@ -8,12 +8,14 @@ import type {
     SessionTerminalReason,
 } from '@/client';
 import {
+    MOBILE_GATEWAY_SESSION_SCHEMA_VERSION,
     MobileGatewaySessionStorageError,
     readMobileGatewaySession,
     writeMobileGatewaySession,
 } from './session-storage';
 import type { MobileGatewaySessionEnvelope } from './session-storage';
 import { loadGatewayRegistry } from './registry';
+import { DEVICE_SESSION_AUTH_PROTOCOL_VERSION, isRefreshCredential } from './refresh-credential';
 
 export const MOBILE_ACCESS_REFRESH_LEEWAY_SECONDS = 60;
 
@@ -329,7 +331,7 @@ const refreshSession = async (
             );
         }
         const next: MobileGatewaySessionEnvelope = {
-            schema_version: 1,
+            schema_version: MOBILE_GATEWAY_SESSION_SCHEMA_VERSION,
             gateway_id: current.gateway_id,
             principal_id: current.principal_id,
             device_id: current.device_id,
@@ -857,7 +859,7 @@ const validateRefreshGrant = (
     grant: AuthRefreshGrant,
 ): void => {
     if (
-        grant.auth_protocol_version !== 2 ||
+        grant.auth_protocol_version !== DEVICE_SESSION_AUTH_PROTOCOL_VERSION ||
         grant.credential_storage_order !== 'persist_refresh_before_activating_access' ||
         grant.gateway.id !== current.gateway_id ||
         grant.principal.id !== current.principal_id ||
@@ -881,7 +883,7 @@ const validateRefreshGrant = (
         grant.refresh_expires_at_unix <= 0 ||
         !Number.isSafeInteger(grant.access_expires_at_unix) ||
         grant.access_expires_at_unix <= 0 ||
-        !/^prf_[A-Za-z0-9_-]{43,171}$/.test(grant.refresh_token) ||
+        !isRefreshCredential(grant.refresh_token) ||
         !grant.access_token
     ) {
         throw new Error('invalid rotated Gateway session grant');

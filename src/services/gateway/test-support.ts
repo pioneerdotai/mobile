@@ -2,7 +2,7 @@ export type FakeSecureStoreOperation = 'read' | 'write' | 'delete';
 
 export const GATEWAY_AUTH_TEST_SECRETS = [
     'test_access_header.test_access_payload.test_access_signature',
-    'prf_test_000000000000000000000000000000000000000000000000',
+    `prf2_${'0'.repeat(164)}`,
     'K7M4-P9Q2',
 ] as const;
 
