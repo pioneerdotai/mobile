@@ -270,17 +270,23 @@ describe('mobile device activation service', () => {
         expect(mockGatewayAuthDeviceActivate).not.toHaveBeenCalled();
     });
 
-    it('rejects plaintext remote activation before sending the credential', async () => {
-        await expect(
-            acceptMobileDeviceActivation({
-                ...activation,
-                protected_endpoint: 'ws://gateway.example/ws',
+    it('allows plaintext activation for remote endpoints', async () => {
+        mockGatewayAuthDeviceActivate.mockResolvedValue(grant());
+
+        await acceptMobileDeviceActivation({
+            ...activation,
+            protected_endpoint: 'ws://192.0.2.10:17878/ws',
+        });
+
+        expect(mockGatewayAuthDeviceActivate).toHaveBeenCalledWith(
+            expect.objectContaining({
+                address: 'ws://192.0.2.10:17878/ws',
+                credential: canonicalActivationCode,
             }),
-        ).rejects.toMatchObject({ code: 'invalid_presentation' });
-        expect(mockGatewayAuthDeviceActivate).not.toHaveBeenCalled();
+        );
     });
 
-    it('allows plaintext activation only for loopback endpoints', async () => {
+    it('continues to allow plaintext activation for loopback endpoints', async () => {
         mockGatewayAuthDeviceActivate.mockResolvedValue(grant());
 
         await acceptMobileDeviceActivation({

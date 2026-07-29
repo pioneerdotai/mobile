@@ -420,7 +420,7 @@ const validateManualDeviceActivationInput = (activation: MobileDeviceActivationI
     if (!activationCode) {
         throw new MobileDeviceActivationError('invalid_presentation');
     }
-    if (!isProtectedDeviceActivationEndpoint(activation.protected_endpoint)) {
+    if (!isDeviceActivationEndpoint(activation.protected_endpoint)) {
         throw new MobileDeviceActivationError('invalid_presentation');
     }
     if (activation.gateway_id != null && !normalizedGatewayId(activation.gateway_id)) {
@@ -434,15 +434,13 @@ const normalizedGatewayId = (value: string | null | undefined): string | null =>
     return /^[A-Za-z0-9]{21}$/.test(normalized) ? normalized : null;
 };
 
-const isProtectedDeviceActivationEndpoint = (value: string): boolean => {
+const isDeviceActivationEndpoint = (value: string): boolean => {
     try {
         const endpoint = new URL(value);
-        const plaintextLoopback =
-            endpoint.protocol === 'ws:' && isLoopbackHostname(endpoint.hostname);
         return (
             value === value.trim() &&
             value.length <= 2_048 &&
-            (endpoint.protocol === 'wss:' || plaintextLoopback) &&
+            (endpoint.protocol === 'ws:' || endpoint.protocol === 'wss:') &&
             Boolean(endpoint.hostname) &&
             !endpoint.username &&
             !endpoint.password &&
@@ -451,16 +449,6 @@ const isProtectedDeviceActivationEndpoint = (value: string): boolean => {
     } catch {
         return false;
     }
-};
-
-const isLoopbackHostname = (hostname: string): boolean => {
-    const normalized = hostname.toLowerCase();
-    return (
-        normalized === 'localhost' ||
-        normalized === '127.0.0.1' ||
-        normalized === '[::1]' ||
-        normalized === '::1'
-    );
 };
 
 const endpointForDeviceActivation = (
@@ -708,7 +696,7 @@ const decodePendingDeviceActivationEndpoint = (
         candidate.name.length === 0 ||
         candidate.name.length > 255 ||
         typeof candidate.address !== 'string' ||
-        !isProtectedDeviceActivationEndpoint(candidate.address) ||
+        !isDeviceActivationEndpoint(candidate.address) ||
         (candidate.kind !== 'local' && candidate.kind !== 'remote') ||
         candidate.session_ref !== sessionRef ||
         candidate.server_gateway_id !== gatewayId ||
