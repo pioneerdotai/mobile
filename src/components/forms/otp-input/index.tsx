@@ -121,14 +121,14 @@ const styles = StyleSheet.create((theme) => {
     const cell = {
         // Keep enough inter-cell space for the visual 4+4 separator even on
         // the narrowest supported phone form width.
-        width: theme.space(7),
+        width: theme.space(10),
         height: theme.space(14),
         minHeight: theme.space(14),
         borderRadius: theme.radius['2xl'],
-        borderWidth: stableOutlineWidth,
-        borderColor: theme.colors.border,
+        borderWidth: 0,
         backgroundColor: theme.colors.background,
     } as const;
+
     return {
         container: {
             gap: theme.space(2.5),
@@ -139,6 +139,9 @@ const styles = StyleSheet.create((theme) => {
         },
         inputContainer: {
             width: '100%',
+            borderRadius: theme.radius['2xl'],
+            borderWidth: stableOutlineWidth,
+            borderColor: theme.colors.border,
         },
         groupSeparator: {
             position: 'absolute',
@@ -146,7 +149,7 @@ const styles = StyleSheet.create((theme) => {
             top: theme.space(3.75),
             color: theme.colors.typography,
             fontSize: theme.fontSize.lg.fontSize,
-            opacity: 0.55,
+            opacity: 0.6,
             transform: [{ translateX: -4 }],
         },
         cell,
