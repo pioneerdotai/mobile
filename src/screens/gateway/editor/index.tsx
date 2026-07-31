@@ -13,7 +13,8 @@ import { Box } from '@/components/primitives/box';
 import { GatewayOperationError } from '@/services/gateway/registry';
 import type { GatewayOperationErrorCode } from '@/services/gateway/registry';
 import { Container } from '@/screens/editor/components/container';
-import { Button } from '@/components/buttons/base';
+import { MobileDeviceActivationError } from '@/services/gateway/device-activation';
+import type { MobileDeviceActivationErrorCode } from '@/services/gateway/device-activation';
 import { normalizeDeviceActivationCode } from '@/services/gateway/device-activation-code';
 
 type GatewaySetupFormValues = {
@@ -23,9 +24,17 @@ type GatewaySetupFormValues = {
 };
 
 type GatewaySetupScreenProps = {
+    activationPrefill?: GatewayActivationPrefill;
     authenticateOnly?: boolean;
     blocker?: boolean;
     gatewayId?: string;
+    initialError?: string | null;
+};
+
+export type GatewayActivationPrefill = {
+    address: string;
+    activationCode: string;
+    serverGatewayId: string | null;
 };
 
 const gatewayErrorTranslationKeys: Record<GatewayOperationErrorCode, string> = {
@@ -37,10 +46,19 @@ const gatewayErrorTranslationKeys: Record<GatewayOperationErrorCode, string> = {
     operationFailed: 'operationFailed',
 };
 
+const activationErrorTranslationKeys: Record<MobileDeviceActivationErrorCode, string> = {
+    invalid_presentation: 'activation.invalidPresentation',
+    gateway_mismatch: 'activation.gatewayMismatch',
+    activation_failed: 'activation.activationFailed',
+    storage_failed: 'activation.storageFailed',
+};
+
 const GatewayEditorScreen = ({
+    activationPrefill,
     authenticateOnly = false,
     blocker = false,
     gatewayId,
+    initialError = null,
 }: GatewaySetupScreenProps) => {
     const { t } = useTranslation('gateway');
     const router = useRouter();
@@ -60,7 +78,7 @@ const GatewayEditorScreen = ({
         [gatewayId, registry.remotes],
     );
 
-    const [formError, setFormError] = useState<string | null>(null);
+    const [formError, setFormError] = useState<string | null>(initialError);
 
     const {
         control,
@@ -80,6 +98,15 @@ const GatewayEditorScreen = ({
     }, []);
 
     useEffect(() => {
+        if (activationPrefill) {
+            reset({
+                name: '',
+                address: activationPrefill.address,
+                activationCode: activationPrefill.activationCode,
+            });
+            return;
+        }
+
         if (!hasExistingGateway || !editingGateway) {
             reset({ name: '', address: '', activationCode: '' });
             return;
@@ -90,7 +117,7 @@ const GatewayEditorScreen = ({
             address: editingGateway.address,
             activationCode: '',
         });
-    }, [editingGateway, hasExistingGateway, reset]);
+    }, [activationPrefill, editingGateway, hasExistingGateway, reset]);
 
     const requiredAddress = useCallback(
         (value: string) => {
@@ -113,7 +140,13 @@ const GatewayEditorScreen = ({
     const unknownGatewayErrorMessage = useCallback(
         (error: unknown) => {
             if (error instanceof GatewayOperationError) {
+                if (error.source instanceof MobileDeviceActivationError) {
+                    return t(activationErrorTranslationKeys[error.source.code]);
+                }
                 return gatewayErrorMessage(error.code);
+            }
+            if (error instanceof MobileDeviceActivationError) {
+                return t(activationErrorTranslationKeys[error.code]);
             }
 
             return t('operationFailed');
@@ -162,6 +195,7 @@ const GatewayEditorScreen = ({
                 name: values.name,
                 address: values.address.trim(),
                 activationCode,
+                activationGatewayId: activationPrefill?.serverGatewayId,
             });
 
             router.replace('/');
@@ -216,7 +250,7 @@ const GatewayEditorScreen = ({
                     autoCorrect={false}
                     spellCheck={false}
                     keyboardType="url"
-                    editable={!authenticateOnly}
+                    editable={!authenticateOnly && !activationPrefill}
                     onValueChange={clearFormError}
                 />
                 {!isEdit ? (
@@ -226,19 +260,13 @@ const GatewayEditorScreen = ({
                         rules={{ validate: validActivationCode }}
                         label={t('activationCodeLabel')}
                         disabled={submitting}
+                        readOnly={Boolean(activationPrefill)}
                         onValueChange={clearFormError}
                     />
                 ) : null}
 
                 {formError || storeErrorMessage ? (
                     <Text style={styles.error}>{formError ?? storeErrorMessage}</Text>
-                ) : null}
-                {!isEdit ? (
-                    <Button
-                        type="link"
-                        title={t('activation.openAction')}
-                        onPress={() => router.navigate('/activate')}
-                    />
                 ) : null}
             </Box>
         </Container>

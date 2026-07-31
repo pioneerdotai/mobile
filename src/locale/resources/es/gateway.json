@@ -38,12 +38,6 @@
     "sessionConfigured": "Configurado",
     "sessionFailed": "La sesión del gateway falló",
     "activation": {
-        "openAction": "Usar un enlace de registro",
-        "acceptTitle": "Registrar dispositivo",
-        "acceptDescription": "Abre un enlace de registro o introduce el endpoint protegido y el código de registro completo.",
-        "endpointLabel": "Endpoint protegido del gateway",
-        "codeLabel": "Código de registro",
-        "connectAction": "Registrar y conectar",
         "invalidPresentation": "El enlace o código de registro no es válido.",
         "gatewayMismatch": "El código de registro pertenece a otro gateway.",
         "activationFailed": "No se pudo usar el código de activación. Puede haber caducado o ya haberse utilizado.",

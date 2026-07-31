@@ -38,12 +38,6 @@
     "sessionConfigured": "Configured",
     "sessionFailed": "Gateway session failed",
     "activation": {
-        "openAction": "Use an activation link",
-        "acceptTitle": "Activate device",
-        "acceptDescription": "Open an activation link or enter the protected endpoint and full activation code.",
-        "endpointLabel": "Protected gateway endpoint",
-        "codeLabel": "Activation code",
-        "connectAction": "Activate and connect",
         "invalidPresentation": "The activation link or code is invalid.",
         "gatewayMismatch": "The activation code belongs to a different gateway.",
         "activationFailed": "The device could not be activated with this code. It may be expired or already used.",

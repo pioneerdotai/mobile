@@ -38,12 +38,6 @@
     "sessionConfigured": "設定済み",
     "sessionFailed": "ゲートウェイセッションに失敗しました",
     "activation": {
-        "openAction": "登録リンクを使用",
-        "acceptTitle": "デバイスを登録",
-        "acceptDescription": "登録リンクを開くか、保護されたエンドポイントと完全な登録コードを入力してください。",
-        "endpointLabel": "保護されたGatewayエンドポイント",
-        "codeLabel": "登録コード",
-        "connectAction": "登録して接続",
         "invalidPresentation": "登録リンクまたはコードが無効です。",
         "gatewayMismatch": "この登録コードは別のGateway用です。",
         "activationFailed": "アクティベーションコードを使用できませんでした。期限切れか、すでに使用済みの可能性があります。",

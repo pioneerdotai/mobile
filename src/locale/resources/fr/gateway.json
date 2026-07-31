@@ -38,12 +38,6 @@
     "sessionConfigured": "Configuré",
     "sessionFailed": "La session de passerelle a échoué",
     "activation": {
-        "openAction": "Utiliser un lien d’inscription",
-        "acceptTitle": "Inscrire un appareil",
-        "acceptDescription": "Ouvrez un lien d’inscription ou saisissez le point d’accès protégé et le code d’inscription complet.",
-        "endpointLabel": "Point d’accès Gateway protégé",
-        "codeLabel": "Code d’inscription",
-        "connectAction": "Inscrire et connecter",
         "invalidPresentation": "Le lien ou le code d’inscription est invalide.",
         "gatewayMismatch": "Le code d’inscription appartient à un autre Gateway.",
         "activationFailed": "Impossible d’utiliser le code d’activation. Il a peut-être expiré ou déjà été utilisé.",

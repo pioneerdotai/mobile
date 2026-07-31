@@ -38,12 +38,6 @@
     "sessionConfigured": "已配置",
     "sessionFailed": "网关会话失败",
     "activation": {
-        "openAction": "使用注册链接",
-        "acceptTitle": "注册设备",
-        "acceptDescription": "打开注册链接，或输入受保护的端点和完整的设备注册码。",
-        "endpointLabel": "受保护的 Gateway 端点",
-        "codeLabel": "设备注册码",
-        "connectAction": "注册并连接",
         "invalidPresentation": "注册链接或设备注册码无效。",
         "gatewayMismatch": "此设备注册码属于另一个 Gateway。",
         "activationFailed": "无法使用设备激活码。它可能已过期或已被使用。",

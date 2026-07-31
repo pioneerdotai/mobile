@@ -112,7 +112,10 @@ export const useGateway = () => {
 
     const addRemote = useCallback(
         async (
-            input: AddRemoteGatewayInput & { activationCode: string },
+            input: AddRemoteGatewayInput & {
+                activationCode: string;
+                activationGatewayId?: string | null;
+            },
         ): Promise<GatewayEndpoint> => {
             setBusy(true);
             setError(null);
@@ -125,6 +128,7 @@ export const useGateway = () => {
                     {
                         protected_endpoint: plan.endpoint.address,
                         activation_code: input.activationCode,
+                        gateway_id: input.activationGatewayId,
                     },
                     plan.endpoint.server_gateway_id,
                 );

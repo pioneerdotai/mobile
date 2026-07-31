@@ -1,4 +1,4 @@
-import { router, usePathname } from 'expo-router';
+import { usePathname } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet } from 'react-native-unistyles';
 
@@ -34,7 +34,7 @@ export const TerminalGatewaySession = () => {
                                 payload: { gatewayId },
                             });
                         } else {
-                            router.navigate('/activate');
+                            navigate({ type: 'gateway__create' });
                         }
                     }}
                 />

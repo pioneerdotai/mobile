@@ -3,7 +3,6 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import renderer, { act, type ReactTestRenderer } from 'react-test-renderer';
 
 const mockReact = React;
-const mockNavigateRoute = jest.fn();
 const mockNavigateEditor = jest.fn();
 const mockUsePathname = jest.fn();
 const mockButtonComponent = (props: Record<string, unknown>) =>
@@ -23,7 +22,6 @@ let mockGatewayId: string | null = null;
 
 jest.setMock('expo-router', {
     __esModule: true,
-    router: { navigate: mockNavigateRoute },
     usePathname: mockUsePathname,
 });
 
@@ -119,7 +117,23 @@ describe('TerminalGatewaySession', () => {
             type: 'gateway__authenticate',
             payload: { gatewayId: 'remote-1' },
         });
-        expect(mockNavigateRoute).not.toHaveBeenCalled();
+    });
+
+    it('opens the normal gateway editor when no active endpoint is available', async () => {
+        mockTerminalReason = 'authentication_required';
+        let tree: ReactTestRenderer | null = null;
+
+        await act(async () => {
+            tree = renderer.create(<TerminalGatewaySession />);
+        });
+
+        const button = tree!.root
+            .findAllByType(mockButtonComponent)
+            .find((candidate) => candidate.props.title === 'terminal.activateAction');
+        act(() => {
+            button!.props.onPress();
+        });
+        expect(mockNavigateEditor).toHaveBeenCalledWith({ type: 'gateway__create' });
     });
 
     it('stays hidden without a terminal state and on explicit recovery routes', async () => {

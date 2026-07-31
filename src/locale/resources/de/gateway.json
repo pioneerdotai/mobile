@@ -38,12 +38,6 @@
     "sessionConfigured": "Konfiguriert",
     "sessionFailed": "Gateway-Sitzung fehlgeschlagen",
     "activation": {
-        "openAction": "Registrierungslink verwenden",
-        "acceptTitle": "Gerät registrieren",
-        "acceptDescription": "Öffne einen Registrierungslink oder gib den geschützten Endpunkt und den vollständigen Registrierungscode ein.",
-        "endpointLabel": "Geschützter Gateway-Endpunkt",
-        "codeLabel": "Registrierungscode",
-        "connectAction": "Registrieren und verbinden",
         "invalidPresentation": "Der Registrierungslink oder Code ist ungültig.",
         "gatewayMismatch": "Der Registrierungscode gehört zu einem anderen Gateway.",
         "activationFailed": "Der Aktivierungscode konnte nicht verwendet werden. Er ist möglicherweise abgelaufen oder wurde bereits verwendet.",

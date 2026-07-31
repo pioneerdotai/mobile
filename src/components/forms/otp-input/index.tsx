@@ -16,6 +16,7 @@ export type OtpInputProps = {
     onChangeText: (value: string) => void;
     onBlur?: () => void;
     disabled?: boolean;
+    readOnly?: boolean;
     accessibilityLabel?: string;
 };
 
@@ -26,6 +27,7 @@ export const OtpInput = ({
     onChangeText,
     onBlur,
     disabled = false,
+    readOnly = false,
     accessibilityLabel,
 }: OtpInputProps) => {
     const { theme } = useUnistyles();
@@ -72,7 +74,7 @@ export const OtpInput = ({
     return (
         <VStack style={styles.container}>
             {label ? <Label>{label}</Label> : null}
-            <View style={styles.inputFrame}>
+            <View pointerEvents={readOnly ? 'none' : 'auto'} style={styles.inputFrame}>
                 <NativeOtpInput
                     ref={inputRef}
                     numberOfDigits={8}
@@ -90,6 +92,7 @@ export const OtpInput = ({
                         autoCorrect: false,
                         spellCheck: false,
                         maxLength: 9,
+                        editable: !readOnly,
                         onChangeText: handleRawTextChange,
                     }}
                     textProps={{

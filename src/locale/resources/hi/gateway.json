@@ -38,12 +38,6 @@
     "sessionConfigured": "कॉन्फ़िगर किया गया",
     "sessionFailed": "गेटवे सेशन विफल हुआ",
     "activation": {
-        "openAction": "पंजीकरण लिंक उपयोग करें",
-        "acceptTitle": "डिवाइस पंजीकृत करें",
-        "acceptDescription": "पंजीकरण लिंक खोलें या सुरक्षित एंडपॉइंट और पूरा पंजीकरण कोड दर्ज करें।",
-        "endpointLabel": "सुरक्षित Gateway एंडपॉइंट",
-        "codeLabel": "पंजीकरण कोड",
-        "connectAction": "पंजीकृत करके कनेक्ट करें",
         "invalidPresentation": "पंजीकरण लिंक या कोड अमान्य है।",
         "gatewayMismatch": "यह पंजीकरण कोड किसी दूसरे Gateway का है।",
         "activationFailed": "सक्रियण कोड का उपयोग नहीं किया जा सका। यह समाप्त हो चुका है या पहले ही उपयोग किया जा चुका है।",
