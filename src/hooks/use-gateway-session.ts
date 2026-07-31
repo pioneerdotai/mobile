@@ -1,4 +1,5 @@
 import * as Network from 'expo-network';
+import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AppState } from 'react-native';
@@ -6,6 +7,12 @@ import { useShallow } from 'zustand/react/shallow';
 
 import type { ClientEvent, GatewayEndpoint } from '@/client';
 import { redactAuthText } from '@/services/auth-redaction';
+import {
+    accessChangedWorkspaceId,
+    applyMobileAccessChangedEvent,
+    beginMobileAuthorizationEpoch,
+    failClosedMobileAccessChange,
+} from '@/services/gateway/access-change';
 import {
     connectGatewayEndpoint,
     disconnectGateway,
@@ -52,6 +59,7 @@ export const useGatewaySession = (
     sessionRevision: number,
 ) => {
     const { t } = useTranslation('gateway');
+    const queryClient = useQueryClient();
     const {
         setConnectionId,
         setConnectionGatewayId,
@@ -94,6 +102,7 @@ export const useGatewaySession = (
         };
 
         if (!sessionGateway) {
+            beginMobileAuthorizationEpoch(queryClient);
             setConnectionId(null);
             setConnectionGatewayId(null);
             setConnectionState('Idle');
@@ -142,6 +151,14 @@ export const useGatewaySession = (
                 return;
             }
             const replacingSilently = silent && activeConnectionId !== null;
+            if (activeConnectionId === null) {
+                // A fresh transport can represent another endpoint,
+                // principal, or authorization revision. Evict protected
+                // projections before any reconnect result can be rendered;
+                // endpoint registry and refresh credentials remain owned by
+                // the session coordinator.
+                beginMobileAuthorizationEpoch(queryClient);
+            }
             if (!replacingSilently) {
                 setConnectionState('Connecting');
             }
@@ -176,6 +193,7 @@ export const useGatewaySession = (
                 if (cancelled || !appActive) {
                     return;
                 }
+                beginMobileAuthorizationEpoch(queryClient);
                 activeConnectionId = null;
                 setConnectionId(null);
                 setConnectionGatewayId(null);
@@ -291,6 +309,17 @@ export const useGatewaySession = (
                     return;
                 }
             }
+            const accessChangedWorkspace = accessChangedWorkspaceId(event);
+            if (accessChangedWorkspace !== null) {
+                try {
+                    await applyMobileAccessChangedEvent(event, queryClient);
+                } catch {
+                    // Cache eviction is fail-closed even if the native
+                    // projection cannot be reduced. Registry and session
+                    // credentials are deliberately untouched.
+                    failClosedMobileAccessChange(accessChangedWorkspace, queryClient);
+                }
+            }
             setLastEvent(event, sessionGateway.id, activeConnectionId);
             if ('GatewayNotification' in event) {
                 const notification = event.GatewayNotification;
@@ -305,6 +334,7 @@ export const useGatewaySession = (
                     notification.params.session_id === currentSessionId
                 ) {
                     clearRefreshTimer();
+                    beginMobileAuthorizationEpoch(queryClient);
                     activeConnectionId = null;
                     setConnectionId(null);
                     await markMobileGatewaySessionTerminal(
@@ -318,6 +348,7 @@ export const useGatewaySession = (
             }
             if ('GatewayConnectionChanged' in event) {
                 const connection = event.GatewayConnectionChanged;
+                beginMobileAuthorizationEpoch(queryClient);
                 const state = connection.connection_state;
                 setConnectionState(state);
                 if (state === 'Disconnected') {
@@ -342,6 +373,7 @@ export const useGatewaySession = (
         };
         const unsubscribeGatewayEvents = subscribeGatewayEvents(handleGatewayEvent, (caught) => {
             if (!cancelled && appActive) {
+                beginMobileAuthorizationEpoch(queryClient);
                 setConnectionState('Disconnected');
                 setSessionError(errorMessage(caught, t('sessionFailed')));
             }
@@ -367,6 +399,7 @@ export const useGatewaySession = (
         return () => {
             cancelled = true;
             clearRefreshTimer();
+            beginMobileAuthorizationEpoch(queryClient);
             appStateSubscription.remove();
             networkSubscription.remove();
             unsubscribeProjection();
@@ -379,6 +412,7 @@ export const useGatewaySession = (
     }, [
         sessionGateway,
         sessionRevision,
+        queryClient,
         setConnectionId,
         setConnectionGatewayId,
         setConnectionState,

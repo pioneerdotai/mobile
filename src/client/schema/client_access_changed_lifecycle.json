@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ClientAccessChangedLifecycle",
+  "description": "Payload-safe bridge projection of the shared Rust access-change plan.\n\nThis lifecycle DTO omits thread identifiers and protected cache keys.\nFirst-party shells may pair it with the minimal `AccessChangedNotification`\nto evict an exact thread cache after access has been lost.",
+  "type": "object",
+  "properties": {
+    "active_scope_cleared": {
+      "type": "boolean"
+    },
+    "active_thread_cleared": {
+      "type": "boolean"
+    },
+    "applied": {
+      "type": "boolean"
+    },
+    "authorization_revision": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0
+    },
+    "change": {
+      "$ref": "#/$defs/AccessChangeKind"
+    },
+    "refresh_workspace_catalog": {
+      "type": "boolean"
+    },
+    "workspace_id": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "authorization_revision",
+    "workspace_id",
+    "change",
+    "applied",
+    "active_scope_cleared",
+    "active_thread_cleared",
+    "refresh_workspace_catalog"
+  ],
+  "$defs": {
+    "AccessChangeKind": {
+      "description": "Payload-safe reason for invalidating client authorization-derived state.\n\nThis vocabulary deliberately contains no protected resource metadata or\npolicy-engine details.",
+      "type": "string",
+      "enum": [
+        "workspace_membership",
+        "thread_created",
+        "thread_visibility",
+        "thread_participant_added",
+        "thread_participant_removed"
+      ]
+    }
+  }
+}

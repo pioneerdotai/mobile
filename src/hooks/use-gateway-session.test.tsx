@@ -1,5 +1,6 @@
 import React from 'react';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import renderer, { act, type ReactTestRenderer } from 'react-test-renderer';
 import { AppState } from 'react-native';
 
@@ -23,6 +24,10 @@ const mockOpenActiveThreadById =
         (request: { thread_id: string; expanded_keys: string[] }) => Promise<{ thread_id: string }>
     >();
 const mockCacheActiveThreadSnapshot = jest.fn();
+const mockResetActiveThread = jest.fn(() => {
+    mockActiveThreadSnapshot = null;
+});
+const mockResetDefaultComposerModelSelection = jest.fn();
 const mockTranslate = (key: string) => key;
 let mockNetworkListener: ((state: { isConnected?: boolean }) => void) | null = null;
 let mockGatewayEventListener: ((event: Record<string, unknown>) => Promise<void>) | null = null;
@@ -78,6 +83,7 @@ jest.mock('@/services/query/client', () => ({
 
 jest.mock('@/services/threads/timeline-query', () => ({
     cacheActiveThreadSnapshot: mockCacheActiveThreadSnapshot,
+    timelineQueryKeys: { all: ['timeline'] },
 }));
 
 jest.mock('@/stores/active-thread', () => ({
@@ -85,6 +91,8 @@ jest.mock('@/stores/active-thread', () => ({
         getState: () => ({
             activeComposerThreadId: mockActiveThreadSnapshot?.thread_id ?? null,
             expandedKeys: [],
+            reset: mockResetActiveThread,
+            resetDefaultComposerModelSelection: mockResetDefaultComposerModelSelection,
         }),
     },
 }));
@@ -117,7 +125,7 @@ const gateway = (overrides: Partial<GatewayEndpoint> = {}): GatewayEndpoint => (
     ...overrides,
 });
 
-const Harness = ({
+const GatewaySessionHarness = ({
     endpoint,
     sessionRevision = 0,
 }: {
@@ -128,9 +136,20 @@ const Harness = ({
     return null;
 };
 
+let queryClient: QueryClient;
+
+const Harness = (props: React.ComponentProps<typeof GatewaySessionHarness>) => (
+    <QueryClientProvider client={queryClient}>
+        <GatewaySessionHarness {...props} />
+    </QueryClientProvider>
+);
+
 describe('useGatewaySession', () => {
     beforeEach(() => {
         jest.clearAllMocks();
+        queryClient = new QueryClient({
+            defaultOptions: { queries: { retry: false } },
+        });
         Object.defineProperty(AppState, 'currentState', {
             configurable: true,
             value: 'active',
@@ -197,7 +216,6 @@ describe('useGatewaySession', () => {
     });
 
     it('rotates access and restores the active thread without publishing Connecting', async () => {
-        mockActiveThreadSnapshot = { thread_id: 'thread-1' };
         mockOpenActiveThreadById.mockResolvedValue({ thread_id: 'thread-1' });
         mockConnectGatewayEndpoint
             .mockResolvedValueOnce({ connection_id: 1, projection })
@@ -206,6 +224,7 @@ describe('useGatewaySession', () => {
         await act(async () => {
             renderer.create(<Harness endpoint={gateway()} />);
         });
+        mockActiveThreadSnapshot = { thread_id: 'thread-1' };
 
         mockSetConnectionState.mockClear();
         await act(async () => {
@@ -254,7 +273,6 @@ describe('useGatewaySession', () => {
     });
 
     it('restores a backgrounded transport without clearing or republishing the screen', async () => {
-        mockActiveThreadSnapshot = { thread_id: 'thread-1' };
         mockOpenActiveThreadById.mockResolvedValue({ thread_id: 'thread-1' });
         mockConnectGatewayEndpoint
             .mockResolvedValueOnce({ connection_id: 1, projection })
@@ -263,6 +281,7 @@ describe('useGatewaySession', () => {
         await act(async () => {
             renderer.create(<Harness endpoint={gateway()} />);
         });
+        mockActiveThreadSnapshot = { thread_id: 'thread-1' };
 
         mockSetConnectionId.mockClear();
         mockSetConnectionGatewayId.mockClear();

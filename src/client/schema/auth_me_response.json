@@ -12,6 +12,16 @@
     "principal": {
       "$ref": "#/$defs/AuthPrincipalSnapshot"
     },
+    "role_key": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/RoleKey"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
     "session": {
       "$ref": "#/$defs/AuthSessionSnapshot"
     }
@@ -174,6 +184,12 @@
         "superuser",
         "user"
       ]
+    },
+    "RoleKey": {
+      "type": "string",
+      "maxLength": 32,
+      "minLength": 1,
+      "pattern": "^[a-z][a-z0-9_-]{0,31}$"
     },
     "TokenFamilyId": {
       "type": "string",

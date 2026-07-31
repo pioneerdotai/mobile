@@ -1,5 +1,17 @@
 /* eslint-disable */
 
+/**
+ * Payload-safe reason for invalidating client authorization-derived state.
+ *
+ * This vocabulary deliberately contains no protected resource metadata or
+ * policy-engine details.
+ */
+export type AccessChangeKind =
+  | 'workspace_membership'
+  | 'thread_created'
+  | 'thread_visibility'
+  | 'thread_participant_added'
+  | 'thread_participant_removed';
 export type TimelineBlockKind =
   | {
       attachments?: UserMessageAttachment[];
@@ -821,10 +833,34 @@ export type PromptManifestHookContributionKind =
 export type PromptManifestHookTruncation = 'none' | 'hook' | 'prompt' | 'hook_and_prompt' | 'unknown';
 export type PromptManifestProfile = 'assistant_full' | 'assistant_minimal' | 'assistant_none' | 'cli_runtime';
 export type TurnStatus = 'InProgress' | 'Completed' | 'Failed' | 'Interrupted' | 'Blocked';
+/**
+ * User-selectable visibility for ordinary user threads.
+ *
+ * Internal task/system threads deliberately have no public selectable value.
+ */
+export type ThreadVisibility = 'private' | 'workspace';
 
 export interface ClientActiveThreadEventResult {
+  access_changed?: ClientAccessChangedLifecycle | null;
   semantic_timeline_patch: SemanticTimelineCachePatch;
   snapshot: ClientActiveThreadSnapshot;
+  [k: string]: unknown;
+}
+/**
+ * Payload-safe bridge projection of the shared Rust access-change plan.
+ *
+ * This lifecycle DTO omits thread identifiers and protected cache keys.
+ * First-party shells may pair it with the minimal `AccessChangedNotification`
+ * to evict an exact thread cache after access has been lost.
+ */
+export interface ClientAccessChangedLifecycle {
+  active_scope_cleared: boolean;
+  active_thread_cleared: boolean;
+  applied: boolean;
+  authorization_revision: number;
+  change: AccessChangeKind;
+  refresh_workspace_catalog: boolean;
+  workspace_id: string;
   [k: string]: unknown;
 }
 export interface SemanticTimelineCachePatch {
@@ -1319,6 +1355,7 @@ export interface Thread {
   status: ThreadStatus;
   turns: Turn[];
   updated_at: number;
+  visibility?: ThreadVisibility | null;
   workspace_id: string;
   [k: string]: unknown;
 }

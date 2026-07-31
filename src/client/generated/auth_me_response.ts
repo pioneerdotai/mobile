@@ -6,6 +6,7 @@ export type DeviceStatus = 'pending' | 'active' | 'revoked';
 export type GatewayId = string;
 export type PrincipalId = string;
 export type PrincipalKind = 'superuser' | 'user';
+export type RoleKey = string;
 export type AuthSessionId = string;
 export type AuthSessionStatus = 'pending' | 'active' | 'revoked' | 'expired';
 export type TokenFamilyId = string;
@@ -14,6 +15,7 @@ export interface AuthMeResponse {
   device: AuthDeviceSnapshot;
   gateway: AuthGatewaySnapshot;
   principal: AuthPrincipalSnapshot;
+  role_key?: RoleKey | null;
   session: AuthSessionSnapshot;
   [k: string]: unknown;
 }

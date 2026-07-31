@@ -62,6 +62,11 @@ export type GatewayWsEvent =
 export type GatewayEndpointKind = 'local' | 'remote';
 export type GatewayNotification =
   | {
+      kind: 'access_changed';
+      params: AccessChangedNotification;
+      [k: string]: unknown;
+    }
+  | {
       kind: 'auth_session_revoked';
       params: AuthSessionRevokedNotification;
       [k: string]: unknown;
@@ -89,6 +94,11 @@ export type GatewayNotification =
   | {
       kind: 'thread_updated';
       params: ThreadUpdatedNotification;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'thread_participants_changed';
+      params: ThreadParticipantsChangedNotification;
       [k: string]: unknown;
     }
   | {
@@ -511,6 +521,18 @@ export type GatewayNotification =
       params: UnknownGatewayNotification;
       [k: string]: unknown;
     };
+/**
+ * Payload-safe reason for invalidating client authorization-derived state.
+ *
+ * This vocabulary deliberately contains no protected resource metadata or
+ * policy-engine details.
+ */
+export type AccessChangeKind =
+  | 'workspace_membership'
+  | 'thread_created'
+  | 'thread_visibility'
+  | 'thread_participant_added'
+  | 'thread_participant_removed';
 export type AuthSessionTerminationReason = 'session_revoked' | 'session_expired' | 'session_compromised';
 export type AuthSessionId = string;
 export type WorkspaceChangeKind = 'created' | 'updated' | 'current_changed';
@@ -541,6 +563,14 @@ export type PromptManifestHookContributionKind =
 export type PromptManifestHookTruncation = 'none' | 'hook' | 'prompt' | 'hook_and_prompt' | 'unknown';
 export type PromptManifestProfile = 'assistant_full' | 'assistant_minimal' | 'assistant_none' | 'cli_runtime';
 export type TurnStatus = 'InProgress' | 'Completed' | 'Failed' | 'Interrupted' | 'Blocked';
+/**
+ * User-selectable visibility for ordinary user threads.
+ *
+ * Internal task/system threads deliberately have no public selectable value.
+ */
+export type ThreadVisibility = 'private' | 'workspace';
+export type ThreadParticipantChangeKind = 'added' | 'removed';
+export type PrincipalId = string;
 export type ThreadAgentsDocStatus = 'draft' | 'active' | 'archived';
 export type TimelineChangeReason = 'backfill' | 'live_event' | 'state_changed' | 'page_invalidated';
 export type TurnWorkPresentation = 'expanded_live' | 'collapsed_after_final' | 'expanded_terminal_no_final';
@@ -1668,6 +1698,24 @@ export type VoiceErrorKind =
   | 'unknown';
 export type VoiceSessionOutcome = 'turn_started' | 'cancelled' | 'no_speech' | 'failed';
 
+/**
+ * Minimal notification telling an authenticated client to re-resolve access.
+ */
+export interface AccessChangedNotification {
+  authorization_revision: number;
+  change: AccessChangeKind;
+  /**
+   * Exact affected thread when the committed ACL mutation is thread-scoped.
+   *
+   * This is an opaque server-owned identifier, not protected thread
+   * content. It is omitted for workspace-wide changes and lets clients
+   * evict only the affected thread instead of discarding unrelated
+   * workspace state.
+   */
+  thread_id?: string | null;
+  workspace_id: string;
+  [k: string]: unknown;
+}
 export interface AuthSessionRevokedNotification {
   reason: AuthSessionTerminationReason;
   session_id: AuthSessionId;
@@ -1712,6 +1760,7 @@ export interface Thread {
   status: ThreadStatus;
   turns: Turn[];
   updated_at: number;
+  visibility?: ThreadVisibility | null;
   workspace_id: string;
   [k: string]: unknown;
 }
@@ -1790,6 +1839,13 @@ export interface ThreadClosedNotification {
 }
 export interface ThreadUpdatedNotification {
   thread: Thread;
+  [k: string]: unknown;
+}
+export interface ThreadParticipantsChangedNotification {
+  change: ThreadParticipantChangeKind;
+  principal_id: PrincipalId;
+  thread_id: string;
+  workspace_id: string;
   [k: string]: unknown;
 }
 export interface ThreadTreeChangedNotification {

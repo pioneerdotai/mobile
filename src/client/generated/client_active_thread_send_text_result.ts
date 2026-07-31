@@ -821,6 +821,12 @@ export type PromptManifestHookContributionKind =
 export type PromptManifestHookTruncation = 'none' | 'hook' | 'prompt' | 'hook_and_prompt' | 'unknown';
 export type PromptManifestProfile = 'assistant_full' | 'assistant_minimal' | 'assistant_none' | 'cli_runtime';
 export type TurnStatus = 'InProgress' | 'Completed' | 'Failed' | 'Interrupted' | 'Blocked';
+/**
+ * User-selectable visibility for ordinary user threads.
+ *
+ * Internal task/system threads deliberately have no public selectable value.
+ */
+export type ThreadVisibility = 'private' | 'workspace';
 
 export interface ClientActiveThreadSendTextResult {
   pending_request_id: string;
@@ -1322,6 +1328,7 @@ export interface Thread {
   status: ThreadStatus;
   turns: Turn[];
   updated_at: number;
+  visibility?: ThreadVisibility | null;
   workspace_id: string;
   [k: string]: unknown;
 }
