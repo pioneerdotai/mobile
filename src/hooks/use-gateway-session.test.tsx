@@ -26,6 +26,7 @@ const mockSetActiveThreadSnapshot = jest.fn();
 const mockTranslate = (key: string) => key;
 let mockNetworkListener: ((state: { isConnected?: boolean }) => void) | null = null;
 let mockGatewayEventListener: ((event: Record<string, unknown>) => Promise<void>) | null = null;
+let mockAppStateListener: ((state: 'active' | 'background' | 'inactive') => void) | null = null;
 let mockActiveThreadSnapshot: { thread_id: string } | null = null;
 
 const projection: MobileSessionProjection = {
@@ -127,11 +128,13 @@ describe('useGatewaySession', () => {
             configurable: true,
             value: 'active',
         });
-        jest.spyOn(AppState, 'addEventListener').mockReturnValue({
-            remove: jest.fn(),
+        jest.spyOn(AppState, 'addEventListener').mockImplementation((_type, listener) => {
+            mockAppStateListener = listener;
+            return { remove: jest.fn() };
         });
         mockNetworkListener = null;
         mockGatewayEventListener = null;
+        mockAppStateListener = null;
         mockActiveThreadSnapshot = null;
         mockConnectGatewayEndpoint.mockResolvedValue({
             connection_id: 1,
@@ -213,6 +216,72 @@ describe('useGatewaySession', () => {
             expanded_keys: [],
         });
         expect(mockSetConnectionId).not.toHaveBeenCalledWith(2);
+        expect(mockSetConnectionState).not.toHaveBeenCalledWith('Connecting');
+        expect(mockSetConnectionState).toHaveBeenLastCalledWith('Connected');
+    });
+
+    it('does not reconnect or clear visible state for a short inactive interruption', async () => {
+        await act(async () => {
+            renderer.create(<Harness endpoint={gateway()} />);
+        });
+
+        mockSetConnectionId.mockClear();
+        mockSetConnectionGatewayId.mockClear();
+        mockSetConnectionState.mockClear();
+
+        await act(async () => {
+            mockAppStateListener?.('inactive');
+            mockAppStateListener?.('active');
+            await Promise.resolve();
+        });
+
+        expect(mockDisconnectGateway).not.toHaveBeenCalled();
+        expect(mockConnectGatewayEndpoint).toHaveBeenCalledTimes(1);
+        expect(mockSetConnectionId).not.toHaveBeenCalled();
+        expect(mockSetConnectionGatewayId).not.toHaveBeenCalled();
+        expect(mockSetConnectionState).not.toHaveBeenCalled();
+    });
+
+    it('restores a backgrounded transport without clearing or republishing the screen', async () => {
+        mockActiveThreadSnapshot = { thread_id: 'thread-1' };
+        mockOpenActiveThreadById.mockResolvedValue({ thread_id: 'thread-1' });
+        mockConnectGatewayEndpoint
+            .mockResolvedValueOnce({ connection_id: 1, projection })
+            .mockResolvedValueOnce({ connection_id: 2, projection });
+
+        await act(async () => {
+            renderer.create(<Harness endpoint={gateway()} />);
+        });
+
+        mockSetConnectionId.mockClear();
+        mockSetConnectionGatewayId.mockClear();
+        mockSetConnectionState.mockClear();
+
+        await act(async () => {
+            mockAppStateListener?.('background');
+            await Promise.resolve();
+            await Promise.resolve();
+        });
+
+        expect(mockDisconnectGateway).toHaveBeenCalledWith('remote-1');
+        expect(mockSetConnectionId).not.toHaveBeenCalled();
+        expect(mockSetConnectionGatewayId).not.toHaveBeenCalled();
+        expect(mockSetConnectionState).not.toHaveBeenCalledWith('Idle');
+
+        await act(async () => {
+            mockAppStateListener?.('active');
+            await Promise.resolve();
+            await Promise.resolve();
+            await Promise.resolve();
+        });
+
+        expect(mockConnectGatewayEndpoint).toHaveBeenCalledTimes(2);
+        expect(mockOpenActiveThreadById).toHaveBeenCalledWith({
+            thread_id: 'thread-1',
+            expanded_keys: [],
+        });
+        expect(mockSetConnectionId).not.toHaveBeenCalled();
+        expect(mockSetConnectionGatewayId).not.toHaveBeenCalled();
         expect(mockSetConnectionState).not.toHaveBeenCalledWith('Connecting');
         expect(mockSetConnectionState).toHaveBeenLastCalledWith('Connected');
     });

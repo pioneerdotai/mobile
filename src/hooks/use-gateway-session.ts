@@ -82,6 +82,7 @@ export const useGatewaySession = (
         let refreshTimer: ReturnType<typeof setTimeout> | null = null;
         let connectInFlight: Promise<void> | null = null;
         let silentReplacementInFlight = false;
+        let backgroundTransitionInFlight = false;
 
         const clearRefreshTimer = () => {
             if (refreshTimer !== null) {
@@ -200,18 +201,56 @@ export const useGatewaySession = (
             return operation;
         };
 
+        const suspendInBackground = (): void => {
+            if (backgroundTransitionInFlight) {
+                return;
+            }
+
+            backgroundTransitionInFlight = true;
+            clearRefreshTimer();
+            void runGatewayTransportTransition(async () => {
+                try {
+                    await disconnectGateway(sessionGateway.id);
+                } finally {
+                    applyCurrentProjection();
+                }
+            }).catch(() => undefined);
+        };
+
+        const resumeFromBackground = async (): Promise<void> => {
+            const pendingConnection = connectInFlight;
+            if (pendingConnection) {
+                await pendingConnection.catch(() => undefined);
+            }
+            if (cancelled || !appActive) {
+                return;
+            }
+
+            try {
+                // The published connection generation and all loaded screen
+                // data stay intact while the native transport and active
+                // thread subscription are restored behind the existing UI.
+                await connect(true);
+            } finally {
+                if (appActive) {
+                    backgroundTransitionInFlight = false;
+                }
+            }
+        };
+
         const appStateSubscription = AppState.addEventListener('change', (nextState) => {
-            const wasActive = appActive;
             appActive = nextState === 'active';
-            if (!appActive) {
+
+            if (nextState === 'background') {
+                suspendInBackground();
+            } else if (nextState === 'inactive') {
+                // Control Center, the app switcher, and other short iOS
+                // interruptions are not a transport boundary.
                 clearRefreshTimer();
-                activeConnectionId = null;
-                setConnectionId(null);
-                setConnectionGatewayId(null);
-                setConnectionState('Idle');
-                void disconnectGateway(sessionGateway.id).finally(applyCurrentProjection);
-            } else if (!wasActive) {
-                void connect();
+            } else if (backgroundTransitionInFlight) {
+                void resumeFromBackground();
+            } else {
+                scheduleRefresh(connect);
             }
         });
         const networkSubscription = Network.addNetworkStateListener((state) => {
@@ -228,7 +267,10 @@ export const useGatewaySession = (
             if (cancelled) {
                 return;
             }
-            if (silentReplacementInFlight && 'GatewayConnectionChanged' in event) {
+            if (
+                (silentReplacementInFlight || backgroundTransitionInFlight) &&
+                'GatewayConnectionChanged' in event
+            ) {
                 // Planned token rotation is a transport implementation detail.
                 // Do not turn it into Connecting/Connected UI churn.
                 return;
