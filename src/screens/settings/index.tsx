@@ -67,10 +67,12 @@ const styles = StyleSheet.create((theme, rt) => ({
 const SettingsScreen = () => {
     const { t } = useTranslation('settings');
     const { theme } = useUnistyles();
-    const hasActiveGateway = useGatewayStore((gatewayState) =>
-        (gatewayState.registry.remotes ?? []).some(
-            (gateway) => gateway.id === gatewayState.registry.active_gateway_id,
-        ),
+    const canManageDevices = useGatewayStore(
+        (gatewayState) =>
+            gatewayState.sessionTerminalReason === null &&
+            (gatewayState.registry.remotes ?? []).some(
+                (gateway) => gateway.id === gatewayState.registry.active_gateway_id,
+            ),
     );
 
     const settings = [
@@ -84,7 +86,7 @@ const SettingsScreen = () => {
             title: t('theme.eyebrow'),
             onPress: () => router.navigate({ pathname: '/settings/theme' }),
         },
-        ...(hasActiveGateway
+        ...(canManageDevices
             ? [
                   {
                       icon: Smartphone,

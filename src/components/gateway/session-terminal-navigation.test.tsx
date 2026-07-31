@@ -39,18 +39,6 @@ describe('TerminalGatewaySessionNavigation', () => {
         mockTerminalReason = null;
     });
 
-    it('renders nothing and stays on Home when authentication is required', async () => {
-        mockTerminalReason = 'authentication_required';
-        let tree: ReactTestRenderer | null = null;
-
-        await act(async () => {
-            tree = renderer.create(<TerminalGatewaySessionNavigation />);
-        });
-
-        expect(tree!.toJSON()).toBeNull();
-        expect(mockDismissTo).not.toHaveBeenCalled();
-    });
-
     it.each([
         'authentication_required',
         'session_revoked',
@@ -71,15 +59,31 @@ describe('TerminalGatewaySessionNavigation', () => {
         expect(mockDismissTo).toHaveBeenCalledWith('/');
     });
 
-    it.each(['/activate', '/editor'])('does not interrupt recovery route %s', async (pathname) => {
-        mockTerminalReason = 'authentication_required';
-        mockUsePathname.mockReturnValue(pathname);
+    it.each(['/', '/activate', '/editor', '/settings', '/settings/language', '/settings/theme'])(
+        'does not interrupt terminal-session route %s',
+        async (pathname) => {
+            mockTerminalReason = 'authentication_required';
+            mockUsePathname.mockReturnValue(pathname);
+
+            let tree: ReactTestRenderer | null = null;
+            await act(async () => {
+                tree = renderer.create(<TerminalGatewaySessionNavigation />);
+            });
+
+            expect(tree!.toJSON()).toBeNull();
+            expect(mockDismissTo).not.toHaveBeenCalled();
+        },
+    );
+
+    it('returns Devices settings to Home because it requires an authenticated session', async () => {
+        mockTerminalReason = 'session_revoked';
+        mockUsePathname.mockReturnValue('/settings/devices');
 
         await act(async () => {
             renderer.create(<TerminalGatewaySessionNavigation />);
         });
 
-        expect(mockDismissTo).not.toHaveBeenCalled();
+        expect(mockDismissTo).toHaveBeenCalledWith('/');
     });
 
     it('does not navigate without a terminal state', async () => {

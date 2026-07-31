@@ -3,7 +3,14 @@ import { usePathname, useRouter } from 'expo-router';
 
 import { useGatewayStore } from '@/stores/gateway';
 
-const RECOVERY_ROUTES = new Set(['/activate', '/editor']);
+const TERMINAL_SESSION_ROUTES = new Set([
+    '/',
+    '/activate',
+    '/editor',
+    '/settings',
+    '/settings/language',
+    '/settings/theme',
+]);
 
 export const TerminalGatewaySessionNavigation = () => {
     const pathname = usePathname();
@@ -11,7 +18,7 @@ export const TerminalGatewaySessionNavigation = () => {
     const reason = useGatewayStore((state) => state.sessionTerminalReason);
 
     useEffect(() => {
-        if (!reason || pathname === '/' || RECOVERY_ROUTES.has(pathname)) {
+        if (!reason || TERMINAL_SESSION_ROUTES.has(pathname)) {
             return;
         }
 
