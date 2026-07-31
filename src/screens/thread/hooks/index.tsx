@@ -70,7 +70,7 @@ const useThreadScreen = ({ navigation = 'modal' }: UseThreadScreenOptions = {}) 
 
     const handleBack = () => {
         if (router.canGoBack()) router.back();
-        else router.navigate('/home');
+        else router.navigate('/');
     };
 
     const handleTaskBack = () => {

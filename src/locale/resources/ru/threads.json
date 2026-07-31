@@ -4,7 +4,7 @@
     "newThread": "Новый тред",
     "untitled": "Без названия",
     "noGatewayTitle": "Удаленный гейтвей не настроен",
-    "noGatewayDescription": "Подключите удаленный гейтвей, чтобы просматривать треды.",
+    "noGatewayDescription": "Подключите этот телефон к вашему Gateway, чтобы начать работу.",
     "noGatewayAction": "Настроить гейтвей",
     "manageGateways": "Гейтвеи",
     "disconnected": "Гейтвей отключен",

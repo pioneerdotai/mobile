@@ -64,7 +64,13 @@ export const useGatewaySession = (
             setSessionProjection: state.setSessionProjection,
         })),
     );
-    const sessionGateway = useMemo(() => activeGateway, [activeGateway]);
+    const sessionEndpointKey = connectionEndpointKey(activeGateway);
+    const sessionGateway = useMemo(
+        () => activeGateway,
+        // Registry metadata such as workspace and display name must not restart the transport.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [sessionEndpointKey],
+    );
 
     useEffect(() => {
         let cancelled = false;
@@ -155,7 +161,7 @@ export const useGatewaySession = (
             }
         });
         const networkSubscription = Network.addNetworkStateListener((state) => {
-            if (state.isConnected && appActive) {
+            if (state.isConnected && appActive && activeConnectionId === null) {
                 void connect();
             }
         });
@@ -265,3 +271,15 @@ export const useGatewaySession = (
         t,
     ]);
 };
+
+const connectionEndpointKey = (endpoint: GatewayEndpoint | null): string | null =>
+    endpoint
+        ? JSON.stringify([
+              endpoint.id,
+              endpoint.kind,
+              endpoint.address,
+              endpoint.server_gateway_id ?? null,
+              endpoint.session_ref ?? null,
+              endpoint.service_name ?? null,
+          ])
+        : null;

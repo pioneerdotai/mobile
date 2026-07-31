@@ -291,7 +291,7 @@ export const validateRemoteGateway = async (address: string): Promise<RemoteGate
     }
 };
 
-export const addRemoteGateway = async (
+export const prepareRemoteGatewayAddition = async (
     input: AddRemoteGatewayInput,
 ): Promise<AddAndActivateRemoteGatewayRegistryPlan> => {
     const registry = loadGatewayRegistry();
@@ -303,17 +303,13 @@ export const addRemoteGateway = async (
     }
 
     try {
-        const plan = await pioneerClient.gatewayPlanAddAndActivateRemoteRegistry({
+        return await pioneerClient.gatewayPlanAddAndActivateRemoteRegistry({
             registry,
             name: input.name,
             address: validation.address,
             new_endpoint_id: null,
             default_remote_name: remoteGatewayDefaultName(remoteCount + 1),
         });
-
-        saveGatewayRegistry(plan.registry);
-
-        return plan;
     } catch (error) {
         throw normalizeGatewayOperationError(error, 'operationFailed');
     }

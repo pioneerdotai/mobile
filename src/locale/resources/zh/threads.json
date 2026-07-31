@@ -4,7 +4,7 @@
     "newThread": "新建线程",
     "untitled": "未命名",
     "noGatewayTitle": "未配置远程网关",
-    "noGatewayDescription": "连接远程网关以浏览线程。",
+    "noGatewayDescription": "将此手机与您的 Gateway 配对以开始使用。",
     "noGatewayAction": "设置网关",
     "manageGateways": "网关",
     "disconnected": "网关已断开",

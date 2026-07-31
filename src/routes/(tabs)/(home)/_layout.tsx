@@ -5,7 +5,7 @@ import { useHomeTab } from '@/screens/home/hooks';
 import { useThreadsFolderScreen } from '@/screens/threads/folder/hooks';
 
 export const unstable_settings = {
-    initialRouteName: 'home',
+    initialRouteName: 'index',
 };
 
 export default function HomeStackLayout() {

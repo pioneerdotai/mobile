@@ -10,6 +10,7 @@ import { ScrollView } from '@/components/primitives/scrollview';
 import { Text } from '@/components/primitives/text';
 import { VStack } from '@/components/primitives/vstack';
 import { Title } from '@/components/typography/title';
+import { useGatewayStore } from '@/stores/gateway';
 
 const styles = StyleSheet.create((theme, rt) => ({
     container: {
@@ -66,6 +67,11 @@ const styles = StyleSheet.create((theme, rt) => ({
 const SettingsScreen = () => {
     const { t } = useTranslation('settings');
     const { theme } = useUnistyles();
+    const hasActiveGateway = useGatewayStore((gatewayState) =>
+        (gatewayState.registry.remotes ?? []).some(
+            (gateway) => gateway.id === gatewayState.registry.active_gateway_id,
+        ),
+    );
 
     const settings = [
         {
@@ -78,11 +84,15 @@ const SettingsScreen = () => {
             title: t('theme.eyebrow'),
             onPress: () => router.navigate({ pathname: '/settings/theme' }),
         },
-        {
-            icon: Smartphone,
-            title: t('devices.eyebrow'),
-            onPress: () => router.navigate({ pathname: '/settings/devices' }),
-        },
+        ...(hasActiveGateway
+            ? [
+                  {
+                      icon: Smartphone,
+                      title: t('devices.eyebrow'),
+                      onPress: () => router.navigate({ pathname: '/settings/devices' }),
+                  },
+              ]
+            : []),
     ];
 
     return (

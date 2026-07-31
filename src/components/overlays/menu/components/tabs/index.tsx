@@ -12,6 +12,7 @@ import { Box } from '@/components/primitives/box';
 import { Text } from '@/components/primitives/text';
 import { HStack } from '@/components/primitives/hstack';
 import { runInBackground } from '@/services/error-reporting';
+import { useGatewayStore } from '@/stores/gateway';
 
 type TabsType = Omit<BottomTabBarProps, 'descriptors' | 'insets' | 'navigation'>;
 
@@ -111,7 +112,7 @@ const Start = () => {
                         () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light),
                         'Failed to trigger tab haptic feedback:',
                     );
-                    router.navigate('/');
+                    router.navigate('/thread/new');
                 }}
             >
                 <VStack style={styles.startWrapper}>
@@ -129,6 +130,13 @@ const Start = () => {
 
 const Tabs = ({ state }: TabsType) => {
     const { t } = useTranslation(['menu']);
+    const showNewThread = useGatewayStore(
+        (gatewayState) =>
+            gatewayState.sessionTerminalReason === null &&
+            (gatewayState.registry.remotes ?? []).some(
+                (gateway) => gateway.id === gatewayState.registry.active_gateway_id,
+            ),
+    );
 
     const activeRouteName = state.routes[state.index].name;
     const isFocused = useCallback(
@@ -146,13 +154,13 @@ const Tabs = ({ state }: TabsType) => {
         <HStack style={styles.tabsContainer}>
             <Item
                 key="home"
-                onPress={() => router.navigate('/home')}
+                onPress={() => router.navigate('/')}
                 isFocused={isFocused('home')}
                 Icon={TextAlignStart}
             >
                 {t('home.title', { ns: 'menu' })}
             </Item>
-            <Start />
+            {showNewThread ? <Start /> : null}
             <Item
                 key="settings"
                 onPress={() => router.navigate('/settings')}

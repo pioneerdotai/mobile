@@ -54,30 +54,34 @@ const useHomeTab = () => {
         setGatewaySwitcherOpen(true);
     };
 
-    const gateway = () => (
-        <Pressable onPress={showGatewaySwitcher}>
-            <VStack style={styles.container}>
-                <HStack style={styles.titleRow}>
-                    <Box style={styles.statusContainer} accessibilityLabel={statusLabel}>
-                        {isProgressConnectionState(connectionState) ? (
-                            <Spinner size={theme.space(2.5)} color={theme.colors.typography} />
-                        ) : (
-                            <Box style={styles.statusDot(statusColor)} />
-                        )}
+    const gateway = () => {
+        if (!activeGateway) {
+            return null;
+        }
+
+        return (
+            <Pressable onPress={showGatewaySwitcher}>
+                <VStack style={styles.container}>
+                    <HStack style={styles.titleRow}>
+                        <Box style={styles.statusContainer} accessibilityLabel={statusLabel}>
+                            {isProgressConnectionState(connectionState) ? (
+                                <Spinner size={theme.space(2.5)} color={theme.colors.typography} />
+                            ) : (
+                                <Box style={styles.statusDot(statusColor)} />
+                            )}
+                        </Box>
+                        <Text style={styles.name}>{activeGateway.name}</Text>
+                    </HStack>
+                    <Box>
+                        <Text style={styles.address}>{activeGateway.address}</Text>
                     </Box>
-                    <Text style={styles.name}>{activeGateway?.name ?? t('sessionConfigured')}</Text>
-                </HStack>
-                <Box>
-                    <Text style={styles.address}>
-                        {activeGateway?.address ?? t('sessionNoAddress')}
-                    </Text>
-                </Box>
-            </VStack>
-        </Pressable>
-    );
+                </VStack>
+            </Pressable>
+        );
+    };
 
     return {
-        name: 'home',
+        name: 'index',
         options: {
             ...options,
             headerShown: true,

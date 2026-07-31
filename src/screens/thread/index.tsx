@@ -53,7 +53,6 @@ import {
     isCliRuntimeProvider,
 } from '@/services/providers/cli-runtime';
 import { refreshCliRuntimeSummaries } from '@/services/providers/cli-runtime-live';
-import { useHideAppSplashWhen } from '@/services/app-splash';
 import {
     projectSemanticTimelineToRows,
     type SemanticTurnWorkRange,
@@ -437,9 +436,6 @@ const ThreadScreen = ({ threadId, initialThread = null }: ThreadScreenProps) => 
             ),
         [semanticTimelineRows],
     );
-    const visibleTimelineRowCount = hasNativeTimelineRows
-        ? (visibleSnapshot?.rows.length ?? 0)
-        : (timelineRowsOverride?.length ?? 0);
     const renderedTimelineRowsForVoice = useMemo<TimelineRow[]>(() => {
         if (!visibleSnapshot) {
             return [];
@@ -487,15 +483,6 @@ const ThreadScreen = ({ threadId, initialThread = null }: ThreadScreenProps) => 
     const showThreadLoader = Boolean(
         (!visibleSnapshot && waitingForSnapshot) || waitingForInitialTimelinePage,
     );
-    const emptyTimelineReady = visibleTimelineRowCount > 0 || composerMeasured;
-    const threadScreenReady = Boolean(
-        (visibleSnapshot && !showThreadLoader && emptyTimelineReady) ||
-        screenError ||
-        (!activeThread && !visibleSnapshot && !loading && !waitingForSnapshot),
-    );
-
-    useHideAppSplashWhen(threadScreenReady);
-
     const contentTopInset = theme.screenContentPadding('child').paddingTop;
 
     const activeThreadModelSelection = useMemo(() => {

@@ -89,6 +89,11 @@ export type MobileDeviceActivationInput = {
     gateway_id?: string | null;
 };
 
+export type MobileDeviceActivationOptions = {
+    candidateRegistry?: GatewayRegistry;
+    pinnedGatewayId?: string | null;
+};
+
 export const parseMobileDeviceActivationUri = async (
     uri: string,
 ): Promise<MobileDeviceActivationInput> => {
@@ -136,18 +141,18 @@ export const cancelMobileDeviceActivation = async (sessionId: string): Promise<v
 
 export const acceptMobileDeviceActivation = async (
     activation: MobileDeviceActivationInput,
-    pinnedGatewayId?: string | null,
+    options: MobileDeviceActivationOptions = {},
 ): Promise<{ endpoint: GatewayEndpoint; registry: GatewayRegistry }> => {
     const activationCode = validateManualDeviceActivationInput(activation);
-    validateMobileDeviceActivationPin(activation, pinnedGatewayId);
-    const registry = loadGatewayRegistry();
+    validateMobileDeviceActivationPin(activation, options.pinnedGatewayId);
+    const registry = options.candidateRegistry ?? loadGatewayRegistry();
     const installationId = registry.installation_id?.trim();
     if (!installationId) {
         throw new MobileDeviceActivationError('storage_failed');
     }
     const addressEndpoint = endpointForActivationAddress(registry, activation.protected_endpoint);
     let expectedGatewayId =
-        normalizedGatewayId(activation.gateway_id) ?? normalizedGatewayId(pinnedGatewayId);
+        normalizedGatewayId(activation.gateway_id) ?? normalizedGatewayId(options.pinnedGatewayId);
     if (addressEndpoint?.server_gateway_id) {
         if (expectedGatewayId && expectedGatewayId !== addressEndpoint.server_gateway_id) {
             throw new MobileDeviceActivationError('gateway_mismatch');
@@ -286,7 +291,7 @@ export const recoverPendingMobileDeviceActivationCommits = async (): Promise<Gat
     let registry = loadGatewayRegistry();
     const installationId = registry.installation_id?.trim();
     if (!installationId) {
-        return registry;
+        return discardUnboundRemoteGatewayCandidates(registry);
     }
     let pendingGatewayIds: string[];
     try {
@@ -296,7 +301,7 @@ export const recoverPendingMobileDeviceActivationCommits = async (): Promise<Gat
             .map((key) => key.slice(DEVICE_ACTIVATION_COMMIT_STORAGE_PREFIX.length))
             .filter((gatewayId) => /^[A-Za-z0-9]{21}$/.test(gatewayId));
     } catch {
-        return registry;
+        pendingGatewayIds = [];
     }
 
     for (const gatewayId of pendingGatewayIds) {
@@ -349,7 +354,7 @@ export const recoverPendingMobileDeviceActivationCommits = async (): Promise<Gat
         }
     }
 
-    return registry;
+    return discardUnboundRemoteGatewayCandidates(registry);
 };
 
 const cleanupDeviceActivationSession = async (
@@ -434,22 +439,37 @@ const normalizedGatewayId = (value: string | null | undefined): string | null =>
     return /^[A-Za-z0-9]{21}$/.test(normalized) ? normalized : null;
 };
 
-const isDeviceActivationEndpoint = (value: string): boolean => {
+const normalizedDeviceActivationEndpoint = (value: string): URL | null => {
+    const trimmed = value.trim();
+    if (value !== trimmed || !trimmed || trimmed.length > 2_048) {
+        return null;
+    }
+
+    const transportEndpoint = trimmed.startsWith('https://')
+        ? `wss://${trimmed.slice('https://'.length)}`
+        : trimmed.includes('://')
+          ? trimmed
+          : `ws://${trimmed}`;
+
     try {
-        const endpoint = new URL(value);
-        return (
-            value === value.trim() &&
-            value.length <= 2_048 &&
-            (endpoint.protocol === 'ws:' || endpoint.protocol === 'wss:') &&
-            Boolean(endpoint.hostname) &&
-            !endpoint.username &&
-            !endpoint.password &&
-            !endpoint.hash
-        );
+        const endpoint = new URL(transportEndpoint);
+        if (
+            (endpoint.protocol !== 'ws:' && endpoint.protocol !== 'wss:') ||
+            !endpoint.hostname ||
+            endpoint.username ||
+            endpoint.password ||
+            endpoint.hash
+        ) {
+            return null;
+        }
+        return endpoint;
     } catch {
-        return false;
+        return null;
     }
 };
+
+const isDeviceActivationEndpoint = (value: string): boolean =>
+    normalizedDeviceActivationEndpoint(value) !== null;
 
 const endpointForDeviceActivation = (
     registry: GatewayRegistry,
@@ -571,11 +591,30 @@ const recoverPreparedDeviceActivation = async (
 };
 
 const canonicalEndpointKey = (address: string): string | null => {
-    try {
-        return new URL(address).toString();
-    } catch {
-        return null;
+    return normalizedDeviceActivationEndpoint(address)?.toString() ?? null;
+};
+
+const discardUnboundRemoteGatewayCandidates = (registry: GatewayRegistry): GatewayRegistry => {
+    const remotes = (registry.remotes ?? []).filter(
+        (endpoint) => endpoint.session_ref != null && endpoint.server_gateway_id != null,
+    );
+    if (remotes.length === (registry.remotes?.length ?? 0)) {
+        return registry;
     }
+
+    const activeGatewayId = registry.active_gateway_id ?? null;
+    const activeGatewayStillExists =
+        registry.local?.id === activeGatewayId ||
+        remotes.some((endpoint) => endpoint.id === activeGatewayId);
+    const nextRegistry: GatewayRegistry = {
+        ...registry,
+        active_gateway_id: activeGatewayStillExists
+            ? activeGatewayId
+            : (remotes[0]?.id ?? registry.local?.id ?? null),
+        remotes,
+    };
+    saveGatewayRegistry(nextRegistry);
+    return nextRegistry;
 };
 
 const upsertActivatedEndpoint = (

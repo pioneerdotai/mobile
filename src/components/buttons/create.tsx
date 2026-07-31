@@ -9,6 +9,7 @@ interface CreateButtonProps {
     containerStyle?: BoxProps['style'];
     iconSize?: number;
     iconColor?: string;
+    accessibilityLabel?: string;
 }
 
 const styles = StyleSheet.create((theme, rt) => ({
@@ -27,11 +28,16 @@ const CreateButton = ({
     containerStyle,
     iconSize,
     iconColor,
+    accessibilityLabel,
 }: CreateButtonProps) => {
     const { theme, rt } = useUnistyles();
 
     return (
-        <Pressable onPress={onPressHandler}>
+        <Pressable
+            accessibilityLabel={accessibilityLabel}
+            accessibilityRole="button"
+            onPress={onPressHandler}
+        >
             <Box style={[styles.createContainer, containerStyle]}>
                 <Plus
                     size={iconSize || theme.space(7)}

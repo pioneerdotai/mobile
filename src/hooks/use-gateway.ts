@@ -5,8 +5,8 @@ import type { GatewayEndpoint, RemoteGatewayValidation } from '@/client';
 import {
     GatewayOperationError,
     activateRemoteGateway,
-    addRemoteGateway,
     deleteRemoteGateway,
+    prepareRemoteGatewayAddition,
     updateRemoteGateway,
     validateRemoteGateway,
 } from '@/services/gateway/registry';
@@ -120,7 +120,7 @@ export const useGateway = () => {
             setBusy(true);
             setError(null);
             try {
-                const plan = await addRemoteGateway({
+                const plan = await prepareRemoteGatewayAddition({
                     name: input.name,
                     address: input.address,
                 });
@@ -130,7 +130,10 @@ export const useGateway = () => {
                         activation_code: input.activationCode,
                         gateway_id: input.activationGatewayId,
                     },
-                    plan.endpoint.server_gateway_id,
+                    {
+                        candidateRegistry: plan.registry,
+                        pinnedGatewayId: plan.endpoint.server_gateway_id,
+                    },
                 );
                 await clearMobileGatewaySessionRuntime(plan.endpoint.id).catch(() => undefined);
                 await clearActiveThreadSession();
@@ -190,7 +193,9 @@ export const useGateway = () => {
                         protected_endpoint: endpoint.address,
                         activation_code: activationCode,
                     },
-                    endpoint.server_gateway_id,
+                    {
+                        pinnedGatewayId: endpoint.server_gateway_id,
+                    },
                 );
                 await clearMobileGatewaySessionRuntime(endpoint.id).catch(() => undefined);
                 await clearActiveThreadSession();

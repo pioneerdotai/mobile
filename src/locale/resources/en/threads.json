@@ -4,7 +4,7 @@
     "newThread": "New thread",
     "untitled": "Untitled",
     "noGatewayTitle": "No remote gateway configured",
-    "noGatewayDescription": "Connect a remote gateway to browse threads.",
+    "noGatewayDescription": "Pair this phone with your Gateway to get started.",
     "noGatewayAction": "Set up gateway",
     "manageGateways": "Gateways",
     "disconnected": "Gateway disconnected",

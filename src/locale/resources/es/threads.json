@@ -4,7 +4,7 @@
     "newThread": "Nuevo hilo",
     "untitled": "Sin título",
     "noGatewayTitle": "No hay gateway remoto configurado",
-    "noGatewayDescription": "Conecta un gateway remoto para explorar hilos.",
+    "noGatewayDescription": "Vincula este teléfono con tu Gateway para empezar.",
     "noGatewayAction": "Configurar gateway",
     "manageGateways": "Gestionar gateways",
     "disconnected": "Gateway desconectado",

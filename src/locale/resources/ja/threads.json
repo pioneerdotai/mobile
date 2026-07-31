@@ -4,7 +4,7 @@
     "newThread": "新規スレッド",
     "untitled": "無題",
     "noGatewayTitle": "リモートゲートウェイが設定されていません",
-    "noGatewayDescription": "スレッドを閲覧するにはリモートゲートウェイに接続してください。",
+    "noGatewayDescription": "このスマートフォンを Gateway とペアリングして始めましょう。",
     "noGatewayAction": "ゲートウェイを設定",
     "manageGateways": "ゲートウェイ",
     "disconnected": "ゲートウェイが切断されました",

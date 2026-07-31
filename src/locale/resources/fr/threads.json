@@ -4,7 +4,7 @@
     "newThread": "Nouveau thread",
     "untitled": "Sans titre",
     "noGatewayTitle": "Aucun gateway distant configuré",
-    "noGatewayDescription": "Connectez un gateway distant pour parcourir les threads.",
+    "noGatewayDescription": "Associez ce téléphone à votre Gateway pour commencer.",
     "noGatewayAction": "Configurer le gateway",
     "manageGateways": "Passerelles",
     "disconnected": "Gateway déconnecté",

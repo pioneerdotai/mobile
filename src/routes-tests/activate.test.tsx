@@ -61,8 +61,9 @@ jest.setMock('@/services/gateway/device-activation', {
     parseMobileDeviceActivationUri: mockParseMobileDeviceActivationUri,
 });
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const ActivateRoute = require('./activate').default as typeof import('./activate').default;
+const ActivateRoute =
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    require('@/routes/activate').default as typeof import('@/routes/activate').default;
 
 const gatewayId = 'G00000000000000000001';
 const activationCode = 'K7M4-P9Q2';

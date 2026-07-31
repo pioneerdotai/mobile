@@ -8,30 +8,27 @@ import * as SystemUI from 'expo-system-ui';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { Stack } from 'expo-router/js-stack';
-import { usePathname } from 'expo-router';
 import { SystemBars } from 'react-native-edge-to-edge';
 
 import i18n from '@/locale/i18n';
 
 import { pioneerClient } from '@/client';
 import type { GatewayConnectionState, GatewayEndpoint } from '@/client';
-import GatewaySetupScreen from '@/screens/gateway/editor';
 import { useGateway } from '@/hooks/use-gateway';
 import { useGatewaySession } from '@/hooks/use-gateway-session';
 import { useThreadTreeController } from '@/hooks/use-thread-tree';
 import { useWorkspace } from '@/hooks/use-workspace';
 import { useScreen } from '@/hooks/use-screen';
-import { useThreadScreen } from '@/screens/thread/hooks';
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import GatewaySwitcherSheet from '@/components/overlays/gateway';
 import WorkspaceSwitcherSheet from '@/components/overlays/workspace';
 import ComposerAttachmentMenuSheet from '@/components/overlays/composer-attachments';
 import ThreadModeSwitcherSheet from '@/components/overlays/thread-mode';
 import ThreadPermissionModeSwitcherSheet from '@/components/overlays/thread-permission';
-import { TerminalGatewaySession } from '@/components/gateway/session-terminal';
+import { TerminalGatewaySessionNavigation } from '@/components/gateway/session-terminal-navigation';
 import { initializeSentry, isSentryEnabled, Sentry } from '@/services/sentry';
 import { pioneerQueryClient } from '@/services/query/client';
-import { preventAppSplashAutoHide, useHideAppSplashWhen } from '@/services/app-splash';
+import { hideAppSplash, preventAppSplashAutoHide } from '@/services/app-splash';
 import { useVoiceInputGatewayQueryLifecycle } from '@/services/voice-input/data-source';
 
 export const unstable_settings = {
@@ -87,14 +84,14 @@ const RootLayout = () => {
             });
     }, [hydrateGateway]);
 
-    useHideAppSplashWhen(Boolean(fontsError || startupError));
-
     useEffect(() => {
         if (fontsError) {
+            hideAppSplash();
             throw fontsError;
         }
 
         if (startupError) {
+            hideAppSplash();
             throw startupError;
         }
     }, [fontsError, startupError]);
@@ -135,7 +132,6 @@ const AppSystemBars = () => {
 
 const RootContent = () => {
     const { registry, bootstrapped, connectionId, connectionState, sessionRevision } = useGateway();
-    const pathname = usePathname();
     useVoiceInputGatewayQueryLifecycle();
 
     const remotes = registry.remotes ?? [];
@@ -145,10 +141,6 @@ const RootContent = () => {
 
     if (!bootstrapped) {
         return null;
-    }
-
-    if (!activeGateway && pathname !== '/activate') {
-        return <GatewaySetupRoute />;
     }
 
     return (
@@ -164,19 +156,13 @@ const RootContent = () => {
                         connectionId={connectionId}
                         connectionState={connectionState}
                     />
-                    <ThreadTreeController />
                 </>
             ) : null}
+            <ThreadTreeController />
             <RootStack />
-            <TerminalGatewaySession />
+            <TerminalGatewaySessionNavigation />
         </>
     );
-};
-
-const GatewaySetupRoute = () => {
-    useHideAppSplashWhen(true);
-
-    return <GatewaySetupScreen blocker />;
 };
 
 const GatewaySessionController = ({
@@ -246,7 +232,6 @@ const ThreadTreeController = () => {
 const RootStack = () => {
     const { options } = useScreen();
 
-    const draftThread = useThreadScreen();
     const threadModalOptions = {
         presentation: 'card' as const,
         animationTypeForReplace: 'pop' as const,
@@ -264,7 +249,6 @@ const RootStack = () => {
                 }}
             >
                 <Stack.Screen name="(tabs)" />
-                <Stack.Screen {...draftThread} />
                 <Stack.Screen name="thread" options={threadModalOptions} />
                 <Stack.Screen
                     name="agents-doc"

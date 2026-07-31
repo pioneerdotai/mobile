@@ -13,7 +13,7 @@ export default function ModelSelectorStackLayout() {
         if (router.canGoBack()) {
             router.back();
         } else {
-            router.navigate('/home');
+            router.navigate('/');
         }
     };
 

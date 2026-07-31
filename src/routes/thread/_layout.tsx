@@ -21,6 +21,7 @@ export default function ThreadStackLayout() {
                 cardOverlayEnabled: false,
             }}
         >
+            <Stack.Screen name="new" />
             <Stack.Screen name="[threadId]" />
             <Stack.Screen name="child/[threadId]" />
         </Stack>

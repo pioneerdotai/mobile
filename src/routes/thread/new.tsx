@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { Text, View } from 'react-native';
+import Stack from 'expo-router/js-stack';
 import { StyleSheet } from 'react-native-unistyles';
 
 import type { Thread } from '@/client';
 import ThreadScreen from '@/screens/thread';
-import { useHideAppSplashWhen } from '@/services/app-splash';
+import { useThreadScreen } from '@/screens/thread/hooks';
 import { openOrCreateNewThread } from '@/services/threads/active';
 import { useActiveThreadStore } from '@/stores/active-thread';
 import { useGatewayStore } from '@/stores/gateway';
@@ -17,7 +18,8 @@ type DraftRouteState = {
     thread: Thread | null;
 };
 
-const DraftThreadRoute = () => {
+const NewThreadRoute = () => {
+    const { options } = useThreadScreen();
     const connectionId = useGatewayStore((state) => state.connectionId);
     const connectionState = useGatewayStore((state) => state.connectionState);
     const activeWorkspaceId = useWorkspaceStore((state) => state.activeWorkspaceId);
@@ -32,8 +34,6 @@ const DraftThreadRoute = () => {
     const draftReady = Boolean(
         draft && draft.connectionId === connectionId && draft.workspaceId === activeWorkspaceId,
     );
-
-    useHideAppSplashWhen(Boolean(routeError));
 
     useEffect(() => {
         if (connectionState !== 'Connected' || connectionId === null || !activeWorkspaceId) {
@@ -79,19 +79,25 @@ const DraftThreadRoute = () => {
             });
     }, [activeWorkspaceId, connectionId, connectionState]);
 
+    let content;
     if (routeError) {
-        return (
+        content = (
             <View style={{ alignItems: 'center', flex: 1, justifyContent: 'center', padding: 24 }}>
                 <Text>{routeError}</Text>
             </View>
         );
+    } else if (!draft || !draftReady) {
+        content = <View style={styles.pendingDraft} />;
+    } else {
+        content = <ThreadScreen threadId={draft.threadId} initialThread={draft.thread} />;
     }
 
-    if (!draft || !draftReady) {
-        return <View style={styles.pendingDraft} />;
-    }
-
-    return <ThreadScreen threadId={draft.threadId} initialThread={draft.thread} />;
+    return (
+        <>
+            <Stack.Screen options={options} />
+            {content}
+        </>
+    );
 };
 
 const styles = StyleSheet.create((theme) => ({
@@ -101,4 +107,4 @@ const styles = StyleSheet.create((theme) => ({
     },
 }));
 
-export default DraftThreadRoute;
+export default NewThreadRoute;

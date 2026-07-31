@@ -16,12 +16,8 @@ export const hideAppSplash = () => {
     void SplashScreen.hideAsync().catch(() => {});
 };
 
-export const useHideAppSplashWhen = (ready: boolean) => {
+export const useHideAppSplash = () => {
     useEffect(() => {
-        if (!ready) {
-            return;
-        }
-
         hideAppSplash();
-    }, [ready]);
+    }, []);
 };

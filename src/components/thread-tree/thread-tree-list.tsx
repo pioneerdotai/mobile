@@ -38,6 +38,7 @@ type ThreadTreeListProps = {
     errorLabel: string;
     folders: ThreadFolder[];
     header?: ReactElement | null;
+    hideEmptyState?: boolean;
     loading: boolean;
     onAgentsDocPress?: () => void;
     onFolderPress: (folderId: string) => void;
@@ -77,6 +78,7 @@ const ThreadTreeList = ({
     errorLabel,
     folders,
     header,
+    hideEmptyState = false,
     loading,
     onAgentsDocPress,
     onFolderPress,
@@ -148,12 +150,14 @@ const ThreadTreeList = ({
             keyExtractor={keyExtractor}
             extraData={rt.themeName}
             ListEmptyComponent={
-                <ThreadTreeListState
-                    emptyLabel={emptyLabel}
-                    error={error}
-                    errorLabel={errorLabel}
-                    loading={loading}
-                />
+                hideEmptyState ? null : (
+                    <ThreadTreeListState
+                        emptyLabel={emptyLabel}
+                        error={error}
+                        errorLabel={errorLabel}
+                        loading={loading}
+                    />
+                )
             }
             ListHeaderComponent={header}
             maintainVisibleContentPosition={{

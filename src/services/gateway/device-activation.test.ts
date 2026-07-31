@@ -287,6 +287,103 @@ describe('mobile device activation service', () => {
         );
     });
 
+    it('allows host-and-port activation addresses accepted by Gateway setup', async () => {
+        const plannedEndpoint = {
+            id: 'remote-planned',
+            name: 'Local',
+            address: '192.0.2.10:17878',
+            kind: 'remote' as const,
+            session_ref: null,
+            server_gateway_id: null,
+            service_name: null,
+            workspace_id: null,
+        };
+        mockLoadGatewayRegistry.mockReturnValue({
+            ...registry(),
+            active_gateway_id: plannedEndpoint.id,
+            remotes: [plannedEndpoint],
+        });
+        mockFindGatewayEndpoint.mockReturnValue(plannedEndpoint);
+        mockGatewayAuthDeviceActivate.mockResolvedValue(grant());
+
+        const result = await acceptMobileDeviceActivation(
+            {
+                ...activation,
+                protected_endpoint: plannedEndpoint.address,
+            },
+            {
+                candidateRegistry: {
+                    ...registry(),
+                    active_gateway_id: plannedEndpoint.id,
+                    remotes: [plannedEndpoint],
+                },
+            },
+        );
+
+        expect(mockGatewayAuthDeviceActivate).toHaveBeenCalledWith(
+            expect.objectContaining({
+                address: plannedEndpoint.address,
+                credential: canonicalActivationCode,
+            }),
+        );
+        expect(result.endpoint).toMatchObject({
+            id: plannedEndpoint.id,
+            name: plannedEndpoint.name,
+            address: plannedEndpoint.address,
+            server_gateway_id: gatewayId,
+        });
+        expect(result.registry.remotes).toHaveLength(1);
+    });
+
+    it('does not commit a candidate Gateway when activation fails', async () => {
+        const plannedEndpoint = {
+            id: 'remote-planned',
+            name: 'Local',
+            address: '192.0.2.10:17878',
+            kind: 'remote' as const,
+            session_ref: null,
+            server_gateway_id: null,
+            service_name: null,
+            workspace_id: null,
+        };
+        mockGatewayAuthDeviceActivate.mockRejectedValue(new Error('activation rejected'));
+
+        await expect(
+            acceptMobileDeviceActivation(
+                {
+                    ...activation,
+                    protected_endpoint: plannedEndpoint.address,
+                    gateway_id: null,
+                },
+                {
+                    candidateRegistry: {
+                        ...registry(),
+                        active_gateway_id: plannedEndpoint.id,
+                        remotes: [plannedEndpoint],
+                    },
+                },
+            ),
+        ).rejects.toMatchObject({ code: 'activation_failed' });
+
+        expect(mockSaveGatewayRegistry).not.toHaveBeenCalled();
+    });
+
+    it('allows HTTPS activation addresses accepted by Gateway setup', async () => {
+        mockGatewayAuthDeviceActivate.mockResolvedValue(grant());
+
+        await acceptMobileDeviceActivation({
+            ...activation,
+            protected_endpoint: 'https://gateway.example/ws',
+        });
+
+        expect(mockGatewayAuthDeviceActivate).toHaveBeenCalledWith(
+            expect.objectContaining({
+                address: 'https://gateway.example/ws',
+                credential: canonicalActivationCode,
+            }),
+        );
+    });
+
     it('continues to allow plaintext activation for loopback endpoints', async () => {
         mockGatewayAuthDeviceActivate.mockResolvedValue(grant());
 
@@ -335,7 +432,9 @@ describe('mobile device activation service', () => {
 
     it('rejects a pinned Gateway mismatch before any exchange', async () => {
         await expect(
-            acceptMobileDeviceActivation(activation, 'G99999999999999999999'),
+            acceptMobileDeviceActivation(activation, {
+                pinnedGatewayId: 'G99999999999999999999',
+            }),
         ).rejects.toMatchObject({
             code: 'gateway_mismatch',
         });
@@ -510,6 +609,30 @@ describe('mobile device activation service', () => {
         expect(recovered.active_gateway_id).toBe(endpoint.id);
         expect(activationMetadata.has(unreadableKey)).toBe(true);
         expect(activationMetadata.has(recoverableKey)).toBe(false);
+    });
+
+    it('removes legacy candidate Gateways that were persisted before authentication', async () => {
+        const unboundEndpoint = {
+            id: 'remote-unbound',
+            name: 'Never authenticated',
+            address: '192.0.2.10:17878',
+            kind: 'remote' as const,
+            session_ref: null,
+            server_gateway_id: null,
+            service_name: null,
+            workspace_id: null,
+        };
+        mockLoadGatewayRegistry.mockReturnValue({
+            ...registry(),
+            active_gateway_id: unboundEndpoint.id,
+            remotes: [unboundEndpoint],
+        });
+
+        const recovered = await recoverPendingMobileDeviceActivationCommits();
+
+        expect(recovered.active_gateway_id).toBeNull();
+        expect(recovered.remotes).toEqual([]);
+        expect(mockSaveGatewayRegistry).toHaveBeenCalledWith(recovered);
     });
 
     it('keeps a durable session recoverable when registry persistence fails', async () => {

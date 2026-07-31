@@ -29,7 +29,7 @@ const AgentsDocRoute = () => {
         }
 
         if (router.canGoBack()) router.back();
-        else router.navigate('/home');
+        else router.navigate('/');
     };
 
     const { options } = useAgentsDocScreen({
