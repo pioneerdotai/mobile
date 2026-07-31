@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 
 import type {
-    ClientActiveThreadSnapshot,
     ComposerAttachment,
     ComposerCapability,
     ComposerDomainAction,
@@ -622,21 +621,6 @@ describe('active thread keyed composer drafts', () => {
             modelManuallySelected: false,
         });
     });
-
-    it('does not derive composer mode from the opened thread snapshot', () => {
-        useActiveThreadStore.getState().activateComposerThread('thread-a');
-
-        useActiveThreadStore.getState().setSnapshot({
-            thread_id: 'thread-a',
-            thread: {
-                id: 'thread-a',
-                mode: 'Chat',
-            },
-        } as unknown as ClientActiveThreadSnapshot);
-
-        expect(useActiveThreadStore.getState().composerSelectedMode).toBe('Agent');
-        expect(useActiveThreadStore.getState().composerModeManuallySelected).toBe(false);
-    });
 });
 
 describe('active thread CLI capability drafts', () => {
@@ -742,17 +726,10 @@ describe('active thread CLI capability drafts', () => {
         });
     });
 
-    it('does not rewrite historical snapshots or composer payload on presentation change', () => {
-        const historicalSnapshot = {
-            thread_id: 'thread-a',
-            projection: {
-                historical_user_message_attachments: [mcpCapability, mcpToolCapability],
-            },
-        } as unknown as ClientActiveThreadSnapshot;
+    it('does not rewrite composer payload on presentation change', () => {
         const attachment = { path: '/tmp/example.txt' } as unknown as ComposerAttachment;
 
         useActiveThreadStore.getState().activateComposerThread('thread-a');
-        useActiveThreadStore.getState().setSnapshot(historicalSnapshot);
         useActiveThreadStore.getState().setComposerText('draft text');
         useActiveThreadStore.getState().setComposerAttachments([attachment]);
         useActiveThreadStore.getState().setComposerCapabilities([mcpCapability, mcpToolCapability]);
@@ -767,7 +744,6 @@ describe('active thread CLI capability drafts', () => {
             );
 
         const state = useActiveThreadStore.getState();
-        expect(state.snapshot).toBe(historicalSnapshot);
         expect(state.composerText).toBe('draft text');
         expect(state.composerAttachments).toEqual([attachment]);
         expect(state.composerCapabilities).toEqual([mcpCapability, mcpToolCapability]);

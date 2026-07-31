@@ -22,7 +22,7 @@ const mockOpenActiveThreadById =
     jest.fn<
         (request: { thread_id: string; expanded_keys: string[] }) => Promise<{ thread_id: string }>
     >();
-const mockSetActiveThreadSnapshot = jest.fn();
+const mockCacheActiveThreadSnapshot = jest.fn();
 const mockTranslate = (key: string) => key;
 let mockNetworkListener: ((state: { isConnected?: boolean }) => void) | null = null;
 let mockGatewayEventListener: ((event: Record<string, unknown>) => Promise<void>) | null = null;
@@ -72,12 +72,19 @@ jest.mock('@/services/threads/active', () => ({
     openActiveThreadById: mockOpenActiveThreadById,
 }));
 
+jest.mock('@/services/query/client', () => ({
+    pioneerQueryClient: {},
+}));
+
+jest.mock('@/services/threads/timeline-query', () => ({
+    cacheActiveThreadSnapshot: mockCacheActiveThreadSnapshot,
+}));
+
 jest.mock('@/stores/active-thread', () => ({
     useActiveThreadStore: {
         getState: () => ({
-            snapshot: mockActiveThreadSnapshot,
+            activeComposerThreadId: mockActiveThreadSnapshot?.thread_id ?? null,
             expandedKeys: [],
-            setSnapshot: mockSetActiveThreadSnapshot,
         }),
     },
 }));
@@ -215,6 +222,10 @@ describe('useGatewaySession', () => {
             thread_id: 'thread-1',
             expanded_keys: [],
         });
+        expect(mockCacheActiveThreadSnapshot).toHaveBeenCalledWith(
+            expect.anything(),
+            expect.objectContaining({ thread_id: 'thread-1' }),
+        );
         expect(mockSetConnectionId).not.toHaveBeenCalledWith(2);
         expect(mockSetConnectionState).not.toHaveBeenCalledWith('Connecting');
         expect(mockSetConnectionState).toHaveBeenLastCalledWith('Connected');
@@ -280,6 +291,10 @@ describe('useGatewaySession', () => {
             thread_id: 'thread-1',
             expanded_keys: [],
         });
+        expect(mockCacheActiveThreadSnapshot).toHaveBeenCalledWith(
+            expect.anything(),
+            expect.objectContaining({ thread_id: 'thread-1' }),
+        );
         expect(mockSetConnectionId).not.toHaveBeenCalled();
         expect(mockSetConnectionGatewayId).not.toHaveBeenCalled();
         expect(mockSetConnectionState).not.toHaveBeenCalledWith('Connecting');

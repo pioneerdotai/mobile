@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useShallow } from 'zustand/react/shallow';
 
-import type { ComposerSkillPickerProjection, Thread } from '@/client';
+import type { ClientActiveThreadSnapshot, ComposerSkillPickerProjection, Thread } from '@/client';
 import { withGatewayTransportLease } from '@/services/gateway/transport-coordinator';
 import {
     activeThreadSnapshot,
@@ -20,15 +20,18 @@ import {
     isActiveThreadTimelineEvent,
 } from '@/services/threads/live-timeline-events';
 import {
+    cacheActiveThreadSnapshot,
+    cachedActiveThreadSnapshot,
     invalidateTimelineQueriesForThread,
     invalidateTurnWorkQueries,
+    newestActiveThreadSnapshot,
+    timelineQueryKeys,
 } from '@/services/threads/timeline-query';
 import { reconcileTurnWorkItemsForEvent } from '@/services/threads/turn-work-reconciliation';
 import { composerSubmissionPlanForProvider } from '@/services/providers/cli-runtime';
+import { useActiveThreadSnapshotQuery } from '@/hooks/use-active-thread-snapshot-query';
 import { useActiveThreadStore } from '@/stores/active-thread';
 import { useGatewayStore } from '@/stores/gateway';
-
-let openSequence = 0;
 
 const MODEL_SELECTION_REQUIRED_ERROR = 'model and provider must';
 
@@ -48,11 +51,13 @@ export const useActiveThread = (
 ) => {
     const { t } = useTranslation('threads');
     const queryClient = useQueryClient();
+    const threadId = requestedThreadId ?? thread?.id ?? null;
+    const snapshotQuery = useActiveThreadSnapshotQuery(threadId);
+    const snapshot = snapshotQuery.data ?? null;
+    const loading = snapshotQuery.isFetching;
+    const error = snapshotQuery.error ? errorMessage(snapshotQuery.error, t('loadFailed')) : null;
 
     const {
-        snapshot,
-        loading,
-        error,
         sending,
         composerText,
         composerError,
@@ -68,9 +73,6 @@ export const useActiveThread = (
         defaultComposerSelectionLoading,
         composerModelManuallySelected,
         activateComposerThread,
-        setSnapshot,
-        setLoading,
-        setError,
         setSending,
         setComposerText,
         setComposerError,
@@ -83,9 +85,6 @@ export const useActiveThread = (
         setExpandedKeys,
     } = useActiveThreadStore(
         useShallow((state) => ({
-            snapshot: state.snapshot,
-            loading: state.loading,
-            error: state.error,
             sending: state.sending,
             composerText: state.composerText,
             composerError: state.composerError,
@@ -101,9 +100,6 @@ export const useActiveThread = (
             defaultComposerSelectionLoading: state.defaultComposerSelectionLoading,
             composerModelManuallySelected: state.composerModelManuallySelected,
             activateComposerThread: state.activateComposerThread,
-            setSnapshot: state.setSnapshot,
-            setLoading: state.setLoading,
-            setError: state.setError,
             setSending: state.setSending,
             setComposerText: state.setComposerText,
             setComposerError: state.setComposerError,
@@ -139,7 +135,6 @@ export const useActiveThread = (
     });
 
     const connected = connectionState === 'Connected' && connectionId !== null;
-    const threadId = requestedThreadId ?? thread?.id ?? null;
     const snapshotThreadId = snapshot?.thread_id ?? null;
     const subscribedThreadId = threadId ?? snapshotThreadId;
 
@@ -153,43 +148,24 @@ export const useActiveThread = (
                 return;
             }
 
-            const sequence = openSequence + 1;
-            openSequence = sequence;
-
-            setLoading(true);
-            setError(null);
-
-            try {
-                const nextSnapshot = await openActiveThread({
-                    thread: threadToOpen,
-                    expanded_keys: useActiveThreadStore.getState().expandedKeys,
-                });
-
-                if (
-                    openSequence !== sequence ||
-                    useGatewayStore.getState().connectionId !== connectionId
-                ) {
-                    return;
-                }
-
-                setSnapshot(nextSnapshot);
-            } catch (caught) {
-                if (
-                    openSequence === sequence &&
-                    useGatewayStore.getState().connectionId === connectionId
-                ) {
-                    setError(errorMessage(caught, t('loadFailed')));
-                }
-            } finally {
-                if (
-                    openSequence === sequence &&
-                    useGatewayStore.getState().connectionId === connectionId
-                ) {
-                    setLoading(false);
-                }
-            }
+            await queryClient
+                .fetchQuery<ClientActiveThreadSnapshot>({
+                    queryKey: timelineQueryKeys.threadSnapshot(threadToOpen.id),
+                    staleTime: 0,
+                    queryFn: () =>
+                        openActiveThread({
+                            thread: threadToOpen,
+                            expanded_keys: useActiveThreadStore.getState().expandedKeys,
+                        }),
+                    structuralSharing: (current, incoming) =>
+                        newestActiveThreadSnapshot(
+                            current as ClientActiveThreadSnapshot | null | undefined,
+                            incoming as ClientActiveThreadSnapshot,
+                        ),
+                })
+                .catch(() => undefined);
         },
-        [active, connected, connectionId, setError, setLoading, setSnapshot, t],
+        [active, connected, queryClient],
     );
 
     const openById = useCallback(
@@ -198,43 +174,24 @@ export const useActiveThread = (
                 return;
             }
 
-            const sequence = openSequence + 1;
-            openSequence = sequence;
-
-            setLoading(true);
-            setError(null);
-
-            try {
-                const nextSnapshot = await openActiveThreadById({
-                    thread_id: threadIdToOpen,
-                    expanded_keys: useActiveThreadStore.getState().expandedKeys,
-                });
-
-                if (
-                    openSequence !== sequence ||
-                    useGatewayStore.getState().connectionId !== connectionId
-                ) {
-                    return;
-                }
-
-                setSnapshot(nextSnapshot);
-            } catch (caught) {
-                if (
-                    openSequence === sequence &&
-                    useGatewayStore.getState().connectionId === connectionId
-                ) {
-                    setError(errorMessage(caught, t('loadFailed')));
-                }
-            } finally {
-                if (
-                    openSequence === sequence &&
-                    useGatewayStore.getState().connectionId === connectionId
-                ) {
-                    setLoading(false);
-                }
-            }
+            await queryClient
+                .fetchQuery<ClientActiveThreadSnapshot>({
+                    queryKey: timelineQueryKeys.threadSnapshot(threadIdToOpen),
+                    staleTime: 0,
+                    queryFn: () =>
+                        openActiveThreadById({
+                            thread_id: threadIdToOpen,
+                            expanded_keys: useActiveThreadStore.getState().expandedKeys,
+                        }),
+                    structuralSharing: (current, incoming) =>
+                        newestActiveThreadSnapshot(
+                            current as ClientActiveThreadSnapshot | null | undefined,
+                            incoming as ClientActiveThreadSnapshot,
+                        ),
+                })
+                .catch(() => undefined);
         },
-        [active, connected, connectionId, setError, setLoading, setSnapshot, t],
+        [active, connected, queryClient],
     );
 
     const refresh = useCallback(async () => {
@@ -299,10 +256,7 @@ export const useActiveThread = (
                         expanded_keys: useActiveThreadStore.getState().expandedKeys,
                     });
 
-                    if (
-                        useGatewayStore.getState().connectionId !== connectionId ||
-                        activeThreadIdRef.current !== subscribedThreadId
-                    ) {
+                    if (useGatewayStore.getState().connectionId !== connectionId) {
                         return;
                     }
 
@@ -311,14 +265,13 @@ export const useActiveThread = (
                         event,
                         result.snapshot.thread_id,
                     );
-                    setSnapshot(result.snapshot);
+                    cacheActiveThreadSnapshot(queryClient, result.snapshot);
 
                     void reconcileTurnWorkItemsForEvent(queryClient, event)
                         .then((changed) => {
                             if (
                                 !changed ||
-                                useGatewayStore.getState().connectionId !== connectionId ||
-                                activeThreadIdRef.current !== subscribedThreadId
+                                useGatewayStore.getState().connectionId !== connectionId
                             ) {
                                 return;
                             }
@@ -326,14 +279,13 @@ export const useActiveThread = (
                             const nextSnapshot = activeThreadSnapshot({
                                 expanded_keys: useActiveThreadStore.getState().expandedKeys,
                             });
-                            if (nextSnapshot.thread_id === subscribedThreadId) {
-                                setSnapshot(nextSnapshot);
+                            if (nextSnapshot.thread_id) {
+                                cacheActiveThreadSnapshot(queryClient, nextSnapshot);
                             }
                         })
                         .catch(() => {
                             if (
                                 useGatewayStore.getState().connectionId !== connectionId ||
-                                activeThreadIdRef.current !== subscribedThreadId ||
                                 event.GatewayNotification.kind !== 'turn_work_items_changed'
                             ) {
                                 return;
@@ -346,32 +298,16 @@ export const useActiveThread = (
                             );
                         });
                 })
-                .catch((caught) => {
-                    if (
-                        useGatewayStore.getState().connectionId === connectionId &&
-                        activeThreadIdRef.current === subscribedThreadId
-                    ) {
-                        setError(errorMessage(caught, t('loadFailed')));
-                    }
-                });
+                .catch(() => {});
         });
-    }, [
-        active,
-        connected,
-        connectionId,
-        queryClient,
-        setError,
-        setSnapshot,
-        subscribedThreadId,
-        t,
-    ]);
+    }, [active, connected, connectionId, queryClient, subscribedThreadId]);
 
     const updateExpandedKeys = useCallback(
         (keys: string[]) => {
             setExpandedKeys(keys);
-            setSnapshot(activeThreadSnapshot({ expanded_keys: keys }));
+            cacheActiveThreadSnapshot(queryClient, activeThreadSnapshot({ expanded_keys: keys }));
         },
-        [setExpandedKeys, setSnapshot],
+        [queryClient, setExpandedKeys],
     );
 
     const sendText = useCallback(
@@ -382,7 +318,7 @@ export const useActiveThread = (
             }
 
             const storeState = useActiveThreadStore.getState();
-            const currentSnapshot = storeState.snapshot;
+            const currentSnapshot = cachedActiveThreadSnapshot(queryClient, threadId);
             const hasCompleteComposerModelSelection = Boolean(
                 storeState.composerSelectedProvider && storeState.composerSelectedModel,
             );
@@ -480,13 +416,7 @@ export const useActiveThread = (
 
                 activeThreadIdRef.current = result.thread_id;
                 void invalidateTimelineQueriesForThread(queryClient, result.thread_id);
-                const latestSnapshot = useActiveThreadStore.getState().snapshot;
-                if (
-                    !latestSnapshot ||
-                    latestSnapshot.projection.revision <= result.snapshot.projection.revision
-                ) {
-                    setSnapshot(result.snapshot);
-                }
+                cacheActiveThreadSnapshot(queryClient, result.snapshot);
                 clearComposerPayload();
                 return true;
             } catch (caught) {
@@ -510,7 +440,7 @@ export const useActiveThread = (
                         if (rejectedSnapshot.thread_id) {
                             activeThreadIdRef.current = rejectedSnapshot.thread_id;
                         }
-                        setSnapshot(rejectedSnapshot);
+                        cacheActiveThreadSnapshot(queryClient, rejectedSnapshot);
                     } catch {
                         // The native error is already surfaced through composerError.
                     }
@@ -533,7 +463,6 @@ export const useActiveThread = (
             markComposerAttachmentsFailed,
             markComposerAttachmentsUploading,
             setSending,
-            setSnapshot,
             t,
             queryClient,
             sendActiveThreadTextAsync,
@@ -549,7 +478,7 @@ export const useActiveThread = (
             return false;
         }
 
-        const currentSnapshot = useActiveThreadStore.getState().snapshot;
+        const currentSnapshot = cachedActiveThreadSnapshot(queryClient, threadId);
         const turnId = currentSnapshot?.projection.in_flight_turn_id;
         if (!turnId) {
             return false;
@@ -571,13 +500,7 @@ export const useActiveThread = (
             if (result.snapshot.thread_id) {
                 activeThreadIdRef.current = result.snapshot.thread_id;
             }
-            const latestSnapshot = useActiveThreadStore.getState().snapshot;
-            if (
-                !latestSnapshot ||
-                latestSnapshot.projection.revision <= result.snapshot.projection.revision
-            ) {
-                setSnapshot(result.snapshot);
-            }
+            cacheActiveThreadSnapshot(queryClient, result.snapshot);
 
             return result.cancelled;
         } catch (caught) {
@@ -590,7 +513,7 @@ export const useActiveThread = (
                     if (rejectedSnapshot.thread_id) {
                         activeThreadIdRef.current = rejectedSnapshot.thread_id;
                     }
-                    setSnapshot(rejectedSnapshot);
+                    cacheActiveThreadSnapshot(queryClient, rejectedSnapshot);
                 } catch {
                     // The native error is already surfaced through composerError.
                 }
@@ -605,9 +528,10 @@ export const useActiveThread = (
         cancelActiveThreadTurnAsync,
         connected,
         connectionId,
+        queryClient,
         setComposerError,
-        setSnapshot,
         t,
+        threadId,
         turnCancelling,
     ]);
 

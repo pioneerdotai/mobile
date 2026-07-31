@@ -21,7 +21,9 @@ import {
     terminalReasonFromMachineCode,
 } from '@/services/gateway/session-coordinator';
 import { runGatewayTransportTransition } from '@/services/gateway/transport-coordinator';
+import { pioneerQueryClient } from '@/services/query/client';
 import { openActiveThreadById } from '@/services/threads/active';
+import { cacheActiveThreadSnapshot } from '@/services/threads/timeline-query';
 import { useActiveThreadStore } from '@/stores/active-thread';
 import { useGatewayStore } from '@/stores/gateway';
 
@@ -121,7 +123,7 @@ export const useGatewaySession = (
 
         const restoreActiveThreadSubscription = async (): Promise<void> => {
             const activeThreadState = useActiveThreadStore.getState();
-            const threadId = activeThreadState.snapshot?.thread_id ?? null;
+            const threadId = activeThreadState.activeComposerThreadId;
             if (!threadId) {
                 return;
             }
@@ -130,8 +132,8 @@ export const useGatewaySession = (
                 thread_id: threadId,
                 expanded_keys: activeThreadState.expandedKeys,
             });
-            if (useActiveThreadStore.getState().snapshot?.thread_id === threadId) {
-                useActiveThreadStore.getState().setSnapshot(snapshot);
+            if (useActiveThreadStore.getState().activeComposerThreadId === threadId) {
+                cacheActiveThreadSnapshot(pioneerQueryClient, snapshot);
             }
         };
 

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { useShallow } from 'zustand/react/shallow';
 
@@ -8,6 +9,7 @@ import {
     isCliRuntimeProvider,
 } from '@/services/providers/cli-runtime';
 import { refreshCliRuntimeSummaries } from '@/services/providers/cli-runtime-live';
+import { cachedActiveThreadSnapshot } from '@/services/threads/timeline-query';
 import { refreshThreadTree, threadTreeLevel } from '@/services/threads/tree';
 import { useActiveThreadStore } from '@/stores/active-thread';
 import { useGatewayStore } from '@/stores/gateway';
@@ -59,6 +61,7 @@ const notificationWorkspaceId = (event: ClientEvent | null): string | null => {
 
 const useThreadTreeRefresh = () => {
     const { t } = useTranslation('threads');
+    const queryClient = useQueryClient();
     const { setSnapshot, setLoading, setError, reset } = useThreadTreeStore(
         useShallow((state) => ({
             setSnapshot: state.setSnapshot,
@@ -86,11 +89,15 @@ const useThreadTreeRefresh = () => {
         }
 
         const activeThreadState = useActiveThreadStore.getState();
+        const activeThreadSnapshot = cachedActiveThreadSnapshot(
+            queryClient,
+            activeThreadState.activeComposerThreadId,
+        );
         const requestConnectionId = gatewayState.connectionId;
         const requestWorkspaceId = currentWorkspaceId;
         const activeThreadWorkspaceId =
-            activeThreadState.snapshot?.workspace_id ??
-            activeThreadState.snapshot?.thread?.workspace_id ??
+            activeThreadSnapshot?.workspace_id ??
+            activeThreadSnapshot?.thread?.workspace_id ??
             null;
         const activeThreadMatchesWorkspace = activeThreadWorkspaceId === requestWorkspaceId;
         const sequence = refreshSequence + 1;
@@ -104,14 +111,14 @@ const useThreadTreeRefresh = () => {
             const result = await refreshThreadTree({
                 workspace_id: requestWorkspaceId,
                 active_thread_id: activeThreadMatchesWorkspace
-                    ? (activeThreadState.snapshot?.thread_id ?? null)
+                    ? (activeThreadSnapshot?.thread_id ?? null)
                     : null,
                 existing_draft_thread_id: activeThreadMatchesWorkspace
-                    ? (activeThreadState.snapshot?.draft_thread_id ?? null)
+                    ? (activeThreadSnapshot?.draft_thread_id ?? null)
                     : null,
                 existing_draft_thread_workspace_id: activeThreadMatchesWorkspace
-                    ? (activeThreadState.snapshot?.draft_workspace_id ??
-                      activeThreadState.snapshot?.workspace_id ??
+                    ? (activeThreadSnapshot?.draft_workspace_id ??
+                      activeThreadSnapshot?.workspace_id ??
                       null)
                     : null,
                 has_known_threads_for_workspace:
@@ -175,7 +182,7 @@ const useThreadTreeRefresh = () => {
                 setLoading(false);
             }
         }
-    }, [reset, setError, setLoading, setSnapshot, t]);
+    }, [queryClient, reset, setError, setLoading, setSnapshot, t]);
 };
 
 export const useThreadTreeController = () => {

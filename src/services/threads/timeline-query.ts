@@ -1,6 +1,10 @@
 import type { Query, QueryClient, QueryKey } from '@tanstack/react-query';
 
-import { PioneerClientNativeError, type TimelinePageAnchor } from '@/client';
+import {
+    PioneerClientNativeError,
+    type ClientActiveThreadSnapshot,
+    type TimelinePageAnchor,
+} from '@/client';
 
 export const TIMELINE_QUERY_STALE_TIME_MS = 2_000;
 export const TIMELINE_QUERY_GC_TIME_MS = 10 * 60 * 1_000;
@@ -36,6 +40,8 @@ export const timelineQueryKeys = {
     all: ['timeline'] as const satisfies readonly [TimelineQueryKeyRoot],
     thread: (threadId: string) =>
         [...timelineQueryKeys.all, timelineKeyMeta({ threadId })] as const,
+    threadSnapshot: (threadId: string) =>
+        [...timelineQueryKeys.thread(threadId), 'snapshot'] as const,
     threadPages: (threadId: string) =>
         [
             ...timelineQueryKeys.thread(threadId),
@@ -84,6 +90,51 @@ export const timelineQueryKeys = {
                 limit: request.limit ?? null,
             }),
         ] as const,
+};
+
+export const newestActiveThreadSnapshot = (
+    current: ClientActiveThreadSnapshot | null | undefined,
+    incoming: ClientActiveThreadSnapshot,
+): ClientActiveThreadSnapshot => {
+    if (current && current.projection.revision > incoming.projection.revision) {
+        return current;
+    }
+
+    return incoming;
+};
+
+export const cacheActiveThreadSnapshot = (
+    queryClient: QueryClient,
+    snapshot: ClientActiveThreadSnapshot,
+): ClientActiveThreadSnapshot => {
+    if (!snapshot.thread_id) {
+        return snapshot;
+    }
+
+    return queryClient.setQueryData<ClientActiveThreadSnapshot>(
+        timelineQueryKeys.threadSnapshot(snapshot.thread_id),
+        (current) => newestActiveThreadSnapshot(current, snapshot),
+    )!;
+};
+
+export const cachedActiveThreadSnapshot = (
+    queryClient: QueryClient,
+    threadId: string | null | undefined,
+): ClientActiveThreadSnapshot | null => {
+    if (!threadId) {
+        return null;
+    }
+
+    return (
+        queryClient.getQueryData<ClientActiveThreadSnapshot>(
+            timelineQueryKeys.threadSnapshot(threadId),
+        ) ?? null
+    );
+};
+
+export const clearThreadQueryCache = async (queryClient: QueryClient): Promise<void> => {
+    await queryClient.cancelQueries({ queryKey: timelineQueryKeys.all });
+    queryClient.removeQueries({ queryKey: timelineQueryKeys.all });
 };
 
 export const timelineQueryRetry = (failureCount: number, error: unknown): boolean => {

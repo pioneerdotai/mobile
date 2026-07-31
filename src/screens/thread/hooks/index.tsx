@@ -8,6 +8,7 @@ import { CollapseButton } from '@/components/buttons/collapse';
 import { HStack } from '@/components/primitives/hstack';
 import { Pressable } from '@/components/primitives/pressable';
 import { Text } from '@/components/primitives/text';
+import { useActiveThreadSnapshotQuery } from '@/hooks/use-active-thread-snapshot-query';
 import { useScreen } from '@/hooks/use-screen';
 import { isCliRuntimeProvider } from '@/services/providers/cli-runtime';
 import { useActiveThreadStore } from '@/stores/active-thread';
@@ -18,35 +19,35 @@ type ThreadScreenNavigation = 'modal' | 'stack';
 
 type UseThreadScreenOptions = {
     navigation?: ThreadScreenNavigation;
+    threadId?: string | null;
 };
 
-const useThreadScreen = ({ navigation = 'modal' }: UseThreadScreenOptions = {}) => {
+const useThreadScreen = ({
+    navigation = 'modal',
+    threadId: explicitThreadId,
+}: UseThreadScreenOptions = {}) => {
     const { options } = useScreen();
     const { theme } = useUnistyles();
     const { t } = useTranslation('threads');
     const params = useLocalSearchParams<{
         parentThreadId?: string | string[];
+        threadId?: string | string[];
     }>();
     const parentThreadId = normalizeRouteParam(params.parentThreadId);
+    const threadId = explicitThreadId ?? normalizeRouteParam(params.threadId);
     const isTaskChildThread = Boolean(parentThreadId);
+    const snapshot = useActiveThreadSnapshotQuery(threadId).data ?? null;
 
-    const {
-        selectedMode,
-        selectedProvider,
-        selectedModel,
-        snapshot,
-        sending,
-        setModeSwitcherOpen,
-    } = useActiveThreadStore(
-        useShallow((state) => ({
-            selectedMode: state.composerSelectedMode,
-            selectedProvider: state.composerSelectedProvider,
-            selectedModel: state.composerSelectedModel,
-            snapshot: state.snapshot,
-            sending: state.sending,
-            setModeSwitcherOpen: state.setComposerModeSwitcherOpen,
-        })),
-    );
+    const { selectedMode, selectedProvider, selectedModel, sending, setModeSwitcherOpen } =
+        useActiveThreadStore(
+            useShallow((state) => ({
+                selectedMode: state.composerSelectedMode,
+                selectedProvider: state.composerSelectedProvider,
+                selectedModel: state.composerSelectedModel,
+                sending: state.sending,
+                setModeSwitcherOpen: state.setComposerModeSwitcherOpen,
+            })),
+        );
     const { connectionId, connectionState } = useGatewayStore(
         useShallow((state) => ({
             connectionId: state.connectionId,

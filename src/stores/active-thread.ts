@@ -1,7 +1,6 @@
 import { create } from 'zustand';
 
 import type {
-    ClientActiveThreadSnapshot,
     ComposerAttachment,
     ComposerCapability,
     ComposerDomainAction,
@@ -22,9 +21,6 @@ import {
 } from '@/services/providers/cli-runtime';
 
 type ActiveThreadStoreState = {
-    snapshot: ClientActiveThreadSnapshot | null;
-    loading: boolean;
-    error: string | null;
     sending: boolean;
     activeComposerThreadId: string | null;
     composerDrafts: Record<string, ComposerDraftState>;
@@ -53,9 +49,6 @@ type ActiveThreadStoreState = {
     defaultComposerSelectionLoading: boolean;
     composerModelManuallySelected: boolean;
     activateComposerThread: (threadId: string) => void;
-    setSnapshot: (snapshot: ClientActiveThreadSnapshot) => void;
-    setLoading: (loading: boolean) => void;
-    setError: (error: string | null) => void;
     setSending: (sending: boolean) => void;
     setComposerText: (text: string) => void;
     setComposerError: (error: string | null) => void;
@@ -338,9 +331,6 @@ const rememberActiveDraftThroughLifecycle = (
 };
 
 export const useActiveThreadStore = create<ActiveThreadStoreState>((set) => ({
-    snapshot: null,
-    loading: false,
-    error: null,
     sending: false,
     activeComposerThreadId: null,
     composerDrafts: {},
@@ -401,21 +391,6 @@ export const useActiveThreadStore = create<ActiveThreadStoreState>((set) => ({
                 composerError: null,
             };
         });
-    },
-
-    setSnapshot: (snapshot) => {
-        set({
-            snapshot,
-            error: null,
-        });
-    },
-
-    setLoading: (loading) => {
-        set({ loading });
-    },
-
-    setError: (error) => {
-        set({ error });
     },
 
     setSending: (sending) => {
@@ -830,9 +805,6 @@ export const useActiveThreadStore = create<ActiveThreadStoreState>((set) => ({
             });
 
             return {
-                snapshot: null,
-                loading: false,
-                error: null,
                 sending: false,
                 activeComposerThreadId: composerModeContext?.threadId ?? null,
                 composerDrafts: composerDraftsFromLifecycleState(clearedDrafts.state),

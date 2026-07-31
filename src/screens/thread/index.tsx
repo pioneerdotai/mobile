@@ -60,6 +60,7 @@ import {
 import { projectConversationToRows } from '@/services/threads/conversation/projector';
 import { activeThreadSnapshot } from '@/services/threads/active';
 import { seedEmptyThreadTimelineCache } from '@/services/threads/semantic-cache-patch';
+import { cacheActiveThreadSnapshot } from '@/services/threads/timeline-query';
 import { selectedReasoningEffortRequestFields } from '@/services/threads/reasoning-effort';
 import { skillSelectionRequestFields } from '@/services/threads/skill-selection-request';
 import type { TimelinePendingRequest, TimelineRow } from '@/services/threads/conversation/timeline';
@@ -362,21 +363,15 @@ const ThreadScreen = ({ threadId, initialThread = null }: ThreadScreenProps) => 
         threadTimelineBlocksQueryRef.current = threadTimelineBlocksQuery;
     }, [threadTimelineBlocksQuery]);
     const refreshNativeActiveThreadSnapshot = useCallback(() => {
-        const activeThreadState = useActiveThreadStore.getState();
-
-        if (activeThreadState.snapshot?.thread_id !== visibleThreadId) {
-            return;
-        }
-
         const nextSnapshot = activeThreadSnapshot({
-            expanded_keys: activeThreadState.expandedKeys,
+            expanded_keys: useActiveThreadStore.getState().expandedKeys,
         });
         if (nextSnapshot.thread_id !== visibleThreadId) {
             return;
         }
 
-        activeThreadState.setSnapshot(nextSnapshot);
-    }, [visibleThreadId]);
+        cacheActiveThreadSnapshot(queryClient, nextSnapshot);
+    }, [queryClient, visibleThreadId]);
     useEffect(() => {
         if (
             !focused ||

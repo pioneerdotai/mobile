@@ -2,11 +2,13 @@ import { useEffect, useRef, useState } from 'react';
 import { Text, View } from 'react-native';
 import Stack from 'expo-router/js-stack';
 import { StyleSheet } from 'react-native-unistyles';
+import { useQueryClient } from '@tanstack/react-query';
 
 import type { Thread } from '@/client';
 import ThreadScreen from '@/screens/thread';
 import { useThreadScreen } from '@/screens/thread/hooks';
 import { openOrCreateNewThread } from '@/services/threads/active';
+import { cacheActiveThreadSnapshot } from '@/services/threads/timeline-query';
 import { useActiveThreadStore } from '@/stores/active-thread';
 import { useGatewayStore } from '@/stores/gateway';
 import { useWorkspaceStore } from '@/stores/workspace';
@@ -19,13 +21,14 @@ type DraftRouteState = {
 };
 
 const NewThreadRoute = () => {
-    const { options } = useThreadScreen();
+    const queryClient = useQueryClient();
     const connectionId = useGatewayStore((state) => state.connectionId);
     const connectionState = useGatewayStore((state) => state.connectionState);
     const activeWorkspaceId = useWorkspaceStore((state) => state.activeWorkspaceId);
     const workspaceError = useWorkspaceStore((state) => state.error);
     const [draft, setDraft] = useState<DraftRouteState | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const { options } = useThreadScreen({ threadId: draft?.threadId ?? null });
     const sequenceRef = useRef(0);
     const routeError =
         error ??
@@ -60,7 +63,7 @@ const NewThreadRoute = () => {
                     throw new Error('draft thread id is required');
                 }
 
-                useActiveThreadStore.getState().setSnapshot(snapshot);
+                cacheActiveThreadSnapshot(queryClient, snapshot);
                 setError(null);
                 setDraft({
                     connectionId,
@@ -77,7 +80,7 @@ const NewThreadRoute = () => {
                 setDraft(null);
                 setError(caught instanceof Error ? caught.message : 'Failed to open draft thread');
             });
-    }, [activeWorkspaceId, connectionId, connectionState]);
+    }, [activeWorkspaceId, connectionId, connectionState, queryClient]);
 
     let content;
     if (routeError) {

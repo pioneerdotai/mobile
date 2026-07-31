@@ -1,12 +1,15 @@
 import { describe, expect, it, jest } from '@jest/globals';
 import { QueryClient, type Query, type QueryKey } from '@tanstack/react-query';
 
-import { PioneerClientNativeError } from '@/client';
+import { PioneerClientNativeError, type ClientActiveThreadSnapshot } from '@/client';
 
 import {
     TIMELINE_FFI_ERROR_CODES,
+    cacheActiveThreadSnapshot,
+    cachedActiveThreadSnapshot,
     cancelTimelineQueriesExceptThread,
     cancelTimelineQueriesForThread,
+    clearThreadQueryCache,
     invalidateThreadTimelinePages,
     invalidateTimelineQueriesForThread,
     invalidateTurnWorkQueries,
@@ -30,7 +33,52 @@ jest.mock('@/client', () => ({
 
 const query = (queryKey: QueryKey): Query => ({ queryKey }) as Query;
 
+const activeThreadSnapshot = (threadId: string, revision: number): ClientActiveThreadSnapshot =>
+    ({
+        thread_id: threadId,
+        projection: { revision },
+    }) as unknown as ClientActiveThreadSnapshot;
+
 describe('mobile timeline query orchestration', () => {
+    it('keeps independent parent and child snapshots in the React Query cache', () => {
+        const queryClient = new QueryClient();
+        const parent = activeThreadSnapshot('parent', 2);
+        const updatedParent = activeThreadSnapshot('parent', 3);
+        const child = activeThreadSnapshot('child', 1);
+
+        cacheActiveThreadSnapshot(queryClient, parent);
+        cacheActiveThreadSnapshot(queryClient, child);
+        cacheActiveThreadSnapshot(queryClient, updatedParent);
+
+        expect(cachedActiveThreadSnapshot(queryClient, 'parent')).toEqual(updatedParent);
+        expect(cachedActiveThreadSnapshot(queryClient, 'child')).toBe(child);
+    });
+
+    it('does not replace a live snapshot with an older background refresh', () => {
+        const queryClient = new QueryClient();
+        const live = activeThreadSnapshot('parent', 4);
+        const staleRefresh = activeThreadSnapshot('parent', 3);
+        const freshRefresh = activeThreadSnapshot('parent', 5);
+
+        cacheActiveThreadSnapshot(queryClient, live);
+        cacheActiveThreadSnapshot(queryClient, staleRefresh);
+        expect(cachedActiveThreadSnapshot(queryClient, 'parent')).toBe(live);
+
+        cacheActiveThreadSnapshot(queryClient, freshRefresh);
+        expect(cachedActiveThreadSnapshot(queryClient, 'parent')).toEqual(freshRefresh);
+    });
+
+    it('clears all thread snapshots together with semantic pages on session cleanup', async () => {
+        const queryClient = new QueryClient();
+        cacheActiveThreadSnapshot(queryClient, activeThreadSnapshot('parent', 1));
+        queryClient.setQueryData(timelineQueryKeys.threadPages('parent'), ['page']);
+
+        await clearThreadQueryCache(queryClient);
+
+        expect(cachedActiveThreadSnapshot(queryClient, 'parent')).toBeNull();
+        expect(queryClient.getQueryData(timelineQueryKeys.threadPages('parent'))).toBeUndefined();
+    });
+
     it('keeps turn work page keys stable across live work metadata updates', () => {
         const threadKey = timelineQueryKeys.threadPages('thread_a');
         const workKey = timelineQueryKeys.turnWorkPages('thread_a', 'turn_a');
