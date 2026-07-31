@@ -88,6 +88,11 @@ const useThreadTreeRefresh = () => {
         const activeThreadState = useActiveThreadStore.getState();
         const requestConnectionId = gatewayState.connectionId;
         const requestWorkspaceId = currentWorkspaceId;
+        const activeThreadWorkspaceId =
+            activeThreadState.snapshot?.workspace_id ??
+            activeThreadState.snapshot?.thread?.workspace_id ??
+            null;
+        const activeThreadMatchesWorkspace = activeThreadWorkspaceId === requestWorkspaceId;
         const sequence = refreshSequence + 1;
         refreshSequence = sequence;
 
@@ -98,12 +103,17 @@ const useThreadTreeRefresh = () => {
         try {
             const result = await refreshThreadTree({
                 workspace_id: requestWorkspaceId,
-                active_thread_id: activeThreadState.snapshot?.thread_id ?? null,
-                existing_draft_thread_id: activeThreadState.snapshot?.draft_thread_id ?? null,
-                existing_draft_thread_workspace_id:
-                    activeThreadState.snapshot?.draft_workspace_id ??
-                    activeThreadState.snapshot?.workspace_id ??
-                    null,
+                active_thread_id: activeThreadMatchesWorkspace
+                    ? (activeThreadState.snapshot?.thread_id ?? null)
+                    : null,
+                existing_draft_thread_id: activeThreadMatchesWorkspace
+                    ? (activeThreadState.snapshot?.draft_thread_id ?? null)
+                    : null,
+                existing_draft_thread_workspace_id: activeThreadMatchesWorkspace
+                    ? (activeThreadState.snapshot?.draft_workspace_id ??
+                      activeThreadState.snapshot?.workspace_id ??
+                      null)
+                    : null,
                 has_known_threads_for_workspace:
                     useThreadTreeStore.getState().workspaceId === requestWorkspaceId,
             });
@@ -224,16 +234,21 @@ export const useThreadTree = () => {
 
 export const useThreadTreeLevel = (folderId: string | null) => {
     const tree = useThreadTree();
+    const activeWorkspaceId = useWorkspaceStore((state) => state.activeWorkspaceId);
+    const snapshotMatchesActiveWorkspace = tree.workspaceId === activeWorkspaceId;
     const level = useMemo(() => {
-        if (!tree.snapshot) {
+        if (!tree.snapshot || !snapshotMatchesActiveWorkspace) {
             return EMPTY_LEVEL;
         }
 
         return threadTreeLevel(tree.snapshot, folderId);
-    }, [folderId, tree.snapshot]);
+    }, [folderId, snapshotMatchesActiveWorkspace, tree.snapshot]);
 
     return {
         ...tree,
+        // Keep the initial loader, but do not replace the new Workspace with a
+        // loader while its tree is refreshed in the background.
+        loading: tree.loading && (tree.workspaceId === null || snapshotMatchesActiveWorkspace),
         currentFolderId: level.folder_id ?? null,
         currentFolder: level.folder ?? null,
         parentFolderId: level.parent_folder_id ?? null,

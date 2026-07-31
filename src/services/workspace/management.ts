@@ -8,6 +8,7 @@ import type {
     WorkspaceSwitchResult,
 } from '@/client';
 import { loadGatewayRegistry, saveGatewayRegistry } from '@/services/gateway/registry';
+import { runGatewayTransportTransition } from '@/services/gateway/transport-coordinator';
 
 export type WorkspaceOperationErrorCode =
     | 'gatewayNotFound'
@@ -59,32 +60,34 @@ export const switchActiveGatewayWorkspace = async (
     input: SwitchWorkspaceInput,
 ): Promise<SwitchWorkspaceResult> => {
     try {
-        const result = await pioneerClient.workspaceSwitch({
-            workspace_id: input.workspaceId,
-            current_workspace_id: input.currentWorkspaceId,
-            workspaces: input.workspaces,
-            action_in_progress: false,
-        });
+        return await runGatewayTransportTransition(async () => {
+            const result = await pioneerClient.workspaceSwitch({
+                workspace_id: input.workspaceId,
+                current_workspace_id: input.currentWorkspaceId,
+                workspaces: input.workspaces,
+                action_in_progress: false,
+            });
 
-        if (result.status !== 'switched') {
-            return {
+            if (result.status !== 'switched') {
+                return {
+                    registry: loadGatewayRegistry(),
+                    result,
+                };
+            }
+
+            const plan = await pioneerClient.gatewayPlanSetWorkspaceRegistry({
                 registry: loadGatewayRegistry(),
+                gateway_id: input.activeGateway.id,
+                workspace_id: result.reduction.selected.persist_active_gateway_workspace_id,
+            });
+
+            saveGatewayRegistry(plan.registry);
+
+            return {
+                registry: plan.registry,
                 result,
             };
-        }
-
-        const plan = await pioneerClient.gatewayPlanSetWorkspaceRegistry({
-            registry: loadGatewayRegistry(),
-            gateway_id: input.activeGateway.id,
-            workspace_id: result.reduction.selected.persist_active_gateway_workspace_id,
         });
-
-        saveGatewayRegistry(plan.registry);
-
-        return {
-            registry: plan.registry,
-            result,
-        };
     } catch (error) {
         throw normalizeWorkspaceOperationError(error, 'selectFailed');
     }

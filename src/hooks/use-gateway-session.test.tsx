@@ -18,8 +18,15 @@ const mockSetConnectionState = jest.fn();
 const mockSetLastEvent = jest.fn();
 const mockSetSessionError = jest.fn();
 const mockSetSessionProjection = jest.fn();
+const mockOpenActiveThreadById =
+    jest.fn<
+        (request: { thread_id: string; expanded_keys: string[] }) => Promise<{ thread_id: string }>
+    >();
+const mockSetActiveThreadSnapshot = jest.fn();
 const mockTranslate = (key: string) => key;
 let mockNetworkListener: ((state: { isConnected?: boolean }) => void) | null = null;
+let mockGatewayEventListener: ((event: Record<string, unknown>) => Promise<void>) | null = null;
+let mockActiveThreadSnapshot: { thread_id: string } | null = null;
 
 const projection: MobileSessionProjection = {
     phase: 'connected',
@@ -47,7 +54,10 @@ jest.mock('@/services/gateway/session', () => ({
     gatewaySessionProjection: () => projection,
     gatewaySessionRefreshDelayMs: () => null,
     markMobileGatewayConnectionDisconnected: jest.fn(),
-    subscribeGatewayEvents: () => jest.fn(),
+    subscribeGatewayEvents: (listener: (event: Record<string, unknown>) => Promise<void>) => {
+        mockGatewayEventListener = listener;
+        return jest.fn();
+    },
     subscribeMobileSessionProjection: () => jest.fn(),
 }));
 
@@ -55,6 +65,20 @@ jest.mock('@/services/gateway/session-coordinator', () => ({
     MobileSessionTerminalError: class MobileSessionTerminalError extends Error {},
     markMobileGatewaySessionTerminal: jest.fn(),
     terminalReasonFromMachineCode: () => null,
+}));
+
+jest.mock('@/services/threads/active', () => ({
+    openActiveThreadById: mockOpenActiveThreadById,
+}));
+
+jest.mock('@/stores/active-thread', () => ({
+    useActiveThreadStore: {
+        getState: () => ({
+            snapshot: mockActiveThreadSnapshot,
+            expandedKeys: [],
+            setSnapshot: mockSetActiveThreadSnapshot,
+        }),
+    },
 }));
 
 jest.mock('@/stores/gateway', () => ({
@@ -107,6 +131,8 @@ describe('useGatewaySession', () => {
             remove: jest.fn(),
         });
         mockNetworkListener = null;
+        mockGatewayEventListener = null;
+        mockActiveThreadSnapshot = null;
         mockConnectGatewayEndpoint.mockResolvedValue({
             connection_id: 1,
             projection,
@@ -158,5 +184,36 @@ describe('useGatewaySession', () => {
 
         expect(mockDisconnectGateway).toHaveBeenCalledTimes(1);
         expect(mockConnectGatewayEndpoint).toHaveBeenCalledTimes(2);
+    });
+
+    it('rotates access and restores the active thread without publishing Connecting', async () => {
+        mockActiveThreadSnapshot = { thread_id: 'thread-1' };
+        mockOpenActiveThreadById.mockResolvedValue({ thread_id: 'thread-1' });
+        mockConnectGatewayEndpoint
+            .mockResolvedValueOnce({ connection_id: 1, projection })
+            .mockResolvedValueOnce({ connection_id: 2, projection });
+
+        await act(async () => {
+            renderer.create(<Harness endpoint={gateway()} />);
+        });
+
+        mockSetConnectionState.mockClear();
+        await act(async () => {
+            await mockGatewayEventListener?.({
+                GatewayNotification: {
+                    kind: 'auth_access_expiring',
+                    params: { session_id: 'session-1', access_expires_at_unix: 1_800_000_000 },
+                },
+            });
+        });
+
+        expect(mockConnectGatewayEndpoint).toHaveBeenCalledTimes(2);
+        expect(mockOpenActiveThreadById).toHaveBeenCalledWith({
+            thread_id: 'thread-1',
+            expanded_keys: [],
+        });
+        expect(mockSetConnectionId).not.toHaveBeenCalledWith(2);
+        expect(mockSetConnectionState).not.toHaveBeenCalledWith('Connecting');
+        expect(mockSetConnectionState).toHaveBeenLastCalledWith('Connected');
     });
 });

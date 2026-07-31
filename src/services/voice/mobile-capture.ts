@@ -7,6 +7,7 @@ import {
     type VoiceStatus,
     type VoiceTurnContext,
 } from '@/client';
+import { acquireGatewayTransportLease } from '@/services/gateway/transport-coordinator';
 
 const VOICE_SAMPLE_RATE_HZ = 16_000;
 const VOICE_CHANNELS = 1;
@@ -88,49 +89,64 @@ export const startMobileVoiceCapture = async ({
     startContext,
     callbacks,
 }: StartMobileVoiceCaptureParams): Promise<MobileVoiceCaptureSession> => {
-    const status = await pioneerClient.voiceStatus({ workspace_id: workspaceId });
-    if (!canUseVoiceStatus(status.status)) {
-        throw new MobileVoiceCaptureError(
-            'voice_not_ready',
-            status.error?.message || voiceStatusUnavailableMessage(status.status),
-        );
-    }
-
-    await ensureRecordingPermission();
-    await ensureInputDevice();
-    await activateRecordingSession();
-
-    let sessionId: string;
+    const releaseTransportLease = await acquireGatewayTransportLease();
+    let sessionOwnsTransportLease = false;
     try {
-        const response = await pioneerClient.voiceSessionStart({
-            context: startContext,
-            audio_format: MOBILE_VOICE_AUDIO_FORMAT,
-        });
-        sessionId = response.session_id;
-    } catch (error) {
-        await deactivateRecordingSession();
-        throw new MobileVoiceCaptureError(
-            'session_start_failed',
-            errorMessage(error),
-            errorOptions(error),
+        const status = await pioneerClient.voiceStatus({ workspace_id: workspaceId });
+        if (!canUseVoiceStatus(status.status)) {
+            throw new MobileVoiceCaptureError(
+                'voice_not_ready',
+                status.error?.message || voiceStatusUnavailableMessage(status.status),
+            );
+        }
+
+        await ensureRecordingPermission();
+        await ensureInputDevice();
+        await activateRecordingSession();
+
+        let sessionId: string;
+        try {
+            const response = await pioneerClient.voiceSessionStart({
+                context: startContext,
+                audio_format: MOBILE_VOICE_AUDIO_FORMAT,
+            });
+            sessionId = response.session_id;
+        } catch (error) {
+            await deactivateRecordingSession();
+            throw new MobileVoiceCaptureError(
+                'session_start_failed',
+                errorMessage(error),
+                errorOptions(error),
+            );
+        }
+
+        const session = new MobileVoiceCaptureSession(
+            sessionId,
+            startContext,
+            releaseTransportLease,
+            callbacks,
         );
-    }
+        sessionOwnsTransportLease = true;
+        try {
+            await session.start();
+        } catch (error) {
+            await session.cancel('mobile_capture_start_failed').catch(() => null);
+            throw error;
+        }
 
-    const session = new MobileVoiceCaptureSession(sessionId, startContext, callbacks);
-    try {
-        await session.start();
-    } catch (error) {
-        await session.cancel('mobile_capture_start_failed').catch(() => null);
-        throw error;
+        return session;
+    } finally {
+        if (!sessionOwnsTransportLease) {
+            releaseTransportLease();
+        }
     }
-
-    return session;
 };
 
 export class MobileVoiceCaptureSession {
     readonly sessionId: string;
     readonly startContext: VoiceSessionStartContext;
     readonly turnId: string;
+    private readonly releaseTransportLease: () => void;
     private readonly callbacks?: MobileVoiceCaptureCallbacks;
     private recorder: AudioRecorder | null = null;
     private routeChangeSubscription: AudioEventSubscription | null = null;
@@ -145,11 +161,13 @@ export class MobileVoiceCaptureSession {
     constructor(
         sessionId: string,
         startContext: VoiceSessionStartContext,
+        releaseTransportLease: () => void,
         callbacks?: MobileVoiceCaptureCallbacks,
     ) {
         this.sessionId = sessionId;
         this.startContext = { ...startContext };
         this.turnId = startContext.turn_id;
+        this.releaseTransportLease = releaseTransportLease;
         this.callbacks = callbacks;
     }
 
@@ -298,7 +316,11 @@ export class MobileVoiceCaptureSession {
                 );
             }
         } finally {
-            await deactivateRecordingSession();
+            try {
+                await deactivateRecordingSession();
+            } finally {
+                this.releaseTransportLease();
+            }
         }
     }
 
@@ -313,7 +335,11 @@ export class MobileVoiceCaptureSession {
         try {
             await this.cancelGatewaySession(reason);
         } finally {
-            await deactivateRecordingSession();
+            try {
+                await deactivateRecordingSession();
+            } finally {
+                this.releaseTransportLease();
+            }
         }
     }
 

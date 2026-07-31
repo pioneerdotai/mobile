@@ -107,15 +107,13 @@ const WorkspaceSwitcherSheet = () => {
     );
 
     const handleWorkspaceSwitch = useCallback(
-        async (workspaceId: string) => {
+        (workspaceId: string) => {
             setActionError(null);
+            setWorkspaceSwitcherOpen(false);
 
-            try {
-                await switchWorkspace(workspaceId);
-                setWorkspaceSwitcherOpen(false);
-            } catch (error) {
+            void switchWorkspace(workspaceId).catch((error) => {
                 setActionError(workspaceErrorMessage(error));
-            }
+            });
         },
         [setWorkspaceSwitcherOpen, switchWorkspace, workspaceErrorMessage],
     );
@@ -159,7 +157,7 @@ const WorkspaceSwitcherSheet = () => {
                             <Pressable
                                 key={workspace.id}
                                 disabled={loading || active}
-                                onPress={() => void handleWorkspaceSwitch(workspace.id)}
+                                onPress={() => handleWorkspaceSwitch(workspace.id)}
                                 accessibilityRole="button"
                                 accessibilityLabel={t('selectAction')}
                             >

@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useShallow } from 'zustand/react/shallow';
 
 import type { ComposerSkillPickerProjection, Thread } from '@/client';
+import { withGatewayTransportLease } from '@/services/gateway/transport-coordinator';
 import {
     activeThreadSnapshot,
     applyActiveThreadEvent,
@@ -450,20 +451,25 @@ export const useActiveThread = (
                 attachments.length > 0 ? markComposerAttachmentsUploading() : attachments;
 
             try {
-                const result = await sendActiveThreadTextAsync({
-                    thread_id: requestThreadId,
-                    workspace_id: requestWorkspaceId,
-                    text,
-                    selected_model: selectedModelForSend,
-                    selected_provider: selectedProviderForSend,
-                    ...selectedReasoningEffortRequestFields(selectedReasoningEffortForSend),
-                    selected_mode: storeState.composerSelectedMode,
-                    permission_mode: storeState.composerSelectedPermissionMode,
-                    attachments: attachmentsForSend,
-                    capabilities: submissionPlan.capabilities,
-                    ...skillSelectionRequestFields(storeState.composerSkillSelections, skillPicker),
-                    expanded_keys: useActiveThreadStore.getState().expandedKeys,
-                });
+                const result = await withGatewayTransportLease(() =>
+                    sendActiveThreadTextAsync({
+                        thread_id: requestThreadId,
+                        workspace_id: requestWorkspaceId,
+                        text,
+                        selected_model: selectedModelForSend,
+                        selected_provider: selectedProviderForSend,
+                        ...selectedReasoningEffortRequestFields(selectedReasoningEffortForSend),
+                        selected_mode: storeState.composerSelectedMode,
+                        permission_mode: storeState.composerSelectedPermissionMode,
+                        attachments: attachmentsForSend,
+                        capabilities: submissionPlan.capabilities,
+                        ...skillSelectionRequestFields(
+                            storeState.composerSkillSelections,
+                            skillPicker,
+                        ),
+                        expanded_keys: useActiveThreadStore.getState().expandedKeys,
+                    }),
+                );
 
                 if (
                     useGatewayStore.getState().connectionId !== connectionId ||

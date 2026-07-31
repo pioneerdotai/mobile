@@ -20,6 +20,9 @@ import {
     markMobileGatewaySessionTerminal,
     terminalReasonFromMachineCode,
 } from '@/services/gateway/session-coordinator';
+import { runGatewayTransportTransition } from '@/services/gateway/transport-coordinator';
+import { openActiveThreadById } from '@/services/threads/active';
+import { useActiveThreadStore } from '@/stores/active-thread';
 import { useGatewayStore } from '@/stores/gateway';
 
 const errorMessage = (error: unknown, fallback: string): string => {
@@ -77,6 +80,8 @@ export const useGatewaySession = (
         let appActive = AppState.currentState === 'active';
         let activeConnectionId: number | null = null;
         let refreshTimer: ReturnType<typeof setTimeout> | null = null;
+        let connectInFlight: Promise<void> | null = null;
+        let silentReplacementInFlight = false;
 
         const clearRefreshTimer = () => {
             if (refreshTimer !== null) {
@@ -98,7 +103,7 @@ export const useGatewaySession = (
             setSessionProjection(gatewaySessionProjection(sessionGateway.id));
         };
 
-        const scheduleRefresh = (connect: () => Promise<void>) => {
+        const scheduleRefresh = (connect: (silent?: boolean) => Promise<void>) => {
             clearRefreshTimer();
             if (!appActive || cancelled) {
                 return;
@@ -109,23 +114,57 @@ export const useGatewaySession = (
             }
             refreshTimer = setTimeout(() => {
                 refreshTimer = null;
-                void connect();
+                void connect(true);
             }, delay);
         };
 
-        const connect = async (): Promise<void> => {
+        const restoreActiveThreadSubscription = async (): Promise<void> => {
+            const activeThreadState = useActiveThreadStore.getState();
+            const threadId = activeThreadState.snapshot?.thread_id ?? null;
+            if (!threadId) {
+                return;
+            }
+
+            const snapshot = await openActiveThreadById({
+                thread_id: threadId,
+                expanded_keys: activeThreadState.expandedKeys,
+            });
+            if (useActiveThreadStore.getState().snapshot?.thread_id === threadId) {
+                useActiveThreadStore.getState().setSnapshot(snapshot);
+            }
+        };
+
+        const performConnect = async (silent = false): Promise<void> => {
             if (cancelled || !appActive) {
                 return;
             }
-            setConnectionState('Connecting');
+            const replacingSilently = silent && activeConnectionId !== null;
+            if (!replacingSilently) {
+                setConnectionState('Connecting');
+            }
             try {
-                const connection = await connectGatewayEndpoint(sessionGateway);
+                const connection = await runGatewayTransportTransition(async () => {
+                    silentReplacementInFlight = replacingSilently;
+                    const nextConnection = await connectGatewayEndpoint(sessionGateway);
+                    if (!cancelled && appActive && replacingSilently) {
+                        // Restore the active subscription before the replacement
+                        // connection becomes observable to React. Failure is
+                        // retried authoritatively by text/Voice preflight.
+                        await restoreActiveThreadSubscription().catch(() => undefined);
+                    }
+                    return nextConnection;
+                });
                 if (cancelled || !appActive) {
                     return;
                 }
                 activeConnectionId = connection.connection_id;
-                setConnectionId(connection.connection_id);
-                setConnectionGatewayId(sessionGateway.id);
+                if (!replacingSilently) {
+                    // Keep the React-visible connection generation stable for
+                    // a planned replacement. Publishing a new id would make
+                    // every screen bootstrap its already loaded data again.
+                    setConnectionId(connection.connection_id);
+                    setConnectionGatewayId(sessionGateway.id);
+                }
                 setConnectionState('Connected');
                 setSessionError(null);
                 setSessionProjection(connection.projection);
@@ -143,7 +182,22 @@ export const useGatewaySession = (
                 if (caught instanceof MobileSessionTerminalError) {
                     clearRefreshTimer();
                 }
+            } finally {
+                silentReplacementInFlight = false;
             }
+        };
+
+        const connect = (silent = false): Promise<void> => {
+            if (connectInFlight) {
+                return connectInFlight;
+            }
+            const operation = performConnect(silent).finally(() => {
+                if (connectInFlight === operation) {
+                    connectInFlight = null;
+                }
+            });
+            connectInFlight = operation;
+            return operation;
         };
 
         const appStateSubscription = AppState.addEventListener('change', (nextState) => {
@@ -174,6 +228,25 @@ export const useGatewaySession = (
             if (cancelled) {
                 return;
             }
+            if (silentReplacementInFlight && 'GatewayConnectionChanged' in event) {
+                // Planned token rotation is a transport implementation detail.
+                // Do not turn it into Connecting/Connected UI churn.
+                return;
+            }
+            if ('GatewayConnectionChanged' in event) {
+                const nextState = event.GatewayConnectionChanged.connection_state;
+                const currentState = useGatewayStore.getState().connectionState;
+                if (
+                    activeConnectionId !== null &&
+                    currentState === 'Connected' &&
+                    (nextState === 'Connecting' || nextState === 'Reconnecting')
+                ) {
+                    // A replacement socket can enqueue its progress event just
+                    // before `connectGatewayEndpoint` resolves. Keep that late
+                    // transport event out of both UI state and thread reducers.
+                    return;
+                }
+            }
             setLastEvent(event, sessionGateway.id, activeConnectionId);
             if ('GatewayNotification' in event) {
                 const notification = event.GatewayNotification;
@@ -182,7 +255,7 @@ export const useGatewaySession = (
                     notification.kind === 'auth_access_expiring' &&
                     notification.params.session_id === currentSessionId
                 ) {
-                    void connect();
+                    void connect(true);
                 } else if (
                     notification.kind === 'auth_session_revoked' &&
                     notification.params.session_id === currentSessionId

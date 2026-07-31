@@ -16,8 +16,6 @@ import type {
 import { useGatewayStore } from '@/stores/gateway';
 import { useWorkspaceStore } from '@/stores/workspace';
 
-import { useActiveThreadCleanup } from './use-active-thread-cleanup';
-
 type WorkspaceConnectionContext = {
     gateway: GatewayEndpoint;
     connectionId: number;
@@ -43,7 +41,6 @@ const normalizeErrorCode = (
 };
 
 export const useWorkspace = () => {
-    const clearActiveThreadSession = useActiveThreadCleanup();
     const setGatewayRegistry = useGatewayStore((state) => state.setRegistry);
 
     const {
@@ -212,9 +209,24 @@ export const useWorkspace = () => {
             ensureWorkspaceIdle();
             const connectionContext = requireWorkspaceConnection();
             const workspaceState = useWorkspaceStore.getState();
+            const targetWorkspace = workspaceState.workspaces.find(
+                (workspace) => workspace.id === workspaceId && workspace.is_active,
+            );
+            if (!targetWorkspace) {
+                const error = new WorkspaceOperationError('unknownTarget');
+                setError(error.code);
+                throw error;
+            }
+            const previousActiveWorkspaceId = workspaceState.activeWorkspaceId;
+            const previousPreferredWorkspaceId = workspaceState.preferredWorkspaceId;
 
             setLoading(true);
             setError(null);
+            // Publish the user's choice immediately. The RPC below persists and
+            // validates it in the background; it is not a navigation/loading
+            // boundary for the UI.
+            setActiveWorkspaceId(workspaceId);
+            setPreferredWorkspaceId(workspaceId);
 
             try {
                 const result = await switchActiveGatewayWorkspace({
@@ -228,15 +240,14 @@ export const useWorkspace = () => {
                     return;
                 }
 
-                if (result.result.status === 'switched') {
-                    await clearActiveThreadSession();
-                }
                 applyWorkspaceSwitchResult(result);
             } catch (caught) {
                 if (!workspaceResultIsCurrent(connectionContext)) {
                     return;
                 }
 
+                setActiveWorkspaceId(previousActiveWorkspaceId);
+                setPreferredWorkspaceId(previousPreferredWorkspaceId);
                 setError(normalizeErrorCode(caught, 'selectFailed'));
                 throw caught;
             } finally {
@@ -248,10 +259,11 @@ export const useWorkspace = () => {
         [
             ensureWorkspaceIdle,
             applyWorkspaceSwitchResult,
-            clearActiveThreadSession,
             requireWorkspaceConnection,
+            setActiveWorkspaceId,
             setError,
             setLoading,
+            setPreferredWorkspaceId,
             workspaceResultIsCurrent,
         ],
     );
@@ -289,9 +301,6 @@ export const useWorkspace = () => {
                             return;
                         }
 
-                        if (switchResult.result.status === 'switched') {
-                            await clearActiveThreadSession();
-                        }
                         applyWorkspaceSwitchResult(switchResult);
                         return;
                     case 'empty_name':
@@ -315,7 +324,6 @@ export const useWorkspace = () => {
         [
             ensureWorkspaceIdle,
             applyWorkspaceSwitchResult,
-            clearActiveThreadSession,
             requireWorkspaceConnection,
             setError,
             setLoading,
