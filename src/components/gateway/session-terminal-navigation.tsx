@@ -15,7 +15,7 @@ export const TerminalGatewaySessionNavigation = () => {
             return;
         }
 
-        router.replace('/');
+        router.dismissTo('/');
     }, [pathname, reason, router]);
 
     return null;

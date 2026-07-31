@@ -2,7 +2,7 @@ import React from 'react';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import renderer, { act, type ReactTestRenderer } from 'react-test-renderer';
 
-const mockReplace = jest.fn();
+const mockDismissTo = jest.fn();
 const mockUsePathname = jest.fn();
 type TerminalReason =
     | 'authentication_required'
@@ -19,7 +19,7 @@ let mockTerminalReason: TerminalReason | null = null;
 jest.setMock('expo-router', {
     __esModule: true,
     usePathname: mockUsePathname,
-    useRouter: () => ({ replace: mockReplace }),
+    useRouter: () => ({ dismissTo: mockDismissTo }),
 });
 jest.mock('@/stores/gateway', () => ({
     useGatewayStore: (selector: (state: Record<string, unknown>) => unknown) =>
@@ -48,7 +48,7 @@ describe('TerminalGatewaySessionNavigation', () => {
         });
 
         expect(tree!.toJSON()).toBeNull();
-        expect(mockReplace).not.toHaveBeenCalled();
+        expect(mockDismissTo).not.toHaveBeenCalled();
     });
 
     it.each([
@@ -68,7 +68,7 @@ describe('TerminalGatewaySessionNavigation', () => {
             renderer.create(<TerminalGatewaySessionNavigation />);
         });
 
-        expect(mockReplace).toHaveBeenCalledWith('/');
+        expect(mockDismissTo).toHaveBeenCalledWith('/');
     });
 
     it.each(['/activate', '/editor'])('does not interrupt recovery route %s', async (pathname) => {
@@ -79,7 +79,7 @@ describe('TerminalGatewaySessionNavigation', () => {
             renderer.create(<TerminalGatewaySessionNavigation />);
         });
 
-        expect(mockReplace).not.toHaveBeenCalled();
+        expect(mockDismissTo).not.toHaveBeenCalled();
     });
 
     it('does not navigate without a terminal state', async () => {
@@ -89,6 +89,6 @@ describe('TerminalGatewaySessionNavigation', () => {
             renderer.create(<TerminalGatewaySessionNavigation />);
         });
 
-        expect(mockReplace).not.toHaveBeenCalled();
+        expect(mockDismissTo).not.toHaveBeenCalled();
     });
 });
