@@ -33,13 +33,15 @@ export const listProviders = async (workspaceId: string): Promise<ModelSelectorP
 
     const rows: ModelSelectorProvider[] =
         apiProviders.status === 'fulfilled'
-            ? apiProviders.value.providers.map((provider) => ({
-                  id: provider.name,
-                  label: provider.name,
-                  kind: 'api',
-                  capabilityTarget: NATIVE_COMPOSER_CAPABILITY_POLICY,
-                  mcpReadinessReason: null,
-              }))
+            ? apiProviders.value.providers
+                  .filter((provider) => provider.name !== 'local')
+                  .map((provider) => ({
+                      id: provider.name,
+                      label: provider.name,
+                      kind: 'api',
+                      capabilityTarget: NATIVE_COMPOSER_CAPABILITY_POLICY,
+                      mcpReadinessReason: null,
+                  }))
             : [];
 
     if (cliRuntimes.status === 'fulfilled') {

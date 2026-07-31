@@ -159,6 +159,36 @@ describe('model selector reasoning helpers', () => {
         expect(refreshCliRuntimeSummaries).toHaveBeenCalledWith('workspace-1');
     });
 
+    it('hides the local API provider from the chat composer without hiding CLI runtimes', async () => {
+        const runtime = {
+            runtime_id: 'codex',
+            kind: 'codex',
+            display_name: 'Codex CLI',
+            enabled: true,
+            status: { state: 'ready' },
+            capabilities: {
+                supports_threads: true,
+                supports_model_list: true,
+                supports_skills: true,
+                supports_mcp_tools: false,
+            },
+            diagnostics: [],
+        } as unknown as RuntimeSummary;
+        jest.mocked(pioneerClient.providerList).mockResolvedValue({
+            providers: [{ name: 'local' }, { name: 'openai' }],
+        });
+        jest.mocked(refreshCliRuntimeSummaries).mockResolvedValue([runtime]);
+        jest.mocked(pioneerClient.composerCapabilityTarget).mockReturnValue({
+            kind: 'cli',
+            supports_skills: true,
+            supports_mcp_tools: false,
+        });
+
+        const providers = await listProviders('workspace-1');
+
+        expect(providers.map((provider) => provider.id)).toEqual(['openai', 'cli_runtime:codex']);
+    });
+
     it('delegates CLI runtime provider model conversion to the native client helper', async () => {
         const convertedModel = providerModel({
             supported: true,
