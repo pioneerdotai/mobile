@@ -130,6 +130,7 @@ const projectClientConversationRowContent = (
 
         return {
             ...projected,
+            key: row.key,
             startedAtUnixMs: item.started_at_unix_ms ?? null,
             ...(options.semanticWorkItemKeys?.has(row.key) ? { semanticWorkItem: true } : {}),
         };

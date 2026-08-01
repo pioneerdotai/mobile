@@ -335,7 +335,6 @@ const pushTurnWorkItem = (semantic: MutableSemanticProjection, item: TurnWorkIte
     const terminal = item.status !== 'running';
 
     semantic.workItemRowKeys.add(item.workItemId);
-    semantic.workItemRowKeys.add(projectedTimelineRowKeyForTurnWorkItem(item));
     pushItemRow(semantic, {
         entryId: item.workItemId,
         itemId: item.itemId,
@@ -628,34 +627,6 @@ const turnItemTextAndMarkdown = (
             return { text: item.message, markdown: null };
         default:
             return { text: '', markdown: null };
-    }
-};
-
-const projectedTimelineRowKeyForTurnWorkItem = (item: TurnWorkItem): string => {
-    const itemType = item.item.type;
-
-    switch (itemType) {
-        case 'userMessage':
-            return `user-message:${item.itemId}`;
-        case 'agentMessage':
-            return `assistant-message:${item.itemId}`;
-        case 'reasoning':
-            return `reasoning:${item.itemId}`;
-        case 'systemEvent':
-            return `system-event:${item.itemId}`;
-        case 'task':
-            return `task-anchor:${item.itemId}`;
-        case 'commandExecution':
-            return `command-execution:${item.itemId}`;
-        case 'fileChange':
-            return `file-change:${item.itemId}`;
-        case 'webSearch':
-        case 'webFetch':
-        case 'download':
-        case 'dynamicToolCall':
-            return `tool-call:${item.itemId}`;
-        default:
-            return `unknown:${item.itemId}`;
     }
 };
 

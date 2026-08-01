@@ -35,6 +35,29 @@ describe('timelineRowsAreEqual', () => {
         expect(timelineRowsAreEqual(previous, next)).toBe(false);
     });
 
+    it('reuses a user row when only optimistic transport identity is reconciled', () => {
+        const previous = ensureTimelineRowRenderFingerprint(
+            {
+                type: 'user-message',
+                key: 'turn:turn_a:user',
+                itemId: 'turn:turn_a:user',
+                turnId: 'turn_a',
+                text: 'Hello',
+                attachments: [],
+                timestampLabel: '10:00',
+                startedAtUnixMs: 1_000,
+            },
+            'abc',
+        );
+        const next = {
+            ...previous,
+            itemId: 'durable_user_item',
+            startedAtUnixMs: 1_050,
+        };
+
+        expect(timelineRowsAreEqual(previous, next)).toBe(true);
+    });
+
     it('refreshes a running row when only its local clock changes', () => {
         const previous = ensureTimelineRowRenderFingerprint(
             {

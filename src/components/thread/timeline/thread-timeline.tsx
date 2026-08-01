@@ -225,10 +225,8 @@ const ThreadTimelineContent = ({
         () => ({
             expandedRows,
             mcpServerIdByName,
-            pendingRequests,
-            timelineNowMs,
         }),
-        [expandedRows, mcpServerIdByName, pendingRequests, timelineNowMs],
+        [expandedRows, mcpServerIdByName],
     );
 
     const emptyMessage = closed ? closedLabel : connected ? emptyLabel : disconnectedLabel;

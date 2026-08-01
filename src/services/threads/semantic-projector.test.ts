@@ -292,6 +292,65 @@ describe('mobile semantic timeline projector', () => {
         });
     });
 
+    it('preserves the native user row key while optimistic identity becomes durable', () => {
+        const projectUserRow = (itemId: string) => {
+            const nativeSnapshot = snapshot({
+                items: [
+                    {
+                        id: itemId,
+                        turn_id: 'turn_a',
+                        item_type: 'user_message',
+                        status: 'Completed',
+                        started_at_unix_ms: 1_000,
+                        updated_at_unix_ms: 1_000,
+                        completed_at_unix_ms: 1_000,
+                        partial_text: 'Hello',
+                        final_text: 'Hello',
+                        item: {
+                            type: 'userMessage',
+                            id: itemId,
+                            text: 'Hello',
+                            attachments: [],
+                        },
+                    },
+                ],
+                timeline: [
+                    {
+                        id: 'turn:turn_a:user',
+                        turn_id: 'turn_a',
+                        item_id: itemId,
+                        item_index: 0,
+                    },
+                ],
+            });
+            nativeSnapshot.rows = [
+                {
+                    key: 'turn:turn_a:user',
+                    kind: { Item: { timeline_index: 0 } },
+                },
+            ];
+            nativeSnapshot.row_render_fingerprints = {
+                'turn:turn_a:user': '0123456789abcdef',
+            };
+
+            return projectConversationToRows(nativeSnapshot)[0];
+        };
+
+        const optimistic = projectUserRow('turn:turn_a:user');
+        const durable = projectUserRow('durable_user_item');
+
+        expect(optimistic).toMatchObject({
+            type: 'user-message',
+            key: 'turn:turn_a:user',
+            itemId: 'turn:turn_a:user',
+        });
+        expect(durable).toMatchObject({
+            type: 'user-message',
+            key: 'turn:turn_a:user',
+            itemId: 'durable_user_item',
+        });
+    });
+
     it('keeps native work elapsed only while running', () => {
         const workItem = commandWorkItem('work_001', '001');
         const nativeSnapshot = snapshot({
@@ -429,12 +488,10 @@ describe('mobile semantic timeline projector', () => {
             nowMs: 10_000,
         });
 
-        expect(rows.filter((row) => row.type === 'command-execution')).toHaveLength(2);
-        expect(
-            rows
-                .filter((row) => row.type === 'command-execution')
-                .every((row) => row.semanticWorkItem),
-        ).toBe(true);
+        const commandRows = rows.filter((row) => row.type === 'command-execution');
+        expect(commandRows).toHaveLength(2);
+        expect(commandRows.map((row) => row.key)).toEqual(['work_001', 'work_002']);
+        expect(commandRows.every((row) => row.semanticWorkItem)).toBe(true);
         expect(rows.some((row) => row.type === 'system-event')).toBe(false);
         expect(rows.find((row) => row.type === 'work-group')).toMatchObject({
             turnId: 'turn_a',

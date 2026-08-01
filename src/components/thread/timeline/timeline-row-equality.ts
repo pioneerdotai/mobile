@@ -18,21 +18,18 @@ export const timelineRowsAreEqual = (previous: TimelineRow, next: TimelineRow): 
     }
 
     return (
-        rowItemId(previous) === rowItemId(next) &&
+        rowDisplayedIdentity(previous) === rowDisplayedIdentity(next) &&
         rowTurnId(previous) === rowTurnId(next) &&
-        rowStartedAt(previous) === rowStartedAt(next) &&
         rowElapsedLabel(previous) === rowElapsedLabel(next) &&
         rowTimestampLabel(previous) === rowTimestampLabel(next)
     );
 };
 
-const rowItemId = (row: TimelineRow): string | null =>
-    'itemId' in row ? (row.itemId ?? null) : null;
+const rowDisplayedIdentity = (row: TimelineRow): string | null =>
+    row.type === 'unknown' ? (row.itemId ?? null) : null;
 
 const rowTurnId = (row: TimelineRow): string | null =>
     'turnId' in row ? (row.turnId ?? null) : null;
-
-const rowStartedAt = (row: TimelineRow): number | null => row.startedAtUnixMs ?? null;
 
 const rowElapsedLabel = (row: TimelineRow): string | null =>
     'elapsedLabel' in row ? row.elapsedLabel : null;
