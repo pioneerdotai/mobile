@@ -319,4 +319,38 @@ describe('useGatewaySession', () => {
         expect(mockSetConnectionState).not.toHaveBeenCalledWith('Connecting');
         expect(mockSetConnectionState).toHaveBeenLastCalledWith('Connected');
     });
+
+    it('retries a transient cold-start session failure without user interaction', async () => {
+        jest.useFakeTimers();
+        let tree!: ReactTestRenderer;
+        await act(async () => {
+            tree = renderer.create(<></>);
+        });
+        try {
+            mockConnectGatewayEndpoint
+                .mockRejectedValueOnce(new Error('Gateway temporarily unavailable'))
+                .mockResolvedValueOnce({ connection_id: 2, projection });
+
+            await act(async () => {
+                tree.update(<Harness endpoint={gateway()} />);
+                await Promise.resolve();
+            });
+
+            expect(mockConnectGatewayEndpoint).toHaveBeenCalledTimes(1);
+
+            await act(async () => {
+                jest.advanceTimersByTime(500);
+                await Promise.resolve();
+                await Promise.resolve();
+            });
+
+            expect(mockConnectGatewayEndpoint).toHaveBeenCalledTimes(2);
+            expect(mockSetConnectionState).toHaveBeenLastCalledWith('Connected');
+        } finally {
+            await act(async () => {
+                tree.unmount();
+            });
+            jest.useRealTimers();
+        }
+    });
 });

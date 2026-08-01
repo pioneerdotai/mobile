@@ -51,7 +51,7 @@ jest.mock('./registry', () => ({
     })),
 }));
 
-import { pioneerClient } from '@/client';
+import { PioneerClientNativeError, pioneerClient } from '@/client';
 import type {
     AuthRefreshGrant,
     ClientGatewaySessionLifecycleRequest,
@@ -700,6 +700,64 @@ describe('mobile Gateway session coordinator', () => {
             phase: 'compromised',
             terminalReason: 'refresh_outcome_unknown',
         });
+    });
+
+    it('retries the durable credential when the refresh request was not dispatched', async () => {
+        mockGatewayAuthRefresh.mockRejectedValueOnce(
+            new PioneerClientNativeError(
+                'Gateway connection failed',
+                'auth_exchange_transport_before_request',
+            ),
+        );
+
+        await expect(ensureMobileGatewaySession(endpoint, timings)).rejects.toMatchObject({
+            code: 'auth_exchange_transport_before_request',
+        });
+        expect(mobileSessionProjection(endpoint.id)).toMatchObject({
+            phase: 'transiently_disconnected',
+            terminalReason: null,
+        });
+        expect(durableEnvelope.refresh_generation).toBe(0);
+
+        await expect(ensureMobileGatewaySession(endpoint, timings)).resolves.toMatchObject({
+            connection_id: 41,
+        });
+
+        expect(mockGatewayAuthRefresh).toHaveBeenCalledTimes(2);
+        expect(mockGatewayAuthRefresh.mock.calls[0]?.[0].credential).toBe(refreshToken(0));
+        expect(mockGatewayAuthRefresh.mock.calls[1]?.[0].credential).toBe(refreshToken(0));
+        expect(mobileSessionProjection(endpoint.id)).toMatchObject({
+            phase: 'connected',
+            terminalReason: null,
+        });
+    });
+
+    it('keeps an existing connection visible while retrying a refresh not dispatched', async () => {
+        await ensureMobileGatewaySession(endpoint, timings);
+        nowSeconds += 850;
+        mockGatewayDisconnect.mockClear();
+        mockGatewayAuthRefresh.mockRejectedValueOnce(
+            new PioneerClientNativeError(
+                'Gateway connection failed',
+                'auth_exchange_transport_before_request',
+            ),
+        );
+
+        await expect(ensureMobileGatewaySession(endpoint, timings)).rejects.toMatchObject({
+            code: 'auth_exchange_transport_before_request',
+        });
+        expect(mockGatewayDisconnect).not.toHaveBeenCalled();
+        expect(mobileSessionProjection(endpoint.id)).toMatchObject({
+            phase: 'connected',
+            terminalReason: null,
+            accessExpiresAtUnix: 1_800_000_900,
+        });
+
+        await expect(ensureMobileGatewaySession(endpoint, timings)).resolves.toMatchObject({
+            connection_id: 41,
+        });
+        expect(mockGatewayAuthRefresh.mock.calls[1]?.[0].credential).toBe(refreshToken(1));
+        expect(mockGatewayAuthRefresh.mock.calls[2]?.[0].credential).toBe(refreshToken(1));
     });
 
     it('persists a rotated successor when the lifecycle bridge fails after refresh', async () => {

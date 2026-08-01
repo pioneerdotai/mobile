@@ -19,6 +19,8 @@ import { DEVICE_SESSION_AUTH_PROTOCOL_VERSION, isRefreshCredential } from './ref
 
 export const MOBILE_ACCESS_REFRESH_LEEWAY_SECONDS = 60;
 
+const AUTH_EXCHANGE_TRANSPORT_BEFORE_REQUEST_CODE = 'auth_exchange_transport_before_request';
+
 export type MobileSessionLifecyclePhase =
     | 'needs_authentication'
     | 'loading_session'
@@ -305,6 +307,13 @@ const refreshSession = async (
             },
         });
     } catch (error) {
+        if (isRefreshRequestKnownNotDispatched(error)) {
+            // The native auth transport distinguishes connection/handshake
+            // failure from losing the response after `auth/refresh` was sent.
+            // Only the former may safely reuse the durable one-use credential.
+            await resetAfterRetryableRefreshFailure(endpoint.id, runtime);
+            throw error;
+        }
         const reason = terminalReasonForRefreshError(error);
         const event =
             reason === 'refresh_outcome_unknown'
@@ -362,6 +371,32 @@ const refreshSession = async (
         issuedGrant.refresh_token = '';
         grant = null;
     }
+};
+
+const resetAfterRetryableRefreshFailure = async (
+    endpointId: string,
+    runtime: RuntimeSession,
+): Promise<void> => {
+    const existingConnectionRemainsUsable =
+        runtime.connectionId !== null &&
+        runtime.access !== null &&
+        runtime.access.accessExpiresAtUnix > nowUnix();
+    if (!existingConnectionRemainsUsable) {
+        clearRuntimeAccess(runtime);
+        runtime.connectionId = null;
+        await disconnectMobileGatewayTransport(endpointId);
+    }
+    runtime.connectionGeneration = null;
+    clearRuntimeEnvelopeCredential(runtime);
+    if (runtime.terminalReason) {
+        return;
+    }
+    await reduceLifecycle(endpointId, { kind: 'no_stored_session' }).catch(() => undefined);
+    setPhase(
+        endpointId,
+        runtime,
+        existingConnectionRemainsUsable ? 'connected' : 'transiently_disconnected',
+    );
 };
 
 const prepareAccessAfterDurableEnvelope = async (
@@ -892,6 +927,13 @@ const validateRefreshGrant = (
 
 const terminalReasonForRefreshError = (error: unknown): SessionTerminalReason => {
     return terminalReasonFromCode(error) ?? 'refresh_outcome_unknown';
+};
+
+const isRefreshRequestKnownNotDispatched = (error: unknown): boolean => {
+    return (
+        error instanceof PioneerClientNativeError &&
+        error.code === AUTH_EXCHANGE_TRANSPORT_BEFORE_REQUEST_CODE
+    );
 };
 
 export const terminalReasonFromMachineCode = (

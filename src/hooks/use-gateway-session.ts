@@ -90,6 +90,9 @@ export const useGatewaySession = (
         let appActive = AppState.currentState === 'active';
         let activeConnectionId: number | null = null;
         let refreshTimer: ReturnType<typeof setTimeout> | null = null;
+        let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+        let reconnectAttempt = 0;
+        let reconnectPending = false;
         let connectInFlight: Promise<void> | null = null;
         let silentReplacementInFlight = false;
         let backgroundTransitionInFlight = false;
@@ -98,6 +101,13 @@ export const useGatewaySession = (
             if (refreshTimer !== null) {
                 clearTimeout(refreshTimer);
                 refreshTimer = null;
+            }
+        };
+
+        const clearReconnectTimer = () => {
+            if (reconnectTimer !== null) {
+                clearTimeout(reconnectTimer);
+                reconnectTimer = null;
             }
         };
 
@@ -127,6 +137,19 @@ export const useGatewaySession = (
             refreshTimer = setTimeout(() => {
                 refreshTimer = null;
                 void connect(true);
+            }, delay);
+        };
+
+        const scheduleReconnect = (connect: (silent?: boolean) => Promise<void>) => {
+            clearReconnectTimer();
+            if (!appActive || cancelled) {
+                return;
+            }
+            const delay = Math.min(500 * 2 ** reconnectAttempt, 10_000);
+            reconnectAttempt += 1;
+            reconnectTimer = setTimeout(() => {
+                reconnectTimer = null;
+                void connect(activeConnectionId !== null);
             }, delay);
         };
 
@@ -188,20 +211,43 @@ export const useGatewaySession = (
                 setConnectionState('Connected');
                 setSessionError(null);
                 setSessionProjection(connection.projection);
+                reconnectAttempt = 0;
+                reconnectPending = false;
+                clearReconnectTimer();
                 scheduleRefresh(connect);
             } catch (caught) {
                 if (cancelled || !appActive) {
                     return;
                 }
-                beginMobileAuthorizationEpoch(queryClient);
-                activeConnectionId = null;
-                setConnectionId(null);
-                setConnectionGatewayId(null);
-                setConnectionState('Disconnected');
+                const terminal = caught instanceof MobileSessionTerminalError;
+                const preserveVisibleConnection =
+                    !terminal &&
+                    activeConnectionId !== null &&
+                    gatewaySessionProjection(sessionGateway.id).phase === 'connected';
+                if (terminal) {
+                    beginMobileAuthorizationEpoch(queryClient);
+                }
+                if (!preserveVisibleConnection) {
+                    activeConnectionId = null;
+                    setConnectionId(null);
+                    setConnectionGatewayId(null);
+                    setConnectionState('Disconnected');
+                }
                 applyCurrentProjection();
-                setSessionError(errorMessage(caught, t('sessionFailed')));
-                if (caught instanceof MobileSessionTerminalError) {
+                if (terminal) {
+                    reconnectPending = false;
+                    setSessionError(errorMessage(caught, t('sessionFailed')));
                     clearRefreshTimer();
+                    clearReconnectTimer();
+                } else {
+                    // A transient transport failure is not an authorization
+                    // boundary. Keep already rendered data on screen and
+                    // recover the session in the background.
+                    if (!preserveVisibleConnection) {
+                        setSessionError(errorMessage(caught, t('sessionFailed')));
+                    }
+                    reconnectPending = true;
+                    scheduleReconnect(connect);
                 }
             } finally {
                 silentReplacementInFlight = false;
@@ -209,6 +255,7 @@ export const useGatewaySession = (
         };
 
         const connect = (silent = false): Promise<void> => {
+            clearReconnectTimer();
             if (connectInFlight) {
                 return connectInFlight;
             }
@@ -228,6 +275,7 @@ export const useGatewaySession = (
 
             backgroundTransitionInFlight = true;
             clearRefreshTimer();
+            clearReconnectTimer();
             void runGatewayTransportTransition(async () => {
                 try {
                     await disconnectGateway(sessionGateway.id);
@@ -267,15 +315,24 @@ export const useGatewaySession = (
                 // Control Center, the app switcher, and other short iOS
                 // interruptions are not a transport boundary.
                 clearRefreshTimer();
+                clearReconnectTimer();
             } else if (backgroundTransitionInFlight) {
                 void resumeFromBackground();
+            } else if (reconnectPending) {
+                // A short iOS interruption may have cancelled a pending
+                // reconnect while no ephemeral access credential exists.
+                void connect(activeConnectionId !== null);
             } else {
                 scheduleRefresh(connect);
             }
         });
         const networkSubscription = Network.addNetworkStateListener((state) => {
-            if (state.isConnected && appActive && activeConnectionId === null) {
-                void connect();
+            if (
+                state.isConnected &&
+                appActive &&
+                (activeConnectionId === null || reconnectPending)
+            ) {
+                void connect(activeConnectionId !== null);
             }
         });
         const unsubscribeProjection = subscribeMobileSessionProjection(
@@ -399,6 +456,7 @@ export const useGatewaySession = (
         return () => {
             cancelled = true;
             clearRefreshTimer();
+            clearReconnectTimer();
             beginMobileAuthorizationEpoch(queryClient);
             appStateSubscription.remove();
             networkSubscription.remove();
