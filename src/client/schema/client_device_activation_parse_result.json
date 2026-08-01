@@ -6,15 +6,15 @@
     "activation_code": {
       "type": "string"
     },
+    "gateway_base_url": {
+      "type": "string"
+    },
     "gateway_id": {
       "$ref": "#/$defs/GatewayId"
-    },
-    "protected_endpoint": {
-      "type": "string"
     }
   },
   "required": [
-    "protected_endpoint",
+    "gateway_base_url",
     "gateway_id",
     "activation_code"
   ],

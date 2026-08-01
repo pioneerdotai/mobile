@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ClientMemberAvatarCacheRequest",
+  "type": "object",
+  "properties": {
+    "avatar_revision": { "type": "string" },
+    "principal_id": {
+      "type": "string",
+      "minLength": 21,
+      "maxLength": 21,
+      "pattern": "^[A-Za-z0-9]{21}$"
+    }
+  },
+  "additionalProperties": false,
+  "required": ["principal_id", "avatar_revision"]
+}

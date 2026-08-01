@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ClientArtifactViewOpenResult",
+  "type": "object",
+  "properties": {
+    "expires_at": { "type": "integer", "format": "uint64", "minimum": 0 },
+    "view_url": { "type": "string" }
+  },
+  "required": ["view_url", "expires_at"]
+}

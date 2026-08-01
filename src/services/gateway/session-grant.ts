@@ -69,13 +69,13 @@ export const validateMobileSessionGrant = (
 };
 
 export const cleanupIssuedMobileSession = async (
-    address: string,
+    gateway_base_url: string,
     grant: AuthSessionGrant,
     timeoutMs: number,
 ): Promise<void> => {
     await pioneerClient
         .gatewayAuthSessionCleanup({
-            address,
+            gateway_base_url,
             access_token: grant.access_token,
             session_id: grant.session.id,
             timeout_ms: timeoutMs,

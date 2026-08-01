@@ -3,10 +3,10 @@
   "title": "PlanAddRemoteGatewayRequest",
   "type": "object",
   "properties": {
-    "address": {
+    "default_remote_name": {
       "type": "string"
     },
-    "default_remote_name": {
+    "gateway_base_url": {
       "type": "string"
     },
     "name": {
@@ -26,14 +26,14 @@
   "required": [
     "registry",
     "name",
-    "address",
+    "gateway_base_url",
     "default_remote_name"
   ],
   "$defs": {
     "GatewayEndpoint": {
       "type": "object",
       "properties": {
-        "address": {
+        "gateway_base_url": {
           "type": "string"
         },
         "id": {
@@ -79,7 +79,7 @@
       "required": [
         "id",
         "name",
-        "address",
+        "gateway_base_url",
         "kind"
       ]
     },

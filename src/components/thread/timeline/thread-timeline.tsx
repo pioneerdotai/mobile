@@ -50,6 +50,7 @@ import { defaultTimelineRowExpanded } from './row-expansion';
 import { timelineRowsAreEqual } from './timeline-row-equality';
 import { ensureTimelineRowRenderFingerprint } from '@/services/threads/conversation/render-fingerprint';
 import { VStack } from '@/components/primitives/vstack';
+import type { MobileArtifactActionState } from '@/services/artifacts/mobile-actions';
 
 export type {
     TimelineTurnWorkBoundaryHint,
@@ -77,6 +78,9 @@ type ThreadTimelineProps = {
     contentInsetEndAdjustment: SharedValue<number>;
     mcpServerIdByName: Readonly<Record<string, string>>;
     onOpenArtifact?: (artifactId: string) => void;
+    onShareArtifact?: (artifactId: string) => void;
+    onCancelArtifactDownload?: (artifactId: string, operationId: string) => void;
+    artifactActionStateById?: Readonly<Record<string, MobileArtifactActionState>>;
     onOpenMcpServer?: (serverId: string) => void;
     onOpenTaskThread?: (row: Extract<TimelineRow, { type: 'task-anchor' }>) => void;
     onExpandedKeysChange: (keys: string[]) => void;
@@ -124,6 +128,9 @@ const ThreadTimelineContent = ({
     contentInsetEndAdjustment,
     mcpServerIdByName,
     onOpenArtifact,
+    onShareArtifact,
+    onCancelArtifactDownload,
+    artifactActionStateById,
     onOpenMcpServer,
     onOpenTaskThread,
     onExpandedKeysChange,
@@ -238,6 +245,13 @@ const ThreadTimelineContent = ({
                 expanded={expandedRows[item.key] ?? defaultTimelineRowExpanded(item)}
                 mcpServerIdByName={mcpServerIdByName}
                 onOpenArtifact={onOpenArtifact}
+                onShareArtifact={onShareArtifact}
+                onCancelArtifactDownload={onCancelArtifactDownload}
+                artifactActionState={
+                    item.type === 'artifact'
+                        ? artifactActionStateById?.[item.artifactId]
+                        : undefined
+                }
                 onOpenMcpServer={onOpenMcpServer}
                 onOpenTaskThread={onOpenTaskThread}
                 onToggleExpanded={() => toggleExpandedRow(item)}
@@ -247,6 +261,9 @@ const ThreadTimelineContent = ({
             expandedRows,
             mcpServerIdByName,
             onOpenArtifact,
+            onShareArtifact,
+            onCancelArtifactDownload,
+            artifactActionStateById,
             onOpenMcpServer,
             onOpenTaskThread,
             toggleExpandedRow,
@@ -396,6 +413,9 @@ const TimelineRowContainer = ({
     expanded,
     mcpServerIdByName,
     onOpenArtifact,
+    onShareArtifact,
+    onCancelArtifactDownload,
+    artifactActionState,
     onOpenMcpServer,
     onOpenTaskThread,
     onToggleExpanded,
@@ -404,6 +424,9 @@ const TimelineRowContainer = ({
     expanded: boolean;
     mcpServerIdByName: Readonly<Record<string, string>>;
     onOpenArtifact?: (artifactId: string) => void;
+    onShareArtifact?: (artifactId: string) => void;
+    onCancelArtifactDownload?: (artifactId: string, operationId: string) => void;
+    artifactActionState?: MobileArtifactActionState;
     onOpenMcpServer?: (serverId: string) => void;
     onOpenTaskThread?: (row: Extract<TimelineRow, { type: 'task-anchor' }>) => void;
     onToggleExpanded: () => void;
@@ -415,6 +438,9 @@ const TimelineRowContainer = ({
                 expanded={expanded}
                 mcpServerIdByName={mcpServerIdByName}
                 onOpenArtifact={onOpenArtifact}
+                onShareArtifact={onShareArtifact}
+                onCancelArtifactDownload={onCancelArtifactDownload}
+                artifactActionState={artifactActionState}
                 onOpenMcpServer={onOpenMcpServer}
                 onOpenTaskThread={onOpenTaskThread}
                 onToggleExpanded={onToggleExpanded}
@@ -428,6 +454,9 @@ const TimelineRowRenderer = ({
     expanded,
     mcpServerIdByName,
     onOpenArtifact,
+    onShareArtifact,
+    onCancelArtifactDownload,
+    artifactActionState,
     onOpenMcpServer,
     onOpenTaskThread,
     onToggleExpanded,
@@ -436,6 +465,9 @@ const TimelineRowRenderer = ({
     expanded: boolean;
     mcpServerIdByName: Readonly<Record<string, string>>;
     onOpenArtifact?: (artifactId: string) => void;
+    onShareArtifact?: (artifactId: string) => void;
+    onCancelArtifactDownload?: (artifactId: string, operationId: string) => void;
+    artifactActionState?: MobileArtifactActionState;
     onOpenMcpServer?: (serverId: string) => void;
     onOpenTaskThread?: (row: Extract<TimelineRow, { type: 'task-anchor' }>) => void;
     onToggleExpanded: () => void;
@@ -478,7 +510,15 @@ const TimelineRowRenderer = ({
         case 'pending-request':
             return <PendingRequestCard entry={row.entry} />;
         case 'artifact':
-            return <ArtifactRow row={row} />;
+            return (
+                <ArtifactRow
+                    row={row}
+                    actionState={artifactActionState}
+                    onOpen={onOpenArtifact}
+                    onShare={onShareArtifact}
+                    onCancelDownload={onCancelArtifactDownload}
+                />
+            );
         case 'unknown':
             return <UnknownRow row={row} />;
     }

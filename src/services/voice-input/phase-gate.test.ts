@@ -39,7 +39,8 @@ const connect = (gatewayId: string, connectionId: number, kind: 'local' | 'remot
                     id: gatewayId,
                     kind,
                     name: `${kind} Gateway`,
-                    address: kind === 'remote' ? 'wss://gateway.example.test' : 'ws://127.0.0.1',
+                    gateway_base_url:
+                        kind === 'remote' ? 'https://gateway.example.test/' : 'http://127.0.0.1/',
                 },
             ],
         },

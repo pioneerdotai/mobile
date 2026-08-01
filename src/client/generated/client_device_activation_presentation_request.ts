@@ -6,7 +6,7 @@ export type AuthSessionId = string;
 
 export interface ClientDeviceActivationPresentationRequest {
   created_device: AuthDeviceCreateResponse;
-  protected_endpoint: string;
+  gateway_base_url: string;
 }
 export interface AuthDeviceCreateResponse {
   activation_code: string;

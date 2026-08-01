@@ -117,7 +117,7 @@ const gateway = (overrides: Partial<GatewayEndpoint> = {}): GatewayEndpoint => (
     id: 'remote-1',
     kind: 'remote',
     name: 'Gateway',
-    address: 'ws://gateway.test',
+    gateway_base_url: 'http://gateway.test/',
     server_gateway_id: 'server-gateway-1',
     service_name: null,
     session_ref: 'session-ref-1',
@@ -208,7 +208,9 @@ describe('useGatewaySession', () => {
         });
 
         await act(async () => {
-            tree!.update(<Harness endpoint={gateway({ address: 'wss://gateway.test' })} />);
+            tree!.update(
+                <Harness endpoint={gateway({ gateway_base_url: 'https://gateway.test/' })} />,
+            );
         });
 
         expect(mockDisconnectGateway).toHaveBeenCalledTimes(1);

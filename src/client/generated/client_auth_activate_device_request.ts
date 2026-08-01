@@ -3,8 +3,8 @@
 export type ClientKind = 'desktop' | 'mobile' | 'other';
 
 export interface ClientAuthDeviceActivateRequest {
-  address: string;
   credential: string;
+  gateway_base_url: string;
   params: AuthDeviceActivateParams;
   timeout_ms?: number;
 }

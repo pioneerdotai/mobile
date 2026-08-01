@@ -300,7 +300,7 @@ const refreshSession = async (
     let grant: AuthRefreshGrant | null = null;
     try {
         grant = await pioneerClient.gatewayAuthRefresh({
-            address: endpoint.address,
+            gateway_base_url: endpoint.gateway_base_url,
             credential: current.refresh_token,
             params: {
                 refresh_request_id: randomRequestId(),
@@ -328,7 +328,7 @@ const refreshSession = async (
             validateRefreshGrant(current, installationId, issuedGrant);
         } catch (error) {
             await bestEffortSessionCleanup(
-                endpoint.address,
+                endpoint.gateway_base_url,
                 issuedGrant.access_token,
                 issuedGrant.session.id,
             );
@@ -357,7 +357,7 @@ const refreshSession = async (
         };
         await prepareAccessAfterDurableEnvelope(
             endpoint.id,
-            endpoint.address,
+            endpoint.gateway_base_url,
             endpoint.session_ref ?? endpoint.id,
             next,
             access,
@@ -401,7 +401,7 @@ const resetAfterRetryableRefreshFailure = async (
 
 const prepareAccessAfterDurableEnvelope = async (
     endpointId: string,
-    address: string,
+    gateway_base_url: string,
     sessionRef: string,
     envelope: MobileGatewaySessionEnvelope,
     access: MobileSessionEphemeralAccess,
@@ -429,7 +429,7 @@ const prepareAccessAfterDurableEnvelope = async (
         if (!envelopeAlreadyDurable) {
             await persistEnvelopeOrStop(
                 endpointId,
-                address,
+                gateway_base_url,
                 sessionRef,
                 envelope,
                 access,
@@ -445,7 +445,7 @@ const prepareAccessAfterDurableEnvelope = async (
     if (!envelopeAlreadyDurable) {
         await persistEnvelopeOrStop(
             endpointId,
-            address,
+            gateway_base_url,
             sessionRef,
             envelope,
             access,
@@ -472,7 +472,7 @@ const prepareAccessAfterDurableEnvelope = async (
 
 const persistEnvelopeOrStop = async (
     endpointId: string,
-    address: string,
+    gateway_base_url: string,
     sessionRef: string,
     envelope: MobileGatewaySessionEnvelope,
     access: MobileSessionEphemeralAccess,
@@ -483,7 +483,7 @@ const persistEnvelopeOrStop = async (
         await writeMobileGatewaySession(sessionRef, envelope);
         setRuntimeEnvelope(runtime, envelope);
     } catch (error) {
-        await bestEffortSessionCleanup(address, access.accessToken, envelope.session_id);
+        await bestEffortSessionCleanup(gateway_base_url, access.accessToken, envelope.session_id);
         await stopFromLifecycle(
             endpointId,
             { kind: 'secure_storage_failed', data: { intent_id: intentId } },
@@ -509,13 +509,13 @@ const resetAfterDurableLifecycleFailure = async (
 };
 
 const bestEffortSessionCleanup = async (
-    address: string,
+    gateway_base_url: string,
     accessToken: string,
     sessionId: string,
 ): Promise<void> => {
     await pioneerClient
         .gatewayAuthSessionCleanup({
-            address,
+            gateway_base_url,
             access_token: accessToken,
             session_id: sessionId,
         })

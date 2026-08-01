@@ -4,6 +4,7 @@ export interface PioneerClient extends HybridObject<{ ios: 'c++'; android: 'c++'
     versionJson(): string;
     initializeJson(configJson: string): string;
     diagnosticsDrainJson(): string;
+    gatewayLoadRegistryV3Json(inputJson: string): string;
     gatewayValidateRemoteJson(inputJson: string): Promise<string>;
     gatewayPlanAddRemoteJson(inputJson: string): Promise<string>;
     gatewayPlanAddAndActivateRemoteRegistryJson(inputJson: string): Promise<string>;
@@ -34,7 +35,7 @@ export interface PioneerClient extends HybridObject<{ ios: 'c++'; android: 'c++'
     invitationListJson(inputJson: string): Promise<string>;
     invitationRevokeJson(inputJson: string): Promise<string>;
     memberListJson(inputJson: string): Promise<string>;
-    memberAvatarGetJson(inputJson: string): Promise<string>;
+    memberAvatarCacheJson(inputJson: string): Promise<string>;
     memberSuspendJson(inputJson: string): Promise<string>;
     memberRestoreJson(inputJson: string): Promise<string>;
     memberRemoveJson(inputJson: string): Promise<string>;
@@ -47,6 +48,10 @@ export interface PioneerClient extends HybridObject<{ ios: 'c++'; android: 'c++'
     gatewaySettingsUpdateJson(inputJson: string): Promise<string>;
     gatewayNextEventsJson(): Promise<string>;
     gatewayDisconnectJson(): Promise<string>;
+    artifactViewOpenJson(inputJson: string): Promise<string>;
+    artifactDownloadJson(inputJson: string): Promise<string>;
+    artifactDownloadProgressJson(inputJson: string): Promise<string>;
+    artifactDownloadCancelJson(inputJson: string): Promise<string>;
     workspaceBootstrapJson(inputJson: string): Promise<string>;
     workspaceSwitchJson(inputJson: string): Promise<string>;
     workspaceCreateJson(inputJson: string): Promise<string>;

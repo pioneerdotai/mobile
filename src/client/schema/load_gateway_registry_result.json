@@ -1,0 +1,168 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LoadGatewayRegistryResult",
+  "oneOf": [
+    {
+      "type": "object",
+      "properties": {
+        "registry": {
+          "$ref": "#/$defs/GatewayRegistry"
+        },
+        "state": {
+          "type": "string",
+          "const": "current"
+        }
+      },
+      "required": [
+        "state",
+        "registry"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "registry": {
+          "$ref": "#/$defs/GatewayRegistry"
+        },
+        "state": {
+          "type": "string",
+          "const": "migrated"
+        }
+      },
+      "required": [
+        "state",
+        "registry"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "endpoint_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "state": {
+          "type": "string",
+          "const": "reconfiguration_required"
+        }
+      },
+      "required": [
+        "state",
+        "endpoint_ids"
+      ]
+    }
+  ],
+  "$defs": {
+    "GatewayEndpoint": {
+      "type": "object",
+      "properties": {
+        "gateway_base_url": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/GatewayEndpointKind"
+        },
+        "name": {
+          "type": "string"
+        },
+        "server_gateway_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/GatewayId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "service_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "session_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "workspace_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "gateway_base_url",
+        "kind"
+      ]
+    },
+    "GatewayEndpointKind": {
+      "type": "string",
+      "enum": [
+        "local",
+        "remote"
+      ]
+    },
+    "GatewayId": {
+      "type": "string",
+      "maxLength": 21,
+      "minLength": 21,
+      "pattern": "^[A-Za-z0-9]{21}$"
+    },
+    "GatewayRegistry": {
+      "type": "object",
+      "properties": {
+        "active_gateway_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "installation_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "local": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/GatewayEndpoint"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "remotes": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/GatewayEndpoint"
+          }
+        },
+        "version": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "version"
+      ]
+    }
+  }
+}

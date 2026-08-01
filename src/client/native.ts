@@ -13,6 +13,13 @@ import type { AuthSessionRevokeParams } from './generated/auth_session_revoke_pa
 import type { AuthSessionRevokeResponse } from './generated/auth_session_revoke_response';
 import type { AddRemoteGatewayPlan } from './generated/add_remote_gateway_plan';
 import type { AddAndActivateRemoteGatewayRegistryPlan } from './generated/add_and_activate_remote_gateway_registry_plan';
+import type { ClientArtifactDownloadCancelResult } from './generated/client_artifact_download_cancel_result';
+import type { ClientArtifactDownloadOperationRequest } from './generated/client_artifact_download_operation_request';
+import type { ClientArtifactDownloadProgressResult } from './generated/client_artifact_download_progress_result';
+import type { ClientArtifactDownloadRequest } from './generated/client_artifact_download_request';
+import type { ClientArtifactDownloadResult } from './generated/client_artifact_download_result';
+import type { ClientArtifactTargetRequest } from './generated/client_artifact_target_request';
+import type { ClientArtifactViewOpenResult } from './generated/client_artifact_view_open_result';
 import type { ClientActiveThreadCancelTurnRequest } from './generated/client_active_thread_cancel_turn_request';
 import type { ClientActiveThreadCancelTurnResult } from './generated/client_active_thread_cancel_turn_result';
 import type { ClientActiveThreadClearResult } from './generated/client_active_thread_clear_result';
@@ -111,6 +118,8 @@ import type { ComposerSkillPickerProjection } from './generated/composer_skill_p
 import type { ComposerSkillSelectionReduction } from './generated/composer_skill_selection_reduction';
 import type { ComposerSubmissionPlan } from './generated/composer_submission_plan';
 import type { DeleteRemoteGatewayRegistryPlan } from './generated/delete_remote_gateway_registry_plan';
+import type { LoadGatewayRegistryRequest } from './generated/load_gateway_registry_request';
+import type { LoadGatewayRegistryResult } from './generated/load_gateway_registry_result';
 import type { GatewaySettingsGetResponse } from './generated/gateway_settings_get_response';
 import type { GatewaySettingsUpdateResponse } from './generated/gateway_settings_update_response';
 import type { InvitationCreateParams } from './generated/invitation_create_params';
@@ -120,8 +129,8 @@ import type { InvitationListResponse } from './generated/invitation_list_respons
 import type { InvitationPreviewResponse } from './generated/invitation_preview_response';
 import type { InvitationRevokeParams } from './generated/invitation_revoke_params';
 import type { InvitationRevokeResponse } from './generated/invitation_revoke_response';
-import type { MemberAvatarGetParams } from './generated/member_avatar_get_params';
-import type { MemberAvatarGetResponse } from './generated/member_avatar_get_response';
+import type { ClientMemberAvatarCacheRequest } from './generated/client_member_avatar_cache_request';
+import type { ClientMemberAvatarCacheResult } from './generated/client_member_avatar_cache_result';
 import type { MemberDeviceCreateParams } from './generated/member_device_create_params';
 import type { MemberDeviceCreateResponse } from './generated/member_device_create_response';
 import type { MemberListParams } from './generated/member_list_params';
@@ -205,6 +214,14 @@ export type { AuthSessionRevokeParams } from './generated/auth_session_revoke_pa
 export type { AuthSessionRevokeResponse } from './generated/auth_session_revoke_response';
 export type { AddRemoteGatewayPlan } from './generated/add_remote_gateway_plan';
 export type { AddAndActivateRemoteGatewayRegistryPlan } from './generated/add_and_activate_remote_gateway_registry_plan';
+export type { ClientArtifactDownloadCancelResult } from './generated/client_artifact_download_cancel_result';
+export type { ClientArtifactDownloadOperationRequest } from './generated/client_artifact_download_operation_request';
+export type { ClientArtifactDownloadProgressResult } from './generated/client_artifact_download_progress_result';
+export type { ClientArtifactDownloadRequest } from './generated/client_artifact_download_request';
+export type { ClientArtifactDownloadResult } from './generated/client_artifact_download_result';
+export type { ClientArtifactDownloadState } from './generated/client_artifact_download_state';
+export type { ClientArtifactTargetRequest } from './generated/client_artifact_target_request';
+export type { ClientArtifactViewOpenResult } from './generated/client_artifact_view_open_result';
 export type { ClientActiveThreadCancelTurnRequest } from './generated/client_active_thread_cancel_turn_request';
 export type { ClientActiveThreadCancelTurnResult } from './generated/client_active_thread_cancel_turn_result';
 export type { ClientActiveThreadClearResult } from './generated/client_active_thread_clear_result';
@@ -312,6 +329,8 @@ export type {
 } from './generated/composer_permission_mode_option';
 export type { ClientGatewayWsTimings } from './generated/client_gateway_ws_timings';
 export type { DeleteRemoteGatewayRegistryPlan } from './generated/delete_remote_gateway_registry_plan';
+export type { LoadGatewayRegistryRequest } from './generated/load_gateway_registry_request';
+export type { LoadGatewayRegistryResult } from './generated/load_gateway_registry_result';
 export type { GatewayConnectionState } from './generated/gateway_connection_state';
 export type { GatewayEndpoint } from './generated/gateway_endpoint';
 export type { GatewayEndpointKind } from './generated/gateway_endpoint_kind';
@@ -377,8 +396,8 @@ export type { InvitationListResponse } from './generated/invitation_list_respons
 export type { InvitationPreviewResponse } from './generated/invitation_preview_response';
 export type { InvitationRevokeParams } from './generated/invitation_revoke_params';
 export type { InvitationRevokeResponse } from './generated/invitation_revoke_response';
-export type { MemberAvatarGetParams } from './generated/member_avatar_get_params';
-export type { MemberAvatarGetResponse } from './generated/member_avatar_get_response';
+export type { ClientMemberAvatarCacheRequest } from './generated/client_member_avatar_cache_request';
+export type { ClientMemberAvatarCacheResult } from './generated/client_member_avatar_cache_result';
 export type { MemberDeviceCreateParams } from './generated/member_device_create_params';
 export type { MemberDeviceCreateResponse } from './generated/member_device_create_response';
 export type { MemberListParams } from './generated/member_list_params';
@@ -515,6 +534,12 @@ export const pioneerClient = {
     diagnosticsDrain(): ClientDiagnosticEvent[] {
         return parsePioneerClientResponse<ClientDiagnosticEvent[]>(
             getPioneerClientNitro().diagnosticsDrainJson(),
+        );
+    },
+
+    gatewayLoadRegistryV3(input: LoadGatewayRegistryRequest): LoadGatewayRegistryResult {
+        return parsePioneerClientResponse<LoadGatewayRegistryResult>(
+            getPioneerClientNitro().gatewayLoadRegistryV3Json(JSON.stringify(input)),
         );
     },
 
@@ -700,9 +725,11 @@ export const pioneerClient = {
         );
     },
 
-    async memberAvatarGet(input: MemberAvatarGetParams): Promise<MemberAvatarGetResponse> {
-        return parsePioneerClientResponse<MemberAvatarGetResponse>(
-            await getPioneerClientNitro().memberAvatarGetJson(JSON.stringify(input)),
+    async memberAvatarCache(
+        input: ClientMemberAvatarCacheRequest,
+    ): Promise<ClientMemberAvatarCacheResult> {
+        return parsePioneerClientResponse<ClientMemberAvatarCacheResult>(
+            await getPioneerClientNitro().memberAvatarCacheJson(JSON.stringify(input)),
         );
     },
 
@@ -842,6 +869,38 @@ export const pioneerClient = {
         );
 
         return result.disconnected;
+    },
+
+    async artifactViewOpen(
+        input: ClientArtifactTargetRequest,
+    ): Promise<ClientArtifactViewOpenResult> {
+        return parsePioneerClientResponse<ClientArtifactViewOpenResult>(
+            await getPioneerClientNitro().artifactViewOpenJson(JSON.stringify(input)),
+        );
+    },
+
+    async artifactDownload(
+        input: ClientArtifactDownloadRequest,
+    ): Promise<ClientArtifactDownloadResult> {
+        return parsePioneerClientResponse<ClientArtifactDownloadResult>(
+            await getPioneerClientNitro().artifactDownloadJson(JSON.stringify(input)),
+        );
+    },
+
+    async artifactDownloadProgress(
+        input: ClientArtifactDownloadOperationRequest,
+    ): Promise<ClientArtifactDownloadProgressResult> {
+        return parsePioneerClientResponse<ClientArtifactDownloadProgressResult>(
+            await getPioneerClientNitro().artifactDownloadProgressJson(JSON.stringify(input)),
+        );
+    },
+
+    async artifactDownloadCancel(
+        input: ClientArtifactDownloadOperationRequest,
+    ): Promise<ClientArtifactDownloadCancelResult> {
+        return parsePioneerClientResponse<ClientArtifactDownloadCancelResult>(
+            await getPioneerClientNitro().artifactDownloadCancelJson(JSON.stringify(input)),
+        );
     },
 
     async workspaceBootstrap(

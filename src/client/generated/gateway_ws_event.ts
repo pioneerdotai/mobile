@@ -12,10 +12,10 @@ export type GatewayWsEvent =
     }
   | {
       Connected: {
-        address: string;
         connection_id: number;
         endpoint_id: string;
         endpoint_name: string;
+        gateway_base_url: string;
         [k: string]: unknown;
       };
     }
@@ -32,23 +32,23 @@ export type GatewayWsEvent =
     }
   | {
       Disconnected: {
-        address: string;
         connection_id: number;
         endpoint_id: string;
         endpoint_kind: GatewayEndpointKind;
         endpoint_name: string;
+        gateway_base_url: string;
         reason: string;
         [k: string]: unknown;
       };
     }
   | {
       ConnectFailed: {
-        address: string;
         connection_id: number;
         endpoint_id: string;
         endpoint_kind: GatewayEndpointKind;
         endpoint_name: string;
         error: string;
+        gateway_base_url: string;
         [k: string]: unknown;
       };
     }
@@ -334,11 +334,6 @@ export type GatewayNotification =
   | {
       kind: 'artifact_upload_progress';
       params: ArtifactUploadProgressNotification;
-      [k: string]: unknown;
-    }
-  | {
-      kind: 'artifact_download_progress';
-      params: ArtifactDownloadProgressNotification;
       [k: string]: unknown;
     }
   | {
@@ -2597,14 +2592,6 @@ export interface ArtifactUploadProgressNotification {
   received_bytes: number;
   total_size_bytes: number;
   upload_id: string;
-  workspace_id: string;
-  [k: string]: unknown;
-}
-export interface ArtifactDownloadProgressNotification {
-  artifact_id: string;
-  download_id: string;
-  received_bytes: number;
-  total_size_bytes: number;
   workspace_id: string;
   [k: string]: unknown;
 }

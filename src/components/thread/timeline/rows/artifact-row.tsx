@@ -1,8 +1,11 @@
-import { Download, Eye, FileText } from 'lucide-react-native';
+import { Download, Eye, FileText, X } from 'lucide-react-native';
+import { Pressable } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 
 import type { TimelineRow } from '@/services/threads/conversation/timeline';
+import type { MobileArtifactActionState } from '@/services/artifacts/mobile-actions';
 
 import { Box } from '@/components/primitives/box';
 import { HStack } from '@/components/primitives/hstack';
@@ -12,9 +15,19 @@ import { HeaderText, StatusPill, TimelineCard, useToneColor, toneFromStatus } fr
 
 type ArtifactRowProps = {
     row: Extract<TimelineRow, { type: 'artifact' }>;
+    actionState?: MobileArtifactActionState;
+    onOpen?: (artifactId: string) => void;
+    onShare?: (artifactId: string) => void;
+    onCancelDownload?: (artifactId: string, operationId: string) => void;
 };
 
-export const ArtifactRow = ({ row }: ArtifactRowProps) => {
+export const ArtifactRow = ({
+    row,
+    actionState = { kind: 'idle' },
+    onOpen,
+    onShare,
+    onCancelDownload,
+}: ArtifactRowProps) => {
     const { theme } = useUnistyles();
     const { t } = useTranslation('threads');
 
@@ -23,6 +36,8 @@ export const ArtifactRow = ({ row }: ArtifactRowProps) => {
     const iconSize = theme.space(4);
     const actionIconSize = theme.space(3.75);
     const actionIconColor = theme.colors.textMuted;
+    const busy = ['opening', 'downloading', 'sharing'].includes(actionState.kind);
+    const actionLabel = artifactActionLabel(actionState, t);
 
     return (
         <TimelineCard tone={tone}>
@@ -32,16 +47,51 @@ export const ArtifactRow = ({ row }: ArtifactRowProps) => {
                 <StatusPill status={row.status} tone={tone} />
             </HStack>
             <HStack style={styles.footer}>
-                <Text numberOfLines={1} style={styles.artifactId}>
-                    {row.artifactId}
-                </Text>
+                <Box style={styles.artifactStatus}>
+                    <Text numberOfLines={1} style={styles.artifactId}>
+                        {row.artifactId}
+                    </Text>
+                    {actionLabel ? (
+                        <Text numberOfLines={1} style={styles.actionStatus}>
+                            {actionLabel}
+                        </Text>
+                    ) : null}
+                </Box>
                 <HStack style={styles.actions}>
-                    <Box style={styles.actionIcon}>
+                    <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={t('artifacts:open')}
+                        disabled={busy || !onOpen}
+                        onPress={() => onOpen?.(row.artifactId)}
+                        style={[styles.actionIcon, (busy || !onOpen) && styles.actionIconDisabled]}
+                    >
                         <Eye size={actionIconSize} color={actionIconColor} />
-                    </Box>
-                    <Box style={styles.actionIcon}>
-                        <Download size={actionIconSize} color={actionIconColor} />
-                    </Box>
+                    </Pressable>
+                    {actionState.kind === 'downloading' ? (
+                        <Pressable
+                            accessibilityRole="button"
+                            accessibilityLabel={t('artifacts:cancel')}
+                            onPress={() =>
+                                onCancelDownload?.(row.artifactId, actionState.operationId)
+                            }
+                            style={styles.actionIcon}
+                        >
+                            <X size={actionIconSize} color={actionIconColor} />
+                        </Pressable>
+                    ) : (
+                        <Pressable
+                            accessibilityRole="button"
+                            accessibilityLabel={t('artifacts:downloadAndShare')}
+                            disabled={busy || !onShare}
+                            onPress={() => onShare?.(row.artifactId)}
+                            style={[
+                                styles.actionIcon,
+                                (busy || !onShare) && styles.actionIconDisabled,
+                            ]}
+                        >
+                            <Download size={actionIconSize} color={actionIconColor} />
+                        </Pressable>
+                    )}
                 </HStack>
             </HStack>
         </TimelineCard>
@@ -59,7 +109,15 @@ const styles = StyleSheet.create((theme) => ({
         gap: theme.space(3),
     },
     artifactId: {
+        color: theme.colors.textMuted,
+        fontSize: theme.fontSize.xs.fontSize,
+        lineHeight: theme.fontSize.xs.lineHeight,
+    },
+    artifactStatus: {
         flex: 1,
+        gap: theme.space(0.5),
+    },
+    actionStatus: {
         color: theme.colors.textMuted,
         fontSize: theme.fontSize.xs.fontSize,
         lineHeight: theme.fontSize.xs.lineHeight,
@@ -78,4 +136,27 @@ const styles = StyleSheet.create((theme) => ({
         backgroundColor: theme.colors.surface,
         opacity: 0.72,
     },
+    actionIconDisabled: {
+        opacity: 0.35,
+    },
 }));
+
+const artifactActionLabel = (state: MobileArtifactActionState, t: TFunction): string | null => {
+    switch (state.kind) {
+        case 'idle':
+            return null;
+        case 'opening':
+            return t('artifacts:opening');
+        case 'downloading': {
+            const percent =
+                state.totalBytes > 0
+                    ? Math.min(100, Math.floor((state.downloadedBytes * 100) / state.totalBytes))
+                    : 0;
+            return t('artifacts:downloading', { percent });
+        }
+        case 'sharing':
+            return t('artifacts:sharing');
+        case 'failed':
+            return t(`artifacts:actionErrors.${state.code}`);
+    }
+};

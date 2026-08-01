@@ -189,7 +189,9 @@ const GatewaySwitcherSheet = () => {
                                     />
                                     <VStack style={styles.gatewayNameContainer}>
                                         <Text style={styles.gatewayName}>{gateway.name}</Text>
-                                        <Text style={styles.gatewayAddress}>{gateway.address}</Text>
+                                        <Text style={styles.gatewayAddress}>
+                                            {gateway.gateway_base_url}
+                                        </Text>
                                     </VStack>
 
                                     <HStack style={styles.gatewayActions}>

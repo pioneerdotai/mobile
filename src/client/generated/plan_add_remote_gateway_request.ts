@@ -4,8 +4,8 @@ export type GatewayEndpointKind = 'local' | 'remote';
 export type GatewayId = string;
 
 export interface PlanAddRemoteGatewayRequest {
-  address: string;
   default_remote_name: string;
+  gateway_base_url: string;
   name: string;
   new_endpoint_id?: string | null;
   registry: GatewayRegistry;
@@ -18,7 +18,7 @@ export interface GatewayRegistry {
   version: number;
 }
 export interface GatewayEndpoint {
-  address: string;
+  gateway_base_url: string;
   id: string;
   kind: GatewayEndpointKind;
   name: string;

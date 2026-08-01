@@ -40,6 +40,7 @@ public:
   std::string versionJson() override;
   std::string initializeJson(const std::string& configJson) override;
   std::string diagnosticsDrainJson() override;
+  std::string gatewayLoadRegistryV3Json(const std::string& inputJson) override;
   std::shared_ptr<margelo::nitro::Promise<std::string>> gatewayValidateRemoteJson(
       const std::string& inputJson) override;
   std::shared_ptr<margelo::nitro::Promise<std::string>> gatewayPlanAddRemoteJson(
@@ -100,7 +101,7 @@ public:
       const std::string& inputJson) override;
   std::shared_ptr<margelo::nitro::Promise<std::string>> memberListJson(
       const std::string& inputJson) override;
-  std::shared_ptr<margelo::nitro::Promise<std::string>> memberAvatarGetJson(
+  std::shared_ptr<margelo::nitro::Promise<std::string>> memberAvatarCacheJson(
       const std::string& inputJson) override;
   std::shared_ptr<margelo::nitro::Promise<std::string>> memberSuspendJson(
       const std::string& inputJson) override;
@@ -124,6 +125,14 @@ public:
       const std::string& inputJson) override;
   std::shared_ptr<margelo::nitro::Promise<std::string>> gatewayNextEventsJson() override;
   std::shared_ptr<margelo::nitro::Promise<std::string>> gatewayDisconnectJson() override;
+  std::shared_ptr<margelo::nitro::Promise<std::string>> artifactViewOpenJson(
+      const std::string& inputJson) override;
+  std::shared_ptr<margelo::nitro::Promise<std::string>> artifactDownloadJson(
+      const std::string& inputJson) override;
+  std::shared_ptr<margelo::nitro::Promise<std::string>> artifactDownloadProgressJson(
+      const std::string& inputJson) override;
+  std::shared_ptr<margelo::nitro::Promise<std::string>> artifactDownloadCancelJson(
+      const std::string& inputJson) override;
   std::shared_ptr<margelo::nitro::Promise<std::string>> workspaceBootstrapJson(
       const std::string& inputJson) override;
   std::shared_ptr<margelo::nitro::Promise<std::string>> workspaceSwitchJson(

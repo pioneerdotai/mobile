@@ -4,6 +4,7 @@ import { useShallow } from 'zustand/react/shallow';
 import type { GatewayEndpoint, RemoteGatewayValidation } from '@/client';
 import {
     GatewayOperationError,
+    GatewayRegistryReconfigurationRequired,
     activateRemoteGateway,
     deleteRemoteGateway,
     prepareRemoteGatewayAddition,
@@ -58,6 +59,8 @@ export const useGateway = () => {
         bootstrapped,
         busy,
         error,
+        gatewayTransportSecurity,
+        registryReconfigurationEndpointIds,
         connectionId,
         connectionState,
         sessionRevision,
@@ -65,6 +68,8 @@ export const useGateway = () => {
         setBootstrapped,
         setBusy,
         setError,
+        setGatewayTransportSecurity,
+        setRegistryReconfigurationEndpointIds,
         bumpSessionRevision,
         clearError,
     } = useGatewayStore(
@@ -73,6 +78,8 @@ export const useGateway = () => {
             bootstrapped: state.bootstrapped,
             busy: state.busy,
             error: state.error,
+            gatewayTransportSecurity: state.gatewayTransportSecurity,
+            registryReconfigurationEndpointIds: state.registryReconfigurationEndpointIds,
             connectionId: state.connectionId,
             connectionState: state.connectionState,
             sessionRevision: state.sessionRevision,
@@ -80,34 +87,48 @@ export const useGateway = () => {
             setBootstrapped: state.setBootstrapped,
             setBusy: state.setBusy,
             setError: state.setError,
+            setGatewayTransportSecurity: state.setGatewayTransportSecurity,
+            setRegistryReconfigurationEndpointIds: state.setRegistryReconfigurationEndpointIds,
             bumpSessionRevision: state.bumpSessionRevision,
             clearError: state.clearError,
         })),
     );
 
     const hydrate = useCallback(async (): Promise<void> => {
-        const nextRegistry = await recoverPendingMobileDeviceActivationCommits();
-        setRegistry(nextRegistry);
-        setBootstrapped(true);
-        setError(null);
-    }, [setBootstrapped, setError, setRegistry]);
+        try {
+            const nextRegistry = await recoverPendingMobileDeviceActivationCommits();
+            setRegistry(nextRegistry);
+            setRegistryReconfigurationEndpointIds(null);
+            setBootstrapped(true);
+            setError(null);
+        } catch (error) {
+            if (!(error instanceof GatewayRegistryReconfigurationRequired)) {
+                throw error;
+            }
+            setRegistryReconfigurationEndpointIds(error.endpointIds);
+            setBootstrapped(true);
+            setError('invalidAddress');
+        }
+    }, [setBootstrapped, setError, setRegistry, setRegistryReconfigurationEndpointIds]);
 
     const validateRemote = useCallback(
-        async (address: string): Promise<RemoteGatewayValidation> => {
+        async (gateway_base_url: string): Promise<RemoteGatewayValidation> => {
             setBusy(true);
             setError(null);
             try {
-                const validation = await validateRemoteGateway(address);
+                const validation = await validateRemoteGateway(gateway_base_url);
+                setGatewayTransportSecurity(validation.transport_security);
                 setBusy(false);
                 return validation;
             } catch (caught) {
                 const error = normalizeGatewayError(caught);
                 setBusy(false);
                 setError(error.code);
+                setGatewayTransportSecurity(null);
                 throw error;
             }
         },
-        [setBusy, setError],
+        [setBusy, setError, setGatewayTransportSecurity],
     );
 
     const addRemote = useCallback(
@@ -120,13 +141,15 @@ export const useGateway = () => {
             setBusy(true);
             setError(null);
             try {
-                const plan = await prepareRemoteGatewayAddition({
+                const prepared = await prepareRemoteGatewayAddition({
                     name: input.name,
-                    address: input.address,
+                    gateway_base_url: input.gateway_base_url,
                 });
+                const { plan } = prepared;
+                setGatewayTransportSecurity(prepared.validation.transport_security);
                 const provisioned = await acceptMobileDeviceActivation(
                     {
-                        protected_endpoint: plan.endpoint.address,
+                        gateway_base_url: plan.endpoint.gateway_base_url,
                         activation_code: input.activationCode,
                         gateway_id: input.activationGatewayId,
                     },
@@ -149,7 +172,14 @@ export const useGateway = () => {
                 throw error;
             }
         },
-        [bumpSessionRevision, clearActiveThreadSession, setBusy, setError, setRegistry],
+        [
+            bumpSessionRevision,
+            clearActiveThreadSession,
+            setBusy,
+            setError,
+            setGatewayTransportSecurity,
+            setRegistry,
+        ],
     );
 
     const activateRemote = useCallback(
@@ -190,7 +220,7 @@ export const useGateway = () => {
                 }
                 const provisioned = await acceptMobileDeviceActivation(
                     {
-                        protected_endpoint: endpoint.address,
+                        gateway_base_url: endpoint.gateway_base_url,
                         activation_code: activationCode,
                     },
                     {
@@ -220,9 +250,13 @@ export const useGateway = () => {
             try {
                 const activeGatewayWasEdited =
                     useGatewayStore.getState().registry.active_gateway_id === input.gatewayId;
-                const plan = await updateRemoteGateway(input);
+                const prepared = await updateRemoteGateway(input);
+                const { plan } = prepared;
+                if (prepared.validation) {
+                    setGatewayTransportSecurity(prepared.validation.transport_security);
+                }
                 const connectionFieldsChanged =
-                    plan.endpoint.address !== plan.previous_endpoint.address;
+                    plan.endpoint.gateway_base_url !== plan.previous_endpoint.gateway_base_url;
                 if (activeGatewayWasEdited && connectionFieldsChanged) {
                     await clearActiveThreadSession();
                 }
@@ -237,7 +271,7 @@ export const useGateway = () => {
                 throw error;
             }
         },
-        [clearActiveThreadSession, setBusy, setError, setRegistry],
+        [clearActiveThreadSession, setBusy, setError, setGatewayTransportSecurity, setRegistry],
     );
 
     const deleteRemote = useCallback(
@@ -269,6 +303,8 @@ export const useGateway = () => {
         bootstrapped,
         busy,
         error,
+        gatewayTransportSecurity,
+        registryReconfigurationEndpointIds,
         connectionId,
         connectionState,
         sessionRevision,

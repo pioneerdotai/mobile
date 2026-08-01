@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ClientArtifactDownloadCancelResult",
+  "type": "object",
+  "properties": {
+    "cancelled": { "type": "boolean" },
+    "operation_id": { "type": "string" }
+  },
+  "required": ["operation_id", "cancelled"]
+}

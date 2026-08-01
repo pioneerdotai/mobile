@@ -34,7 +34,7 @@ jest.mock('@/services/gateway/registry', () => ({
         installation_id: 'installation-test',
         local: null,
         remotes: [],
-        version: 2,
+        version: 3,
     }),
 }));
 

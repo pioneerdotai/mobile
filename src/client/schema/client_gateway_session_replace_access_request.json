@@ -104,7 +104,7 @@
     "GatewayEndpoint": {
       "type": "object",
       "properties": {
-        "address": {
+        "gateway_base_url": {
           "type": "string"
         },
         "id": {
@@ -150,7 +150,7 @@
       "required": [
         "id",
         "name",
-        "address",
+        "gateway_base_url",
         "kind"
       ]
     },

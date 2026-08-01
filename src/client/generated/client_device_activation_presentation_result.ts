@@ -8,9 +8,9 @@ export interface ClientDeviceActivationPresentationResult {
   deep_link: string;
   device_id: DeviceId;
   expires_at_unix: number;
+  gateway_base_url: string;
   gateway_id: GatewayId;
   manual_code: string;
-  protected_endpoint: string;
   qr_modules: boolean[];
   qr_width: number;
   session_id: AuthSessionId;

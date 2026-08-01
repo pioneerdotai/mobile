@@ -4,7 +4,7 @@ export type AuthSessionId = string;
 
 export interface ClientAuthSessionCleanupRequest {
   access_token: string;
-  address: string;
+  gateway_base_url: string;
   session_id: AuthSessionId;
   timeout_ms?: number;
 }

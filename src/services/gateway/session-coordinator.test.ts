@@ -85,7 +85,7 @@ const mockWriteMobileGatewaySession = jest.mocked(writeMobileGatewaySession);
 const endpoint: GatewayEndpoint = {
     id: 'remote-1',
     name: 'Remote',
-    address: 'wss://gateway.example/ws',
+    gateway_base_url: 'https://gateway.example/',
     kind: 'remote',
     session_ref: 'mobile-session-1',
     server_gateway_id: 'G00000000000000000001',

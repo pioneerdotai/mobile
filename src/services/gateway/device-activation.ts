@@ -37,7 +37,7 @@ const DEVICE_ACTIVATION_COMMIT_STORAGE_PREFIX = 'pioneer.gateway.device-activati
 const PENDING_DEVICE_ACTIVATION_ENDPOINT_KEYS = new Set([
     'id',
     'name',
-    'address',
+    'gateway_base_url',
     'kind',
     'session_ref',
     'server_gateway_id',
@@ -84,7 +84,7 @@ export class MobileDeviceActivationError extends Error {
 }
 
 export type MobileDeviceActivationInput = {
-    protected_endpoint: string;
+    gateway_base_url: string;
     activation_code: string;
     gateway_id?: string | null;
 };
@@ -127,7 +127,7 @@ export const createMobileDeviceActivationPresentation = async (
 ): Promise<ClientDeviceActivationPresentationResult> => {
     const createdDevice = await pioneerClient.gatewayAuthDeviceCreate();
     return pioneerClient.gatewayDeviceActivationPresentation({
-        protected_endpoint: endpoint.address,
+        gateway_base_url: endpoint.gateway_base_url,
         created_device: createdDevice,
     });
 };
@@ -150,7 +150,7 @@ export const acceptMobileDeviceActivation = async (
     if (!installationId) {
         throw new MobileDeviceActivationError('storage_failed');
     }
-    const addressEndpoint = endpointForActivationAddress(registry, activation.protected_endpoint);
+    const addressEndpoint = endpointForActivationAddress(registry, activation.gateway_base_url);
     let expectedGatewayId =
         normalizedGatewayId(activation.gateway_id) ?? normalizedGatewayId(options.pinnedGatewayId);
     if (addressEndpoint?.server_gateway_id) {
@@ -161,7 +161,7 @@ export const acceptMobileDeviceActivation = async (
     }
 
     let binding: DeviceActivationBinding | null = expectedGatewayId
-        ? deviceActivationBinding(registry, expectedGatewayId, activation.protected_endpoint)
+        ? deviceActivationBinding(registry, expectedGatewayId, activation.gateway_base_url)
         : null;
     let storedEnvelope: MobileGatewaySessionEnvelope | null = null;
     let pendingCommit: PendingDeviceActivationCommit | null = null;
@@ -181,7 +181,7 @@ export const acceptMobileDeviceActivation = async (
             pendingCommit,
             storedEnvelope,
             installationId,
-            activation.protected_endpoint,
+            activation.gateway_base_url,
         );
         if (recovered) {
             return recovered;
@@ -197,7 +197,7 @@ export const acceptMobileDeviceActivation = async (
     let grant: AuthSessionGrant | null = null;
     try {
         grant = await pioneerClient.gatewayAuthDeviceActivate({
-            address: activation.protected_endpoint,
+            gateway_base_url: activation.gateway_base_url,
             credential: activationCode,
             params: {
                 installation: mobileAuthInstallation(installationId),
@@ -214,7 +214,7 @@ export const acceptMobileDeviceActivation = async (
     try {
         validateMobileSessionGrant(grant, installationId, expectedGatewayId);
     } catch (error) {
-        await cleanupDeviceActivationSession(activation.protected_endpoint, grant);
+        await cleanupDeviceActivationSession(activation.gateway_base_url, grant);
         if (expectedGatewayId) {
             clearPendingDeviceActivationCommitBestEffort(expectedGatewayId);
         }
@@ -223,7 +223,7 @@ export const acceptMobileDeviceActivation = async (
     }
 
     const gatewayId = grant.gateway.id;
-    binding = deviceActivationBinding(registry, gatewayId, activation.protected_endpoint);
+    binding = deviceActivationBinding(registry, gatewayId, activation.gateway_base_url);
     if (!pendingCommit || pendingCommit.gateway_id !== gatewayId) {
         try {
             storedEnvelope = await readMobileGatewaySession(binding.sessionRef);
@@ -233,7 +233,7 @@ export const acceptMobileDeviceActivation = async (
             pendingCommit = pendingCommitForBinding(binding, storedEnvelope);
             writePendingDeviceActivationCommit(pendingCommit);
         } catch (error) {
-            await cleanupDeviceActivationSession(activation.protected_endpoint, grant);
+            await cleanupDeviceActivationSession(activation.gateway_base_url, grant);
             clearPendingDeviceActivationCommitBestEffort(gatewayId);
             redactMobileSessionGrant(grant);
             if (error instanceof MobileDeviceActivationError) {
@@ -271,7 +271,7 @@ export const acceptMobileDeviceActivation = async (
             return { endpoint: binding.endpoint, registry: nextRegistry };
         }
         if (grant && !sessionDurable) {
-            await cleanupDeviceActivationSession(activation.protected_endpoint, grant);
+            await cleanupDeviceActivationSession(activation.gateway_base_url, grant);
             clearPendingDeviceActivationCommitBestEffort(gatewayId);
         }
         redactMobileSessionGrant(grant);
@@ -319,8 +319,8 @@ export const recoverPendingMobileDeviceActivationCommits = async (): Promise<Gat
         const existing = findGatewayEndpoint(registry, pending.endpoint_id);
         if (
             existing &&
-            (canonicalEndpointKey(existing.address) !==
-                canonicalEndpointKey(pending.endpoint.address) ||
+            (canonicalGatewayBaseUrlKey(existing.gateway_base_url) !==
+                canonicalGatewayBaseUrlKey(pending.endpoint.gateway_base_url) ||
                 existing.kind !== pending.endpoint.kind ||
                 (existing.server_gateway_id != null &&
                     existing.server_gateway_id !== pending.gateway_id) ||
@@ -358,9 +358,10 @@ export const recoverPendingMobileDeviceActivationCommits = async (): Promise<Gat
 };
 
 const cleanupDeviceActivationSession = async (
-    address: string,
+    gateway_base_url: string,
     grant: AuthSessionGrant,
-): Promise<void> => cleanupIssuedMobileSession(address, grant, DEVICE_ACTIVATION_TIMEOUT_MS);
+): Promise<void> =>
+    cleanupIssuedMobileSession(gateway_base_url, grant, DEVICE_ACTIVATION_TIMEOUT_MS);
 
 export const listMobileGatewaySessions = async () => {
     const response = await pioneerClient.gatewayAuthSessionList();
@@ -415,7 +416,7 @@ export const logoutMobileGatewaySession = async (endpoint: GatewayEndpoint): Pro
 const activationInput = (
     parsed: ClientDeviceActivationParseResult,
 ): MobileDeviceActivationInput => ({
-    protected_endpoint: parsed.protected_endpoint,
+    gateway_base_url: parsed.gateway_base_url,
     activation_code: parsed.activation_code,
     gateway_id: parsed.gateway_id,
 });
@@ -425,7 +426,7 @@ const validateManualDeviceActivationInput = (activation: MobileDeviceActivationI
     if (!activationCode) {
         throw new MobileDeviceActivationError('invalid_presentation');
     }
-    if (!isDeviceActivationEndpoint(activation.protected_endpoint)) {
+    if (!isGatewayBaseUrl(activation.gateway_base_url)) {
         throw new MobileDeviceActivationError('invalid_presentation');
     }
     if (activation.gateway_id != null && !normalizedGatewayId(activation.gateway_id)) {
@@ -439,50 +440,48 @@ const normalizedGatewayId = (value: string | null | undefined): string | null =>
     return /^[A-Za-z0-9]{21}$/.test(normalized) ? normalized : null;
 };
 
-const normalizedDeviceActivationEndpoint = (value: string): URL | null => {
-    const trimmed = value.trim();
-    if (value !== trimmed || !trimmed || trimmed.length > 2_048) {
-        return null;
+const isGatewayBaseUrl = (value: string): boolean => {
+    if (!value || value !== value.trim() || value.length > 2_048) {
+        return false;
     }
-
-    const transportEndpoint = trimmed.startsWith('https://')
-        ? `wss://${trimmed.slice('https://'.length)}`
-        : trimmed.includes('://')
-          ? trimmed
-          : `ws://${trimmed}`;
-
     try {
-        const endpoint = new URL(transportEndpoint);
-        if (
-            (endpoint.protocol !== 'ws:' && endpoint.protocol !== 'wss:') ||
-            !endpoint.hostname ||
-            endpoint.username ||
-            endpoint.password ||
-            endpoint.hash
-        ) {
-            return null;
-        }
-        return endpoint;
+        const result = pioneerClient.gatewayLoadRegistryV3({
+            document: JSON.stringify({
+                version: 3,
+                installation_id: null,
+                active_gateway_id: null,
+                local: null,
+                remotes: [
+                    {
+                        id: 'activation-candidate',
+                        name: 'Activation candidate',
+                        gateway_base_url: value,
+                        kind: 'remote',
+                    },
+                ],
+            }),
+        });
+        return (
+            result.state === 'current' && result.registry.remotes?.[0]?.gateway_base_url === value
+        );
     } catch {
-        return null;
+        return false;
     }
 };
-
-const isDeviceActivationEndpoint = (value: string): boolean =>
-    normalizedDeviceActivationEndpoint(value) !== null;
 
 const endpointForDeviceActivation = (
     registry: GatewayRegistry,
     gatewayId: string,
-    protectedEndpoint: string,
+    gatewayBaseUrl: string,
 ): GatewayEndpoint | null => {
     const all = [registry.local, ...(registry.remotes ?? [])].filter(
         (candidate): candidate is GatewayEndpoint => Boolean(candidate),
     );
-    const endpointKey = canonicalEndpointKey(protectedEndpoint);
+    const endpointKey = canonicalGatewayBaseUrlKey(gatewayBaseUrl);
     const addressMatch = all.find(
         (candidate) =>
-            endpointKey !== null && canonicalEndpointKey(candidate.address) === endpointKey,
+            endpointKey !== null &&
+            canonicalGatewayBaseUrlKey(candidate.gateway_base_url) === endpointKey,
     );
     const gatewayMatch = all.find((candidate) => candidate.server_gateway_id === gatewayId) ?? null;
     if (addressMatch?.server_gateway_id && addressMatch.server_gateway_id !== gatewayId) {
@@ -496,25 +495,28 @@ const endpointForDeviceActivation = (
 
 const endpointForActivationAddress = (
     registry: GatewayRegistry,
-    protectedEndpoint: string,
+    gatewayBaseUrl: string,
 ): GatewayEndpoint | null => {
-    const endpointKey = canonicalEndpointKey(protectedEndpoint);
+    const endpointKey = canonicalGatewayBaseUrlKey(gatewayBaseUrl);
     if (!endpointKey) {
         return null;
     }
     return (
         [registry.local, ...(registry.remotes ?? [])]
             .filter((candidate): candidate is GatewayEndpoint => Boolean(candidate))
-            .find((candidate) => canonicalEndpointKey(candidate.address) === endpointKey) ?? null
+            .find(
+                (candidate) =>
+                    canonicalGatewayBaseUrlKey(candidate.gateway_base_url) === endpointKey,
+            ) ?? null
     );
 };
 
 const deviceActivationBinding = (
     registry: GatewayRegistry,
     gatewayId: string,
-    protectedEndpoint: string,
+    gatewayBaseUrl: string,
 ): DeviceActivationBinding => {
-    const existing = endpointForDeviceActivation(registry, gatewayId, protectedEndpoint);
+    const existing = endpointForDeviceActivation(registry, gatewayId, gatewayBaseUrl);
     const endpointId = existing?.id ?? `activated-${gatewayId}`;
     const sessionRef = existing?.session_ref?.trim() || endpointId;
     return {
@@ -524,10 +526,10 @@ const deviceActivationBinding = (
         endpoint: {
             id: endpointId,
             name: existing?.name ?? 'Activated Gateway',
-            address: protectedEndpoint,
+            gateway_base_url: gatewayBaseUrl,
             // Preserve the role of an endpoint already known to the registry.
             // Converting an existing local endpoint to remote would violate
-            // the v2 registry contract.
+            // the registry contract.
             kind: existing?.kind ?? 'remote',
             session_ref: sessionRef,
             server_gateway_id: gatewayId,
@@ -555,7 +557,7 @@ const recoverPreparedDeviceActivation = async (
     pendingCommit: PendingDeviceActivationCommit | null,
     storedEnvelope: MobileGatewaySessionEnvelope | null,
     installationId: string,
-    protectedEndpoint: string,
+    gatewayBaseUrl: string,
 ): Promise<{ endpoint: GatewayEndpoint; registry: GatewayRegistry } | null> => {
     if (
         !pendingCommit ||
@@ -570,7 +572,8 @@ const recoverPreparedDeviceActivation = async (
     }
     const committedEndpoint = pendingCommit.endpoint;
     if (
-        canonicalEndpointKey(committedEndpoint.address) !== canonicalEndpointKey(protectedEndpoint)
+        canonicalGatewayBaseUrlKey(committedEndpoint.gateway_base_url) !==
+        canonicalGatewayBaseUrlKey(gatewayBaseUrl)
     ) {
         throw new MobileDeviceActivationError('gateway_mismatch');
     }
@@ -590,8 +593,8 @@ const recoverPreparedDeviceActivation = async (
     return { endpoint: recoveredEndpoint, registry: recoveredRegistry };
 };
 
-const canonicalEndpointKey = (address: string): string | null => {
-    return normalizedDeviceActivationEndpoint(address)?.toString() ?? null;
+const canonicalGatewayBaseUrlKey = (gateway_base_url: string): string | null => {
+    return isGatewayBaseUrl(gateway_base_url) ? gateway_base_url : null;
 };
 
 const discardUnboundRemoteGatewayCandidates = (registry: GatewayRegistry): GatewayRegistry => {
@@ -627,7 +630,7 @@ const upsertActivatedEndpoint = (
         : { ...registry, remotes: [...(registry.remotes ?? []), endpoint] };
     return {
         ...withEndpoint,
-        version: 2,
+        version: 3,
         active_gateway_id: endpoint.id,
     };
 };
@@ -734,8 +737,8 @@ const decodePendingDeviceActivationEndpoint = (
         typeof candidate.name !== 'string' ||
         candidate.name.length === 0 ||
         candidate.name.length > 255 ||
-        typeof candidate.address !== 'string' ||
-        !isDeviceActivationEndpoint(candidate.address) ||
+        typeof candidate.gateway_base_url !== 'string' ||
+        !isGatewayBaseUrl(candidate.gateway_base_url) ||
         (candidate.kind !== 'local' && candidate.kind !== 'remote') ||
         candidate.session_ref !== sessionRef ||
         candidate.server_gateway_id !== gatewayId ||
@@ -757,7 +760,7 @@ const decodePendingDeviceActivationEndpoint = (
     return {
         id: candidate.id,
         name: candidate.name,
-        address: candidate.address,
+        gateway_base_url: candidate.gateway_base_url,
         kind: candidate.kind,
         session_ref: candidate.session_ref,
         server_gateway_id: candidate.server_gateway_id,

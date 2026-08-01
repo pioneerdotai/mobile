@@ -3,10 +3,10 @@
   "title": "ClientAuthDeviceActivateRequest",
   "type": "object",
   "properties": {
-    "address": {
+    "credential": {
       "type": "string"
     },
-    "credential": {
+    "gateway_base_url": {
       "type": "string"
     },
     "params": {
@@ -21,7 +21,7 @@
   },
   "additionalProperties": false,
   "required": [
-    "address",
+    "gateway_base_url",
     "credential",
     "params"
   ],

@@ -486,7 +486,7 @@ const connectionEndpointKey = (endpoint: GatewayEndpoint | null): string | null 
         ? JSON.stringify([
               endpoint.id,
               endpoint.kind,
-              endpoint.address,
+              endpoint.gateway_base_url,
               endpoint.server_gateway_id ?? null,
               endpoint.session_ref ?? null,
               endpoint.service_name ?? null,

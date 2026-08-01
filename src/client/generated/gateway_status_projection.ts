@@ -32,27 +32,27 @@ export type GatewayStatusMessage =
     }
   | {
       ConnectedEndpoint: {
-        address: string;
         endpoint_name: string;
+        gateway_base_url: string;
         [k: string]: unknown;
       };
     }
   | {
       LocalStopped: {
-        address: string;
+        gateway_base_url: string;
         [k: string]: unknown;
       };
     }
   | {
       RemoteUnavailable: {
-        address: string;
         endpoint_name: string;
+        gateway_base_url: string;
         [k: string]: unknown;
       };
     }
   | {
       LocalConflictAt: {
-        address: string;
+        gateway_base_url: string;
         [k: string]: unknown;
       };
     }

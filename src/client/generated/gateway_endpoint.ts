@@ -4,7 +4,7 @@ export type GatewayEndpointKind = 'local' | 'remote';
 export type GatewayId = string;
 
 export interface GatewayEndpoint {
-  address: string;
+  gateway_base_url: string;
   id: string;
   kind: GatewayEndpointKind;
   name: string;

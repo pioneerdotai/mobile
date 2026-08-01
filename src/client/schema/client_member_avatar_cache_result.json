@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ClientMemberAvatarCacheResult",
+  "type": "object",
+  "properties": {
+    "avatar_revision": { "type": "string" },
+    "cached_image_path": { "type": "string" },
+    "media_type": { "enum": ["image/png", "image/jpeg", "image/webp"] },
+    "principal_id": {
+      "type": "string",
+      "minLength": 21,
+      "maxLength": 21,
+      "pattern": "^[A-Za-z0-9]{21}$"
+    },
+    "source": { "enum": ["downloaded", "revalidated", "offline_cache"] }
+  },
+  "required": [
+    "cached_image_path",
+    "principal_id",
+    "avatar_revision",
+    "media_type",
+    "source"
+  ]
+}

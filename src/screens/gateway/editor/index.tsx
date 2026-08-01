@@ -19,7 +19,7 @@ import { normalizeDeviceActivationCode } from '@/services/gateway/device-activat
 
 type GatewaySetupFormValues = {
     name: string;
-    address: string;
+    gateway_base_url: string;
     activationCode: string;
 };
 
@@ -32,7 +32,7 @@ type GatewaySetupScreenProps = {
 };
 
 export type GatewayActivationPrefill = {
-    address: string;
+    gateway_base_url: string;
     activationCode: string;
     serverGatewayId: string | null;
 };
@@ -88,7 +88,7 @@ const GatewayEditorScreen = ({
     } = useForm<GatewaySetupFormValues>({
         defaultValues: {
             name: '',
-            address: '',
+            gateway_base_url: '',
             activationCode: '',
         },
     });
@@ -101,20 +101,20 @@ const GatewayEditorScreen = ({
         if (activationPrefill) {
             reset({
                 name: '',
-                address: activationPrefill.address,
+                gateway_base_url: activationPrefill.gateway_base_url,
                 activationCode: activationPrefill.activationCode,
             });
             return;
         }
 
         if (!hasExistingGateway || !editingGateway) {
-            reset({ name: '', address: '', activationCode: '' });
+            reset({ name: '', gateway_base_url: '', activationCode: '' });
             return;
         }
 
         reset({
             name: editingGateway.name,
-            address: editingGateway.address,
+            gateway_base_url: editingGateway.gateway_base_url,
             activationCode: '',
         });
     }, [activationPrefill, editingGateway, hasExistingGateway, reset]);
@@ -180,7 +180,7 @@ const GatewayEditorScreen = ({
                 await updateRemote({
                     gatewayId,
                     name: values.name,
-                    address: values.address.trim(),
+                    gateway_base_url: values.gateway_base_url.trim(),
                 });
 
                 router.back();
@@ -193,7 +193,7 @@ const GatewayEditorScreen = ({
 
             await addRemote({
                 name: values.name,
-                address: values.address.trim(),
+                gateway_base_url: values.gateway_base_url.trim(),
                 activationCode,
                 activationGatewayId: activationPrefill?.serverGatewayId,
             });
@@ -241,7 +241,7 @@ const GatewayEditorScreen = ({
                 />
                 <ControlledInput
                     control={control}
-                    name="address"
+                    name="gateway_base_url"
                     rules={{
                         validate: requiredAddress,
                     }}

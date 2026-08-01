@@ -1,6 +1,6 @@
 /* eslint-disable */
 
 export interface RemoteGatewayValidationRequest {
-  address: string;
+  gateway_base_url: string;
   timeout_ms: number;
 }

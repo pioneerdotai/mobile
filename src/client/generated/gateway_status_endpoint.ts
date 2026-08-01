@@ -3,7 +3,7 @@
 export type GatewayEndpointKind = 'local' | 'remote';
 
 export interface GatewayStatusEndpoint {
-  address: string;
+  gateway_base_url: string;
   kind: GatewayEndpointKind;
   name: string;
   [k: string]: unknown;

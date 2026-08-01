@@ -4,6 +4,7 @@ import type {
     ClientEvent,
     GatewayConnectionState,
     GatewayRegistry,
+    RemoteGatewayValidation,
     SessionTerminalReason,
 } from '@/client';
 import { defaultGatewayRegistry } from '@/services/gateway/registry';
@@ -18,6 +19,8 @@ type GatewayStoreState = {
     bootstrapped: boolean;
     busy: boolean;
     error: GatewayOperationErrorCode | null;
+    gatewayTransportSecurity: RemoteGatewayValidation['transport_security'] | null;
+    registryReconfigurationEndpointIds: readonly string[] | null;
     connectionId: number | null;
     connectionGatewayId: string | null;
     connectionState: GatewayConnectionState;
@@ -38,6 +41,10 @@ type GatewayStoreState = {
     setBootstrapped: (bootstrapped: boolean) => void;
     setBusy: (busy: boolean) => void;
     setError: (error: GatewayOperationErrorCode | null) => void;
+    setGatewayTransportSecurity: (
+        security: RemoteGatewayValidation['transport_security'] | null,
+    ) => void;
+    setRegistryReconfigurationEndpointIds: (endpointIds: readonly string[] | null) => void;
     setConnectionId: (connectionId: number | null) => void;
     setConnectionGatewayId: (gatewayId: string | null) => void;
     setConnectionState: (connectionState: GatewayConnectionState) => void;
@@ -58,6 +65,8 @@ export const useGatewayStore = create<GatewayStoreState>((set) => ({
     bootstrapped: false,
     busy: false,
     error: null,
+    gatewayTransportSecurity: null,
+    registryReconfigurationEndpointIds: null,
     connectionId: null,
     connectionGatewayId: null,
     connectionState: 'Idle',
@@ -89,6 +98,14 @@ export const useGatewayStore = create<GatewayStoreState>((set) => ({
 
     setError: (error) => {
         set({ error });
+    },
+
+    setGatewayTransportSecurity: (gatewayTransportSecurity) => {
+        set({ gatewayTransportSecurity });
+    },
+
+    setRegistryReconfigurationEndpointIds: (registryReconfigurationEndpointIds) => {
+        set({ registryReconfigurationEndpointIds });
     },
 
     setConnectionId: (connectionId) => {

@@ -88,6 +88,10 @@ std::string HybridPioneerClient::diagnosticsDrainJson() {
   return callWithClient(pioneer_client_ffi_diagnostics_drain);
 }
 
+std::string HybridPioneerClient::gatewayLoadRegistryV3Json(const std::string& inputJson) {
+  return callWithClient(pioneer_client_ffi_gateway_load_registry_v3, inputJson);
+}
+
 std::shared_ptr<margelo::nitro::Promise<std::string>>
 HybridPioneerClient::gatewayValidateRemoteJson(const std::string& inputJson) {
   return callWithClientAsync(pioneer_client_ffi_gateway_validate_remote, inputJson);
@@ -239,8 +243,8 @@ HybridPioneerClient::memberListJson(const std::string& inputJson) {
 }
 
 std::shared_ptr<margelo::nitro::Promise<std::string>>
-HybridPioneerClient::memberAvatarGetJson(const std::string& inputJson) {
-  return callWithClientAsync(pioneer_client_ffi_member_avatar_get, inputJson);
+HybridPioneerClient::memberAvatarCacheJson(const std::string& inputJson) {
+  return callWithClientAsync(pioneer_client_ffi_member_avatar_cache, inputJson);
 }
 
 std::shared_ptr<margelo::nitro::Promise<std::string>>
@@ -301,6 +305,26 @@ HybridPioneerClient::gatewayNextEventsJson() {
 std::shared_ptr<margelo::nitro::Promise<std::string>>
 HybridPioneerClient::gatewayDisconnectJson() {
   return callWithClientAsync(pioneer_client_ffi_gateway_disconnect);
+}
+
+std::shared_ptr<margelo::nitro::Promise<std::string>>
+HybridPioneerClient::artifactViewOpenJson(const std::string& inputJson) {
+  return callWithClientAsync(pioneer_client_ffi_artifact_view_open, inputJson);
+}
+
+std::shared_ptr<margelo::nitro::Promise<std::string>>
+HybridPioneerClient::artifactDownloadJson(const std::string& inputJson) {
+  return callWithClientAsync(pioneer_client_ffi_artifact_download, inputJson);
+}
+
+std::shared_ptr<margelo::nitro::Promise<std::string>>
+HybridPioneerClient::artifactDownloadProgressJson(const std::string& inputJson) {
+  return callWithClientAsync(pioneer_client_ffi_artifact_download_progress, inputJson);
+}
+
+std::shared_ptr<margelo::nitro::Promise<std::string>>
+HybridPioneerClient::artifactDownloadCancelJson(const std::string& inputJson) {
+  return callWithClientAsync(pioneer_client_ffi_artifact_download_cancel, inputJson);
 }
 
 std::shared_ptr<margelo::nitro::Promise<std::string>>

@@ -34,6 +34,8 @@ const refreshGrant = {
 
 describe('mobile Nitro auth contract', () => {
     const nitro = {
+        gatewayLoadRegistryV3Json: jest.fn<(input: string) => string>(),
+        gatewayValidateRemoteJson: jest.fn<(input: string) => Promise<string>>(),
         gatewayAuthRefreshJson: jest.fn<(input: string) => Promise<string>>(),
         gatewayDeviceActivationParseJson: jest.fn<(input: string) => Promise<string>>(),
         gatewayDeviceActivationPresentationJson: jest.fn<(input: string) => Promise<string>>(),
@@ -51,7 +53,7 @@ describe('mobile Nitro auth contract', () => {
         );
 
         const result = await pioneerClient.gatewayAuthRefresh({
-            address: 'wss://gateway.example/ws',
+            gateway_base_url: 'https://gateway.example/',
             credential: 'prf_input_secret',
             params: { refresh_request_id: 'Q00000000000000000001' },
         });
@@ -62,6 +64,79 @@ describe('mobile Nitro auth contract', () => {
             expect.stringContaining('prf_input_secret'),
         );
         expect(nitro.gatewayNextEventsJson).not.toHaveBeenCalled();
+    });
+
+    it('passes canonical endpoint ownership to native without TypeScript derivation', async () => {
+        const cases = [
+            ['http://127.0.0.1:17878/', 'loopback_plaintext'],
+            ['http://192.0.2.10:17878/', 'remote_plaintext'],
+            ['https://relay.example/', 'tls'],
+            ['https://example.com/pioneer/', 'tls'],
+        ] as const;
+
+        for (const [gatewayBaseUrl, transportSecurity] of cases) {
+            nitro.gatewayValidateRemoteJson.mockResolvedValueOnce(
+                JSON.stringify({
+                    status: 'ok',
+                    value: {
+                        state: 'reachable',
+                        gateway_base_url: gatewayBaseUrl,
+                        transport_security: transportSecurity,
+                    },
+                }),
+            );
+            await expect(
+                pioneerClient.gatewayValidateRemote({
+                    gateway_base_url: gatewayBaseUrl,
+                    timeout_ms: 2_500,
+                }),
+            ).resolves.toMatchObject({
+                gateway_base_url: gatewayBaseUrl,
+                transport_security: transportSecurity,
+            });
+        }
+
+        for (const [index, [gatewayBaseUrl]] of cases.entries()) {
+            expect(nitro.gatewayValidateRemoteJson).toHaveBeenNthCalledWith(
+                index + 1,
+                JSON.stringify({ gateway_base_url: gatewayBaseUrl, timeout_ms: 2_500 }),
+            );
+        }
+    });
+
+    it('does not retry an unsupported legacy WS authority in TypeScript', async () => {
+        nitro.gatewayValidateRemoteJson.mockResolvedValue(
+            JSON.stringify({
+                status: 'error',
+                code: 'invalid_gateway_base_url',
+                message: 'Gateway base URL must use http or https',
+            }),
+        );
+
+        await expect(
+            pioneerClient.gatewayValidateRemote({
+                gateway_base_url: 'wss://legacy.example/ws',
+                timeout_ms: 2_500,
+            }),
+        ).rejects.toMatchObject({ code: 'invalid_gateway_base_url' });
+        expect(nitro.gatewayValidateRemoteJson).toHaveBeenCalledTimes(1);
+    });
+
+    it('loads registry v3 synchronously through the native shared contract', () => {
+        const registry = {
+            version: 3,
+            installation_id: 'installation-mobile-1',
+            active_gateway_id: null,
+            local: null,
+            remotes: [],
+        };
+        nitro.gatewayLoadRegistryV3Json.mockReturnValue(
+            JSON.stringify({ status: 'ok', value: { state: 'current', registry } }),
+        );
+
+        expect(pioneerClient.gatewayLoadRegistryV3({ document: JSON.stringify(registry) })).toEqual(
+            { state: 'current', registry },
+        );
     });
 
     it('preserves machine-readable auth error codes', async () => {
@@ -75,7 +150,7 @@ describe('mobile Nitro auth contract', () => {
 
         await expect(
             pioneerClient.gatewayAuthRefresh({
-                address: 'wss://gateway.example/ws',
+                gateway_base_url: 'https://gateway.example/',
                 credential: 'prf_input_secret',
                 params: { refresh_request_id: 'Q00000000000000000001' },
             }),
@@ -102,7 +177,7 @@ describe('mobile Nitro auth contract', () => {
             JSON.stringify({
                 status: 'ok',
                 value: {
-                    protected_endpoint: 'wss://gateway.example/ws',
+                    gateway_base_url: 'https://gateway.example/',
                     gateway_id: 'G00000000000000000001',
                     activation_code: activationCode,
                 },
@@ -115,7 +190,7 @@ describe('mobile Nitro auth contract', () => {
                     device_id: 'D00000000000000000002',
                     session_id: 'S00000000000000000002',
                     gateway_id: 'G00000000000000000001',
-                    protected_endpoint: 'wss://gateway.example/ws',
+                    gateway_base_url: 'https://gateway.example/',
                     expires_at_unix: 1_800_000_000,
                     manual_code: activationCode,
                     deep_link: deepLink,
@@ -127,7 +202,7 @@ describe('mobile Nitro auth contract', () => {
 
         const parsed = await pioneerClient.gatewayDeviceActivationParse({ uri: deepLink });
         const presented = await pioneerClient.gatewayDeviceActivationPresentation({
-            protected_endpoint: parsed.protected_endpoint,
+            gateway_base_url: parsed.gateway_base_url,
             created_device: {
                 device_id: 'D00000000000000000002',
                 session_id: 'S00000000000000000002',

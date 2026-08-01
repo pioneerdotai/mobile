@@ -14,6 +14,7 @@ PioneerClientFfi* pioneer_client_ffi_client_create(void);
 void pioneer_client_ffi_client_destroy(PioneerClientFfi* client);
 char* pioneer_client_ffi_client_initialize(PioneerClientFfi* client, const char* config_json);
 char* pioneer_client_ffi_diagnostics_drain(PioneerClientFfi* client);
+char* pioneer_client_ffi_gateway_load_registry_v3(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_gateway_validate_remote(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_gateway_plan_add_remote(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_gateway_plan_add_and_activate_remote_registry(PioneerClientFfi* client, const char* input_json);
@@ -44,7 +45,7 @@ char* pioneer_client_ffi_invitation_create(PioneerClientFfi* client, const char*
 char* pioneer_client_ffi_invitation_list(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_invitation_revoke(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_member_list(PioneerClientFfi* client, const char* input_json);
-char* pioneer_client_ffi_member_avatar_get(PioneerClientFfi* client, const char* input_json);
+char* pioneer_client_ffi_member_avatar_cache(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_member_suspend(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_member_restore(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_member_remove(PioneerClientFfi* client, const char* input_json);
@@ -57,6 +58,10 @@ char* pioneer_client_ffi_gateway_settings_get(PioneerClientFfi* client, const ch
 char* pioneer_client_ffi_gateway_settings_update(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_gateway_next_events(PioneerClientFfi* client);
 char* pioneer_client_ffi_gateway_disconnect(PioneerClientFfi* client);
+char* pioneer_client_ffi_artifact_view_open(PioneerClientFfi* client, const char* input_json);
+char* pioneer_client_ffi_artifact_download(PioneerClientFfi* client, const char* input_json);
+char* pioneer_client_ffi_artifact_download_progress(PioneerClientFfi* client, const char* input_json);
+char* pioneer_client_ffi_artifact_download_cancel(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_workspace_bootstrap(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_workspace_switch(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_workspace_create(PioneerClientFfi* client, const char* input_json);

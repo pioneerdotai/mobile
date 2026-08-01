@@ -53,6 +53,7 @@ namespace margelo::nitro::pioneer::client {
       virtual std::string versionJson() = 0;
       virtual std::string initializeJson(const std::string& configJson) = 0;
       virtual std::string diagnosticsDrainJson() = 0;
+      virtual std::string gatewayLoadRegistryV3Json(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> gatewayValidateRemoteJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> gatewayPlanAddRemoteJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> gatewayPlanAddAndActivateRemoteRegistryJson(const std::string& inputJson) = 0;
@@ -83,7 +84,7 @@ namespace margelo::nitro::pioneer::client {
       virtual std::shared_ptr<Promise<std::string>> invitationListJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> invitationRevokeJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> memberListJson(const std::string& inputJson) = 0;
-      virtual std::shared_ptr<Promise<std::string>> memberAvatarGetJson(const std::string& inputJson) = 0;
+      virtual std::shared_ptr<Promise<std::string>> memberAvatarCacheJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> memberSuspendJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> memberRestoreJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> memberRemoveJson(const std::string& inputJson) = 0;
@@ -96,6 +97,10 @@ namespace margelo::nitro::pioneer::client {
       virtual std::shared_ptr<Promise<std::string>> gatewaySettingsUpdateJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> gatewayNextEventsJson() = 0;
       virtual std::shared_ptr<Promise<std::string>> gatewayDisconnectJson() = 0;
+      virtual std::shared_ptr<Promise<std::string>> artifactViewOpenJson(const std::string& inputJson) = 0;
+      virtual std::shared_ptr<Promise<std::string>> artifactDownloadJson(const std::string& inputJson) = 0;
+      virtual std::shared_ptr<Promise<std::string>> artifactDownloadProgressJson(const std::string& inputJson) = 0;
+      virtual std::shared_ptr<Promise<std::string>> artifactDownloadCancelJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> workspaceBootstrapJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> workspaceSwitchJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> workspaceCreateJson(const std::string& inputJson) = 0;

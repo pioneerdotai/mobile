@@ -117,7 +117,13 @@ jest.mock('@/stores/gateway', () => ({
         selector({
             registry: {
                 active_gateway_id: 'gateway-1',
-                remotes: [{ id: 'gateway-1', address: 'wss://gateway.example', kind: 'remote' }],
+                remotes: [
+                    {
+                        id: 'gateway-1',
+                        gateway_base_url: 'https://gateway.example/',
+                        kind: 'remote',
+                    },
+                ],
             },
         }),
 }));

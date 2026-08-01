@@ -4,6 +4,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import { useFonts } from 'expo-font';
+import { Paths } from 'expo-file-system';
 import * as SystemUI from 'expo-system-ui';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
@@ -71,7 +72,9 @@ const RootLayout = () => {
         bootstrapStartedRef.current = true;
 
         const bootstrap = async () => {
-            pioneerClient.initialize();
+            pioneerClient.initialize({
+                appDataDir: decodeURIComponent(Paths.cache.uri.replace(/^file:\/\//, '')),
+            });
             await hydrateGateway();
         };
 

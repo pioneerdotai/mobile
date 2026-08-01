@@ -1,8 +1,8 @@
 /* eslint-disable */
 
 export interface ClientAuthRefreshRequest {
-  address: string;
   credential: string;
+  gateway_base_url: string;
   params: AuthRefreshParams;
   timeout_ms?: number;
 }

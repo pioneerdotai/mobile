@@ -6,7 +6,7 @@ const mockReact = React;
 const mockRouterReplace = jest.fn();
 const mockClearInitialUrl = jest.fn();
 type ParsedActivation = {
-    protected_endpoint: string;
+    gateway_base_url: string;
     activation_code: string;
     gateway_id?: string | null;
 };
@@ -72,7 +72,7 @@ const activationLink =
     `&gateway_id=${gatewayId}` +
     `#code=${activationCode}`;
 const activationInput = {
-    protected_endpoint: 'wss://gateway.example/ws',
+    gateway_base_url: 'https://gateway.example/',
     activation_code: activationCode,
     gateway_id: gatewayId,
 };
@@ -109,7 +109,7 @@ describe('ActivateRoute', () => {
         expect(mockParseMobileDeviceActivationUri).toHaveBeenCalledWith(activationLink);
         expect(editor(tree!).props).toMatchObject({
             activationPrefill: {
-                address: activationInput.protected_endpoint,
+                gateway_base_url: activationInput.gateway_base_url,
                 activationCode,
                 serverGatewayId: gatewayId,
             },

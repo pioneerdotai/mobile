@@ -73,7 +73,9 @@ const useHomeTab = () => {
                         <Text style={styles.name}>{activeGateway.name}</Text>
                     </HStack>
                     <Box>
-                        <Text style={styles.address}>{activeGateway.address}</Text>
+                        <Text style={styles.gateway_base_url}>
+                            {activeGateway.gateway_base_url}
+                        </Text>
                     </Box>
                 </VStack>
             </Pressable>
@@ -132,7 +134,7 @@ const styles = StyleSheet.create((theme) => ({
         color: theme.colors.typography,
         fontWeight: theme.fontWeight.medium.fontWeight,
     },
-    address: {
+    gateway_base_url: {
         fontSize: theme.fontSize['2xs'].fontSize,
         lineHeight: theme.fontSize['2xs'].fontSize,
         color: theme.colors.typography,

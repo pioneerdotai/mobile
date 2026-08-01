@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ClientArtifactTargetRequest",
+  "type": "object",
+  "properties": {
+    "artifact_id": { "type": "string" },
+    "version_id": { "type": ["string", "null"], "default": null },
+    "workspace_id": { "type": "string" }
+  },
+  "additionalProperties": false,
+  "required": ["workspace_id", "artifact_id"]
+}

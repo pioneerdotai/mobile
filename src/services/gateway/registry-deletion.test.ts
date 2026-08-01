@@ -20,7 +20,7 @@ import { commitRemoteGatewayDeletion } from './registry';
 const endpoint = (): GatewayEndpoint => ({
     id: 'remote-1',
     name: 'Remote',
-    address: 'wss://gateway.example/ws',
+    gateway_base_url: 'https://gateway.example/',
     kind: 'remote',
     session_ref: 'session-remote-1',
     server_gateway_id: 'G00000000000000000001',
@@ -29,7 +29,7 @@ const endpoint = (): GatewayEndpoint => ({
 });
 
 const registry = (): GatewayRegistry => ({
-    version: 2,
+    version: 3,
     installation_id: 'installation-mobile-1',
     active_gateway_id: null,
     local: null,

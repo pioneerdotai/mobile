@@ -72,6 +72,14 @@ import {
 import { resolveVoiceComposerAvailability } from '@/services/voice-input/composer';
 import { useVoiceInputDataSourceState } from '@/services/voice-input/data-source';
 import { requireVoiceInputGatewayTarget } from '@/services/voice-input/gateway-target';
+import {
+    cancelMobileArtifactDownload,
+    downloadAndShareMobileArtifact,
+    openMobileArtifact,
+    reduceMobileArtifactAction,
+    type MobileArtifactActionEvent,
+    type MobileArtifactActionState,
+} from '@/services/artifacts/mobile-actions';
 import { voiceInputPollInterval } from '@/services/voice-input/presentation';
 import { fetchVoiceInputSettings, voiceInputQueryKeys } from '@/services/voice-input/query';
 import { useActiveThreadStore } from '@/stores/active-thread';
@@ -93,6 +101,7 @@ const EMPTY_SEMANTIC_WORK_RANGES: Readonly<Record<string, SemanticTurnWorkRange>
 const VOICE_TURN_ID_LEN = 21;
 const VOICE_TURN_ID_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890';
 const generateVoiceTurnId = customAlphabet(VOICE_TURN_ID_ALPHABET, VOICE_TURN_ID_LEN);
+const generateArtifactOperationId = customAlphabet(VOICE_TURN_ID_ALPHABET, VOICE_TURN_ID_LEN);
 
 type ComposerModelSelection = {
     provider: string;
@@ -317,6 +326,62 @@ const ThreadScreen = ({ threadId, initialThread = null }: ThreadScreenProps) => 
 
     const visibleSnapshot = snapshot?.thread_id === threadId ? snapshot : null;
     const visibleThreadId = visibleSnapshot?.thread_id ?? threadId;
+    const [artifactActionStateById, setArtifactActionStateById] = useState<
+        Record<string, MobileArtifactActionState>
+    >({});
+    const dispatchArtifactAction = useCallback(
+        (artifactId: string, event: MobileArtifactActionEvent) => {
+            setArtifactActionStateById((current) => ({
+                ...current,
+                [artifactId]: reduceMobileArtifactAction(
+                    current[artifactId] ?? { kind: 'idle' },
+                    event,
+                ),
+            }));
+        },
+        [],
+    );
+    const artifactWorkspaceId = visibleSnapshot?.workspace_id ?? activeWorkspaceId;
+    const handleOpenArtifact = useCallback(
+        (artifactId: string) => {
+            if (!artifactWorkspaceId || !connected) {
+                dispatchArtifactAction(artifactId, {
+                    type: 'failed',
+                    code: 'reconfiguration_required',
+                });
+                return;
+            }
+            void openMobileArtifact({ workspaceId: artifactWorkspaceId, artifactId }, (event) =>
+                dispatchArtifactAction(artifactId, event),
+            );
+        },
+        [artifactWorkspaceId, connected, dispatchArtifactAction],
+    );
+    const handleShareArtifact = useCallback(
+        (artifactId: string) => {
+            if (!artifactWorkspaceId || !connected) {
+                dispatchArtifactAction(artifactId, {
+                    type: 'failed',
+                    code: 'reconfiguration_required',
+                });
+                return;
+            }
+            void downloadAndShareMobileArtifact(
+                { workspaceId: artifactWorkspaceId, artifactId },
+                `artifact-${generateArtifactOperationId()}`,
+                (event) => dispatchArtifactAction(artifactId, event),
+            );
+        },
+        [artifactWorkspaceId, connected, dispatchArtifactAction],
+    );
+    const handleCancelArtifactDownload = useCallback(
+        (artifactId: string, operationId: string) => {
+            void cancelMobileArtifactDownload(operationId, (event) =>
+                dispatchArtifactAction(artifactId, event),
+            );
+        },
+        [dispatchArtifactAction],
+    );
     const [composerMeasurement, setComposerMeasurement] = useState<{
         threadId: string;
         measured: boolean;
@@ -1436,6 +1501,10 @@ const ThreadScreen = ({ threadId, initialThread = null }: ThreadScreenProps) => 
                             keyboardOffset={keyboardOffset}
                             contentInsetEndAdjustment={contentInsetEndAdjustment}
                             mcpServerIdByName={EMPTY_MCP_SERVER_ID_BY_NAME}
+                            artifactActionStateById={artifactActionStateById}
+                            onOpenArtifact={handleOpenArtifact}
+                            onShareArtifact={handleShareArtifact}
+                            onCancelArtifactDownload={handleCancelArtifactDownload}
                             onExpandedKeysChange={setExpandedKeys}
                             onViewportPrefetchPlanChange={handleViewportPrefetchPlanChange}
                             onOpenTaskThread={handleOpenTaskThread}

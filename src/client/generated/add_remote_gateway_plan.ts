@@ -9,7 +9,7 @@ export interface AddRemoteGatewayPlan {
   [k: string]: unknown;
 }
 export interface GatewayEndpoint {
-  address: string;
+  gateway_base_url: string;
   id: string;
   kind: GatewayEndpointKind;
   name: string;

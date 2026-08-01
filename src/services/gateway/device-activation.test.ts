@@ -6,6 +6,7 @@ jest.mock('nanoid', () => ({ nanoid: jest.fn() }));
 
 jest.mock('@/client', () => ({
     pioneerClient: {
+        gatewayLoadRegistryV3: jest.fn(),
         gatewayDeviceActivationParse: jest.fn(),
         gatewayAuthDeviceActivate: jest.fn(),
         gatewayAuthDeviceCreate: jest.fn(),
@@ -76,6 +77,7 @@ import {
 } from './device-activation';
 
 const mockGatewayDeviceActivationParse = jest.mocked(pioneerClient.gatewayDeviceActivationParse);
+const mockGatewayLoadRegistryV3 = jest.mocked(pioneerClient.gatewayLoadRegistryV3);
 const mockGatewayAuthDeviceActivate = jest.mocked(pioneerClient.gatewayAuthDeviceActivate);
 const mockGatewayAuthDeviceCreate = jest.mocked(pioneerClient.gatewayAuthDeviceCreate);
 const mockGatewayAuthSessionCleanup = jest.mocked(pioneerClient.gatewayAuthSessionCleanup);
@@ -104,13 +106,13 @@ const gatewayId = 'G00000000000000000001';
 const activationCode = 'K7M4-P9Q2';
 const canonicalActivationCode = 'K7M4P9Q2';
 const activation = {
-    protected_endpoint: 'wss://gateway.example/ws',
+    gateway_base_url: 'https://gateway.example/',
     activation_code: activationCode,
     gateway_id: gatewayId,
 };
 
 const registry = (): GatewayRegistry => ({
-    version: 2,
+    version: 3,
     installation_id: 'installation-mobile-1',
     active_gateway_id: null,
     local: null,
@@ -155,6 +157,22 @@ describe('mobile device activation service', () => {
 
     beforeEach(() => {
         jest.resetAllMocks();
+        mockGatewayLoadRegistryV3.mockImplementation(({ document }) => {
+            const candidate = JSON.parse(document) as GatewayRegistry;
+            const gatewayBaseUrl = candidate.remotes?.[0]?.gateway_base_url ?? '';
+            const parsed = new URL(gatewayBaseUrl);
+            if (
+                !['http:', 'https:'].includes(parsed.protocol) ||
+                parsed.username ||
+                parsed.password ||
+                parsed.search ||
+                parsed.hash ||
+                !gatewayBaseUrl.endsWith('/')
+            ) {
+                throw new Error('invalid gateway_base_url');
+            }
+            return { state: 'current', registry: candidate };
+        });
         mockNanoid.mockReturnValue('00000000000000000000');
         activationMetadata = new Map();
         activationMetadataWrites = [];
@@ -255,7 +273,7 @@ describe('mobile device activation service', () => {
         await expect(
             acceptMobileDeviceActivation({
                 ...activation,
-                protected_endpoint: 'wss://user:password@gateway.example/ws',
+                gateway_base_url: 'wss://user:password@gateway.example/ws',
             }),
         ).rejects.toMatchObject({ code: 'invalid_presentation' });
         expect(mockGatewayAuthDeviceActivate).not.toHaveBeenCalled();
@@ -265,7 +283,7 @@ describe('mobile device activation service', () => {
         await expect(
             acceptMobileDeviceActivation({
                 ...activation,
-                protected_endpoint: ` ${activation.protected_endpoint}`,
+                gateway_base_url: ` ${activation.gateway_base_url}`,
             }),
         ).rejects.toMatchObject({ code: 'invalid_presentation' });
         expect(mockGatewayAuthDeviceActivate).not.toHaveBeenCalled();
@@ -276,12 +294,12 @@ describe('mobile device activation service', () => {
 
         await acceptMobileDeviceActivation({
             ...activation,
-            protected_endpoint: 'ws://192.0.2.10:17878/ws',
+            gateway_base_url: 'http://192.0.2.10:17878/',
         });
 
         expect(mockGatewayAuthDeviceActivate).toHaveBeenCalledWith(
             expect.objectContaining({
-                address: 'ws://192.0.2.10:17878/ws',
+                gateway_base_url: 'http://192.0.2.10:17878/',
                 credential: canonicalActivationCode,
             }),
         );
@@ -291,7 +309,7 @@ describe('mobile device activation service', () => {
         const plannedEndpoint = {
             id: 'remote-planned',
             name: 'Local',
-            address: '192.0.2.10:17878',
+            gateway_base_url: 'http://192.0.2.10:17878/',
             kind: 'remote' as const,
             session_ref: null,
             server_gateway_id: null,
@@ -309,7 +327,7 @@ describe('mobile device activation service', () => {
         const result = await acceptMobileDeviceActivation(
             {
                 ...activation,
-                protected_endpoint: plannedEndpoint.address,
+                gateway_base_url: plannedEndpoint.gateway_base_url,
             },
             {
                 candidateRegistry: {
@@ -322,14 +340,14 @@ describe('mobile device activation service', () => {
 
         expect(mockGatewayAuthDeviceActivate).toHaveBeenCalledWith(
             expect.objectContaining({
-                address: plannedEndpoint.address,
+                gateway_base_url: plannedEndpoint.gateway_base_url,
                 credential: canonicalActivationCode,
             }),
         );
         expect(result.endpoint).toMatchObject({
             id: plannedEndpoint.id,
             name: plannedEndpoint.name,
-            address: plannedEndpoint.address,
+            gateway_base_url: plannedEndpoint.gateway_base_url,
             server_gateway_id: gatewayId,
         });
         expect(result.registry.remotes).toHaveLength(1);
@@ -339,7 +357,7 @@ describe('mobile device activation service', () => {
         const plannedEndpoint = {
             id: 'remote-planned',
             name: 'Local',
-            address: '192.0.2.10:17878',
+            gateway_base_url: 'http://192.0.2.10:17878/',
             kind: 'remote' as const,
             session_ref: null,
             server_gateway_id: null,
@@ -352,7 +370,7 @@ describe('mobile device activation service', () => {
             acceptMobileDeviceActivation(
                 {
                     ...activation,
-                    protected_endpoint: plannedEndpoint.address,
+                    gateway_base_url: plannedEndpoint.gateway_base_url,
                     gateway_id: null,
                 },
                 {
@@ -373,12 +391,12 @@ describe('mobile device activation service', () => {
 
         await acceptMobileDeviceActivation({
             ...activation,
-            protected_endpoint: 'https://gateway.example/ws',
+            gateway_base_url: 'https://gateway.example/pioneer/',
         });
 
         expect(mockGatewayAuthDeviceActivate).toHaveBeenCalledWith(
             expect.objectContaining({
-                address: 'https://gateway.example/ws',
+                gateway_base_url: 'https://gateway.example/pioneer/',
                 credential: canonicalActivationCode,
             }),
         );
@@ -389,12 +407,12 @@ describe('mobile device activation service', () => {
 
         await acceptMobileDeviceActivation({
             ...activation,
-            protected_endpoint: 'ws://127.0.0.1:17878/ws',
+            gateway_base_url: 'http://127.0.0.1:17878/',
         });
 
         expect(mockGatewayAuthDeviceActivate).toHaveBeenCalledWith(
             expect.objectContaining({
-                address: 'ws://127.0.0.1:17878/ws',
+                gateway_base_url: 'http://127.0.0.1:17878/',
                 credential: canonicalActivationCode,
             }),
         );
@@ -441,14 +459,14 @@ describe('mobile device activation service', () => {
         expect(mockGatewayAuthDeviceActivate).not.toHaveBeenCalled();
     });
 
-    it('rejects an address already pinned to another Gateway before exchange', async () => {
+    it('rejects an gateway_base_url already pinned to another Gateway before exchange', async () => {
         mockLoadGatewayRegistry.mockReturnValue({
             ...registry(),
             remotes: [
                 {
                     id: 'remote-existing',
                     name: 'Existing Gateway',
-                    address: activation.protected_endpoint,
+                    gateway_base_url: activation.gateway_base_url,
                     kind: 'remote',
                     session_ref: 'remote-existing',
                     server_gateway_id: 'G99999999999999999999',
@@ -464,14 +482,14 @@ describe('mobile device activation service', () => {
         expect(mockGatewayAuthDeviceActivate).not.toHaveBeenCalled();
     });
 
-    it('rejects an activation that would merge distinct Gateway and address bindings', async () => {
+    it('rejects an activation that would merge distinct Gateway and gateway_base_url bindings', async () => {
         mockLoadGatewayRegistry.mockReturnValue({
             ...registry(),
             remotes: [
                 {
                     id: 'gateway-match',
                     name: 'Known Gateway',
-                    address: 'wss://old-address.example/ws',
+                    gateway_base_url: 'https://old-gateway.example/',
                     kind: 'remote',
                     session_ref: 'gateway-match',
                     server_gateway_id: gatewayId,
@@ -479,9 +497,9 @@ describe('mobile device activation service', () => {
                     workspace_id: null,
                 },
                 {
-                    id: 'address-match',
-                    name: 'Unbound address',
-                    address: activation.protected_endpoint,
+                    id: 'gateway_base_url-match',
+                    name: 'Unbound gateway_base_url',
+                    gateway_base_url: activation.gateway_base_url,
                     kind: 'remote',
                     session_ref: null,
                     server_gateway_id: null,
@@ -531,7 +549,7 @@ describe('mobile device activation service', () => {
         const local = {
             id: 'local',
             name: 'Local Gateway',
-            address: activation.protected_endpoint,
+            gateway_base_url: activation.gateway_base_url,
             kind: 'local' as const,
             session_ref: null,
             server_gateway_id: null,
@@ -565,7 +583,7 @@ describe('mobile device activation service', () => {
         const endpoint = {
             id: `activated-${recoverableGatewayId}`,
             name: 'Recovered Gateway',
-            address: 'wss://recovered.example/ws',
+            gateway_base_url: 'https://recovered.example/',
             kind: 'remote' as const,
             session_ref: `activated-${recoverableGatewayId}`,
             server_gateway_id: recoverableGatewayId,
@@ -615,7 +633,7 @@ describe('mobile device activation service', () => {
         const unboundEndpoint = {
             id: 'remote-unbound',
             name: 'Never authenticated',
-            address: '192.0.2.10:17878',
+            gateway_base_url: 'http://192.0.2.10:17878/',
             kind: 'remote' as const,
             session_ref: null,
             server_gateway_id: null,
@@ -683,7 +701,7 @@ describe('mobile device activation service', () => {
         await expect(
             acceptMobileDeviceActivation({
                 ...activation,
-                protected_endpoint: 'wss://attacker.example/ws',
+                gateway_base_url: 'https://attacker.example/',
             }),
         ).rejects.toMatchObject({
             code: 'gateway_mismatch',
@@ -715,7 +733,7 @@ describe('mobile device activation service', () => {
         expect(recovered.remotes).toEqual([
             expect.objectContaining({
                 id: `activated-${gatewayId}`,
-                address: activation.protected_endpoint,
+                gateway_base_url: activation.gateway_base_url,
                 session_ref: `activated-${gatewayId}`,
                 server_gateway_id: gatewayId,
             }),
@@ -729,7 +747,7 @@ describe('mobile device activation service', () => {
         const existingEndpoint = {
             id: `activated-${gatewayId}`,
             name: 'Activated Gateway',
-            address: activation.protected_endpoint,
+            gateway_base_url: activation.gateway_base_url,
             kind: 'remote' as const,
             session_ref: `activated-${gatewayId}`,
             server_gateway_id: gatewayId,
@@ -772,11 +790,11 @@ describe('mobile device activation service', () => {
         expect(mockSaveGatewayRegistry).toHaveBeenCalledTimes(1);
     });
 
-    it('does not recover a durable session onto an endpoint whose address changed', async () => {
+    it('does not recover a durable session onto an endpoint whose gateway_base_url changed', async () => {
         const committedEndpoint = {
             id: `activated-${gatewayId}`,
             name: 'Activated Gateway',
-            address: activation.protected_endpoint,
+            gateway_base_url: activation.gateway_base_url,
             kind: 'remote' as const,
             session_ref: `activated-${gatewayId}`,
             server_gateway_id: gatewayId,
@@ -785,7 +803,7 @@ describe('mobile device activation service', () => {
         };
         const changedEndpoint = {
             ...committedEndpoint,
-            address: 'wss://attacker.example/ws',
+            gateway_base_url: 'https://attacker.example/',
         };
         mockLoadGatewayRegistry.mockReturnValue({
             ...registry(),
@@ -827,7 +845,7 @@ describe('mobile device activation service', () => {
         const committedEndpoint = {
             id: `activated-${gatewayId}`,
             name: 'Activated Gateway',
-            address: activation.protected_endpoint,
+            gateway_base_url: activation.gateway_base_url,
             kind: 'remote' as const,
             session_ref: `activated-${gatewayId}`,
             server_gateway_id: gatewayId,
@@ -837,7 +855,7 @@ describe('mobile device activation service', () => {
         const unboundEndpoint = {
             id: committedEndpoint.id,
             name: committedEndpoint.name,
-            address: committedEndpoint.address,
+            gateway_base_url: committedEndpoint.gateway_base_url,
             kind: committedEndpoint.kind,
         };
         mockLoadGatewayRegistry.mockReturnValue({
@@ -886,7 +904,7 @@ describe('mobile device activation service', () => {
         const committedEndpoint = {
             id: `activated-${gatewayId}`,
             name: 'Activated Gateway',
-            address: activation.protected_endpoint,
+            gateway_base_url: activation.gateway_base_url,
             kind: 'remote' as const,
             session_ref: `activated-${gatewayId}`,
             server_gateway_id: gatewayId,
@@ -952,7 +970,7 @@ describe('mobile device activation service', () => {
                 endpoint: {
                     id: `activated-${gatewayId}`,
                     name: 'Activated Gateway',
-                    address: activation.protected_endpoint,
+                    gateway_base_url: activation.gateway_base_url,
                     kind: 'remote',
                     session_ref: `activated-${gatewayId}`,
                     server_gateway_id: gatewayId,
@@ -974,7 +992,7 @@ describe('mobile device activation service', () => {
         const existingEndpoint = {
             id: 'remote-1',
             name: 'Remote',
-            address: activation.protected_endpoint,
+            gateway_base_url: activation.gateway_base_url,
             kind: 'remote' as const,
             session_ref: 'remote-1',
             server_gateway_id: gatewayId,
@@ -1023,7 +1041,7 @@ describe('mobile device activation service', () => {
             device_id: createdDevice.device_id,
             session_id: createdDevice.session_id,
             gateway_id: gatewayId,
-            protected_endpoint: activation.protected_endpoint,
+            gateway_base_url: activation.gateway_base_url,
             expires_at_unix: createdDevice.expires_at_unix,
             manual_code: activationCode,
             deep_link: 'pioneer://activate?[redacted-for-test]',
@@ -1034,7 +1052,7 @@ describe('mobile device activation service', () => {
         await createMobileDeviceActivationPresentation({
             id: 'remote-1',
             name: 'Remote',
-            address: activation.protected_endpoint,
+            gateway_base_url: activation.gateway_base_url,
             kind: 'remote',
             session_ref: 'remote-1',
             server_gateway_id: gatewayId,
@@ -1043,7 +1061,7 @@ describe('mobile device activation service', () => {
         });
 
         expect(mockGatewayDeviceActivationPresentation).toHaveBeenCalledWith({
-            protected_endpoint: activation.protected_endpoint,
+            gateway_base_url: activation.gateway_base_url,
             created_device: createdDevice,
         });
     });
@@ -1052,7 +1070,7 @@ describe('mobile device activation service', () => {
         mockFindGatewayEndpoint.mockReturnValue({
             id: 'remote-1',
             name: 'Remote',
-            address: activation.protected_endpoint,
+            gateway_base_url: activation.gateway_base_url,
             kind: 'remote',
             session_ref: 'remote-1',
             server_gateway_id: gatewayId,
@@ -1075,7 +1093,7 @@ describe('mobile device activation service', () => {
         const endpoint = {
             id: 'remote-1',
             name: 'Remote',
-            address: activation.protected_endpoint,
+            gateway_base_url: activation.gateway_base_url,
             kind: 'remote' as const,
             session_ref: 'remote-1',
             server_gateway_id: gatewayId,

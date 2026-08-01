@@ -317,11 +317,6 @@ export type GatewayNotification =
       [k: string]: unknown;
     }
   | {
-      kind: 'artifact_download_progress';
-      params: ArtifactDownloadProgressNotification;
-      [k: string]: unknown;
-    }
-  | {
       kind: 'task_created';
       params: TaskCreatedNotification;
       [k: string]: unknown;
@@ -2638,14 +2633,6 @@ export interface ArtifactUploadProgressNotification {
   received_bytes: number;
   total_size_bytes: number;
   upload_id: string;
-  workspace_id: string;
-  [k: string]: unknown;
-}
-export interface ArtifactDownloadProgressNotification {
-  artifact_id: string;
-  download_id: string;
-  received_bytes: number;
-  total_size_bytes: number;
   workspace_id: string;
   [k: string]: unknown;
 }

@@ -55,7 +55,7 @@ const ActivateRoute = () => {
                     return;
                 }
                 setActivationPrefill({
-                    address: parsed.protected_endpoint,
+                    gateway_base_url: parsed.gateway_base_url,
                     activationCode: parsed.activation_code,
                     serverGatewayId: parsed.gateway_id ?? null,
                 });

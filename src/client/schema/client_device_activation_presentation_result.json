@@ -14,13 +14,13 @@
       "format": "uint64",
       "minimum": 0
     },
+    "gateway_base_url": {
+      "type": "string"
+    },
     "gateway_id": {
       "$ref": "#/$defs/GatewayId"
     },
     "manual_code": {
-      "type": "string"
-    },
-    "protected_endpoint": {
       "type": "string"
     },
     "qr_modules": {
@@ -42,7 +42,7 @@
     "device_id",
     "session_id",
     "gateway_id",
-    "protected_endpoint",
+    "gateway_base_url",
     "expires_at_unix",
     "manual_code",
     "deep_link",
