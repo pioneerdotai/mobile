@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ClientInvitationCommitFailureResult",
+  "type": "object",
+  "properties": {
+    "cleanup_attempted": {
+      "type": "boolean"
+    },
+    "released": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "released",
+    "cleanup_attempted"
+  ]
+}

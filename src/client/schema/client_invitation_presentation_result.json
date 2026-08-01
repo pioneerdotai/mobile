@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ClientInvitationPresentationResult",
+  "type": "object",
+  "properties": {
+    "canonical_uri": {
+      "type": "string"
+    },
+    "gateway_id": {
+      "$ref": "#/$defs/GatewayId"
+    },
+    "protected_endpoint": {
+      "type": "string"
+    },
+    "qr_payload": {
+      "type": "string"
+    },
+    "transport_security": {
+      "$ref": "#/$defs/InvitationTransportSecurity"
+    }
+  },
+  "required": [
+    "protected_endpoint",
+    "gateway_id",
+    "transport_security",
+    "canonical_uri",
+    "qr_payload"
+  ],
+  "$defs": {
+    "GatewayId": {
+      "type": "string",
+      "maxLength": 21,
+      "minLength": 21,
+      "pattern": "^[A-Za-z0-9]{21}$"
+    },
+    "InvitationTransportSecurity": {
+      "type": "string",
+      "enum": [
+        "secure_wss",
+        "insecure_ws"
+      ]
+    }
+  }
+}

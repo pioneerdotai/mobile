@@ -77,6 +77,21 @@ export type GatewayNotification =
       [k: string]: unknown;
     }
   | {
+      kind: 'invitation_changed';
+      params: InvitationChangedNotification;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'member_changed';
+      params: MemberChangedNotification;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'workspace_members_changed';
+      params: WorkspaceMembersChangedNotification;
+      [k: string]: unknown;
+    }
+  | {
       kind: 'workspace_changed';
       params: WorkspaceChangedNotification;
       [k: string]: unknown;
@@ -535,6 +550,9 @@ export type AccessChangeKind =
   | 'thread_participant_removed';
 export type AuthSessionTerminationReason = 'session_revoked' | 'session_expired' | 'session_compromised';
 export type AuthSessionId = string;
+export type InvitationId = string;
+export type PrincipalId = string;
+export type WorkspaceId = string;
 export type WorkspaceChangeKind = 'created' | 'updated' | 'current_changed';
 export type ThreadMode = 'Chat' | 'Agent';
 export type ThreadStatus = 'Active' | 'Idle' | 'Closed';
@@ -570,7 +588,6 @@ export type TurnStatus = 'InProgress' | 'Completed' | 'Failed' | 'Interrupted' |
  */
 export type ThreadVisibility = 'private' | 'workspace';
 export type ThreadParticipantChangeKind = 'added' | 'removed';
-export type PrincipalId = string;
 export type ThreadAgentsDocStatus = 'draft' | 'active' | 'archived';
 export type TimelineChangeReason = 'backfill' | 'live_event' | 'state_changed' | 'page_invalidated';
 export type TurnWorkPresentation = 'expanded_live' | 'collapsed_after_final' | 'expanded_terminal_no_final';
@@ -1724,6 +1741,21 @@ export interface AuthSessionRevokedNotification {
 export interface AuthAccessExpiringNotification {
   access_expires_at_unix: number;
   session_id: AuthSessionId;
+  [k: string]: unknown;
+}
+export interface InvitationChangedNotification {
+  invitation_id: InvitationId;
+  revision: number;
+  [k: string]: unknown;
+}
+export interface MemberChangedNotification {
+  principal_id: PrincipalId;
+  revision: number;
+  [k: string]: unknown;
+}
+export interface WorkspaceMembersChangedNotification {
+  revision: number;
+  workspace_id: WorkspaceId;
   [k: string]: unknown;
 }
 export interface WorkspaceChangedNotification {

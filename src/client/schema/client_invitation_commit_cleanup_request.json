@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ClientInvitationCommitCleanupRequest",
+  "type": "object",
+  "properties": {
+    "commit_id": {
+      "type": "string"
+    },
+    "timeout_ms": {
+      "type": "integer",
+      "format": "uint64",
+      "default": 15000,
+      "minimum": 0
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "commit_id"
+  ]
+}

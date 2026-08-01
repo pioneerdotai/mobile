@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ClientInvitationAccessResult",
+  "type": "object",
+  "properties": {
+    "access_expires_at_unix": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0
+    },
+    "access_token": {
+      "type": "string"
+    },
+    "device_id": {
+      "$ref": "#/$defs/DeviceId"
+    },
+    "gateway_id": {
+      "$ref": "#/$defs/GatewayId"
+    },
+    "principal_id": {
+      "$ref": "#/$defs/PrincipalId"
+    },
+    "session_id": {
+      "$ref": "#/$defs/AuthSessionId"
+    }
+  },
+  "required": [
+    "gateway_id",
+    "principal_id",
+    "device_id",
+    "session_id",
+    "access_expires_at_unix",
+    "access_token"
+  ],
+  "$defs": {
+    "AuthSessionId": {
+      "type": "string",
+      "maxLength": 21,
+      "minLength": 21,
+      "pattern": "^[A-Za-z0-9]{21}$"
+    },
+    "DeviceId": {
+      "type": "string",
+      "maxLength": 21,
+      "minLength": 21,
+      "pattern": "^[A-Za-z0-9]{21}$"
+    },
+    "GatewayId": {
+      "type": "string",
+      "maxLength": 21,
+      "minLength": 21,
+      "pattern": "^[A-Za-z0-9]{21}$"
+    },
+    "PrincipalId": {
+      "type": "string",
+      "maxLength": 21,
+      "minLength": 21,
+      "pattern": "^[A-Za-z0-9]{21}$"
+    }
+  }
+}

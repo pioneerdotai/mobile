@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ClientInvitationCommitRequest",
+  "type": "object",
+  "properties": {
+    "commit_id": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "commit_id"
+  ]
+}

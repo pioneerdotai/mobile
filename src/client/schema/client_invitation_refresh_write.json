@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ClientInvitationRefreshWrite",
+  "type": "object",
+  "properties": {
+    "client_kind": {
+      "$ref": "#/$defs/ClientKind"
+    },
+    "device_id": {
+      "$ref": "#/$defs/DeviceId"
+    },
+    "gateway_id": {
+      "$ref": "#/$defs/GatewayId"
+    },
+    "installation_id": {
+      "type": "string"
+    },
+    "principal_id": {
+      "$ref": "#/$defs/PrincipalId"
+    },
+    "refresh_expires_at_unix": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0
+    },
+    "refresh_generation": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0
+    },
+    "refresh_token": {
+      "type": "string"
+    },
+    "session_id": {
+      "$ref": "#/$defs/AuthSessionId"
+    },
+    "token_family_id": {
+      "$ref": "#/$defs/TokenFamilyId"
+    }
+  },
+  "required": [
+    "gateway_id",
+    "principal_id",
+    "device_id",
+    "session_id",
+    "token_family_id",
+    "installation_id",
+    "client_kind",
+    "refresh_generation",
+    "refresh_expires_at_unix",
+    "refresh_token"
+  ],
+  "$defs": {
+    "AuthSessionId": {
+      "type": "string",
+      "maxLength": 21,
+      "minLength": 21,
+      "pattern": "^[A-Za-z0-9]{21}$"
+    },
+    "ClientKind": {
+      "type": "string",
+      "enum": [
+        "desktop",
+        "mobile",
+        "other"
+      ]
+    },
+    "DeviceId": {
+      "type": "string",
+      "maxLength": 21,
+      "minLength": 21,
+      "pattern": "^[A-Za-z0-9]{21}$"
+    },
+    "GatewayId": {
+      "type": "string",
+      "maxLength": 21,
+      "minLength": 21,
+      "pattern": "^[A-Za-z0-9]{21}$"
+    },
+    "PrincipalId": {
+      "type": "string",
+      "maxLength": 21,
+      "minLength": 21,
+      "pattern": "^[A-Za-z0-9]{21}$"
+    },
+    "TokenFamilyId": {
+      "type": "string",
+      "maxLength": 21,
+      "minLength": 21,
+      "pattern": "^[A-Za-z0-9]{21}$"
+    }
+  }
+}

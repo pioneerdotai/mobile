@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ClientInvitationPresentationRequest",
+  "type": "object",
+  "properties": {
+    "uri": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "uri"
+  ]
+}

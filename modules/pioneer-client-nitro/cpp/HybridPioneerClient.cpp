@@ -179,6 +179,106 @@ HybridPioneerClient::gatewayAuthDeviceCreateJson(const std::string& inputJson) {
 }
 
 std::shared_ptr<margelo::nitro::Promise<std::string>>
+HybridPioneerClient::invitationPresentationJson(const std::string& inputJson) {
+  return callWithClientAsyncSensitive(pioneer_client_ffi_invitation_presentation, inputJson);
+}
+
+std::shared_ptr<margelo::nitro::Promise<std::string>>
+HybridPioneerClient::invitationPreviewJson(const std::string& inputJson) {
+  return callWithClientAsyncSensitive(pioneer_client_ffi_invitation_preview, inputJson);
+}
+
+std::shared_ptr<margelo::nitro::Promise<std::string>>
+HybridPioneerClient::invitationAcceptJson(const std::string& inputJson) {
+  return callWithClientAsyncSensitive(pioneer_client_ffi_invitation_accept, inputJson);
+}
+
+std::shared_ptr<margelo::nitro::Promise<std::string>>
+HybridPioneerClient::invitationCommitTakeRefreshJson(const std::string& inputJson) {
+  return callWithClientAsyncSensitive(pioneer_client_ffi_invitation_commit_take_refresh, inputJson);
+}
+
+std::shared_ptr<margelo::nitro::Promise<std::string>>
+HybridPioneerClient::invitationCommitSecureStorageCommittedJson(const std::string& inputJson) {
+  return callWithClientAsync(pioneer_client_ffi_invitation_commit_secure_storage_committed, inputJson);
+}
+
+std::shared_ptr<margelo::nitro::Promise<std::string>>
+HybridPioneerClient::invitationCommitRegistryCommittedJson(const std::string& inputJson) {
+  return callWithClientAsyncSensitive(pioneer_client_ffi_invitation_commit_registry_committed, inputJson);
+}
+
+std::shared_ptr<margelo::nitro::Promise<std::string>>
+HybridPioneerClient::invitationCommitSecureStorageFailedJson(const std::string& inputJson) {
+  return callWithClientAsync(pioneer_client_ffi_invitation_commit_secure_storage_failed, inputJson);
+}
+
+std::shared_ptr<margelo::nitro::Promise<std::string>>
+HybridPioneerClient::invitationCommitRegistryFailedJson(const std::string& inputJson) {
+  return callWithClientAsync(pioneer_client_ffi_invitation_commit_registry_failed, inputJson);
+}
+
+std::shared_ptr<margelo::nitro::Promise<std::string>>
+HybridPioneerClient::invitationCreateJson(const std::string& inputJson) {
+  return callWithClientAsyncSensitive(pioneer_client_ffi_invitation_create, inputJson);
+}
+
+std::shared_ptr<margelo::nitro::Promise<std::string>>
+HybridPioneerClient::invitationListJson(const std::string& inputJson) {
+  return callWithClientAsync(pioneer_client_ffi_invitation_list, inputJson);
+}
+
+std::shared_ptr<margelo::nitro::Promise<std::string>>
+HybridPioneerClient::invitationRevokeJson(const std::string& inputJson) {
+  return callWithClientAsync(pioneer_client_ffi_invitation_revoke, inputJson);
+}
+
+std::shared_ptr<margelo::nitro::Promise<std::string>>
+HybridPioneerClient::memberListJson(const std::string& inputJson) {
+  return callWithClientAsync(pioneer_client_ffi_member_list, inputJson);
+}
+
+std::shared_ptr<margelo::nitro::Promise<std::string>>
+HybridPioneerClient::memberAvatarGetJson(const std::string& inputJson) {
+  return callWithClientAsync(pioneer_client_ffi_member_avatar_get, inputJson);
+}
+
+std::shared_ptr<margelo::nitro::Promise<std::string>>
+HybridPioneerClient::memberSuspendJson(const std::string& inputJson) {
+  return callWithClientAsync(pioneer_client_ffi_member_suspend, inputJson);
+}
+
+std::shared_ptr<margelo::nitro::Promise<std::string>>
+HybridPioneerClient::memberRestoreJson(const std::string& inputJson) {
+  return callWithClientAsync(pioneer_client_ffi_member_restore, inputJson);
+}
+
+std::shared_ptr<margelo::nitro::Promise<std::string>>
+HybridPioneerClient::memberRemoveJson(const std::string& inputJson) {
+  return callWithClientAsync(pioneer_client_ffi_member_remove, inputJson);
+}
+
+std::shared_ptr<margelo::nitro::Promise<std::string>>
+HybridPioneerClient::memberDeviceCreateJson(const std::string& inputJson) {
+  return callWithClientAsyncSensitive(pioneer_client_ffi_member_device_create, inputJson);
+}
+
+std::shared_ptr<margelo::nitro::Promise<std::string>>
+HybridPioneerClient::workspaceMemberListJson(const std::string& inputJson) {
+  return callWithClientAsync(pioneer_client_ffi_workspace_member_list, inputJson);
+}
+
+std::shared_ptr<margelo::nitro::Promise<std::string>>
+HybridPioneerClient::workspaceMemberAddJson(const std::string& inputJson) {
+  return callWithClientAsync(pioneer_client_ffi_workspace_member_add, inputJson);
+}
+
+std::shared_ptr<margelo::nitro::Promise<std::string>>
+HybridPioneerClient::workspaceMemberRemoveJson(const std::string& inputJson) {
+  return callWithClientAsync(pioneer_client_ffi_workspace_member_remove, inputJson);
+}
+
+std::shared_ptr<margelo::nitro::Promise<std::string>>
 HybridPioneerClient::gatewaySessionReplaceAccessJson(const std::string& inputJson) {
   return callWithClientAsyncSensitive(pioneer_client_ffi_gateway_session_replace_access, inputJson);
 }

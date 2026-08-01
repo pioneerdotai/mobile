@@ -68,6 +68,17 @@ import type { ClientDeviceActivationParseRequest } from './generated/client_devi
 import type { ClientDeviceActivationParseResult } from './generated/client_device_activation_parse_result';
 import type { ClientDeviceActivationPresentationRequest } from './generated/client_device_activation_presentation_request';
 import type { ClientDeviceActivationPresentationResult } from './generated/client_device_activation_presentation_result';
+import type { ClientInvitationAcceptRequest } from './generated/client_invitation_accept_request';
+import type { ClientInvitationAcceptResult } from './generated/client_invitation_accept_result';
+import type { ClientInvitationAccessResult } from './generated/client_invitation_access_result';
+import type { ClientInvitationCommitCleanupRequest } from './generated/client_invitation_commit_cleanup_request';
+import type { ClientInvitationCommitFailureResult } from './generated/client_invitation_commit_failure_result';
+import type { ClientInvitationCommitRequest } from './generated/client_invitation_commit_request';
+import type { ClientInvitationPresentationRequest } from './generated/client_invitation_presentation_request';
+import type { ClientInvitationPresentationResult } from './generated/client_invitation_presentation_result';
+import type { ClientInvitationPreviewRequest } from './generated/client_invitation_preview_request';
+import type { ClientInvitationRefreshWrite } from './generated/client_invitation_refresh_write';
+import type { ClientInvitationRegistryWrite } from './generated/client_invitation_registry_write';
 import type { ClientGatewaySettingsUpdateRequest } from './generated/client_gateway_settings_update_request';
 import type { ClientVoiceInputPlanRequest } from './generated/client_voice_input_plan_request';
 import type { ClientVoiceInputPlanResult } from './generated/client_voice_input_plan_result';
@@ -102,6 +113,23 @@ import type { ComposerSubmissionPlan } from './generated/composer_submission_pla
 import type { DeleteRemoteGatewayRegistryPlan } from './generated/delete_remote_gateway_registry_plan';
 import type { GatewaySettingsGetResponse } from './generated/gateway_settings_get_response';
 import type { GatewaySettingsUpdateResponse } from './generated/gateway_settings_update_response';
+import type { InvitationCreateParams } from './generated/invitation_create_params';
+import type { InvitationCreateResponse } from './generated/invitation_create_response';
+import type { InvitationListParams } from './generated/invitation_list_params';
+import type { InvitationListResponse } from './generated/invitation_list_response';
+import type { InvitationPreviewResponse } from './generated/invitation_preview_response';
+import type { InvitationRevokeParams } from './generated/invitation_revoke_params';
+import type { InvitationRevokeResponse } from './generated/invitation_revoke_response';
+import type { MemberAvatarGetParams } from './generated/member_avatar_get_params';
+import type { MemberAvatarGetResponse } from './generated/member_avatar_get_response';
+import type { MemberDeviceCreateParams } from './generated/member_device_create_params';
+import type { MemberDeviceCreateResponse } from './generated/member_device_create_response';
+import type { MemberListParams } from './generated/member_list_params';
+import type { MemberListResponse } from './generated/member_list_response';
+import type { MemberMutationResponse } from './generated/member_mutation_response';
+import type { MemberRemoveParams } from './generated/member_remove_params';
+import type { MemberRestoreParams } from './generated/member_restore_params';
+import type { MemberSuspendParams } from './generated/member_suspend_params';
 import type { PlanActivateGatewayRequest } from './generated/plan_activate_gateway_request';
 import type { PlanAddRemoteGatewayRequest } from './generated/plan_add_remote_gateway_request';
 import type { PlanDeleteRemoteGatewayRequest } from './generated/plan_delete_remote_gateway_request';
@@ -156,6 +184,11 @@ import type { WorkspaceRenameRequest } from './generated/workspace_rename_reques
 import type { WorkspaceRenameResult } from './generated/workspace_rename_result';
 import type { WorkspaceSwitchRequest } from './generated/workspace_switch_request';
 import type { WorkspaceSwitchResult } from './generated/workspace_switch_result';
+import type { WorkspaceMemberAddParams } from './generated/workspace_member_add_params';
+import type { WorkspaceMemberListParams } from './generated/workspace_member_list_params';
+import type { WorkspaceMemberListResponse } from './generated/workspace_member_list_response';
+import type { WorkspaceMemberMutationResponse } from './generated/workspace_member_mutation_response';
+import type { WorkspaceMemberRemoveParams } from './generated/workspace_member_remove_params';
 import { parsePioneerClientResponse } from './response';
 
 export type { ActivateGatewayRegistryPlan } from './generated/activate_gateway_registry_plan';
@@ -326,6 +359,39 @@ export type { ClientDeviceActivationParseRequest } from './generated/client_devi
 export type { ClientDeviceActivationParseResult } from './generated/client_device_activation_parse_result';
 export type { ClientDeviceActivationPresentationRequest } from './generated/client_device_activation_presentation_request';
 export type { ClientDeviceActivationPresentationResult } from './generated/client_device_activation_presentation_result';
+export type { ClientInvitationAcceptRequest } from './generated/client_invitation_accept_request';
+export type { ClientInvitationAcceptResult } from './generated/client_invitation_accept_result';
+export type { ClientInvitationAccessResult } from './generated/client_invitation_access_result';
+export type { ClientInvitationCommitCleanupRequest } from './generated/client_invitation_commit_cleanup_request';
+export type { ClientInvitationCommitFailureResult } from './generated/client_invitation_commit_failure_result';
+export type { ClientInvitationCommitRequest } from './generated/client_invitation_commit_request';
+export type { ClientInvitationPresentationRequest } from './generated/client_invitation_presentation_request';
+export type { ClientInvitationPresentationResult } from './generated/client_invitation_presentation_result';
+export type { ClientInvitationPreviewRequest } from './generated/client_invitation_preview_request';
+export type { ClientInvitationRefreshWrite } from './generated/client_invitation_refresh_write';
+export type { ClientInvitationRegistryWrite } from './generated/client_invitation_registry_write';
+export type { InvitationCreateParams } from './generated/invitation_create_params';
+export type { InvitationCreateResponse } from './generated/invitation_create_response';
+export type { InvitationListParams } from './generated/invitation_list_params';
+export type { InvitationListResponse } from './generated/invitation_list_response';
+export type { InvitationPreviewResponse } from './generated/invitation_preview_response';
+export type { InvitationRevokeParams } from './generated/invitation_revoke_params';
+export type { InvitationRevokeResponse } from './generated/invitation_revoke_response';
+export type { MemberAvatarGetParams } from './generated/member_avatar_get_params';
+export type { MemberAvatarGetResponse } from './generated/member_avatar_get_response';
+export type { MemberDeviceCreateParams } from './generated/member_device_create_params';
+export type { MemberDeviceCreateResponse } from './generated/member_device_create_response';
+export type { MemberListParams } from './generated/member_list_params';
+export type { MemberListResponse } from './generated/member_list_response';
+export type { MemberMutationResponse } from './generated/member_mutation_response';
+export type { MemberRemoveParams } from './generated/member_remove_params';
+export type { MemberRestoreParams } from './generated/member_restore_params';
+export type { MemberSuspendParams } from './generated/member_suspend_params';
+export type { WorkspaceMemberAddParams } from './generated/workspace_member_add_params';
+export type { WorkspaceMemberListParams } from './generated/workspace_member_list_params';
+export type { WorkspaceMemberListResponse } from './generated/workspace_member_list_response';
+export type { WorkspaceMemberMutationResponse } from './generated/workspace_member_mutation_response';
+export type { WorkspaceMemberRemoveParams } from './generated/workspace_member_remove_params';
 export type { SelectableMcpCapability } from './generated/selectable_mcp_capability';
 export type { ClientThreadTreeLevel } from './generated/thread_tree_level';
 export type { ThreadTreeLevelRequest } from './generated/thread_tree_level_request';
@@ -537,6 +603,154 @@ export const pioneerClient = {
     ): Promise<ClientDeviceActivationParseResult> {
         return parsePioneerClientResponse<ClientDeviceActivationParseResult>(
             await getPioneerClientNitro().gatewayDeviceActivationParseJson(JSON.stringify(input)),
+        );
+    },
+
+    async invitationPresentation(
+        input: ClientInvitationPresentationRequest,
+    ): Promise<ClientInvitationPresentationResult> {
+        return parsePioneerClientResponse<ClientInvitationPresentationResult>(
+            await getPioneerClientNitro().invitationPresentationJson(JSON.stringify(input)),
+        );
+    },
+
+    async invitationPreview(
+        input: ClientInvitationPreviewRequest,
+    ): Promise<InvitationPreviewResponse> {
+        return parsePioneerClientResponse<InvitationPreviewResponse>(
+            await getPioneerClientNitro().invitationPreviewJson(JSON.stringify(input)),
+        );
+    },
+
+    async invitationAccept(
+        input: ClientInvitationAcceptRequest,
+    ): Promise<ClientInvitationAcceptResult> {
+        return parsePioneerClientResponse<ClientInvitationAcceptResult>(
+            await getPioneerClientNitro().invitationAcceptJson(JSON.stringify(input)),
+        );
+    },
+
+    async invitationCommitTakeRefresh(
+        input: ClientInvitationCommitRequest,
+    ): Promise<ClientInvitationRefreshWrite> {
+        return parsePioneerClientResponse<ClientInvitationRefreshWrite>(
+            await getPioneerClientNitro().invitationCommitTakeRefreshJson(JSON.stringify(input)),
+        );
+    },
+
+    async invitationCommitSecureStorageCommitted(
+        input: ClientInvitationCommitRequest,
+    ): Promise<ClientInvitationRegistryWrite> {
+        return parsePioneerClientResponse<ClientInvitationRegistryWrite>(
+            await getPioneerClientNitro().invitationCommitSecureStorageCommittedJson(
+                JSON.stringify(input),
+            ),
+        );
+    },
+
+    async invitationCommitRegistryCommitted(
+        input: ClientInvitationCommitRequest,
+    ): Promise<ClientInvitationAccessResult> {
+        return parsePioneerClientResponse<ClientInvitationAccessResult>(
+            await getPioneerClientNitro().invitationCommitRegistryCommittedJson(
+                JSON.stringify(input),
+            ),
+        );
+    },
+
+    async invitationCommitSecureStorageFailed(
+        input: ClientInvitationCommitCleanupRequest,
+    ): Promise<ClientInvitationCommitFailureResult> {
+        return parsePioneerClientResponse<ClientInvitationCommitFailureResult>(
+            await getPioneerClientNitro().invitationCommitSecureStorageFailedJson(
+                JSON.stringify(input),
+            ),
+        );
+    },
+
+    async invitationCommitRegistryFailed(
+        input: ClientInvitationCommitRequest,
+    ): Promise<ClientInvitationCommitFailureResult> {
+        return parsePioneerClientResponse<ClientInvitationCommitFailureResult>(
+            await getPioneerClientNitro().invitationCommitRegistryFailedJson(JSON.stringify(input)),
+        );
+    },
+
+    async invitationCreate(input: InvitationCreateParams): Promise<InvitationCreateResponse> {
+        return parsePioneerClientResponse<InvitationCreateResponse>(
+            await getPioneerClientNitro().invitationCreateJson(JSON.stringify(input)),
+        );
+    },
+
+    async invitationList(input: InvitationListParams): Promise<InvitationListResponse> {
+        return parsePioneerClientResponse<InvitationListResponse>(
+            await getPioneerClientNitro().invitationListJson(JSON.stringify(input)),
+        );
+    },
+
+    async invitationRevoke(input: InvitationRevokeParams): Promise<InvitationRevokeResponse> {
+        return parsePioneerClientResponse<InvitationRevokeResponse>(
+            await getPioneerClientNitro().invitationRevokeJson(JSON.stringify(input)),
+        );
+    },
+
+    async memberList(input: MemberListParams): Promise<MemberListResponse> {
+        return parsePioneerClientResponse<MemberListResponse>(
+            await getPioneerClientNitro().memberListJson(JSON.stringify(input)),
+        );
+    },
+
+    async memberAvatarGet(input: MemberAvatarGetParams): Promise<MemberAvatarGetResponse> {
+        return parsePioneerClientResponse<MemberAvatarGetResponse>(
+            await getPioneerClientNitro().memberAvatarGetJson(JSON.stringify(input)),
+        );
+    },
+
+    async memberSuspend(input: MemberSuspendParams): Promise<MemberMutationResponse> {
+        return parsePioneerClientResponse<MemberMutationResponse>(
+            await getPioneerClientNitro().memberSuspendJson(JSON.stringify(input)),
+        );
+    },
+
+    async memberRestore(input: MemberRestoreParams): Promise<MemberMutationResponse> {
+        return parsePioneerClientResponse<MemberMutationResponse>(
+            await getPioneerClientNitro().memberRestoreJson(JSON.stringify(input)),
+        );
+    },
+
+    async memberRemove(input: MemberRemoveParams): Promise<MemberMutationResponse> {
+        return parsePioneerClientResponse<MemberMutationResponse>(
+            await getPioneerClientNitro().memberRemoveJson(JSON.stringify(input)),
+        );
+    },
+
+    async memberDeviceCreate(input: MemberDeviceCreateParams): Promise<MemberDeviceCreateResponse> {
+        return parsePioneerClientResponse<MemberDeviceCreateResponse>(
+            await getPioneerClientNitro().memberDeviceCreateJson(JSON.stringify(input)),
+        );
+    },
+
+    async workspaceMemberList(
+        input: WorkspaceMemberListParams,
+    ): Promise<WorkspaceMemberListResponse> {
+        return parsePioneerClientResponse<WorkspaceMemberListResponse>(
+            await getPioneerClientNitro().workspaceMemberListJson(JSON.stringify(input)),
+        );
+    },
+
+    async workspaceMemberAdd(
+        input: WorkspaceMemberAddParams,
+    ): Promise<WorkspaceMemberMutationResponse> {
+        return parsePioneerClientResponse<WorkspaceMemberMutationResponse>(
+            await getPioneerClientNitro().workspaceMemberAddJson(JSON.stringify(input)),
+        );
+    },
+
+    async workspaceMemberRemove(
+        input: WorkspaceMemberRemoveParams,
+    ): Promise<WorkspaceMemberMutationResponse> {
+        return parsePioneerClientResponse<WorkspaceMemberMutationResponse>(
+            await getPioneerClientNitro().workspaceMemberRemoveJson(JSON.stringify(input)),
         );
     },
 

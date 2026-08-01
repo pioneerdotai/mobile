@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ClientInvitationAcceptResult",
+  "type": "object",
+  "properties": {
+    "commit_id": {
+      "type": "string"
+    },
+    "state": {
+      "$ref": "#/$defs/ClientInvitationCommitState"
+    }
+  },
+  "required": [
+    "commit_id",
+    "state"
+  ],
+  "$defs": {
+    "ClientInvitationCommitState": {
+      "type": "string",
+      "enum": [
+        "refresh_ready",
+        "awaiting_secure_storage",
+        "awaiting_registry",
+        "durable_session_unbound",
+        "ready_to_connect"
+      ]
+    }
+  }
+}

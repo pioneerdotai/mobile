@@ -76,6 +76,46 @@ public:
       const std::string& inputJson) override;
   std::shared_ptr<margelo::nitro::Promise<std::string>> gatewayAuthDeviceCreateJson(
       const std::string& inputJson) override;
+  std::shared_ptr<margelo::nitro::Promise<std::string>> invitationPresentationJson(
+      const std::string& inputJson) override;
+  std::shared_ptr<margelo::nitro::Promise<std::string>> invitationPreviewJson(
+      const std::string& inputJson) override;
+  std::shared_ptr<margelo::nitro::Promise<std::string>> invitationAcceptJson(
+      const std::string& inputJson) override;
+  std::shared_ptr<margelo::nitro::Promise<std::string>> invitationCommitTakeRefreshJson(
+      const std::string& inputJson) override;
+  std::shared_ptr<margelo::nitro::Promise<std::string>> invitationCommitSecureStorageCommittedJson(
+      const std::string& inputJson) override;
+  std::shared_ptr<margelo::nitro::Promise<std::string>> invitationCommitRegistryCommittedJson(
+      const std::string& inputJson) override;
+  std::shared_ptr<margelo::nitro::Promise<std::string>> invitationCommitSecureStorageFailedJson(
+      const std::string& inputJson) override;
+  std::shared_ptr<margelo::nitro::Promise<std::string>> invitationCommitRegistryFailedJson(
+      const std::string& inputJson) override;
+  std::shared_ptr<margelo::nitro::Promise<std::string>> invitationCreateJson(
+      const std::string& inputJson) override;
+  std::shared_ptr<margelo::nitro::Promise<std::string>> invitationListJson(
+      const std::string& inputJson) override;
+  std::shared_ptr<margelo::nitro::Promise<std::string>> invitationRevokeJson(
+      const std::string& inputJson) override;
+  std::shared_ptr<margelo::nitro::Promise<std::string>> memberListJson(
+      const std::string& inputJson) override;
+  std::shared_ptr<margelo::nitro::Promise<std::string>> memberAvatarGetJson(
+      const std::string& inputJson) override;
+  std::shared_ptr<margelo::nitro::Promise<std::string>> memberSuspendJson(
+      const std::string& inputJson) override;
+  std::shared_ptr<margelo::nitro::Promise<std::string>> memberRestoreJson(
+      const std::string& inputJson) override;
+  std::shared_ptr<margelo::nitro::Promise<std::string>> memberRemoveJson(
+      const std::string& inputJson) override;
+  std::shared_ptr<margelo::nitro::Promise<std::string>> memberDeviceCreateJson(
+      const std::string& inputJson) override;
+  std::shared_ptr<margelo::nitro::Promise<std::string>> workspaceMemberListJson(
+      const std::string& inputJson) override;
+  std::shared_ptr<margelo::nitro::Promise<std::string>> workspaceMemberAddJson(
+      const std::string& inputJson) override;
+  std::shared_ptr<margelo::nitro::Promise<std::string>> workspaceMemberRemoveJson(
+      const std::string& inputJson) override;
   std::shared_ptr<margelo::nitro::Promise<std::string>> gatewaySessionReplaceAccessJson(
       const std::string& inputJson) override;
   std::shared_ptr<margelo::nitro::Promise<std::string>> gatewaySettingsGetJson(
