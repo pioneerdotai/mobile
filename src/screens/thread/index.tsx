@@ -542,29 +542,9 @@ const ThreadScreen = ({ threadId, initialThread = null }: ThreadScreenProps) => 
         settingsError: voiceInputSettingsQuery.isError,
         settings: voiceInputSettingsQuery.data?.settings.voice_input,
         voiceStatus,
-        voiceStatusError: voiceStatusResponse?.error?.message,
     });
-    const voiceVisible = voiceAvailability.kind !== 'hidden';
     const voiceReady = voiceAvailability.kind === 'ready';
-    const voiceAvailabilityMessage =
-        voiceAvailability.kind === 'blocked'
-            ? (voiceAvailability.error ??
-              (voiceAvailability.reason === 'model_not_selected'
-                  ? t('voiceModelNotSelected')
-                  : voiceAvailability.reason === 'missing' ||
-                      voiceAvailability.reason === 'downloading'
-                    ? t('voiceModelDownloading')
-                    : voiceAvailability.reason === 'installing' ||
-                        voiceAvailability.reason === 'loading'
-                      ? t('voiceModelLoading')
-                      : voiceAvailability.reason === 'busy'
-                        ? t('voiceBusy')
-                        : voiceAvailability.reason === 'failed'
-                          ? t('voiceFailed')
-                          : t('voiceNotReady')))
-            : null;
-    const voiceAvailabilityError =
-        voiceAvailability.kind === 'blocked' && voiceAvailability.reason === 'failed';
+    const voiceVisible = voiceReady;
     const voiceEnabled = Boolean(
         !composerDisabled &&
         !voiceCommitProcessing &&
@@ -1503,8 +1483,6 @@ const ThreadScreen = ({ threadId, initialThread = null }: ThreadScreenProps) => 
                                 inputNativeID={THREAD_COMPOSER_INPUT_NATIVE_ID}
                                 voiceVisible={voiceVisible}
                                 voiceEnabled={voiceEnabled}
-                                voiceAvailabilityMessage={voiceAvailabilityMessage}
-                                voiceAvailabilityError={voiceAvailabilityError}
                                 voiceBusy={voiceCaptureBusy || voiceCommitProcessing}
                                 voiceProcessing={voiceCommitProcessing}
                                 voiceLevel={voiceLevel}

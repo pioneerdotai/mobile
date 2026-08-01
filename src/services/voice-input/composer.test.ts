@@ -92,7 +92,7 @@ describe('active-Gateway Voice Input composer availability', () => {
         ['preparing', 'loading'],
     ];
 
-    it.each(blockedCases)('shows but blocks the microphone for %s/%s', (presentation, phase) => {
+    it.each(blockedCases)('hides the microphone for %s/%s', (presentation, phase) => {
         reduction(presentation, phase);
         expect(
             resolveVoiceComposerAvailability({
@@ -102,7 +102,7 @@ describe('active-Gateway Voice Input composer availability', () => {
                 settings: { enabled: true, model: 'model-1', runtime: { phase } },
                 voiceStatus: 'ready',
             }),
-        ).toEqual({ kind: 'blocked', reason: phase, error: null });
+        ).toEqual({ kind: 'hidden' });
     });
 
     it('enables capture only when both settings runtime and voice status are ready', () => {
@@ -124,10 +124,10 @@ describe('active-Gateway Voice Input composer availability', () => {
                 settings: { enabled: true, runtime: { phase: 'ready' } },
                 voiceStatus: 'busy',
             }),
-        ).toEqual({ kind: 'blocked', reason: 'busy', error: null });
+        ).toEqual({ kind: 'hidden' });
     });
 
-    it('shows a bounded failure without enabling capture', () => {
+    it('hides failed voice input without changing the text composer', () => {
         reduction('failed', 'failed');
         expect(
             resolveVoiceComposerAvailability({
@@ -140,17 +140,6 @@ describe('active-Gateway Voice Input composer availability', () => {
                 },
                 voiceStatus: 'error',
             }),
-        ).toMatchObject({ kind: 'blocked', reason: 'failed' });
-        const result = resolveVoiceComposerAvailability({
-            online: true,
-            settingsLoading: false,
-            settingsError: false,
-            settings: {
-                enabled: true,
-                runtime: { phase: 'failed', error: 'x'.repeat(500) },
-            },
-            voiceStatus: 'error',
-        });
-        expect(result.kind === 'blocked' ? result.error : null).toHaveLength(240);
+        ).toEqual({ kind: 'hidden' });
     });
 });

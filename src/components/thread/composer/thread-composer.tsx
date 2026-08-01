@@ -89,8 +89,6 @@ type ThreadComposerProps = {
     onHeightChange?: (height: number) => void;
     voiceVisible: boolean;
     voiceEnabled: boolean;
-    voiceAvailabilityMessage: string | null;
-    voiceAvailabilityError: boolean;
     voiceBusy: boolean;
     voiceProcessing: boolean;
     voiceLevel: number;
@@ -155,8 +153,6 @@ export const ThreadComposer = ({
     onHeightChange,
     voiceVisible,
     voiceEnabled,
-    voiceAvailabilityMessage,
-    voiceAvailabilityError,
     voiceBusy,
     voiceProcessing,
     voiceLevel,
@@ -223,14 +219,6 @@ export const ThreadComposer = ({
           ? VOICE_ACTIVE_COLOR
           : theme.colors.surfaceMuted;
     const voiceSurfaceTextColor = voiceActive ? theme.colors.white : theme.colors.typography;
-    const showVoiceAvailability = Boolean(
-        composerTextEmpty &&
-        modelSelectionComplete &&
-        voiceVisible &&
-        !voiceEnabled &&
-        voiceAvailabilityMessage,
-    );
-
     const selectedPermissionOption = useMemo(
         () =>
             permissionModeOptions.find((option) => option.mode === selectedPermissionMode) ??
@@ -388,19 +376,6 @@ export const ThreadComposer = ({
                     {error ? (
                         <Box style={styles.errorWrap}>
                             <Text style={styles.errorText}>{error}</Text>
-                        </Box>
-                    ) : null}
-                    {!error && showVoiceAvailability ? (
-                        <Box style={styles.voiceAvailabilityWrap}>
-                            <Text
-                                style={[
-                                    styles.voiceAvailabilityText,
-                                    voiceAvailabilityError ? styles.voiceAvailabilityError : null,
-                                ]}
-                                numberOfLines={3}
-                            >
-                                {voiceAvailabilityMessage}
-                            </Text>
                         </Box>
                     ) : null}
                     {hasChips ? (
@@ -850,17 +825,6 @@ const styles = StyleSheet.create((theme, rt) => ({
     },
     inputRow: {
         gap: theme.space(2),
-    },
-    voiceAvailabilityWrap: {
-        paddingHorizontal: theme.space(2),
-        paddingTop: theme.space(1),
-    },
-    voiceAvailabilityText: {
-        ...theme.fontSize.xs,
-        color: theme.colors.textMuted,
-    },
-    voiceAvailabilityError: {
-        color: theme.colors.dangerText,
     },
     input: {
         flex: 1,
