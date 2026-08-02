@@ -7,6 +7,18 @@ RUST_ROOT="${PIONEER_RUST_ROOT:-$(cd "$MODULE_ROOT/../../.." && pwd)/pioneer}"
 OUT_DIR="$MODULE_ROOT/rust/ios"
 FRAMEWORK_PATH="$OUT_DIR/PioneerClientFfi.xcframework"
 HEADER_DIR="$OUT_DIR/headers"
+IOS_DEPLOYMENT_TARGET="${PIONEER_IOS_DEPLOYMENT_TARGET:-${IPHONEOS_DEPLOYMENT_TARGET:-16.4}}"
+
+if [[ ! "$IOS_DEPLOYMENT_TARGET" =~ ^[0-9]+\.[0-9]+(\.[0-9]+)?$ ]]; then
+  echo "Invalid iOS deployment target: $IOS_DEPLOYMENT_TARGET" >&2
+  exit 1
+fi
+
+# Cargo, rustc, cc-rs, ring, and aws-lc-sys must compile against the same
+# minimum iOS version. Without this, cc-rs falls back to the installed SDK
+# version while rustc uses its lower built-in target default.
+export IPHONEOS_DEPLOYMENT_TARGET="$IOS_DEPLOYMENT_TARGET"
+export CMAKE_OSX_DEPLOYMENT_TARGET="$IOS_DEPLOYMENT_TARGET"
 
 if [[ -f "$HOME/.cargo/env" ]]; then
   # shellcheck disable=SC1091

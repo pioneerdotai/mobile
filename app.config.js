@@ -9,6 +9,7 @@ const appBundleIdentifier = cleanEnv(process.env.APP_BUNDLE_IDENTIFIER) || '';
 const appVariant = cleanEnv(process.env.APP_VARIANT);
 const appAppleTeamId = cleanEnv(process.env.APP_APPLE_TEAM_ID) || '';
 const appEasProjectId = cleanEnv(process.env.APP_EAS_PROJECT_ID);
+const iosDeploymentTarget = '16.4';
 
 const sentryDsn = cleanEnv(process.env.SENTRY_DSN);
 const sentryEnvironment = cleanEnv(process.env.SENTRY_ENVIRONMENT) || appVariant;
@@ -67,6 +68,7 @@ module.exports = {
         buildNumber: appBuildNumber,
         appleTeamId: appAppleTeamId,
         bundleIdentifier: appBundleIdentifier,
+        deploymentTarget: iosDeploymentTarget,
         supportsTablet: false,
         config: {
             usesNonExemptEncryption: false,
