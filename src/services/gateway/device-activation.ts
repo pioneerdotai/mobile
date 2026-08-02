@@ -262,7 +262,7 @@ export const acceptMobileDeviceActivation = async (
     } catch (error) {
         if (registryDurable && nextRegistry) {
             // The endpoint and refresh envelope are already a complete,
-            // usable v2 binding. Keep the credential-free pending marker so
+            // usable registry binding. Keep the credential-free pending marker so
             // startup can finish removing the journal without reporting a
             // failed activation that actually succeeded.
             await clearMobileGatewaySessionRuntime(binding.endpoint.id).catch(() => undefined);
@@ -283,7 +283,7 @@ export const acceptMobileDeviceActivation = async (
  * Resume only the credential-free tail of an activation commit.
  *
  * The pending MMKV record never contains access/refresh/activation material. It
- * remains until the v2 registry binding is durable and the journal itself is
+ * remains until the registry binding is durable and the journal itself is
  * removed. Recovery is best-effort per endpoint so one unavailable
  * SecureStore item cannot block app startup.
  */

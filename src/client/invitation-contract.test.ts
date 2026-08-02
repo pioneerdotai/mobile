@@ -28,13 +28,13 @@ describe('mobile invitation contract', () => {
     it('keeps invitation and session secrets on direct calls in durable commit order', async () => {
         const invitationToken = `pinv1_${'A'.repeat(43)}`;
         const uri =
-            'pioneer://invite?gateway=wss%3A%2F%2Fgateway.example%2Fws' +
+            'pioneer://invite?gateway_base_url=https%3A%2F%2Fgateway.example%2Fpioneer%2F' +
             `&gateway_id=G00000000000000000001#token=${invitationToken}`;
         nitro.invitationPresentationJson.mockResolvedValue(
             ok({
                 canonical_uri: uri,
+                gateway_base_url: 'https://gateway.example/pioneer/',
                 gateway_id: 'G00000000000000000001',
-                protected_endpoint: 'wss://gateway.example/ws',
                 qr_payload: uri,
                 transport_security: 'secure_wss',
             }),

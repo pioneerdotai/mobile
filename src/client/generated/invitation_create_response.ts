@@ -39,7 +39,7 @@ export interface InvitationWorkspaceSummary {
 }
 export interface InvitationPresentation {
   deep_link: string;
+  gateway_base_url: string;
   gateway_id: GatewayId;
-  protected_endpoint: string;
   token: string;
 }

@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 
 import type { TimelineRow } from '@/services/threads/conversation/timeline';
-import type { MobileArtifactActionState } from '@/services/artifacts/mobile-actions';
+import type { MobileArtifactActionState } from '@/services/artifacts/mobile-action-state';
 
 import { Box } from '@/components/primitives/box';
 import { HStack } from '@/components/primitives/hstack';
@@ -16,9 +16,9 @@ import { HeaderText, StatusPill, TimelineCard, useToneColor, toneFromStatus } fr
 type ArtifactRowProps = {
     row: Extract<TimelineRow, { type: 'artifact' }>;
     actionState?: MobileArtifactActionState;
-    onOpen?: (artifactId: string) => void;
-    onShare?: (artifactId: string) => void;
-    onCancelDownload?: (artifactId: string, operationId: string) => void;
+    onOpen?: (artifactId: string, versionId: string | null) => void;
+    onShare?: (artifactId: string, versionId: string | null) => void;
+    onCancelDownload?: (artifactId: string, versionId: string | null, operationId: string) => void;
 };
 
 export const ArtifactRow = ({
@@ -62,7 +62,7 @@ export const ArtifactRow = ({
                         accessibilityRole="button"
                         accessibilityLabel={t('artifacts:open')}
                         disabled={busy || !onOpen}
-                        onPress={() => onOpen?.(row.artifactId)}
+                        onPress={() => onOpen?.(row.artifactId, null)}
                         style={[styles.actionIcon, (busy || !onOpen) && styles.actionIconDisabled]}
                     >
                         <Eye size={actionIconSize} color={actionIconColor} />
@@ -72,7 +72,7 @@ export const ArtifactRow = ({
                             accessibilityRole="button"
                             accessibilityLabel={t('artifacts:cancel')}
                             onPress={() =>
-                                onCancelDownload?.(row.artifactId, actionState.operationId)
+                                onCancelDownload?.(row.artifactId, null, actionState.operationId)
                             }
                             style={styles.actionIcon}
                         >
@@ -83,7 +83,7 @@ export const ArtifactRow = ({
                             accessibilityRole="button"
                             accessibilityLabel={t('artifacts:downloadAndShare')}
                             disabled={busy || !onShare}
-                            onPress={() => onShare?.(row.artifactId)}
+                            onPress={() => onShare?.(row.artifactId, null)}
                             style={[
                                 styles.actionIcon,
                                 (busy || !onShare) && styles.actionIconDisabled,

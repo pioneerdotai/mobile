@@ -172,7 +172,7 @@ describe('mobile Nitro auth contract', () => {
 
     it('returns activation parse and QR secrets only to direct callers', async () => {
         const activationCode = 'K7M4-P9Q2';
-        const deepLink = `pioneer://activate?gateway=wss%3A%2F%2Fgateway.example%2Fws#code=${activationCode}`;
+        const deepLink = `pioneer://activate?gateway_base_url=https%3A%2F%2Fgateway.example%2F#code=${activationCode}`;
         nitro.gatewayDeviceActivationParseJson.mockResolvedValue(
             JSON.stringify({
                 status: 'ok',

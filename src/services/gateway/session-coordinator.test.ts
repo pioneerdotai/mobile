@@ -64,6 +64,7 @@ import {
     markMobileGatewaySessionTerminal,
     mobileSessionProjection,
     resetMobileSessionCoordinatorForTests,
+    refreshMobileGatewaySessionAfterUnauthorized,
     suspendMobileGatewaySession,
 } from './session-coordinator';
 import type { MobileGatewaySessionEnvelope } from './session-storage';
@@ -297,6 +298,40 @@ describe('mobile Gateway session coordinator', () => {
         await expect(Promise.all([first, second])).resolves.toHaveLength(2);
         expect(mockGatewayAuthRefresh).toHaveBeenCalledTimes(1);
         expect(mockGatewaySessionReplaceAccess).toHaveBeenCalledTimes(1);
+    });
+
+    it('coalesces concurrent HTTP unauthorized recovery into the existing session lifecycle', async () => {
+        const firstConnection = await ensureMobileGatewaySession(endpoint, timings);
+        const rejectedGeneration = firstConnection.projection.connectionGeneration;
+        expect(rejectedGeneration).not.toBeNull();
+
+        let releaseRefresh: ((grant: AuthRefreshGrant) => void) | undefined;
+        mockGatewayAuthRefresh.mockImplementationOnce(
+            () =>
+                new Promise<AuthRefreshGrant>((resolve) => {
+                    releaseRefresh = resolve;
+                }),
+        );
+
+        const first = refreshMobileGatewaySessionAfterUnauthorized(
+            endpoint,
+            timings,
+            rejectedGeneration!,
+        );
+        const second = refreshMobileGatewaySessionAfterUnauthorized(
+            endpoint,
+            timings,
+            rejectedGeneration!,
+        );
+        await new Promise<void>((resolve) => setImmediate(resolve));
+        expect(releaseRefresh).toBeDefined();
+        releaseRefresh!(refreshGrant(2, nowSeconds + 900));
+
+        await expect(Promise.all([first, second])).resolves.toHaveLength(2);
+        expect(mockGatewayAuthRefresh).toHaveBeenCalledTimes(2);
+        expect(mockGatewaySessionReplaceAccess).toHaveBeenCalledTimes(2);
+        expect(mockGatewayDisconnect).toHaveBeenCalledTimes(1);
+        expect(durableEnvelope.refresh_generation).toBe(2);
     });
 
     it('persists rotation before activating access', async () => {

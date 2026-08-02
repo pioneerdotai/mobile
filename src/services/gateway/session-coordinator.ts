@@ -131,6 +131,71 @@ export const ensureMobileGatewaySession = (
     return operation;
 };
 
+/**
+ * Recover an idempotent native HTTP operation after the Gateway rejected the
+ * access credential used by the active WebSocket session.
+ *
+ * This deliberately reuses `inFlight` and `ensureSerialized`: HTTP does not
+ * own another credential cache, refresh lock, or token-rotation path. Calls
+ * that observed the same connection generation coalesce into one disconnect,
+ * one durable refresh rotation, and one WebSocket replacement.
+ */
+export const refreshMobileGatewaySessionAfterUnauthorized = (
+    endpoint: GatewayEndpoint,
+    timings: ClientGatewayWsTimings,
+    rejectedConnectionGeneration: number,
+): Promise<MobileGatewayConnection> => {
+    const current = inFlight.get(endpoint.id);
+    if (current) {
+        return current.promise
+            .catch(() => undefined)
+            .then(() =>
+                refreshMobileGatewaySessionAfterUnauthorized(
+                    endpoint,
+                    timings,
+                    rejectedConnectionGeneration,
+                ),
+            );
+    }
+
+    const runtime = runtimeFor(endpoint.id);
+    if (
+        runtime.connectionId === null ||
+        runtime.connectionGeneration !== rejectedConnectionGeneration
+    ) {
+        return ensureMobileGatewaySession(endpoint, timings);
+    }
+
+    runtime.lifecycleEpoch += 1;
+    const lifecycleEpoch = runtime.lifecycleEpoch;
+    clearRuntimeAccess(runtime);
+    clearRuntimeEnvelopeCredential(runtime);
+    runtime.connectionId = null;
+    runtime.connectionGeneration = null;
+    if (!runtime.terminalReason) {
+        setPhase(endpoint.id, runtime, 'transiently_disconnected');
+    }
+
+    const operation = (async () => {
+        const pending = disconnectMobileGatewayTransport(endpoint.id);
+        runtime.suspendPromise = pending;
+        try {
+            await pending;
+        } finally {
+            if (runtime.suspendPromise === pending) {
+                runtime.suspendPromise = null;
+            }
+        }
+        return ensureSerialized(endpoint, timings, lifecycleEpoch);
+    })().finally(() => {
+        if (inFlight.get(endpoint.id)?.promise === operation) {
+            inFlight.delete(endpoint.id);
+        }
+    });
+    inFlight.set(endpoint.id, { epoch: lifecycleEpoch, promise: operation });
+    return operation;
+};
+
 const ensureSerialized = async (
     requestedEndpoint: GatewayEndpoint,
     timings: ClientGatewayWsTimings,

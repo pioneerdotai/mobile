@@ -5,6 +5,7 @@ import {
     markMobileGatewayConnectionDisconnected,
     mobileSessionProjection,
     mobileSessionRefreshDelayMs,
+    refreshMobileGatewaySessionAfterUnauthorized,
     suspendMobileGatewaySession,
     subscribeMobileSessionProjection,
 } from '@/services/gateway/session-coordinator';
@@ -12,6 +13,7 @@ import type {
     MobileGatewayConnection,
     MobileSessionProjection,
 } from '@/services/gateway/session-coordinator';
+import { useGatewayStore } from '@/stores/gateway';
 
 export const DEFAULT_GATEWAY_WS_TIMINGS: ClientGatewayWsTimings = {
     connect_timeout_ms: 5_000,
@@ -26,6 +28,39 @@ export const connectGatewayEndpoint = async (
     endpoint: GatewayEndpoint,
 ): Promise<MobileGatewayConnection> => {
     return ensureMobileGatewaySession(endpoint, DEFAULT_GATEWAY_WS_TIMINGS);
+};
+
+export const activeGatewayConnectionGeneration = (): number | null => {
+    const state = useGatewayStore.getState();
+    const gatewayId = state.registry.active_gateway_id ?? null;
+    if (
+        gatewayId === null ||
+        state.connectionState !== 'Connected' ||
+        state.connectionGatewayId !== gatewayId
+    ) {
+        return null;
+    }
+    return mobileSessionProjection(gatewayId).connectionGeneration;
+};
+
+export const refreshActiveGatewaySessionAfterUnauthorized = async (
+    rejectedConnectionGeneration: number,
+): Promise<void> => {
+    const state = useGatewayStore.getState();
+    const gatewayId = state.registry.active_gateway_id ?? null;
+    const endpoint =
+        state.registry.local?.id === gatewayId
+            ? state.registry.local
+            : (state.registry.remotes ?? []).find((candidate) => candidate.id === gatewayId);
+    if (!endpoint || state.connectionGatewayId !== endpoint.id) {
+        throw new Error('active Gateway session is unavailable');
+    }
+
+    await refreshMobileGatewaySessionAfterUnauthorized(
+        endpoint,
+        DEFAULT_GATEWAY_WS_TIMINGS,
+        rejectedConnectionGeneration,
+    );
 };
 
 type GatewayEventListener = (event: ClientEvent) => void | Promise<void>;

@@ -18,6 +18,12 @@ jest.mock('./session-coordinator', () => ({
     subscribeMobileSessionProjection: jest.fn(),
 }));
 
+jest.mock('@/stores/gateway', () => ({
+    useGatewayStore: {
+        getState: jest.fn(),
+    },
+}));
+
 import { pioneerClient } from '@/client';
 import type { ClientEvent } from '@/client';
 import { resetGatewayEventPumpForTests, subscribeGatewayEvents } from './session';

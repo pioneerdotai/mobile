@@ -23,6 +23,11 @@ jest.mock('lucide-react-native', () => ({
     Video: () => null,
     Zap: () => null,
 }));
+jest.mock('react-i18next', () => ({
+    useTranslation: () => ({
+        t: (key: string) => key,
+    }),
+}));
 jest.mock('@/components/icons/mcp-icon', () => ({ McpIcon: () => null }));
 jest.mock('@/components/primitives/box', () => ({ Box: 'Box' }));
 jest.mock('@/components/primitives/hstack', () => ({ HStack: 'HStack' }));

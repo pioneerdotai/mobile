@@ -225,7 +225,7 @@ describe('mobile device activation service', () => {
         mockGatewayDeviceActivationParse.mockResolvedValue({
             ...activation,
         });
-        const uri = `pioneer://activate?gateway=wss%3A%2F%2Fgateway.example%2Fws#code=${activationCode}`;
+        const uri = `pioneer://activate?gateway_base_url=https%3A%2F%2Fgateway.example%2F#code=${activationCode}`;
 
         await expect(parseMobileDeviceActivationUri(uri)).resolves.toEqual(activation);
         expect(mockGatewayDeviceActivationParse).toHaveBeenCalledWith({ uri });

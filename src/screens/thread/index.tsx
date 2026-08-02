@@ -75,6 +75,7 @@ import { requireVoiceInputGatewayTarget } from '@/services/voice-input/gateway-t
 import {
     cancelMobileArtifactDownload,
     downloadAndShareMobileArtifact,
+    mobileArtifactActionKey,
     openMobileArtifact,
     reduceMobileArtifactAction,
     type MobileArtifactActionEvent,
@@ -326,61 +327,120 @@ const ThreadScreen = ({ threadId, initialThread = null }: ThreadScreenProps) => 
 
     const visibleSnapshot = snapshot?.thread_id === threadId ? snapshot : null;
     const visibleThreadId = visibleSnapshot?.thread_id ?? threadId;
-    const [artifactActionStateById, setArtifactActionStateById] = useState<
+    const [artifactActionStateByKey, setArtifactActionStateByKey] = useState<
         Record<string, MobileArtifactActionState>
     >({});
+    const artifactActionGenerationRef = useRef(0);
+    const artifactActionGenerationByKeyRef = useRef(new Map<string, number>());
     const dispatchArtifactAction = useCallback(
-        (artifactId: string, event: MobileArtifactActionEvent) => {
-            setArtifactActionStateById((current) => ({
+        (
+            workspaceId: string,
+            artifactId: string,
+            versionId: string | null,
+            event: MobileArtifactActionEvent,
+            generation?: number,
+        ) => {
+            const key = mobileArtifactActionKey(workspaceId, artifactId, versionId);
+            if (
+                generation !== undefined &&
+                artifactActionGenerationByKeyRef.current.get(key) !== generation
+            ) {
+                return;
+            }
+            if (
+                generation !== undefined &&
+                (event.type === 'completed' || event.type === 'failed')
+            ) {
+                artifactActionGenerationByKeyRef.current.delete(key);
+            }
+            setArtifactActionStateByKey((current) => ({
                 ...current,
-                [artifactId]: reduceMobileArtifactAction(
-                    current[artifactId] ?? { kind: 'idle' },
-                    event,
-                ),
+                [key]: reduceMobileArtifactAction(current[key] ?? { kind: 'idle' }, event),
             }));
         },
         [],
     );
+    const beginArtifactAction = useCallback(
+        (
+            workspaceId: string,
+            artifactId: string,
+            versionId: string | null,
+        ): ((event: MobileArtifactActionEvent) => void) | null => {
+            const key = mobileArtifactActionKey(workspaceId, artifactId, versionId);
+            if (artifactActionGenerationByKeyRef.current.has(key)) {
+                return null;
+            }
+            artifactActionGenerationRef.current += 1;
+            const generation = artifactActionGenerationRef.current;
+            artifactActionGenerationByKeyRef.current.set(key, generation);
+            return (event) =>
+                dispatchArtifactAction(workspaceId, artifactId, versionId, event, generation);
+        },
+        [dispatchArtifactAction],
+    );
     const artifactWorkspaceId = visibleSnapshot?.workspace_id ?? activeWorkspaceId;
     const handleOpenArtifact = useCallback(
-        (artifactId: string) => {
+        (artifactId: string, versionId: string | null = null) => {
             if (!artifactWorkspaceId || !connected) {
-                dispatchArtifactAction(artifactId, {
+                dispatchArtifactAction(artifactWorkspaceId ?? '', artifactId, versionId, {
                     type: 'failed',
                     code: 'reconfiguration_required',
                 });
                 return;
             }
-            void openMobileArtifact({ workspaceId: artifactWorkspaceId, artifactId }, (event) =>
-                dispatchArtifactAction(artifactId, event),
+            const dispatch = beginArtifactAction(artifactWorkspaceId, artifactId, versionId);
+            if (!dispatch) {
+                return;
+            }
+            void openMobileArtifact(
+                { workspaceId: artifactWorkspaceId, artifactId, versionId },
+                dispatch,
             );
         },
-        [artifactWorkspaceId, connected, dispatchArtifactAction],
+        [artifactWorkspaceId, beginArtifactAction, connected, dispatchArtifactAction],
     );
     const handleShareArtifact = useCallback(
-        (artifactId: string) => {
+        (artifactId: string, versionId: string | null = null) => {
             if (!artifactWorkspaceId || !connected) {
-                dispatchArtifactAction(artifactId, {
+                dispatchArtifactAction(artifactWorkspaceId ?? '', artifactId, versionId, {
                     type: 'failed',
                     code: 'reconfiguration_required',
                 });
+                return;
+            }
+            const dispatch = beginArtifactAction(artifactWorkspaceId, artifactId, versionId);
+            if (!dispatch) {
                 return;
             }
             void downloadAndShareMobileArtifact(
-                { workspaceId: artifactWorkspaceId, artifactId },
+                { workspaceId: artifactWorkspaceId, artifactId, versionId },
                 `artifact-${generateArtifactOperationId()}`,
-                (event) => dispatchArtifactAction(artifactId, event),
+                dispatch,
             );
         },
-        [artifactWorkspaceId, connected, dispatchArtifactAction],
+        [artifactWorkspaceId, beginArtifactAction, connected, dispatchArtifactAction],
     );
     const handleCancelArtifactDownload = useCallback(
-        (artifactId: string, operationId: string) => {
-            void cancelMobileArtifactDownload(operationId, (event) =>
-                dispatchArtifactAction(artifactId, event),
-            );
+        (artifactId: string, versionId: string | null, operationId: string) => {
+            if (!artifactWorkspaceId) {
+                return;
+            }
+            const key = mobileArtifactActionKey(artifactWorkspaceId, artifactId, versionId);
+            const generation = artifactActionGenerationByKeyRef.current.get(key);
+            if (generation === undefined) {
+                return;
+            }
+            void cancelMobileArtifactDownload(operationId, (event) => {
+                dispatchArtifactAction(
+                    artifactWorkspaceId,
+                    artifactId,
+                    versionId,
+                    event,
+                    generation,
+                );
+            });
         },
-        [dispatchArtifactAction],
+        [artifactWorkspaceId, dispatchArtifactAction],
     );
     const [composerMeasurement, setComposerMeasurement] = useState<{
         threadId: string;
@@ -1501,7 +1561,8 @@ const ThreadScreen = ({ threadId, initialThread = null }: ThreadScreenProps) => 
                             keyboardOffset={keyboardOffset}
                             contentInsetEndAdjustment={contentInsetEndAdjustment}
                             mcpServerIdByName={EMPTY_MCP_SERVER_ID_BY_NAME}
-                            artifactActionStateById={artifactActionStateById}
+                            artifactWorkspaceId={artifactWorkspaceId}
+                            artifactActionStateByKey={artifactActionStateByKey}
                             onOpenArtifact={handleOpenArtifact}
                             onShareArtifact={handleShareArtifact}
                             onCancelArtifactDownload={handleCancelArtifactDownload}

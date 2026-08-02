@@ -9,7 +9,7 @@
     "gateway_id": {
       "$ref": "#/$defs/GatewayId"
     },
-    "protected_endpoint": {
+    "gateway_base_url": {
       "type": "string"
     },
     "qr_payload": {
@@ -20,7 +20,7 @@
     }
   },
   "required": [
-    "protected_endpoint",
+    "gateway_base_url",
     "gateway_id",
     "transport_security",
     "canonical_uri",
