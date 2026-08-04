@@ -16,6 +16,7 @@ const MOBILE_GATEWAY_SESSION_ENVELOPE_KEYS = new Set([
     'refresh_generation',
     'refresh_expires_at_unix',
     'refresh_token',
+    'pending_refresh_request_id',
 ]);
 
 export type MobileGatewaySessionEnvelope = {
@@ -29,6 +30,7 @@ export type MobileGatewaySessionEnvelope = {
     refresh_generation: number;
     refresh_expires_at_unix: number;
     refresh_token: string;
+    pending_refresh_request_id?: string;
 };
 
 export type MobileGatewaySecureStore = Pick<
@@ -154,7 +156,9 @@ export const isMobileGatewaySessionEnvelope = (
         (envelope.refresh_generation ?? -1) >= 0 &&
         Number.isSafeInteger(envelope.refresh_expires_at_unix) &&
         (envelope.refresh_expires_at_unix ?? 0) > 0 &&
-        isRefreshCredential(envelope.refresh_token)
+        isRefreshCredential(envelope.refresh_token) &&
+        (envelope.pending_refresh_request_id === undefined ||
+            isRefreshRequestId(envelope.pending_refresh_request_id))
     );
 };
 
@@ -170,4 +174,8 @@ const isBoundedInstallationId = (value: unknown): value is string => {
         value.length <= 255 &&
         !/[\u0000-\u001F\u007F]/.test(value)
     );
+};
+
+const isRefreshRequestId = (value: unknown): value is string => {
+    return typeof value === 'string' && /^[A-Za-z0-9]{21}$/.test(value);
 };

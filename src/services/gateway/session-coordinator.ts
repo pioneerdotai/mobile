@@ -19,8 +19,6 @@ import { DEVICE_SESSION_AUTH_PROTOCOL_VERSION, isRefreshCredential } from './ref
 
 export const MOBILE_ACCESS_REFRESH_LEEWAY_SECONDS = 60;
 
-const AUTH_EXCHANGE_TRANSPORT_BEFORE_REQUEST_CODE = 'auth_exchange_transport_before_request';
-
 export type MobileSessionLifecyclePhase =
     | 'needs_authentication'
     | 'loading_session'
@@ -363,28 +361,47 @@ const refreshSession = async (
     runtime: RuntimeSession,
 ): Promise<MobileSessionEphemeralAccess> => {
     let grant: AuthRefreshGrant | null = null;
+    const refreshRequestId = current.pending_refresh_request_id ?? randomRequestId();
+    if (current.pending_refresh_request_id === undefined) {
+        current.pending_refresh_request_id = refreshRequestId;
+        try {
+            await writeMobileGatewaySession(endpoint.session_ref ?? endpoint.id, current);
+            setRuntimeEnvelope(runtime, current);
+        } catch (error) {
+            await stopFromLifecycle(
+                endpoint.id,
+                { kind: 'secure_storage_failed', data: { intent_id: intentId } },
+                runtime,
+                error,
+            );
+        }
+    }
     try {
         grant = await pioneerClient.gatewayAuthRefresh({
             gateway_base_url: endpoint.gateway_base_url,
             credential: current.refresh_token,
             params: {
-                refresh_request_id: randomRequestId(),
+                refresh_request_id: refreshRequestId,
             },
         });
     } catch (error) {
-        if (isRefreshRequestKnownNotDispatched(error)) {
-            // The native auth transport distinguishes connection/handshake
-            // failure from losing the response after `auth/refresh` was sent.
-            // Only the former may safely reuse the durable one-use credential.
-            await resetAfterRetryableRefreshFailure(endpoint.id, runtime);
-            throw error;
+        const reason = terminalReasonFromCode(error);
+        if (reason) {
+            await stopFromLifecycle(
+                endpoint.id,
+                { kind: 'auth_failed', data: { reason } },
+                runtime,
+                error,
+            );
         }
-        const reason = terminalReasonForRefreshError(error);
-        const event =
-            reason === 'refresh_outcome_unknown'
-                ? ({ kind: 'refresh_transport_lost', data: { intent_id: intentId } } as const)
-                : ({ kind: 'auth_failed', data: { reason } } as const);
-        await stopFromLifecycle(endpoint.id, event, runtime, error);
+        // The durable request id makes both pre-dispatch failures and lost
+        // responses safe to retry with the same predecessor credential.
+        await reduceLifecycle(endpoint.id, {
+            kind: 'refresh_transport_lost',
+            data: { intent_id: intentId },
+        }).catch(() => null);
+        await resetAfterRetryableRefreshFailure(endpoint.id, runtime);
+        throw error;
     }
 
     const issuedGrant = grant!;
@@ -988,17 +1005,6 @@ const validateRefreshGrant = (
     ) {
         throw new Error('invalid rotated Gateway session grant');
     }
-};
-
-const terminalReasonForRefreshError = (error: unknown): SessionTerminalReason => {
-    return terminalReasonFromCode(error) ?? 'refresh_outcome_unknown';
-};
-
-const isRefreshRequestKnownNotDispatched = (error: unknown): boolean => {
-    return (
-        error instanceof PioneerClientNativeError &&
-        error.code === AUTH_EXCHANGE_TRANSPORT_BEFORE_REQUEST_CODE
-    );
 };
 
 export const terminalReasonFromMachineCode = (

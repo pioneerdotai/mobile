@@ -228,7 +228,13 @@ const installLifecycleDouble = () => {
                     data: { connection_generation: event.data.generation },
                 };
             } else if (event.kind === 'refresh_transport_lost') {
-                effect = { kind: 'stop', data: { reason: 'refresh_outcome_unknown' } };
+                effect = {
+                    kind: 'begin_refresh',
+                    data: {
+                        session_id: envelope(0).session_id,
+                        intent_id: event.data.intent_id,
+                    },
+                };
             } else if (event.kind === 'secure_storage_failed') {
                 effect = { kind: 'stop', data: { reason: 'secure_storage_failed' } };
             } else if (event.kind === 'auth_failed') {
@@ -334,7 +340,7 @@ describe('mobile Gateway session coordinator', () => {
         expect(durableEnvelope.refresh_generation).toBe(2);
     });
 
-    it('persists rotation before activating access', async () => {
+    it('persists refresh intent and rotation before activating access', async () => {
         const order: string[] = [];
         mockWriteMobileGatewaySession.mockImplementation(
             async (_sessionRef: string, next: MobileGatewaySessionEnvelope) => {
@@ -349,8 +355,9 @@ describe('mobile Gateway session coordinator', () => {
 
         await ensureMobileGatewaySession(endpoint, timings);
 
-        expect(order).toEqual(['persist', 'connect']);
+        expect(order).toEqual(['persist', 'persist', 'connect']);
         expect(durableEnvelope.refresh_generation).toBe(1);
+        expect(durableEnvelope.pending_refresh_request_id).toBeUndefined();
     });
 
     it('rotates again when access expires while the connection is being established', async () => {
@@ -611,7 +618,11 @@ describe('mobile Gateway session coordinator', () => {
             reason: 'session_compromised',
         });
         expect(mockGatewayAuthSessionCleanup).toHaveBeenCalledTimes(1);
-        expect(mockWriteMobileGatewaySession).not.toHaveBeenCalled();
+        expect(mockWriteMobileGatewaySession).toHaveBeenCalledTimes(1);
+        expect(durableEnvelope).toMatchObject({
+            refresh_generation: 0,
+            pending_refresh_request_id: 'Q00000000000000000000',
+        });
         expect(mockGatewaySessionReplaceAccess).not.toHaveBeenCalled();
     });
 
@@ -628,7 +639,8 @@ describe('mobile Gateway session coordinator', () => {
             reason: 'session_compromised',
         });
         expect(mockGatewayAuthSessionCleanup).toHaveBeenCalledTimes(1);
-        expect(mockWriteMobileGatewaySession).not.toHaveBeenCalled();
+        expect(mockWriteMobileGatewaySession).toHaveBeenCalledTimes(1);
+        expect(durableEnvelope.refresh_generation).toBe(0);
     });
 
     it('rejects a well-formed replacement token family before persistence', async () => {
@@ -644,7 +656,8 @@ describe('mobile Gateway session coordinator', () => {
             reason: 'session_compromised',
         });
         expect(mockGatewayAuthSessionCleanup).toHaveBeenCalledTimes(1);
-        expect(mockWriteMobileGatewaySession).not.toHaveBeenCalled();
+        expect(mockWriteMobileGatewaySession).toHaveBeenCalledTimes(1);
+        expect(durableEnvelope.refresh_generation).toBe(0);
     });
 
     it('serializes old-endpoint cleanup before connecting a replacement endpoint', async () => {
@@ -720,20 +733,33 @@ describe('mobile Gateway session coordinator', () => {
         expect(durableEnvelope.refresh_generation).toBe(2);
     });
 
-    it('makes an ambiguous refresh outcome terminal without retrying', async () => {
+    it('recovers an ambiguous refresh outcome with the durable request id', async () => {
         mockGatewayAuthRefresh.mockRejectedValueOnce(new Error('response lost'));
 
-        await expect(ensureMobileGatewaySession(endpoint, timings)).rejects.toMatchObject({
-            reason: 'refresh_outcome_unknown',
+        await expect(ensureMobileGatewaySession(endpoint, timings)).rejects.toThrow(
+            'response lost',
+        );
+        expect(durableEnvelope).toMatchObject({
+            refresh_generation: 0,
+            pending_refresh_request_id: 'Q00000000000000000000',
         });
-        await expect(ensureMobileGatewaySession(endpoint, timings)).rejects.toMatchObject({
-            reason: 'refresh_outcome_unknown',
+        resetMobileSessionCoordinatorForTests();
+        installLifecycleDouble();
+        await expect(ensureMobileGatewaySession(endpoint, timings)).resolves.toMatchObject({
+            connection_id: 41,
         });
 
-        expect(mockGatewayAuthRefresh).toHaveBeenCalledTimes(1);
+        expect(mockGatewayAuthRefresh).toHaveBeenCalledTimes(2);
+        expect(mockGatewayAuthRefresh.mock.calls[0]?.[0].params.refresh_request_id).toBe(
+            'Q00000000000000000000',
+        );
+        expect(mockGatewayAuthRefresh.mock.calls[1]?.[0].params.refresh_request_id).toBe(
+            'Q00000000000000000000',
+        );
+        expect(durableEnvelope.pending_refresh_request_id).toBeUndefined();
         expect(mobileSessionProjection(endpoint.id)).toMatchObject({
-            phase: 'compromised',
-            terminalReason: 'refresh_outcome_unknown',
+            phase: 'connected',
+            terminalReason: null,
         });
     });
 
@@ -761,6 +787,9 @@ describe('mobile Gateway session coordinator', () => {
         expect(mockGatewayAuthRefresh).toHaveBeenCalledTimes(2);
         expect(mockGatewayAuthRefresh.mock.calls[0]?.[0].credential).toBe(refreshToken(0));
         expect(mockGatewayAuthRefresh.mock.calls[1]?.[0].credential).toBe(refreshToken(0));
+        expect(mockGatewayAuthRefresh.mock.calls[0]?.[0].params.refresh_request_id).toBe(
+            mockGatewayAuthRefresh.mock.calls[1]?.[0].params.refresh_request_id,
+        );
         expect(mobileSessionProjection(endpoint.id)).toMatchObject({
             phase: 'connected',
             terminalReason: null,

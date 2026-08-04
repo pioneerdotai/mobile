@@ -40,6 +40,18 @@ describe('mobile Gateway session SecureStore adapter', () => {
         await expect(readMobileGatewaySession('remote-1', secureStore)).resolves.toBeNull();
     });
 
+    it('round-trips a durable in-flight refresh request id', async () => {
+        const secureStore = new FakeGatewaySecureStore();
+        const pending = {
+            ...envelope(),
+            pending_refresh_request_id: 'Q00000000000000000001',
+        };
+
+        await writeMobileGatewaySession('remote-1', pending, secureStore);
+
+        await expect(readMobileGatewaySession('remote-1', secureStore)).resolves.toEqual(pending);
+    });
+
     it('deletes a retired v1 session envelope and requires authentication again', async () => {
         const secureStore = new FakeGatewaySecureStore();
         const key = mobileGatewaySessionStorageKey('remote-1');
@@ -119,6 +131,21 @@ describe('mobile Gateway session SecureStore adapter', () => {
             JSON.stringify({
                 ...envelope(),
                 access_token: 'must-not-be-persisted',
+            }),
+        );
+
+        await expect(readMobileGatewaySession('remote-1', secureStore)).rejects.toMatchObject({
+            code: 'corrupted',
+        });
+    });
+
+    it('rejects a malformed pending refresh request id', async () => {
+        const secureStore = new FakeGatewaySecureStore();
+        await secureStore.setItemAsync(
+            mobileGatewaySessionStorageKey('remote-1'),
+            JSON.stringify({
+                ...envelope(),
+                pending_refresh_request_id: 'not-a-request-id',
             }),
         );
 
