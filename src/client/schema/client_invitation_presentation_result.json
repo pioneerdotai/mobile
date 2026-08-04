@@ -6,11 +6,11 @@
     "canonical_uri": {
       "type": "string"
     },
-    "gateway_id": {
-      "$ref": "#/$defs/GatewayId"
-    },
     "gateway_base_url": {
       "type": "string"
+    },
+    "gateway_id": {
+      "$ref": "#/$defs/GatewayId"
     },
     "qr_payload": {
       "type": "string"

@@ -1,8 +1,19 @@
 /* eslint-disable */
 
 export type ThreadAgentsDocStatus = 'draft' | 'active' | 'archived';
-export type ThreadMode = 'Chat' | 'Agent';
+export type ThreadMode = ('Message' | 'Agent') | 'Chat';
 export type ThreadStatus = 'Active' | 'Idle' | 'Closed';
+export type PersistedActorRef =
+  | {
+      id: PrincipalId;
+      kind: 'principal';
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'system';
+      [k: string]: unknown;
+    };
+export type PrincipalId = string;
 export type PermissionBehavior = 'allow' | 'ask' | 'deny';
 export type TurnPermissionMode = 'full_access' | 'auto_accept_edits' | 'supervised';
 export type TurnPermissionProfileSource =
@@ -47,6 +58,7 @@ export interface ThreadTreeRefreshSuccessReduction {
   set_preferred_workspace_id?: string | null;
   sync_composer_model_selection: boolean;
   threads: Thread[];
+  unread: ThreadUnreadSummary[];
   workspace_id: string;
   [k: string]: unknown;
 }
@@ -102,13 +114,31 @@ export interface Thread {
   [k: string]: unknown;
 }
 export interface Turn {
+  author?: TurnAuthorSnapshot | null;
   error?: string | null;
   id: string;
+  mentions?: TurnMention[];
+  message_deleted?: boolean;
+  message_revision?: number;
+  mode?: ('Message' | 'Agent') | 'Chat';
   origin?: 'user' | 'scheduled_task' | 'detached_task' | 'attached_task';
   permission_profile: TurnPermissionProfileSnapshot;
   prompt_manifest?: PromptManifest | null;
+  reply_to_turn_id?: string | null;
   status: TurnStatus;
   turn_kind?: 'conversation' | 'task_run';
+  [k: string]: unknown;
+}
+export interface TurnAuthorSnapshot {
+  actor: PersistedActorRef;
+  avatar_revision?: string | null;
+  display_name: string;
+  nickname: string;
+  [k: string]: unknown;
+}
+export interface TurnMention {
+  nickname: string;
+  principal_id: PrincipalId;
   [k: string]: unknown;
 }
 export interface TurnPermissionProfileSnapshot {
@@ -167,5 +197,10 @@ export interface PromptManifestHookSourceEntry {
   source: PromptManifestHookSource;
   source_count?: number | null;
   truncation: PromptManifestHookTruncation;
+  [k: string]: unknown;
+}
+export interface ThreadUnreadSummary {
+  thread_id: string;
+  unread_count: number;
   [k: string]: unknown;
 }

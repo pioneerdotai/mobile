@@ -1,7 +1,14 @@
 /* eslint-disable */
 
 export type ArtifactActionStatus =
-  | ('Queued' | 'Downloading' | 'Verifying' | 'Opening' | 'Revealing')
+  | ('Queued' | 'Verifying' | 'Opening' | 'Revealing')
+  | {
+      Downloading: {
+        downloaded_bytes: number;
+        total_bytes: number;
+        [k: string]: unknown;
+      };
+    }
   | {
       Failed: string;
     };

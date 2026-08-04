@@ -3,9 +3,16 @@
 export type TimelineBlockKind =
   | {
       attachments?: UserMessageAttachment[];
+      author?: TurnAuthorSnapshot | null;
+      deleted?: boolean;
+      edited?: boolean;
       inputs?: UserInput[];
       itemId?: string | null;
       kind: 'user_message';
+      mentions?: TurnMention[];
+      mode?: ('Message' | 'Agent') | 'Chat';
+      reply?: TimelineReplySummary | null;
+      revision?: number;
       text?: string;
       [k: string]: unknown;
     }
@@ -129,6 +136,17 @@ export type ArtifactStatus = 'ready' | 'pending' | 'quarantined' | 'deleted' | '
 export type SkillPackId = string;
 export type SkillId = string;
 export type McpScopeKind = 'workspace' | 'user';
+export type PersistedActorRef =
+  | {
+      id: PrincipalId;
+      kind: 'principal';
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'system';
+      [k: string]: unknown;
+    };
+export type PrincipalId = string;
 export type UserInput =
   | {
       text: string;
@@ -310,6 +328,13 @@ export interface TurnMcpToolCapabilitySummary {
   serverName: string;
   [k: string]: unknown;
 }
+export interface TurnAuthorSnapshot {
+  actor: PersistedActorRef;
+  avatar_revision?: string | null;
+  display_name: string;
+  nickname: string;
+  [k: string]: unknown;
+}
 export interface TextElement {
   byte_range: ByteRange;
   placeholder?: string | null;
@@ -318,6 +343,18 @@ export interface TextElement {
 export interface ByteRange {
   end: number;
   start: number;
+  [k: string]: unknown;
+}
+export interface TurnMention {
+  nickname: string;
+  principal_id: PrincipalId;
+  [k: string]: unknown;
+}
+export interface TimelineReplySummary {
+  author?: TurnAuthorSnapshot | null;
+  deleted?: boolean;
+  text?: string | null;
+  turnId: string;
   [k: string]: unknown;
 }
 export interface TurnWorkBlock {

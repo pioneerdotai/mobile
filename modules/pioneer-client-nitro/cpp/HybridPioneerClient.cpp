@@ -572,6 +572,26 @@ HybridPioneerClient::threadTimelinePageJson(const std::string& inputJson) {
 }
 
 std::shared_ptr<margelo::nitro::Promise<std::string>>
+HybridPioneerClient::turnMessageEditJson(const std::string& inputJson) {
+  return callWithClientAsync(pioneer_client_ffi_turn_message_edit, inputJson);
+}
+
+std::shared_ptr<margelo::nitro::Promise<std::string>>
+HybridPioneerClient::turnMessageDeleteJson(const std::string& inputJson) {
+  return callWithClientAsync(pioneer_client_ffi_turn_message_delete, inputJson);
+}
+
+std::shared_ptr<margelo::nitro::Promise<std::string>>
+HybridPioneerClient::turnMessageRevisionsPageJson(const std::string& inputJson) {
+  return callWithClientAsync(pioneer_client_ffi_turn_message_revisions_page, inputJson);
+}
+
+std::shared_ptr<margelo::nitro::Promise<std::string>>
+HybridPioneerClient::threadReadJson(const std::string& inputJson) {
+  return callWithClientAsync(pioneer_client_ffi_thread_read, inputJson);
+}
+
+std::shared_ptr<margelo::nitro::Promise<std::string>>
 HybridPioneerClient::turnWorkPageJson(const std::string& inputJson) {
   return callWithClientAsync(pioneer_client_ffi_turn_work_page, inputJson);
 }

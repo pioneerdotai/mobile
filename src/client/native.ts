@@ -163,6 +163,8 @@ import type { ClientThreadTreeQueryData } from './generated/thread_tree_query_da
 import type { ThreadTreeRefreshRequest } from './generated/thread_tree_refresh_request';
 import type { ThreadTimelinePageParams } from './generated/thread_timeline_page_params';
 import type { ThreadTimelinePageResponse } from './generated/thread_timeline_page_response';
+import type { ThreadReadParams } from './generated/thread_read_params';
+import type { ThreadReadResponse } from './generated/thread_read_response';
 import type { ThreadAgentsDocArchiveParams } from './generated/thread_agents_doc_archive_params';
 import type { ThreadAgentsDocArchiveResponse } from './generated/thread_agents_doc_archive_response';
 import type { ThreadAgentsDocGetParams } from './generated/thread_agents_doc_get_params';
@@ -171,6 +173,12 @@ import type { ThreadAgentsDocSaveParams } from './generated/thread_agents_doc_sa
 import type { ThreadAgentsDocSaveResponse } from './generated/thread_agents_doc_save_response';
 import type { TurnWorkItemsGetParams } from './generated/turn_work_items_get_params';
 import type { TurnWorkItemsGetResponse } from './generated/turn_work_items_get_response';
+import type { TurnMessageDeleteParams } from './generated/turn_message_delete_params';
+import type { TurnMessageDeleteResponse } from './generated/turn_message_delete_response';
+import type { TurnMessageEditParams } from './generated/turn_message_edit_params';
+import type { TurnMessageEditResponse } from './generated/turn_message_edit_response';
+import type { TurnMessageRevisionsPageParams } from './generated/turn_message_revisions_page_params';
+import type { TurnMessageRevisionsPageResponse } from './generated/turn_message_revisions_page_response';
 import type { TurnWorkPageParams } from './generated/turn_work_page_params';
 import type { TurnWorkPageResponse } from './generated/turn_work_page_response';
 import type { TurnPermissionRequestRespondParams } from './generated/turn_permission_request_respond_params';
@@ -429,6 +437,8 @@ export type {
     TimelineBlock,
     TimelineBlockKind,
 } from './generated/thread_timeline_page_response';
+export type { ThreadReadParams } from './generated/thread_read_params';
+export type { ThreadReadResponse } from './generated/thread_read_response';
 export type { TimelineCursor } from './generated/timeline_cursor';
 export type { TimelinePageAnchor } from './generated/timeline_page_anchor';
 export type { TimelinePageInfo } from './generated/timeline_page_info';
@@ -447,6 +457,12 @@ export type { TurnWorkItem } from './generated/turn_work_item';
 export type { TurnWorkItemStatus } from './generated/turn_work_item_status';
 export type { TurnWorkItemsGetParams } from './generated/turn_work_items_get_params';
 export type { TurnWorkItemsGetResponse } from './generated/turn_work_items_get_response';
+export type { TurnMessageDeleteParams } from './generated/turn_message_delete_params';
+export type { TurnMessageDeleteResponse } from './generated/turn_message_delete_response';
+export type { TurnMessageEditParams } from './generated/turn_message_edit_params';
+export type { TurnMessageEditResponse } from './generated/turn_message_edit_response';
+export type { TurnMessageRevisionsPageParams } from './generated/turn_message_revisions_page_params';
+export type { TurnMessageRevisionsPageResponse } from './generated/turn_message_revisions_page_response';
 export type { TurnWorkPageParams } from './generated/turn_work_page_params';
 export type { TurnWorkPageResponse, TurnItem } from './generated/turn_work_page_response';
 export type { TurnPermissionApprovalRequest } from './generated/turn_permission_approval_request';
@@ -1256,6 +1272,32 @@ export const pioneerClient = {
     async threadTimelinePage(input: ThreadTimelinePageParams): Promise<ThreadTimelinePageResponse> {
         return parsePioneerClientResponse<ThreadTimelinePageResponse>(
             await getPioneerClientNitro().threadTimelinePageJson(JSON.stringify(input)),
+        );
+    },
+
+    async turnMessageEdit(input: TurnMessageEditParams): Promise<TurnMessageEditResponse> {
+        return parsePioneerClientResponse<TurnMessageEditResponse>(
+            await getPioneerClientNitro().turnMessageEditJson(JSON.stringify(input)),
+        );
+    },
+
+    async turnMessageDelete(input: TurnMessageDeleteParams): Promise<TurnMessageDeleteResponse> {
+        return parsePioneerClientResponse<TurnMessageDeleteResponse>(
+            await getPioneerClientNitro().turnMessageDeleteJson(JSON.stringify(input)),
+        );
+    },
+
+    async turnMessageRevisionsPage(
+        input: TurnMessageRevisionsPageParams,
+    ): Promise<TurnMessageRevisionsPageResponse> {
+        return parsePioneerClientResponse<TurnMessageRevisionsPageResponse>(
+            await getPioneerClientNitro().turnMessageRevisionsPageJson(JSON.stringify(input)),
+        );
+    },
+
+    async threadRead(input: ThreadReadParams): Promise<ThreadReadResponse> {
+        return parsePioneerClientResponse<ThreadReadResponse>(
+            await getPioneerClientNitro().threadReadJson(JSON.stringify(input)),
         );
     },
 

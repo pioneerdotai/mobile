@@ -3,14 +3,18 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { useShallow } from 'zustand/react/shallow';
 
-import type { ClientEvent, ClientThreadTreeLevel } from '@/client';
+import type { ClientThreadTreeLevel } from '@/client';
 import {
     composerCapabilityTargetForProvider,
     isCliRuntimeProvider,
 } from '@/services/providers/cli-runtime';
 import { refreshCliRuntimeSummaries } from '@/services/providers/cli-runtime-live';
 import { cachedActiveThreadSnapshot } from '@/services/threads/timeline-query';
-import { refreshThreadTree, threadTreeLevel } from '@/services/threads/tree';
+import {
+    refreshThreadTree,
+    threadTreeInvalidationWorkspaceId,
+    threadTreeLevel,
+} from '@/services/threads/tree';
 import { useActiveThreadStore } from '@/stores/active-thread';
 import { useGatewayStore } from '@/stores/gateway';
 import { useThreadTreeStore } from '@/stores/thread-tree';
@@ -34,29 +38,6 @@ const errorMessage = (error: unknown, fallback: string): string => {
     }
 
     return fallback;
-};
-
-const notificationWorkspaceId = (event: ClientEvent | null): string | null => {
-    if (!event || !('GatewayNotification' in event)) {
-        return null;
-    }
-
-    const notification = event.GatewayNotification;
-
-    switch (notification.kind) {
-        case 'workspace_changed':
-            return notification.params.workspace.id;
-        case 'thread_tree_changed':
-        case 'thread_agents_doc_changed':
-            return notification.params.workspace_id;
-        case 'thread_started':
-        case 'thread_updated':
-            return notification.params.thread.workspace_id;
-        case 'thread_closed':
-            return notification.params.workspaceId;
-        default:
-            return null;
-    }
 };
 
 const useThreadTreeRefresh = () => {
@@ -207,7 +188,7 @@ export const useThreadTreeController = () => {
     }, [activeWorkspaceId, connectionId, connectionState, refresh, reset]);
 
     useEffect(() => {
-        const eventWorkspaceId = notificationWorkspaceId(lastEvent);
+        const eventWorkspaceId = threadTreeInvalidationWorkspaceId(lastEvent);
 
         if (!eventWorkspaceId || eventWorkspaceId !== activeWorkspaceId) {
             return;

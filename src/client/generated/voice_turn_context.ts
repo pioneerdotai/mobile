@@ -46,7 +46,7 @@ export type AgentExecutionBackend =
       [k: string]: unknown;
     };
 export type CLIAgentRuntimeKind = 'codex' | 'claude';
-export type ThreadMode = 'Chat' | 'Agent';
+export type ThreadMode = ('Message' | 'Agent') | 'Chat';
 export type TurnPermissionMode = 'full_access' | 'auto_accept_edits' | 'supervised';
 export type UserInput =
   | {

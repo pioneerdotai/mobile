@@ -115,6 +115,10 @@ namespace margelo::nitro::pioneer::client {
       prototype.registerHybridMethod("threadTreeRefreshJson", &HybridPioneerClientSpec::threadTreeRefreshJson);
       prototype.registerHybridMethod("threadTreeLevelJson", &HybridPioneerClientSpec::threadTreeLevelJson);
       prototype.registerHybridMethod("threadTimelinePageJson", &HybridPioneerClientSpec::threadTimelinePageJson);
+      prototype.registerHybridMethod("turnMessageEditJson", &HybridPioneerClientSpec::turnMessageEditJson);
+      prototype.registerHybridMethod("turnMessageDeleteJson", &HybridPioneerClientSpec::turnMessageDeleteJson);
+      prototype.registerHybridMethod("turnMessageRevisionsPageJson", &HybridPioneerClientSpec::turnMessageRevisionsPageJson);
+      prototype.registerHybridMethod("threadReadJson", &HybridPioneerClientSpec::threadReadJson);
       prototype.registerHybridMethod("turnWorkPageJson", &HybridPioneerClientSpec::turnWorkPageJson);
       prototype.registerHybridMethod("turnWorkItemsGetJson", &HybridPioneerClientSpec::turnWorkItemsGetJson);
       prototype.registerHybridMethod("agentsDocGetJson", &HybridPioneerClientSpec::agentsDocGetJson);

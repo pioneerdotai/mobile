@@ -56,11 +56,11 @@
         "deep_link": {
           "type": "string"
         },
-        "gateway_id": {
-          "$ref": "#/$defs/GatewayId"
-        },
         "gateway_base_url": {
           "type": "string"
+        },
+        "gateway_id": {
+          "$ref": "#/$defs/GatewayId"
         },
         "token": {
           "type": "string"

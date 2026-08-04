@@ -209,7 +209,7 @@ export type SkillCapabilityUnavailableReason =
         [k: string]: unknown;
       };
     };
-export type ThreadMode = 'Chat' | 'Agent';
+export type ThreadMode = ('Message' | 'Agent') | 'Chat';
 export type TurnPermissionMode = 'full_access' | 'auto_accept_edits' | 'supervised';
 export type ComposerCapabilityTargetKind = 'native' | 'cli';
 
@@ -309,7 +309,7 @@ export interface ComposerDomainState {
   capability_target: ComposerCapabilityTarget;
   mode_manually_selected?: boolean;
   model_manually_selected?: boolean;
-  selected_mode?: 'Chat' | 'Agent';
+  selected_mode?: ('Message' | 'Agent') | 'Chat';
   selected_model?: string | null;
   selected_permission_mode?: 'full_access' | 'auto_accept_edits' | 'supervised';
   selected_provider?: string | null;

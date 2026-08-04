@@ -3,8 +3,15 @@
   "title": "ClientArtifactDownloadCancelResult",
   "type": "object",
   "properties": {
-    "cancelled": { "type": "boolean" },
-    "operation_id": { "type": "string" }
+    "cancelled": {
+      "type": "boolean"
+    },
+    "operation_id": {
+      "type": "string"
+    }
   },
-  "required": ["operation_id", "cancelled"]
+  "required": [
+    "operation_id",
+    "cancelled"
+  ]
 }

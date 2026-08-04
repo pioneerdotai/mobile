@@ -3,8 +3,17 @@
   "title": "ClientArtifactViewOpenResult",
   "type": "object",
   "properties": {
-    "expires_at": { "type": "integer", "format": "uint64", "minimum": 0 },
-    "view_url": { "type": "string" }
+    "expires_at": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0
+    },
+    "view_url": {
+      "type": "string"
+    }
   },
-  "required": ["view_url", "expires_at"]
+  "required": [
+    "view_url",
+    "expires_at"
+  ]
 }

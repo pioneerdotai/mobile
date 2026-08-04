@@ -3,18 +3,51 @@
   "title": "ClientArtifactDownloadProgressResult",
   "type": "object",
   "properties": {
-    "downloaded_bytes": { "type": "integer", "format": "uint64", "minimum": 0 },
-    "error_code": { "type": ["string", "null"] },
-    "operation_id": { "type": "string" },
-    "resumed_from_bytes": { "type": "integer", "format": "uint64", "minimum": 0 },
-    "state": { "$ref": "#/$defs/ClientArtifactDownloadState" },
-    "total_bytes": { "type": "integer", "format": "uint64", "minimum": 0 }
+    "downloaded_bytes": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0
+    },
+    "error_code": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "operation_id": {
+      "type": "string"
+    },
+    "resumed_from_bytes": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0
+    },
+    "state": {
+      "$ref": "#/$defs/ClientArtifactDownloadState"
+    },
+    "total_bytes": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0
+    }
   },
-  "required": ["operation_id", "state", "downloaded_bytes", "total_bytes", "resumed_from_bytes"],
+  "required": [
+    "operation_id",
+    "state",
+    "downloaded_bytes",
+    "total_bytes",
+    "resumed_from_bytes"
+  ],
   "$defs": {
     "ClientArtifactDownloadState": {
       "type": "string",
-      "enum": ["queued", "downloading", "completed", "failed", "cancelled"]
+      "enum": [
+        "queued",
+        "downloading",
+        "completed",
+        "failed",
+        "cancelled"
+      ]
     }
   }
 }

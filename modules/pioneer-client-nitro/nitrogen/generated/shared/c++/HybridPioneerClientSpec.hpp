@@ -151,6 +151,10 @@ namespace margelo::nitro::pioneer::client {
       virtual std::shared_ptr<Promise<std::string>> threadTreeRefreshJson(const std::string& inputJson) = 0;
       virtual std::string threadTreeLevelJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> threadTimelinePageJson(const std::string& inputJson) = 0;
+      virtual std::shared_ptr<Promise<std::string>> turnMessageEditJson(const std::string& inputJson) = 0;
+      virtual std::shared_ptr<Promise<std::string>> turnMessageDeleteJson(const std::string& inputJson) = 0;
+      virtual std::shared_ptr<Promise<std::string>> turnMessageRevisionsPageJson(const std::string& inputJson) = 0;
+      virtual std::shared_ptr<Promise<std::string>> threadReadJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> turnWorkPageJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> turnWorkItemsGetJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> agentsDocGetJson(const std::string& inputJson) = 0;

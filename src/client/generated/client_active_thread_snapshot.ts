@@ -682,8 +682,19 @@ export type TimelineRowKind =
 export type TimelineCoalescedToolsKind = 'CompletedTaskTools' | 'RepeatedTaskWait';
 export type TurnWorkState =
   'starting' | 'running' | 'waiting_for_approval' | 'stalled' | 'completed' | 'blocked' | 'failed' | 'interrupted';
-export type ThreadMode = 'Chat' | 'Agent';
+export type ThreadMode = ('Message' | 'Agent') | 'Chat';
 export type ThreadStatus = 'Active' | 'Idle' | 'Closed';
+export type PersistedActorRef =
+  | {
+      id: PrincipalId;
+      kind: 'principal';
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'system';
+      [k: string]: unknown;
+    };
+export type PrincipalId = string;
 export type PromptManifestDiagnosticCode =
   | 'missing_file'
   | 'file_read_error'
@@ -1111,13 +1122,31 @@ export interface Thread {
   [k: string]: unknown;
 }
 export interface Turn {
+  author?: TurnAuthorSnapshot | null;
   error?: string | null;
   id: string;
+  mentions?: TurnMention[];
+  message_deleted?: boolean;
+  message_revision?: number;
+  mode?: ('Message' | 'Agent') | 'Chat';
   origin?: 'user' | 'scheduled_task' | 'detached_task' | 'attached_task';
   permission_profile: TurnPermissionProfileSnapshot;
   prompt_manifest?: PromptManifest | null;
+  reply_to_turn_id?: string | null;
   status: TurnStatus;
   turn_kind?: 'conversation' | 'task_run';
+  [k: string]: unknown;
+}
+export interface TurnAuthorSnapshot {
+  actor: PersistedActorRef;
+  avatar_revision?: string | null;
+  display_name: string;
+  nickname: string;
+  [k: string]: unknown;
+}
+export interface TurnMention {
+  nickname: string;
+  principal_id: PrincipalId;
   [k: string]: unknown;
 }
 export interface PromptManifest {

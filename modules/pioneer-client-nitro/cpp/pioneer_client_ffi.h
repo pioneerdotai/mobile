@@ -112,6 +112,10 @@ char* pioneer_client_ffi_composer_filter_mcp_rows(PioneerClientFfi* client, cons
 char* pioneer_client_ffi_thread_tree_refresh(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_thread_tree_level(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_thread_timeline_page(PioneerClientFfi* client, const char* input_json);
+char* pioneer_client_ffi_turn_message_edit(PioneerClientFfi* client, const char* input_json);
+char* pioneer_client_ffi_turn_message_delete(PioneerClientFfi* client, const char* input_json);
+char* pioneer_client_ffi_turn_message_revisions_page(PioneerClientFfi* client, const char* input_json);
+char* pioneer_client_ffi_thread_read(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_turn_work_page(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_turn_work_items_get(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_agents_doc_get(PioneerClientFfi* client, const char* input_json);

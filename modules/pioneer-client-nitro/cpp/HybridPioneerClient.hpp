@@ -211,6 +211,14 @@ public:
   std::string threadTreeLevelJson(const std::string& inputJson) override;
   std::shared_ptr<margelo::nitro::Promise<std::string>> threadTimelinePageJson(
       const std::string& inputJson) override;
+  std::shared_ptr<margelo::nitro::Promise<std::string>> turnMessageEditJson(
+      const std::string& inputJson) override;
+  std::shared_ptr<margelo::nitro::Promise<std::string>> turnMessageDeleteJson(
+      const std::string& inputJson) override;
+  std::shared_ptr<margelo::nitro::Promise<std::string>> turnMessageRevisionsPageJson(
+      const std::string& inputJson) override;
+  std::shared_ptr<margelo::nitro::Promise<std::string>> threadReadJson(
+      const std::string& inputJson) override;
   std::shared_ptr<margelo::nitro::Promise<std::string>> turnWorkPageJson(
       const std::string& inputJson) override;
   std::shared_ptr<margelo::nitro::Promise<std::string>> turnWorkItemsGetJson(

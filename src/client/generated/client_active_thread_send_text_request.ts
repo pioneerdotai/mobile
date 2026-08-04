@@ -60,8 +60,9 @@ export type ComposerCapabilityKind =
     };
 export type SkillId = string;
 export type McpScopeKind = 'workspace' | 'user';
+export type PrincipalId = string;
 export type TurnPermissionMode = 'full_access' | 'auto_accept_edits' | 'supervised';
-export type ThreadMode = 'Chat' | 'Agent';
+export type ThreadMode = ('Message' | 'Agent') | 'Chat';
 export type SkillPackId = string;
 export type SkillCapabilityUnavailableReason =
   | 'DisabledByPolicy'
@@ -88,7 +89,9 @@ export interface ClientActiveThreadSendTextRequest {
   attachments?: ComposerAttachment[];
   capabilities?: ComposerCapability[];
   expanded_keys?: string[];
+  mentioned_principal_ids?: PrincipalId[];
   permission_mode: TurnPermissionMode;
+  reply_to_turn_id?: string | null;
   selected_mode?: ThreadMode | null;
   selected_model?: string | null;
   selected_provider?: string | null;

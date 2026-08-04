@@ -112,6 +112,11 @@ export type GatewayNotification =
       [k: string]: unknown;
     }
   | {
+      kind: 'thread_read_cursor_changed';
+      params: ThreadReadCursorChangedNotification;
+      [k: string]: unknown;
+    }
+  | {
       kind: 'turn_started';
       params: TurnStartedNotification;
       [k: string]: unknown;
@@ -529,8 +534,18 @@ export type InvitationId = string;
 export type PrincipalId = string;
 export type WorkspaceId = string;
 export type WorkspaceChangeKind = 'created' | 'updated' | 'current_changed';
-export type ThreadMode = 'Chat' | 'Agent';
+export type ThreadMode = ('Message' | 'Agent') | 'Chat';
 export type ThreadStatus = 'Active' | 'Idle' | 'Closed';
+export type PersistedActorRef =
+  | {
+      id: PrincipalId;
+      kind: 'principal';
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'system';
+      [k: string]: unknown;
+    };
 export type PermissionBehavior = 'allow' | 'ask' | 'deny';
 export type TurnPermissionMode = 'full_access' | 'auto_accept_edits' | 'supervised';
 export type TurnPermissionProfileSource =
@@ -1829,13 +1844,31 @@ export interface Thread {
   [k: string]: unknown;
 }
 export interface Turn {
+  author?: TurnAuthorSnapshot | null;
   error?: string | null;
   id: string;
+  mentions?: TurnMention[];
+  message_deleted?: boolean;
+  message_revision?: number;
+  mode?: ('Message' | 'Agent') | 'Chat';
   origin?: 'user' | 'scheduled_task' | 'detached_task' | 'attached_task';
   permission_profile: TurnPermissionProfileSnapshot;
   prompt_manifest?: PromptManifest | null;
+  reply_to_turn_id?: string | null;
   status: TurnStatus;
   turn_kind?: 'conversation' | 'task_run';
+  [k: string]: unknown;
+}
+export interface TurnAuthorSnapshot {
+  actor: PersistedActorRef;
+  avatar_revision?: string | null;
+  display_name: string;
+  nickname: string;
+  [k: string]: unknown;
+}
+export interface TurnMention {
+  nickname: string;
+  principal_id: PrincipalId;
   [k: string]: unknown;
 }
 export interface TurnPermissionProfileSnapshot {
@@ -1958,6 +1991,18 @@ export interface ThreadTimelineBlocksChangedNotification {
 }
 export interface TimelineCursor {
   value: string;
+  [k: string]: unknown;
+}
+export interface ThreadReadCursorChangedNotification {
+  cursor: ThreadReadCursor;
+  thread_id: string;
+  unread_count: number;
+  workspace_id: string;
+  [k: string]: unknown;
+}
+export interface ThreadReadCursor {
+  sort_key: string;
+  through_turn_id: string;
   [k: string]: unknown;
 }
 export interface TurnStartedNotification {
@@ -2722,11 +2767,13 @@ export interface TurnStartParams {
   cli_runtime_options?: TurnCLIRuntimeOptions | null;
   execution_backend?: AgentExecutionBackend | null;
   input?: UserInput[];
+  mentioned_principal_ids?: PrincipalId[];
   mode?: ThreadMode | null;
   model?: string | null;
   model_provider?: string | null;
   permission_profile?: TurnPermissionProfileSelection | null;
   reasoning?: TurnReasoningSelection | null;
+  reply_to_turn_id?: string | null;
   sandbox_policy?: SandboxPolicy | null;
   thread_id: string;
   turn_id: string;

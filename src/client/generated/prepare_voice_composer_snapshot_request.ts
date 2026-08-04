@@ -80,7 +80,7 @@ export type AgentExecutionBackend =
     };
 export type CLIAgentRuntimeKind = 'codex' | 'claude';
 export type TurnPermissionMode = 'full_access' | 'auto_accept_edits' | 'supervised';
-export type ThreadMode = 'Chat' | 'Agent';
+export type ThreadMode = ('Message' | 'Agent') | 'Chat';
 export type SkillPackId = string;
 export type SkillCapabilityUnavailableReason =
   | 'DisabledByPolicy'
