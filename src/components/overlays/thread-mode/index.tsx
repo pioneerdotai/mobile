@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { BottomSheetModal, BottomSheetScrollView } from '@gorhom/bottom-sheet';
-import { Infinity as InfinityIcon, MessageCircle } from 'lucide-react-native';
+import { Infinity as InfinityIcon, MessageCircle, Users } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useShallow } from 'zustand/react/shallow';
@@ -15,8 +15,7 @@ import { Text } from '@/components/primitives/text';
 import { VStack } from '@/components/primitives/vstack';
 import { stableOutlineWidth } from '@/helpers/styles';
 import { useActiveThreadStore } from '@/stores/active-thread';
-
-const THREAD_MODE_OPTIONS: ThreadMode[] = ['Agent', 'Chat'];
+import { THREAD_MODE_OPTIONS } from './options';
 
 const ThreadModeSwitcherSheet = () => {
     const bottomSheetRef = useRef<BottomSheetModal>(null);
@@ -84,16 +83,31 @@ const ThreadModeSwitcherSheet = () => {
                 <VStack style={styles.modeList}>
                     {THREAD_MODE_OPTIONS.map((mode) => {
                         const active = selectedMode === mode;
-                        const Icon = mode === 'Agent' ? InfinityIcon : MessageCircle;
-                        const label = mode === 'Agent' ? t('modeAgentLabel') : t('modeChatLabel');
+                        const Icon =
+                            mode === 'Agent'
+                                ? InfinityIcon
+                                : mode === 'Message'
+                                  ? Users
+                                  : MessageCircle;
+                        const label =
+                            mode === 'Agent'
+                                ? t('modeAgentLabel')
+                                : mode === 'Chat'
+                                  ? t('modeChatLabel')
+                                  : t('modeMessageLabel');
                         const description =
-                            mode === 'Agent' ? t('modeAgentDescription') : t('modeChatDescription');
+                            mode === 'Agent'
+                                ? t('modeAgentDescription')
+                                : mode === 'Chat'
+                                  ? t('modeChatDescription')
+                                  : t('modeMessageDescription');
 
                         return (
                             <Pressable
                                 key={mode}
                                 accessibilityRole="button"
                                 accessibilityLabel={label}
+                                accessibilityState={{ selected: active, disabled: active }}
                                 disabled={active}
                                 onPress={() => selectMode(mode)}
                             >
@@ -118,7 +132,7 @@ const ThreadModeSwitcherSheet = () => {
                                         />
                                         <VStack style={styles.modeTextContainer}>
                                             <Text style={styles.modeName}>{label}</Text>
-                                            <Text numberOfLines={2} style={styles.modeDescription}>
+                                            <Text style={styles.modeDescription}>
                                                 {description}
                                             </Text>
                                         </VStack>

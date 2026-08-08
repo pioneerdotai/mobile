@@ -16,6 +16,7 @@ export type ThreadComposerDraftPresence = Readonly<{
 
 type ThreadComposerActionInput = Readonly<{
     voiceMode: boolean;
+    messageMode: boolean;
     composerTextEmpty: boolean;
     modelSelectionComplete: boolean;
     disabled: boolean;
@@ -50,6 +51,7 @@ export const resolveThreadComposerDraftPresence = (
 
 export const resolveThreadComposerActionState = ({
     voiceMode,
+    messageMode,
     composerTextEmpty,
     modelSelectionComplete,
     disabled,
@@ -63,6 +65,7 @@ export const resolveThreadComposerActionState = ({
     voiceBusy,
     voiceProcessing,
 }: ThreadComposerActionInput): ThreadComposerActionState => {
+    const voiceSelectionReady = messageMode || modelSelectionComplete;
     const voiceModeDisabled =
         disabled ||
         sending ||
@@ -70,24 +73,25 @@ export const resolveThreadComposerActionState = ({
         voiceBusy ||
         !voiceVisible ||
         !voiceEnabled ||
-        !modelSelectionComplete;
+        !voiceSelectionReady;
     const activeVoiceMode =
         voiceMode &&
         composerTextEmpty &&
-        modelSelectionComplete &&
+        voiceSelectionReady &&
         !disabled &&
         !sending &&
         !hasInFlightTurn &&
         voiceVisible &&
         voiceEnabled;
 
-    const primaryAction: ThreadComposerPrimaryAction = hasInFlightTurn
-        ? 'stop'
-        : activeVoiceMode
-          ? 'voice-mode'
-          : composerTextEmpty && modelSelectionComplete && voiceVisible && !voiceModeDisabled
-            ? 'voice-ready'
-            : 'send';
+    const primaryAction: ThreadComposerPrimaryAction =
+        hasInFlightTurn && !messageMode
+            ? 'stop'
+            : activeVoiceMode
+              ? 'voice-mode'
+              : composerTextEmpty && voiceSelectionReady && voiceVisible && !voiceModeDisabled
+                ? 'voice-ready'
+                : 'send';
 
     const actionDisabled = voiceProcessing
         ? true

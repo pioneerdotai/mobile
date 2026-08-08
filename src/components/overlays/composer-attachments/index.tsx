@@ -32,12 +32,14 @@ const ComposerAttachmentMenuSheet = () => {
         setComposerAttachmentMenuOpen,
         addComposerAttachment,
         setComposerError,
+        selectedMode,
     } = useActiveThreadStore(
         useShallow((state) => ({
             showComposerAttachmentMenu: state.showComposerAttachmentMenu,
             setComposerAttachmentMenuOpen: state.setComposerAttachmentMenuOpen,
             addComposerAttachment: state.addComposerAttachment,
             setComposerError: state.setComposerError,
+            selectedMode: state.composerSelectedMode,
         })),
     );
 
@@ -81,9 +83,6 @@ const ComposerAttachmentMenuSheet = () => {
         (error: unknown, fallback: string) => {
             if (error instanceof Error && error.message === 'media-library-permission-required') {
                 return t('composerMediaPermissionRequired');
-            }
-            if (error instanceof Error && error.message.trim()) {
-                return error.message;
             }
             return fallback;
         },
@@ -187,18 +186,25 @@ const ComposerAttachmentMenuSheet = () => {
                             onPress={pickFiles}
                         />
                     </HStack>
-                    <HStack style={styles.menuRow}>
-                        <MenuItem
-                            icon={<Zap size={theme.space(5)} color={theme.colors.typography} />}
-                            label={t('composerSkills')}
-                            onPress={openSkills}
-                        />
-                        <MenuItem
-                            icon={<McpIcon size={theme.space(5)} color={theme.colors.typography} />}
-                            label={t('composerMcp')}
-                            onPress={openMcp}
-                        />
-                    </HStack>
+                    {selectedMode !== 'Message' ? (
+                        <HStack style={styles.menuRow}>
+                            <MenuItem
+                                icon={<Zap size={theme.space(5)} color={theme.colors.typography} />}
+                                label={t('composerSkills')}
+                                onPress={openSkills}
+                            />
+                            <MenuItem
+                                icon={
+                                    <McpIcon
+                                        size={theme.space(5)}
+                                        color={theme.colors.typography}
+                                    />
+                                }
+                                label={t('composerMcp')}
+                                onPress={openMcp}
+                            />
+                        </HStack>
+                    ) : null}
                 </VStack>
             </BottomSheetScrollView>
         </BottomSheetModal>

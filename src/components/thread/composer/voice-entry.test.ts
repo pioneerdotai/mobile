@@ -8,6 +8,7 @@ import {
 
 const base = {
     voiceMode: false,
+    messageMode: false,
     composerTextEmpty: true,
     modelSelectionComplete: true,
     disabled: false,
@@ -63,6 +64,20 @@ describe('thread composer primary action', () => {
             actionLoading: false,
             activeVoiceMode: false,
             voiceModeDisabled: false,
+        });
+    });
+
+    it('keeps the microphone available for ordinary Message mode', () => {
+        expect(
+            resolveThreadComposerActionState({
+                ...base,
+                messageMode: true,
+                modelSelectionComplete: false,
+            }),
+        ).toMatchObject({
+            primaryAction: 'voice-ready',
+            actionDisabled: false,
+            activeVoiceMode: false,
         });
     });
 
@@ -180,6 +195,24 @@ describe('thread composer primary action', () => {
             primaryAction: 'stop',
             actionDisabled: false,
             actionLoading: false,
+            activeVoiceMode: false,
+        });
+    });
+
+    it('keeps ordinary Message send available while an execution is in flight', () => {
+        expect(
+            resolveThreadComposerActionState({
+                ...base,
+                messageMode: true,
+                composerTextEmpty: false,
+                canSubmit: true,
+                hasInFlightTurn: true,
+                voiceVisible: false,
+                voiceEnabled: false,
+            }),
+        ).toMatchObject({
+            primaryAction: 'send',
+            actionDisabled: false,
             activeVoiceMode: false,
         });
     });
