@@ -43,6 +43,10 @@ export interface PioneerClient extends HybridObject<{ ios: 'c++'; android: 'c++'
     workspaceMemberListJson(inputJson: string): Promise<string>;
     workspaceMemberAddJson(inputJson: string): Promise<string>;
     workspaceMemberRemoveJson(inputJson: string): Promise<string>;
+    threadParticipantsListJson(inputJson: string): Promise<string>;
+    threadUpdateJson(inputJson: string): Promise<string>;
+    threadParticipantAddJson(inputJson: string): Promise<string>;
+    threadParticipantRemoveJson(inputJson: string): Promise<string>;
     gatewaySessionReplaceAccessJson(inputJson: string): Promise<string>;
     gatewaySettingsGetJson(inputJson: string): Promise<string>;
     gatewaySettingsUpdateJson(inputJson: string): Promise<string>;
@@ -79,6 +83,16 @@ export interface PioneerClient extends HybridObject<{ ios: 'c++'; android: 'c++'
     providerModelDisplayJson(inputJson: string): Promise<string>;
     reasoningEffortRowsJson(inputJson: string): string;
     composerPermissionModeOptionsJson(): string;
+    composerTurnModeOptionsJson(): string;
+    principalPresentationCapabilitiesJson(inputJson: string): string;
+    currentPrincipalPresentationJson(inputJson: string): string;
+    sessionListRowPresentationJson(inputJson: string): string;
+    threadScopePresentationJson(inputJson: string): string;
+    threadCreateVisibilityPlanJson(inputJson: string): string;
+    threadScopeMutationPlanJson(inputJson: string): string;
+    memberPresentationJson(inputJson: string): string;
+    invitationListRowJson(inputJson: string): string;
+    administrationConflictRefetchJson(inputJson: string): string;
     composerAttachmentFromPathJson(inputJson: string): string;
     composerAttachmentsUpdateJson(inputJson: string): string;
     composerSkillPickerRowsJson(inputJson: string): Promise<string>;
@@ -105,6 +119,7 @@ export interface PioneerClient extends HybridObject<{ ios: 'c++'; android: 'c++'
     turnMessageEditJson(inputJson: string): Promise<string>;
     turnMessageDeleteJson(inputJson: string): Promise<string>;
     turnMessageRevisionsPageJson(inputJson: string): Promise<string>;
+    messageRevisionPagePresentationJson(inputJson: string): string;
     threadReadJson(inputJson: string): Promise<string>;
     turnWorkPageJson(inputJson: string): Promise<string>;
     turnWorkItemsGetJson(inputJson: string): Promise<string>;

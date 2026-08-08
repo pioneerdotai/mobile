@@ -56,6 +56,10 @@ namespace margelo::nitro::pioneer::client {
       prototype.registerHybridMethod("workspaceMemberListJson", &HybridPioneerClientSpec::workspaceMemberListJson);
       prototype.registerHybridMethod("workspaceMemberAddJson", &HybridPioneerClientSpec::workspaceMemberAddJson);
       prototype.registerHybridMethod("workspaceMemberRemoveJson", &HybridPioneerClientSpec::workspaceMemberRemoveJson);
+      prototype.registerHybridMethod("threadParticipantsListJson", &HybridPioneerClientSpec::threadParticipantsListJson);
+      prototype.registerHybridMethod("threadUpdateJson", &HybridPioneerClientSpec::threadUpdateJson);
+      prototype.registerHybridMethod("threadParticipantAddJson", &HybridPioneerClientSpec::threadParticipantAddJson);
+      prototype.registerHybridMethod("threadParticipantRemoveJson", &HybridPioneerClientSpec::threadParticipantRemoveJson);
       prototype.registerHybridMethod("gatewaySessionReplaceAccessJson", &HybridPioneerClientSpec::gatewaySessionReplaceAccessJson);
       prototype.registerHybridMethod("gatewaySettingsGetJson", &HybridPioneerClientSpec::gatewaySettingsGetJson);
       prototype.registerHybridMethod("gatewaySettingsUpdateJson", &HybridPioneerClientSpec::gatewaySettingsUpdateJson);
@@ -92,6 +96,16 @@ namespace margelo::nitro::pioneer::client {
       prototype.registerHybridMethod("providerModelDisplayJson", &HybridPioneerClientSpec::providerModelDisplayJson);
       prototype.registerHybridMethod("reasoningEffortRowsJson", &HybridPioneerClientSpec::reasoningEffortRowsJson);
       prototype.registerHybridMethod("composerPermissionModeOptionsJson", &HybridPioneerClientSpec::composerPermissionModeOptionsJson);
+      prototype.registerHybridMethod("composerTurnModeOptionsJson", &HybridPioneerClientSpec::composerTurnModeOptionsJson);
+      prototype.registerHybridMethod("principalPresentationCapabilitiesJson", &HybridPioneerClientSpec::principalPresentationCapabilitiesJson);
+      prototype.registerHybridMethod("currentPrincipalPresentationJson", &HybridPioneerClientSpec::currentPrincipalPresentationJson);
+      prototype.registerHybridMethod("sessionListRowPresentationJson", &HybridPioneerClientSpec::sessionListRowPresentationJson);
+      prototype.registerHybridMethod("threadScopePresentationJson", &HybridPioneerClientSpec::threadScopePresentationJson);
+      prototype.registerHybridMethod("threadCreateVisibilityPlanJson", &HybridPioneerClientSpec::threadCreateVisibilityPlanJson);
+      prototype.registerHybridMethod("threadScopeMutationPlanJson", &HybridPioneerClientSpec::threadScopeMutationPlanJson);
+      prototype.registerHybridMethod("memberPresentationJson", &HybridPioneerClientSpec::memberPresentationJson);
+      prototype.registerHybridMethod("invitationListRowJson", &HybridPioneerClientSpec::invitationListRowJson);
+      prototype.registerHybridMethod("administrationConflictRefetchJson", &HybridPioneerClientSpec::administrationConflictRefetchJson);
       prototype.registerHybridMethod("composerAttachmentFromPathJson", &HybridPioneerClientSpec::composerAttachmentFromPathJson);
       prototype.registerHybridMethod("composerAttachmentsUpdateJson", &HybridPioneerClientSpec::composerAttachmentsUpdateJson);
       prototype.registerHybridMethod("composerSkillPickerRowsJson", &HybridPioneerClientSpec::composerSkillPickerRowsJson);
@@ -118,6 +132,7 @@ namespace margelo::nitro::pioneer::client {
       prototype.registerHybridMethod("turnMessageEditJson", &HybridPioneerClientSpec::turnMessageEditJson);
       prototype.registerHybridMethod("turnMessageDeleteJson", &HybridPioneerClientSpec::turnMessageDeleteJson);
       prototype.registerHybridMethod("turnMessageRevisionsPageJson", &HybridPioneerClientSpec::turnMessageRevisionsPageJson);
+      prototype.registerHybridMethod("messageRevisionPagePresentationJson", &HybridPioneerClientSpec::messageRevisionPagePresentationJson);
       prototype.registerHybridMethod("threadReadJson", &HybridPioneerClientSpec::threadReadJson);
       prototype.registerHybridMethod("turnWorkPageJson", &HybridPioneerClientSpec::turnWorkPageJson);
       prototype.registerHybridMethod("turnWorkItemsGetJson", &HybridPioneerClientSpec::turnWorkItemsGetJson);

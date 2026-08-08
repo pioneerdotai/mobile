@@ -117,6 +117,14 @@ public:
       const std::string& inputJson) override;
   std::shared_ptr<margelo::nitro::Promise<std::string>> workspaceMemberRemoveJson(
       const std::string& inputJson) override;
+  std::shared_ptr<margelo::nitro::Promise<std::string>> threadParticipantsListJson(
+      const std::string& inputJson) override;
+  std::shared_ptr<margelo::nitro::Promise<std::string>> threadUpdateJson(
+      const std::string& inputJson) override;
+  std::shared_ptr<margelo::nitro::Promise<std::string>> threadParticipantAddJson(
+      const std::string& inputJson) override;
+  std::shared_ptr<margelo::nitro::Promise<std::string>> threadParticipantRemoveJson(
+      const std::string& inputJson) override;
   std::shared_ptr<margelo::nitro::Promise<std::string>> gatewaySessionReplaceAccessJson(
       const std::string& inputJson) override;
   std::shared_ptr<margelo::nitro::Promise<std::string>> gatewaySettingsGetJson(
@@ -183,6 +191,16 @@ public:
       const std::string& inputJson) override;
   std::string reasoningEffortRowsJson(const std::string& inputJson) override;
   std::string composerPermissionModeOptionsJson() override;
+  std::string composerTurnModeOptionsJson() override;
+  std::string principalPresentationCapabilitiesJson(const std::string& inputJson) override;
+  std::string currentPrincipalPresentationJson(const std::string& inputJson) override;
+  std::string sessionListRowPresentationJson(const std::string& inputJson) override;
+  std::string threadScopePresentationJson(const std::string& inputJson) override;
+  std::string threadCreateVisibilityPlanJson(const std::string& inputJson) override;
+  std::string threadScopeMutationPlanJson(const std::string& inputJson) override;
+  std::string memberPresentationJson(const std::string& inputJson) override;
+  std::string invitationListRowJson(const std::string& inputJson) override;
+  std::string administrationConflictRefetchJson(const std::string& inputJson) override;
   std::string composerAttachmentFromPathJson(const std::string& inputJson) override;
   std::string composerAttachmentsUpdateJson(const std::string& inputJson) override;
   std::shared_ptr<margelo::nitro::Promise<std::string>> composerSkillPickerRowsJson(
@@ -217,6 +235,7 @@ public:
       const std::string& inputJson) override;
   std::shared_ptr<margelo::nitro::Promise<std::string>> turnMessageRevisionsPageJson(
       const std::string& inputJson) override;
+  std::string messageRevisionPagePresentationJson(const std::string& inputJson) override;
   std::shared_ptr<margelo::nitro::Promise<std::string>> threadReadJson(
       const std::string& inputJson) override;
   std::shared_ptr<margelo::nitro::Promise<std::string>> turnWorkPageJson(

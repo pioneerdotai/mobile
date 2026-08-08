@@ -92,6 +92,10 @@ namespace margelo::nitro::pioneer::client {
       virtual std::shared_ptr<Promise<std::string>> workspaceMemberListJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> workspaceMemberAddJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> workspaceMemberRemoveJson(const std::string& inputJson) = 0;
+      virtual std::shared_ptr<Promise<std::string>> threadParticipantsListJson(const std::string& inputJson) = 0;
+      virtual std::shared_ptr<Promise<std::string>> threadUpdateJson(const std::string& inputJson) = 0;
+      virtual std::shared_ptr<Promise<std::string>> threadParticipantAddJson(const std::string& inputJson) = 0;
+      virtual std::shared_ptr<Promise<std::string>> threadParticipantRemoveJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> gatewaySessionReplaceAccessJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> gatewaySettingsGetJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> gatewaySettingsUpdateJson(const std::string& inputJson) = 0;
@@ -128,6 +132,16 @@ namespace margelo::nitro::pioneer::client {
       virtual std::shared_ptr<Promise<std::string>> providerModelDisplayJson(const std::string& inputJson) = 0;
       virtual std::string reasoningEffortRowsJson(const std::string& inputJson) = 0;
       virtual std::string composerPermissionModeOptionsJson() = 0;
+      virtual std::string composerTurnModeOptionsJson() = 0;
+      virtual std::string principalPresentationCapabilitiesJson(const std::string& inputJson) = 0;
+      virtual std::string currentPrincipalPresentationJson(const std::string& inputJson) = 0;
+      virtual std::string sessionListRowPresentationJson(const std::string& inputJson) = 0;
+      virtual std::string threadScopePresentationJson(const std::string& inputJson) = 0;
+      virtual std::string threadCreateVisibilityPlanJson(const std::string& inputJson) = 0;
+      virtual std::string threadScopeMutationPlanJson(const std::string& inputJson) = 0;
+      virtual std::string memberPresentationJson(const std::string& inputJson) = 0;
+      virtual std::string invitationListRowJson(const std::string& inputJson) = 0;
+      virtual std::string administrationConflictRefetchJson(const std::string& inputJson) = 0;
       virtual std::string composerAttachmentFromPathJson(const std::string& inputJson) = 0;
       virtual std::string composerAttachmentsUpdateJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> composerSkillPickerRowsJson(const std::string& inputJson) = 0;
@@ -154,6 +168,7 @@ namespace margelo::nitro::pioneer::client {
       virtual std::shared_ptr<Promise<std::string>> turnMessageEditJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> turnMessageDeleteJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> turnMessageRevisionsPageJson(const std::string& inputJson) = 0;
+      virtual std::string messageRevisionPagePresentationJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> threadReadJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> turnWorkPageJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> turnWorkItemsGetJson(const std::string& inputJson) = 0;

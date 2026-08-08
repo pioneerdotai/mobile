@@ -283,6 +283,26 @@ HybridPioneerClient::workspaceMemberRemoveJson(const std::string& inputJson) {
 }
 
 std::shared_ptr<margelo::nitro::Promise<std::string>>
+HybridPioneerClient::threadParticipantsListJson(const std::string& inputJson) {
+  return callWithClientAsync(pioneer_client_ffi_thread_participants_list, inputJson);
+}
+
+std::shared_ptr<margelo::nitro::Promise<std::string>>
+HybridPioneerClient::threadUpdateJson(const std::string& inputJson) {
+  return callWithClientAsync(pioneer_client_ffi_thread_update, inputJson);
+}
+
+std::shared_ptr<margelo::nitro::Promise<std::string>>
+HybridPioneerClient::threadParticipantAddJson(const std::string& inputJson) {
+  return callWithClientAsync(pioneer_client_ffi_thread_participant_add, inputJson);
+}
+
+std::shared_ptr<margelo::nitro::Promise<std::string>>
+HybridPioneerClient::threadParticipantRemoveJson(const std::string& inputJson) {
+  return callWithClientAsync(pioneer_client_ffi_thread_participant_remove, inputJson);
+}
+
+std::shared_ptr<margelo::nitro::Promise<std::string>>
 HybridPioneerClient::gatewaySessionReplaceAccessJson(const std::string& inputJson) {
   return callWithClientAsyncSensitive(pioneer_client_ffi_gateway_session_replace_access, inputJson);
 }
@@ -472,6 +492,53 @@ std::string HybridPioneerClient::composerPermissionModeOptionsJson() {
   return callWithClient(pioneer_client_ffi_composer_permission_mode_options);
 }
 
+std::string HybridPioneerClient::composerTurnModeOptionsJson() {
+  return callWithClient(pioneer_client_ffi_composer_turn_mode_options);
+}
+
+std::string HybridPioneerClient::principalPresentationCapabilitiesJson(
+    const std::string& inputJson) {
+  return callWithClient(pioneer_client_ffi_principal_presentation_capabilities, inputJson);
+}
+
+std::string HybridPioneerClient::currentPrincipalPresentationJson(
+    const std::string& inputJson) {
+  return callWithClient(pioneer_client_ffi_current_principal_presentation, inputJson);
+}
+
+std::string HybridPioneerClient::sessionListRowPresentationJson(
+    const std::string& inputJson) {
+  return callWithClient(pioneer_client_ffi_session_list_row_presentation, inputJson);
+}
+
+std::string HybridPioneerClient::threadScopePresentationJson(
+    const std::string& inputJson) {
+  return callWithClient(pioneer_client_ffi_thread_scope_presentation, inputJson);
+}
+
+std::string HybridPioneerClient::threadCreateVisibilityPlanJson(
+    const std::string& inputJson) {
+  return callWithClient(pioneer_client_ffi_thread_create_visibility_plan, inputJson);
+}
+
+std::string HybridPioneerClient::threadScopeMutationPlanJson(
+    const std::string& inputJson) {
+  return callWithClient(pioneer_client_ffi_thread_scope_mutation_plan, inputJson);
+}
+
+std::string HybridPioneerClient::memberPresentationJson(const std::string& inputJson) {
+  return callWithClient(pioneer_client_ffi_member_presentation, inputJson);
+}
+
+std::string HybridPioneerClient::invitationListRowJson(const std::string& inputJson) {
+  return callWithClient(pioneer_client_ffi_invitation_list_row, inputJson);
+}
+
+std::string HybridPioneerClient::administrationConflictRefetchJson(
+    const std::string& inputJson) {
+  return callWithClient(pioneer_client_ffi_administration_conflict_refetch, inputJson);
+}
+
 std::string HybridPioneerClient::composerAttachmentFromPathJson(const std::string& inputJson) {
   return callWithClient(pioneer_client_ffi_composer_attachment_from_path, inputJson);
 }
@@ -584,6 +651,11 @@ HybridPioneerClient::turnMessageDeleteJson(const std::string& inputJson) {
 std::shared_ptr<margelo::nitro::Promise<std::string>>
 HybridPioneerClient::turnMessageRevisionsPageJson(const std::string& inputJson) {
   return callWithClientAsync(pioneer_client_ffi_turn_message_revisions_page, inputJson);
+}
+
+std::string HybridPioneerClient::messageRevisionPagePresentationJson(
+    const std::string& inputJson) {
+  return callWithClient(pioneer_client_ffi_message_revision_page_presentation, inputJson);
 }
 
 std::shared_ptr<margelo::nitro::Promise<std::string>>

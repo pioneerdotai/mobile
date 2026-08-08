@@ -53,6 +53,10 @@ char* pioneer_client_ffi_member_device_create(PioneerClientFfi* client, const ch
 char* pioneer_client_ffi_workspace_member_list(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_workspace_member_add(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_workspace_member_remove(PioneerClientFfi* client, const char* input_json);
+char* pioneer_client_ffi_thread_participants_list(PioneerClientFfi* client, const char* input_json);
+char* pioneer_client_ffi_thread_update(PioneerClientFfi* client, const char* input_json);
+char* pioneer_client_ffi_thread_participant_add(PioneerClientFfi* client, const char* input_json);
+char* pioneer_client_ffi_thread_participant_remove(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_gateway_session_replace_access(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_gateway_settings_get(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_gateway_settings_update(PioneerClientFfi* client, const char* input_json);
@@ -89,6 +93,16 @@ char* pioneer_client_ffi_voice_input_settings_plan(PioneerClientFfi* client, con
 char* pioneer_client_ffi_provider_model_display(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_reasoning_effort_rows(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_composer_permission_mode_options(PioneerClientFfi* client);
+char* pioneer_client_ffi_composer_turn_mode_options(PioneerClientFfi* client);
+char* pioneer_client_ffi_principal_presentation_capabilities(PioneerClientFfi* client, const char* input_json);
+char* pioneer_client_ffi_current_principal_presentation(PioneerClientFfi* client, const char* input_json);
+char* pioneer_client_ffi_session_list_row_presentation(PioneerClientFfi* client, const char* input_json);
+char* pioneer_client_ffi_thread_scope_presentation(PioneerClientFfi* client, const char* input_json);
+char* pioneer_client_ffi_thread_create_visibility_plan(PioneerClientFfi* client, const char* input_json);
+char* pioneer_client_ffi_thread_scope_mutation_plan(PioneerClientFfi* client, const char* input_json);
+char* pioneer_client_ffi_member_presentation(PioneerClientFfi* client, const char* input_json);
+char* pioneer_client_ffi_invitation_list_row(PioneerClientFfi* client, const char* input_json);
+char* pioneer_client_ffi_administration_conflict_refetch(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_composer_attachment_from_path(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_composer_attachments_update(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_composer_skill_picker_rows(PioneerClientFfi* client, const char* input_json);
@@ -115,6 +129,7 @@ char* pioneer_client_ffi_thread_timeline_page(PioneerClientFfi* client, const ch
 char* pioneer_client_ffi_turn_message_edit(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_turn_message_delete(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_turn_message_revisions_page(PioneerClientFfi* client, const char* input_json);
+char* pioneer_client_ffi_message_revision_page_presentation(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_thread_read(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_turn_work_page(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_turn_work_items_get(PioneerClientFfi* client, const char* input_json);
