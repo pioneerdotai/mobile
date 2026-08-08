@@ -1,7 +1,14 @@
 /* eslint-disable */
 
 export type ComposerDomainAction =
-  | ('MarkAttachmentsUploading' | 'ClearReasoningEffort' | 'ClearPayload')
+  | (
+      | 'MarkAttachmentsUploading'
+      | 'ClearReplyTarget'
+      | 'ClearReasoningEffort'
+      | 'ClearPayload'
+      | 'SendSucceeded'
+      | 'SendFailed'
+    )
   | {
       SetAttachments: {
         attachments: ComposerAttachment[];
@@ -78,6 +85,30 @@ export type ComposerDomainAction =
   | {
       SetModeFromUser: {
         mode: ThreadMode;
+        [k: string]: unknown;
+      };
+    }
+  | {
+      SetReplyTarget: {
+        target: ComposerReplyTarget;
+        [k: string]: unknown;
+      };
+    }
+  | {
+      SelectMention: {
+        candidate: ComposerMentionCandidate;
+        [k: string]: unknown;
+      };
+    }
+  | {
+      RemoveMention: {
+        principal_id: PrincipalId;
+        [k: string]: unknown;
+      };
+    }
+  | {
+      ReconcileMentionsWithText: {
+        text: string;
         [k: string]: unknown;
       };
     }
@@ -210,6 +241,7 @@ export type SkillCapabilityUnavailableReason =
       };
     };
 export type ThreadMode = ('Message' | 'Agent') | 'Chat';
+export type PrincipalId = string;
 export type TurnPermissionMode = 'full_access' | 'auto_accept_edits' | 'supervised';
 export type ComposerCapabilityTargetKind = 'native' | 'cli';
 
@@ -281,6 +313,17 @@ export interface SelectableSkillCapability {
   unavailable_reason?: SkillCapabilityUnavailableReason | null;
   [k: string]: unknown;
 }
+export interface ComposerReplyTarget {
+  author_display_name?: string | null;
+  preview?: string | null;
+  turn_id: string;
+}
+export interface ComposerMentionCandidate {
+  avatar_revision?: string | null;
+  display_name: string;
+  nickname: string;
+  principal_id: PrincipalId;
+}
 /**
  * Capability eligibility context.
  *
@@ -305,10 +348,18 @@ export interface ComposerDomainState {
   capability_target: ComposerCapabilityTarget;
   mode_manually_selected?: boolean;
   model_manually_selected?: boolean;
+  reply_target?: ComposerReplyTarget | null;
+  selected_mentions?: ComposerMentionSelection[];
   selected_mode?: ('Message' | 'Agent') | 'Chat';
   selected_model?: string | null;
   selected_permission_mode?: 'full_access' | 'auto_accept_edits' | 'supervised';
   selected_provider?: string | null;
   selected_reasoning_effort?: string | null;
   skill_selections?: ComposerSkillSelection[];
+}
+export interface ComposerMentionSelection {
+  display_name: string;
+  nickname: string;
+  principal_id: PrincipalId;
+  text_token: string;
 }

@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PrincipalPresentationCapabilities",
+  "description": "Global, shell-neutral discoverability derived from the authenticated\nprincipal snapshot.\n\nThese flags are presentation hints only. The Gateway remains authoritative\nfor every operation and callers must still handle an authoritative denial.",
+  "type": "object",
+  "properties": {
+    "can_add_workspace_member": {
+      "type": "boolean"
+    },
+    "can_create_invitation": {
+      "type": "boolean"
+    },
+    "can_manage_member_lifecycle": {
+      "type": "boolean"
+    },
+    "can_manage_own_sessions": {
+      "type": "boolean"
+    },
+    "can_remove_workspace_member": {
+      "type": "boolean"
+    },
+    "can_view_invitations": {
+      "type": "boolean"
+    },
+    "can_view_member_directory": {
+      "type": "boolean"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "can_view_invitations",
+    "can_create_invitation",
+    "can_view_member_directory",
+    "can_add_workspace_member",
+    "can_manage_member_lifecycle",
+    "can_remove_workspace_member",
+    "can_manage_own_sessions"
+  ]
+}

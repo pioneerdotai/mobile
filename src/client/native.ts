@@ -3,12 +3,17 @@ import { Platform } from 'react-native';
 import { getPioneerClientNitro } from '@pioneer/client-nitro';
 
 import type { ActivateGatewayRegistryPlan } from './generated/activate_gateway_registry_plan';
+import type { AdministrationAction } from './generated/administration_action';
+import type { AdministrationRefetch } from './generated/administration_refetch';
 import type { AuthLogoutResponse } from './generated/auth_logout_response';
 import type { AuthMeResponse } from './generated/auth_me_response';
 import type { AuthDeviceCreateResponse } from './generated/auth_device_create_response';
 import type { AuthRefreshGrant } from './generated/auth_refresh_grant';
 import type { AuthSessionGrant } from './generated/auth_session_grant';
-import type { AuthSessionListResponse } from './generated/auth_session_list_response';
+import type {
+    AuthSessionListItem,
+    AuthSessionListResponse,
+} from './generated/auth_session_list_response';
 import type { AuthSessionRevokeParams } from './generated/auth_session_revoke_params';
 import type { AuthSessionRevokeResponse } from './generated/auth_session_revoke_response';
 import type { AddRemoteGatewayPlan } from './generated/add_remote_gateway_plan';
@@ -27,7 +32,10 @@ import type { ClientActiveThreadEventRequest } from './generated/client_active_t
 import type { ClientActiveThreadEventResult } from './generated/client_active_thread_event_result';
 import type { ClientActiveThreadOpenByIdRequest } from './generated/client_active_thread_open_by_id_request';
 import type { ClientActiveThreadOpenRequest } from './generated/client_active_thread_open_request';
-import type { ClientActiveThreadSendTextRequest } from './generated/client_active_thread_send_text_request';
+import type {
+    ClientActiveThreadSendTextRequest,
+    ThreadMode,
+} from './generated/client_active_thread_send_text_request';
 import type { ClientActiveThreadSendTextResult } from './generated/client_active_thread_send_text_result';
 import type { ClientActiveThreadSnapshot } from './generated/client_active_thread_snapshot';
 import type { ClientActiveThreadSnapshotRequest } from './generated/client_active_thread_snapshot_request';
@@ -131,10 +139,16 @@ import type { InvitationRevokeParams } from './generated/invitation_revoke_param
 import type { InvitationRevokeResponse } from './generated/invitation_revoke_response';
 import type { ClientMemberAvatarCacheRequest } from './generated/client_member_avatar_cache_request';
 import type { ClientMemberAvatarCacheResult } from './generated/client_member_avatar_cache_result';
+import type { ClientMemberPresentationRequest } from './generated/client_member_presentation_request';
+import type { ClientInvitationListRowRequest } from './generated/client_invitation_list_row_request';
+import type { InvitationListRow } from './generated/invitation_list_row';
+import type { ClientCurrentPrincipalPresentationRequest } from './generated/client_current_principal_presentation_request';
+import type { CurrentPrincipalPresentation } from './generated/current_principal_presentation';
 import type { MemberDeviceCreateParams } from './generated/member_device_create_params';
 import type { MemberDeviceCreateResponse } from './generated/member_device_create_response';
 import type { MemberListParams } from './generated/member_list_params';
 import type { MemberListResponse } from './generated/member_list_response';
+import type { MemberListRow } from './generated/member_list_row';
 import type { MemberMutationResponse } from './generated/member_mutation_response';
 import type { MemberRemoveParams } from './generated/member_remove_params';
 import type { MemberRestoreParams } from './generated/member_restore_params';
@@ -158,6 +172,19 @@ import type { RemoteGatewayValidationRequest } from './generated/remote_gateway_
 import type { SelectableSkillCapability } from './generated/selectable_skill_capability';
 import type { SetGatewayWorkspaceRegistryPlan } from './generated/set_gateway_workspace_registry_plan';
 import type { ClientThreadTreeLevel } from './generated/thread_tree_level';
+import type { ClientThreadScopePresentationRequest } from './generated/client_thread_scope_presentation_request';
+import type { ClientThreadCreateVisibilityRequest } from './generated/client_thread_create_visibility_request';
+import type { ClientThreadScopeMutationPlanRequest } from './generated/client_thread_scope_mutation_plan_request';
+import type { SessionListRowPresentation } from './generated/session_list_row_presentation';
+import type { ThreadCreateVisibilityPlan } from './generated/thread_create_visibility_plan';
+import type { PrincipalPresentationCapabilities } from './generated/principal_presentation_capabilities';
+import type { ThreadParticipantMutationParams } from './generated/thread_participant_mutation_params';
+import type { ThreadParticipantsListParams } from './generated/thread_participants_list_params';
+import type { ThreadParticipantsResponse } from './generated/thread_participants_response';
+import type { ThreadScopePresentation } from './generated/thread_scope_presentation';
+import type { ThreadScopeMutationPlan } from './generated/thread_scope_mutation_plan';
+import type { ThreadUpdateParams } from './generated/thread_update_params';
+import type { ThreadUpdateResponse } from './generated/thread_update_response';
 import type { ThreadTreeLevelRequest } from './generated/thread_tree_level_request';
 import type { ClientThreadTreeQueryData } from './generated/thread_tree_query_data';
 import type { ThreadTreeRefreshRequest } from './generated/thread_tree_refresh_request';
@@ -179,6 +206,7 @@ import type { TurnMessageEditParams } from './generated/turn_message_edit_params
 import type { TurnMessageEditResponse } from './generated/turn_message_edit_response';
 import type { TurnMessageRevisionsPageParams } from './generated/turn_message_revisions_page_params';
 import type { TurnMessageRevisionsPageResponse } from './generated/turn_message_revisions_page_response';
+import type { MessageRevisionPagePresentation } from './generated/message_revision_page_presentation';
 import type { TurnWorkPageParams } from './generated/turn_work_page_params';
 import type { TurnWorkPageResponse } from './generated/turn_work_page_response';
 import type { TurnPermissionRequestRespondParams } from './generated/turn_permission_request_respond_params';
@@ -321,6 +349,9 @@ export type { ComposerCapabilityTarget } from './generated/composer_capability_t
 export type { ComposerDomainAction } from './generated/composer_domain_action';
 export type { ComposerDomainState } from './generated/composer_domain_state';
 export type { ComposerDomainTransition } from './generated/composer_domain_transition';
+export type { ComposerReplyTarget } from './generated/composer_reply_target';
+export type { ComposerMentionCandidate } from './generated/composer_mention_candidate';
+export type { ComposerMentionSelection } from './generated/composer_mention_selection';
 export type { ComposerDomainDraft } from './generated/composer_domain_draft';
 export type { ComposerDraftLifecycleAction } from './generated/composer_draft_lifecycle_action';
 export type { ComposerDraftLifecycleState } from './generated/composer_draft_lifecycle_state';
@@ -399,6 +430,7 @@ export type { ClientInvitationRefreshWrite } from './generated/client_invitation
 export type { ClientInvitationRegistryWrite } from './generated/client_invitation_registry_write';
 export type { InvitationCreateParams } from './generated/invitation_create_params';
 export type { InvitationCreateResponse } from './generated/invitation_create_response';
+export type { InvitationAcceptParams } from './generated/invitation_accept_params';
 export type { InvitationListParams } from './generated/invitation_list_params';
 export type { InvitationListResponse } from './generated/invitation_list_response';
 export type { InvitationPreviewResponse } from './generated/invitation_preview_response';
@@ -406,10 +438,18 @@ export type { InvitationRevokeParams } from './generated/invitation_revoke_param
 export type { InvitationRevokeResponse } from './generated/invitation_revoke_response';
 export type { ClientMemberAvatarCacheRequest } from './generated/client_member_avatar_cache_request';
 export type { ClientMemberAvatarCacheResult } from './generated/client_member_avatar_cache_result';
+export type { ClientMemberPresentationRequest } from './generated/client_member_presentation_request';
+export type { ClientCurrentPrincipalPresentationRequest } from './generated/client_current_principal_presentation_request';
+export type {
+    CurrentPrincipalKindPresentation,
+    CurrentPrincipalPresentation,
+} from './generated/current_principal_presentation';
 export type { MemberDeviceCreateParams } from './generated/member_device_create_params';
 export type { MemberDeviceCreateResponse } from './generated/member_device_create_response';
 export type { MemberListParams } from './generated/member_list_params';
 export type { MemberListResponse } from './generated/member_list_response';
+export type { MemberSummary } from './generated/member_summary';
+export type { MemberListRow } from './generated/member_list_row';
 export type { MemberMutationResponse } from './generated/member_mutation_response';
 export type { MemberRemoveParams } from './generated/member_remove_params';
 export type { MemberRestoreParams } from './generated/member_restore_params';
@@ -421,6 +461,23 @@ export type { WorkspaceMemberMutationResponse } from './generated/workspace_memb
 export type { WorkspaceMemberRemoveParams } from './generated/workspace_member_remove_params';
 export type { SelectableMcpCapability } from './generated/selectable_mcp_capability';
 export type { ClientThreadTreeLevel } from './generated/thread_tree_level';
+export type { ClientThreadScopePresentationRequest } from './generated/client_thread_scope_presentation_request';
+export type { ClientThreadCreateVisibilityRequest } from './generated/client_thread_create_visibility_request';
+export type { ClientThreadScopeMutationPlanRequest } from './generated/client_thread_scope_mutation_plan_request';
+export type { ThreadCreateVisibilityPlan } from './generated/thread_create_visibility_plan';
+export type { ClientInvitationListRowRequest } from './generated/client_invitation_list_row_request';
+export type { InvitationListRow } from './generated/invitation_list_row';
+export type { PrincipalPresentationCapabilities } from './generated/principal_presentation_capabilities';
+export type { ThreadParticipantMutationParams } from './generated/thread_participant_mutation_params';
+export type { ThreadParticipantsListParams } from './generated/thread_participants_list_params';
+export type {
+    ThreadParticipantSummary,
+    ThreadParticipantsResponse,
+} from './generated/thread_participants_response';
+export type { ThreadScopePresentation } from './generated/thread_scope_presentation';
+export type { ThreadScopeMutationPlan } from './generated/thread_scope_mutation_plan';
+export type { ThreadUpdateParams } from './generated/thread_update_params';
+export type { ThreadUpdateResponse } from './generated/thread_update_response';
 export type { ThreadTreeLevelRequest } from './generated/thread_tree_level_request';
 export type {
     ClientThreadTreeQueryData,
@@ -460,9 +517,11 @@ export type { TurnWorkItemsGetResponse } from './generated/turn_work_items_get_r
 export type { TurnMessageDeleteParams } from './generated/turn_message_delete_params';
 export type { TurnMessageDeleteResponse } from './generated/turn_message_delete_response';
 export type { TurnMessageEditParams } from './generated/turn_message_edit_params';
+export type { UserInput } from './generated/turn_message_edit_params';
 export type { TurnMessageEditResponse } from './generated/turn_message_edit_response';
 export type { TurnMessageRevisionsPageParams } from './generated/turn_message_revisions_page_params';
 export type { TurnMessageRevisionsPageResponse } from './generated/turn_message_revisions_page_response';
+export type { MessageRevisionPagePresentation } from './generated/message_revision_page_presentation';
 export type { TurnWorkPageParams } from './generated/turn_work_page_params';
 export type { TurnWorkPageResponse, TurnItem } from './generated/turn_work_page_response';
 export type { TurnPermissionApprovalRequest } from './generated/turn_permission_approval_request';
@@ -495,6 +554,9 @@ export type { VoiceStatus } from './generated/voice_status';
 export type { VoiceStatusParams } from './generated/voice_status_params';
 export type { VoiceStatusResponse } from './generated/voice_status_response';
 export type { VoiceTurnContext } from './generated/voice_turn_context';
+export type { AdministrationRefetch } from './generated/administration_refetch';
+export type { AdministrationAction } from './generated/administration_action';
+export type { SessionListRowPresentation } from './generated/session_list_row_presentation';
 export type { WorkspaceBootstrapRequest } from './generated/workspace_bootstrap_request';
 export type { WorkspaceCreateRequest } from './generated/workspace_create_request';
 export type { WorkspaceCreateResult } from './generated/workspace_create_result';
@@ -794,6 +856,36 @@ export const pioneerClient = {
     ): Promise<WorkspaceMemberMutationResponse> {
         return parsePioneerClientResponse<WorkspaceMemberMutationResponse>(
             await getPioneerClientNitro().workspaceMemberRemoveJson(JSON.stringify(input)),
+        );
+    },
+
+    async threadParticipantsList(
+        input: ThreadParticipantsListParams,
+    ): Promise<ThreadParticipantsResponse> {
+        return parsePioneerClientResponse<ThreadParticipantsResponse>(
+            await getPioneerClientNitro().threadParticipantsListJson(JSON.stringify(input)),
+        );
+    },
+
+    async threadUpdate(input: ThreadUpdateParams): Promise<ThreadUpdateResponse> {
+        return parsePioneerClientResponse<ThreadUpdateResponse>(
+            await getPioneerClientNitro().threadUpdateJson(JSON.stringify(input)),
+        );
+    },
+
+    async threadParticipantAdd(
+        input: ThreadParticipantMutationParams,
+    ): Promise<ThreadParticipantsResponse> {
+        return parsePioneerClientResponse<ThreadParticipantsResponse>(
+            await getPioneerClientNitro().threadParticipantAddJson(JSON.stringify(input)),
+        );
+    },
+
+    async threadParticipantRemove(
+        input: ThreadParticipantMutationParams,
+    ): Promise<ThreadParticipantsResponse> {
+        return parsePioneerClientResponse<ThreadParticipantsResponse>(
+            await getPioneerClientNitro().threadParticipantRemoveJson(JSON.stringify(input)),
         );
     },
 
@@ -1109,6 +1201,70 @@ export const pioneerClient = {
         );
     },
 
+    composerTurnModeOptions(): ThreadMode[] {
+        return parsePioneerClientResponse<ThreadMode[]>(
+            getPioneerClientNitro().composerTurnModeOptionsJson(),
+        );
+    },
+
+    principalPresentationCapabilities(input: AuthMeResponse): PrincipalPresentationCapabilities {
+        return parsePioneerClientResponse<PrincipalPresentationCapabilities>(
+            getPioneerClientNitro().principalPresentationCapabilitiesJson(JSON.stringify(input)),
+        );
+    },
+
+    currentPrincipalPresentation(
+        input: ClientCurrentPrincipalPresentationRequest,
+    ): CurrentPrincipalPresentation {
+        return parsePioneerClientResponse<CurrentPrincipalPresentation>(
+            getPioneerClientNitro().currentPrincipalPresentationJson(JSON.stringify(input)),
+        );
+    },
+
+    sessionListRowPresentation(input: AuthSessionListItem): SessionListRowPresentation {
+        return parsePioneerClientResponse<SessionListRowPresentation>(
+            getPioneerClientNitro().sessionListRowPresentationJson(JSON.stringify(input)),
+        );
+    },
+
+    threadScopePresentation(input: ClientThreadScopePresentationRequest): ThreadScopePresentation {
+        return parsePioneerClientResponse<ThreadScopePresentation>(
+            getPioneerClientNitro().threadScopePresentationJson(JSON.stringify(input)),
+        );
+    },
+
+    threadCreateVisibilityPlan(
+        input: ClientThreadCreateVisibilityRequest,
+    ): ThreadCreateVisibilityPlan {
+        return parsePioneerClientResponse<ThreadCreateVisibilityPlan>(
+            getPioneerClientNitro().threadCreateVisibilityPlanJson(JSON.stringify(input)),
+        );
+    },
+
+    threadScopeMutationPlan(input: ClientThreadScopeMutationPlanRequest): ThreadScopeMutationPlan {
+        return parsePioneerClientResponse<ThreadScopeMutationPlan>(
+            getPioneerClientNitro().threadScopeMutationPlanJson(JSON.stringify(input)),
+        );
+    },
+
+    memberPresentation(input: ClientMemberPresentationRequest): MemberListRow {
+        return parsePioneerClientResponse<MemberListRow>(
+            getPioneerClientNitro().memberPresentationJson(JSON.stringify(input)),
+        );
+    },
+
+    invitationListRow(input: ClientInvitationListRowRequest): InvitationListRow {
+        return parsePioneerClientResponse<InvitationListRow>(
+            getPioneerClientNitro().invitationListRowJson(JSON.stringify(input)),
+        );
+    },
+
+    administrationConflictRefetch(input: AdministrationAction): AdministrationRefetch[] {
+        return parsePioneerClientResponse<AdministrationRefetch[]>(
+            getPioneerClientNitro().administrationConflictRefetchJson(JSON.stringify(input)),
+        );
+    },
+
     composerAttachmentFromPath(input: ClientComposerAttachmentFromPathRequest): ComposerAttachment {
         return parsePioneerClientResponse<ComposerAttachment>(
             getPioneerClientNitro().composerAttachmentFromPathJson(JSON.stringify(input)),
@@ -1292,6 +1448,14 @@ export const pioneerClient = {
     ): Promise<TurnMessageRevisionsPageResponse> {
         return parsePioneerClientResponse<TurnMessageRevisionsPageResponse>(
             await getPioneerClientNitro().turnMessageRevisionsPageJson(JSON.stringify(input)),
+        );
+    },
+
+    messageRevisionPagePresentation(
+        input: TurnMessageRevisionsPageResponse,
+    ): MessageRevisionPagePresentation {
+        return parsePioneerClientResponse<MessageRevisionPagePresentation>(
+            getPioneerClientNitro().messageRevisionPagePresentationJson(JSON.stringify(input)),
         );
     },
 

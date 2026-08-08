@@ -721,7 +721,9 @@
       "enum": [
         "session_revoked",
         "session_expired",
-        "session_compromised"
+        "session_compromised",
+        "principal_suspended",
+        "principal_removed"
       ]
     },
     "ByteRange": {

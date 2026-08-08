@@ -1,0 +1,243 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ClientThreadCreateVisibilityRequest",
+  "type": "object",
+  "properties": {
+    "auth": {
+      "$ref": "#/$defs/AuthMeResponse"
+    },
+    "origin_kind": {
+      "$ref": "#/$defs/ThreadOriginKind"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "auth",
+    "origin_kind"
+  ],
+  "$defs": {
+    "AuthDeviceSnapshot": {
+      "type": "object",
+      "properties": {
+        "client_kind": {
+          "$ref": "#/$defs/ClientKind"
+        },
+        "display_name": {
+          "type": "string"
+        },
+        "id": {
+          "$ref": "#/$defs/DeviceId"
+        },
+        "installation_id": {
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/DeviceStatus"
+        }
+      },
+      "required": [
+        "id",
+        "installation_id",
+        "display_name",
+        "client_kind",
+        "status"
+      ]
+    },
+    "AuthGatewaySnapshot": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/GatewayId"
+        }
+      },
+      "required": [
+        "id"
+      ]
+    },
+    "AuthMeResponse": {
+      "type": "object",
+      "properties": {
+        "device": {
+          "$ref": "#/$defs/AuthDeviceSnapshot"
+        },
+        "gateway": {
+          "$ref": "#/$defs/AuthGatewaySnapshot"
+        },
+        "principal": {
+          "$ref": "#/$defs/AuthPrincipalSnapshot"
+        },
+        "role_key": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RoleKey"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "session": {
+          "$ref": "#/$defs/AuthSessionSnapshot"
+        }
+      },
+      "required": [
+        "gateway",
+        "principal",
+        "device",
+        "session"
+      ]
+    },
+    "AuthPrincipalSnapshot": {
+      "type": "object",
+      "properties": {
+        "display_name": {
+          "type": "string"
+        },
+        "id": {
+          "$ref": "#/$defs/PrincipalId"
+        },
+        "kind": {
+          "$ref": "#/$defs/PrincipalKind"
+        },
+        "nickname": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "display_name",
+        "nickname"
+      ]
+    },
+    "AuthSessionId": {
+      "type": "string",
+      "maxLength": 21,
+      "minLength": 21,
+      "pattern": "^[A-Za-z0-9]{21}$"
+    },
+    "AuthSessionSnapshot": {
+      "type": "object",
+      "properties": {
+        "device_id": {
+          "$ref": "#/$defs/DeviceId"
+        },
+        "id": {
+          "$ref": "#/$defs/AuthSessionId"
+        },
+        "refresh_expires_at_unix": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "refresh_generation": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "status": {
+          "$ref": "#/$defs/AuthSessionStatus"
+        },
+        "token_family_id": {
+          "$ref": "#/$defs/TokenFamilyId"
+        }
+      },
+      "required": [
+        "id",
+        "device_id",
+        "token_family_id",
+        "status",
+        "refresh_generation",
+        "refresh_expires_at_unix"
+      ]
+    },
+    "AuthSessionStatus": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "active",
+        "revoked",
+        "expired"
+      ]
+    },
+    "ClientKind": {
+      "type": "string",
+      "enum": [
+        "desktop",
+        "mobile",
+        "other"
+      ]
+    },
+    "DeviceId": {
+      "type": "string",
+      "maxLength": 21,
+      "minLength": 21,
+      "pattern": "^[A-Za-z0-9]{21}$"
+    },
+    "DeviceStatus": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "active",
+        "revoked"
+      ]
+    },
+    "GatewayId": {
+      "type": "string",
+      "maxLength": 21,
+      "minLength": 21,
+      "pattern": "^[A-Za-z0-9]{21}$"
+    },
+    "PrincipalId": {
+      "type": "string",
+      "maxLength": 21,
+      "minLength": 21,
+      "pattern": "^[A-Za-z0-9]{21}$"
+    },
+    "PrincipalKind": {
+      "type": "string",
+      "enum": [
+        "superuser",
+        "user"
+      ]
+    },
+    "RoleKey": {
+      "type": "string",
+      "maxLength": 32,
+      "minLength": 1,
+      "pattern": "^[a-z][a-z0-9_-]{0,31}$"
+    },
+    "ThreadOriginKind": {
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "task_run",
+            "system"
+          ]
+        },
+        {
+          "description": "A user-visible collaborative thread whose Composer submissions execute\nasynchronously in detached task children.",
+          "type": "string",
+          "const": "collaborative"
+        },
+        {
+          "description": "A one-to-one conversation whose Composer submissions execute\nsynchronously in the thread itself.",
+          "type": "string",
+          "const": "direct_message"
+        },
+        {
+          "description": "Compatibility value for threads created before execution semantics were\nmade explicit. It retains foreground Composer behavior.",
+          "type": "string",
+          "const": "user"
+        }
+      ]
+    },
+    "TokenFamilyId": {
+      "type": "string",
+      "maxLength": 21,
+      "minLength": 21,
+      "pattern": "^[A-Za-z0-9]{21}$"
+    }
+  }
+}

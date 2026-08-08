@@ -12,8 +12,19 @@
     "gateway_id": {
       "$ref": "#/$defs/GatewayId"
     },
+    "qr_modules": {
+      "type": "array",
+      "items": {
+        "type": "boolean"
+      }
+    },
     "qr_payload": {
       "type": "string"
+    },
+    "qr_width": {
+      "type": "integer",
+      "format": "uint",
+      "minimum": 0
     },
     "transport_security": {
       "$ref": "#/$defs/InvitationTransportSecurity"
@@ -24,7 +35,9 @@
     "gateway_id",
     "transport_security",
     "canonical_uri",
-    "qr_payload"
+    "qr_payload",
+    "qr_width",
+    "qr_modules"
   ],
   "$defs": {
     "GatewayId": {

@@ -437,9 +437,25 @@
           "type": "boolean",
           "default": false
         },
+        "reply_target": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ComposerReplyTarget"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "selected_mentions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ComposerMentionSelection"
+          }
+        },
         "selected_mode": {
           "$ref": "#/$defs/ThreadMode",
-          "default": "Agent"
+          "default": "Message"
         },
         "selected_model": {
           "type": [
@@ -585,6 +601,54 @@
       },
       "additionalProperties": false
     },
+    "ComposerMentionSelection": {
+      "type": "object",
+      "properties": {
+        "display_name": {
+          "type": "string"
+        },
+        "nickname": {
+          "type": "string"
+        },
+        "principal_id": {
+          "$ref": "#/$defs/PrincipalId"
+        },
+        "text_token": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "principal_id",
+        "display_name",
+        "nickname",
+        "text_token"
+      ]
+    },
+    "ComposerReplyTarget": {
+      "type": "object",
+      "properties": {
+        "author_display_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "preview": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "turn_id": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "turn_id"
+      ]
+    },
     "ComposerSkillSelection": {
       "oneOf": [
         {
@@ -637,6 +701,12 @@
         "workspace",
         "user"
       ]
+    },
+    "PrincipalId": {
+      "type": "string",
+      "maxLength": 21,
+      "minLength": 21,
+      "pattern": "^[A-Za-z0-9]{21}$"
     },
     "SkillId": {
       "type": "string",

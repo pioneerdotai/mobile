@@ -61,6 +61,7 @@ export type ComposerCapabilityKind =
 export type SkillId = string;
 export type McpScopeKind = 'workspace' | 'user';
 export type ComposerCapabilityTargetKind = 'native' | 'cli';
+export type PrincipalId = string;
 export type ComposerSkillSelection =
   | {
       kind: 'skill';
@@ -97,6 +98,8 @@ export interface ComposerDomainState {
   capability_target: ComposerCapabilityTarget;
   mode_manually_selected?: boolean;
   model_manually_selected?: boolean;
+  reply_target?: ComposerReplyTarget | null;
+  selected_mentions?: ComposerMentionSelection[];
   selected_mode?: ('Message' | 'Agent') | 'Chat';
   selected_model?: string | null;
   selected_permission_mode?: 'full_access' | 'auto_accept_edits' | 'supervised';
@@ -151,6 +154,17 @@ export interface ComposerCapabilityTarget {
   kind: ComposerCapabilityTargetKind;
   supports_mcp_tools: boolean;
   supports_skills: boolean;
+}
+export interface ComposerReplyTarget {
+  author_display_name?: string | null;
+  preview?: string | null;
+  turn_id: string;
+}
+export interface ComposerMentionSelection {
+  display_name: string;
+  nickname: string;
+  principal_id: PrincipalId;
+  text_token: string;
 }
 export interface ComposerDraftLifecycleState {
   drafts?: {

@@ -807,6 +807,13 @@ export type TimelineRowKind =
       };
     }
   | {
+      UserMessage: {
+        presentation: UserMessagePresentation;
+        timeline_index: number;
+        [k: string]: unknown;
+      };
+    }
+  | {
       TurnWorkToggle: TurnWorkGroupRow;
     }
   | {
@@ -815,8 +822,9 @@ export type TimelineRowKind =
   | {
       RunningTurn: RunningTurnDisplay;
     };
-export type TimelineCoalescedToolsKind = 'CompletedTaskTools' | 'RepeatedTaskWait';
 export type ThreadMode = ('Message' | 'Agent') | 'Chat';
+export type TimelineReplyState = 'available' | 'deleted' | 'unavailable';
+export type TimelineCoalescedToolsKind = 'CompletedTaskTools' | 'RepeatedTaskWait';
 export type ThreadStatus = 'Active' | 'Idle' | 'Closed';
 export type PromptManifestDiagnosticCode =
   | 'missing_file'
@@ -1325,6 +1333,27 @@ export interface TimelineRow {
   key: string;
   kind: TimelineRowKind;
   [k: string]: unknown;
+}
+/**
+ * Authoritative collaboration metadata attached to a rendered user-message
+ * row. It mirrors disclosed server fields; shells must not reconstruct it by
+ * parsing text or by joining a mutable member directory.
+ */
+export interface UserMessagePresentation {
+  attachments?: UserMessageAttachment[];
+  author?: TurnAuthorSnapshot | null;
+  block_id: string;
+  deleted: boolean;
+  edited: boolean;
+  item_id: string;
+  mentions?: TurnMention[];
+  mode: ThreadMode;
+  reply?: TimelineReplySummary | null;
+  reply_state?: TimelineReplyState | null;
+  revision: number;
+  thread_id: string;
+  turn_id: string;
+  workspace_id: string;
 }
 export interface TurnWorkGroupRow {
   anchor_entry_id: string;

@@ -548,7 +548,8 @@ export type AccessChangeKind =
   | 'thread_visibility'
   | 'thread_participant_added'
   | 'thread_participant_removed';
-export type AuthSessionTerminationReason = 'session_revoked' | 'session_expired' | 'session_compromised';
+export type AuthSessionTerminationReason =
+  'session_revoked' | 'session_expired' | 'session_compromised' | 'principal_suspended' | 'principal_removed';
 export type AuthSessionId = string;
 export type InvitationId = string;
 export type PrincipalId = string;

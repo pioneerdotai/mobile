@@ -398,8 +398,11 @@
           "type": "string",
           "enum": [
             "MarkAttachmentsUploading",
+            "ClearReplyTarget",
             "ClearReasoningEffort",
-            "ClearPayload"
+            "ClearPayload",
+            "SendSucceeded",
+            "SendFailed"
           ]
         },
         {
@@ -692,6 +695,86 @@
         {
           "type": "object",
           "properties": {
+            "SetReplyTarget": {
+              "type": "object",
+              "properties": {
+                "target": {
+                  "$ref": "#/$defs/ComposerReplyTarget"
+                }
+              },
+              "required": [
+                "target"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "SetReplyTarget"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "SelectMention": {
+              "type": "object",
+              "properties": {
+                "candidate": {
+                  "$ref": "#/$defs/ComposerMentionCandidate"
+                }
+              },
+              "required": [
+                "candidate"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "SelectMention"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "RemoveMention": {
+              "type": "object",
+              "properties": {
+                "principal_id": {
+                  "$ref": "#/$defs/PrincipalId"
+                }
+              },
+              "required": [
+                "principal_id"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "RemoveMention"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "ReconcileMentionsWithText": {
+              "type": "object",
+              "properties": {
+                "text": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "text"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "ReconcileMentionsWithText"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
             "SetPermissionMode": {
               "type": "object",
               "properties": {
@@ -918,9 +1001,25 @@
           "type": "boolean",
           "default": false
         },
+        "reply_target": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ComposerReplyTarget"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "selected_mentions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ComposerMentionSelection"
+          }
+        },
         "selected_mode": {
           "$ref": "#/$defs/ThreadMode",
-          "default": "Agent"
+          "default": "Message"
         },
         "selected_model": {
           "type": [
@@ -957,6 +1056,56 @@
         "capability_target"
       ]
     },
+    "ComposerMentionCandidate": {
+      "type": "object",
+      "properties": {
+        "avatar_revision": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "display_name": {
+          "type": "string"
+        },
+        "nickname": {
+          "type": "string"
+        },
+        "principal_id": {
+          "$ref": "#/$defs/PrincipalId"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "principal_id",
+        "display_name",
+        "nickname"
+      ]
+    },
+    "ComposerMentionSelection": {
+      "type": "object",
+      "properties": {
+        "display_name": {
+          "type": "string"
+        },
+        "nickname": {
+          "type": "string"
+        },
+        "principal_id": {
+          "$ref": "#/$defs/PrincipalId"
+        },
+        "text_token": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "principal_id",
+        "display_name",
+        "nickname",
+        "text_token"
+      ]
+    },
     "ComposerModelSelection": {
       "type": "object",
       "properties": {
@@ -976,6 +1125,30 @@
       "required": [
         "provider",
         "model"
+      ]
+    },
+    "ComposerReplyTarget": {
+      "type": "object",
+      "properties": {
+        "author_display_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "preview": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "turn_id": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "turn_id"
       ]
     },
     "ComposerSkillPickerProjection": {
@@ -1051,6 +1224,12 @@
         "workspace",
         "user"
       ]
+    },
+    "PrincipalId": {
+      "type": "string",
+      "maxLength": 21,
+      "minLength": 21,
+      "pattern": "^[A-Za-z0-9]{21}$"
     },
     "SelectablePackedSkillCapability": {
       "type": "object",

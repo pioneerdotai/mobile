@@ -2167,6 +2167,45 @@
         }
       ]
     },
+    "TimelineReplyState": {
+      "type": "string",
+      "enum": [
+        "available",
+        "deleted",
+        "unavailable"
+      ]
+    },
+    "TimelineReplySummary": {
+      "type": "object",
+      "properties": {
+        "author": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TurnAuthorSnapshot"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "deleted": {
+          "type": "boolean",
+          "default": false
+        },
+        "text": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "turnId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "turnId"
+      ]
+    },
     "TimelineRow": {
       "type": "object",
       "properties": {
@@ -2204,6 +2243,32 @@
           "additionalProperties": false,
           "required": [
             "Item"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "UserMessage": {
+              "type": "object",
+              "properties": {
+                "presentation": {
+                  "$ref": "#/$defs/UserMessagePresentation"
+                },
+                "timeline_index": {
+                  "type": "integer",
+                  "format": "uint",
+                  "minimum": 0
+                }
+              },
+              "required": [
+                "timeline_index",
+                "presentation"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "UserMessage"
           ]
         },
         {
@@ -4801,6 +4866,95 @@
             "capability"
           ]
         }
+      ]
+    },
+    "UserMessagePresentation": {
+      "description": "Authoritative collaboration metadata attached to a rendered user-message\nrow. It mirrors disclosed server fields; shells must not reconstruct it by\nparsing text or by joining a mutable member directory.",
+      "type": "object",
+      "properties": {
+        "attachments": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/UserMessageAttachment"
+          }
+        },
+        "author": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TurnAuthorSnapshot"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "block_id": {
+          "type": "string"
+        },
+        "deleted": {
+          "type": "boolean"
+        },
+        "edited": {
+          "type": "boolean"
+        },
+        "item_id": {
+          "type": "string"
+        },
+        "mentions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TurnMention"
+          }
+        },
+        "mode": {
+          "$ref": "#/$defs/ThreadMode"
+        },
+        "reply": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TimelineReplySummary"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reply_state": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TimelineReplyState"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "revision": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "thread_id": {
+          "type": "string"
+        },
+        "turn_id": {
+          "type": "string"
+        },
+        "workspace_id": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "workspace_id",
+        "thread_id",
+        "block_id",
+        "turn_id",
+        "item_id",
+        "mode",
+        "revision",
+        "edited",
+        "deleted"
       ]
     },
     "WebFetchLink": {

@@ -671,6 +671,13 @@ export type TimelineRowKind =
       };
     }
   | {
+      UserMessage: {
+        presentation: UserMessagePresentation;
+        timeline_index: number;
+        [k: string]: unknown;
+      };
+    }
+  | {
       TurnWorkToggle: TurnWorkGroupRow;
     }
   | {
@@ -679,11 +686,6 @@ export type TimelineRowKind =
   | {
       RunningTurn: RunningTurnDisplay;
     };
-export type TimelineCoalescedToolsKind = 'CompletedTaskTools' | 'RepeatedTaskWait';
-export type TurnWorkState =
-  'starting' | 'running' | 'waiting_for_approval' | 'stalled' | 'completed' | 'blocked' | 'failed' | 'interrupted';
-export type ThreadMode = ('Message' | 'Agent') | 'Chat';
-export type ThreadStatus = 'Active' | 'Idle' | 'Closed';
 export type PersistedActorRef =
   | {
       id: PrincipalId;
@@ -695,6 +697,12 @@ export type PersistedActorRef =
       [k: string]: unknown;
     };
 export type PrincipalId = string;
+export type ThreadMode = ('Message' | 'Agent') | 'Chat';
+export type TimelineReplyState = 'available' | 'deleted' | 'unavailable';
+export type TimelineCoalescedToolsKind = 'CompletedTaskTools' | 'RepeatedTaskWait';
+export type TurnWorkState =
+  'starting' | 'running' | 'waiting_for_approval' | 'stalled' | 'completed' | 'blocked' | 'failed' | 'interrupted';
+export type ThreadStatus = 'Active' | 'Idle' | 'Closed';
 export type PromptManifestDiagnosticCode =
   | 'missing_file'
   | 'file_read_error'
@@ -1085,6 +1093,46 @@ export interface TimelineRow {
   kind: TimelineRowKind;
   [k: string]: unknown;
 }
+/**
+ * Authoritative collaboration metadata attached to a rendered user-message
+ * row. It mirrors disclosed server fields; shells must not reconstruct it by
+ * parsing text or by joining a mutable member directory.
+ */
+export interface UserMessagePresentation {
+  attachments?: UserMessageAttachment[];
+  author?: TurnAuthorSnapshot | null;
+  block_id: string;
+  deleted: boolean;
+  edited: boolean;
+  item_id: string;
+  mentions?: TurnMention[];
+  mode: ThreadMode;
+  reply?: TimelineReplySummary | null;
+  reply_state?: TimelineReplyState | null;
+  revision: number;
+  thread_id: string;
+  turn_id: string;
+  workspace_id: string;
+}
+export interface TurnAuthorSnapshot {
+  actor: PersistedActorRef;
+  avatar_revision?: string | null;
+  display_name: string;
+  nickname: string;
+  [k: string]: unknown;
+}
+export interface TurnMention {
+  nickname: string;
+  principal_id: PrincipalId;
+  [k: string]: unknown;
+}
+export interface TimelineReplySummary {
+  author?: TurnAuthorSnapshot | null;
+  deleted?: boolean;
+  text?: string | null;
+  turnId: string;
+  [k: string]: unknown;
+}
 export interface TurnWorkGroupRow {
   anchor_entry_id: string;
   elapsed_ms?: number | null;
@@ -1142,18 +1190,6 @@ export interface Turn {
   reply_to_turn_id?: string | null;
   status: TurnStatus;
   turn_kind?: 'conversation' | 'task_run';
-  [k: string]: unknown;
-}
-export interface TurnAuthorSnapshot {
-  actor: PersistedActorRef;
-  avatar_revision?: string | null;
-  display_name: string;
-  nickname: string;
-  [k: string]: unknown;
-}
-export interface TurnMention {
-  nickname: string;
-  principal_id: PrincipalId;
   [k: string]: unknown;
 }
 export interface PromptManifest {
