@@ -12,6 +12,7 @@ import { refreshCliRuntimeSummaries } from '@/services/providers/cli-runtime-liv
 import { cachedActiveThreadSnapshot } from '@/services/threads/timeline-query';
 import {
     refreshThreadTree,
+    threadUnreadById,
     threadTreeInvalidationWorkspaceId,
     threadTreeLevel,
 } from '@/services/threads/tree';
@@ -231,6 +232,10 @@ export const useThreadTreeLevel = (folderId: string | null) => {
 
         return threadTreeLevel(tree.snapshot, folderId);
     }, [folderId, snapshotMatchesActiveWorkspace, tree.snapshot]);
+    const unreadByThreadId = useMemo(
+        () => (snapshotMatchesActiveWorkspace ? threadUnreadById(tree.snapshot) : {}),
+        [snapshotMatchesActiveWorkspace, tree.snapshot],
+    );
 
     return {
         ...tree,
@@ -244,5 +249,6 @@ export const useThreadTreeLevel = (folderId: string | null) => {
         currentAgentsDocSummary: level.agents_doc_summary ?? null,
         folders: level.folders,
         threads: level.threads,
+        unreadByThreadId,
     };
 };

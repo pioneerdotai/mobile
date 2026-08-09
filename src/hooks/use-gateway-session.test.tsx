@@ -33,6 +33,7 @@ let mockNetworkListener: ((state: { isConnected?: boolean }) => void) | null = n
 let mockGatewayEventListener: ((event: Record<string, unknown>) => Promise<void>) | null = null;
 let mockAppStateListener: ((state: 'active' | 'background' | 'inactive') => void) | null = null;
 let mockActiveThreadSnapshot: { thread_id: string } | null = null;
+let mockConnectionState = 'Idle';
 
 const projection: MobileSessionProjection = {
     phase: 'connected',
@@ -73,6 +74,23 @@ jest.mock('@/services/gateway/session-coordinator', () => ({
     terminalReasonFromMachineCode: () => null,
 }));
 
+jest.mock('@/services/administration/events', () => ({
+    applyMobileAdministrationEvent: jest.fn(),
+    isAdministrationEvent: () => false,
+}));
+
+jest.mock('@/services/administration/query', () => ({
+    clearAdministrationQueries: jest.fn(),
+    invalidateAdministrationTargets: jest.fn(),
+}));
+
+jest.mock('@/services/gateway/access-change', () => ({
+    accessChangedWorkspaceId: () => null,
+    applyMobileAccessChangedEvent: jest.fn(),
+    beginMobileAuthorizationEpoch: jest.fn(),
+    failClosedMobileAccessChange: jest.fn(),
+}));
+
 jest.mock('@/services/threads/active', () => ({
     openActiveThreadById: mockOpenActiveThreadById,
 }));
@@ -97,8 +115,8 @@ jest.mock('@/stores/active-thread', () => ({
     },
 }));
 
-jest.mock('@/stores/gateway', () => ({
-    useGatewayStore: (selector: (state: Record<string, unknown>) => unknown) =>
+jest.mock('@/stores/gateway', () => {
+    const useGatewayStore = (selector: (state: Record<string, unknown>) => unknown) =>
         selector({
             setConnectionId: mockSetConnectionId,
             setConnectionGatewayId: mockSetConnectionGatewayId,
@@ -106,8 +124,10 @@ jest.mock('@/stores/gateway', () => ({
             setLastEvent: mockSetLastEvent,
             setSessionError: mockSetSessionError,
             setSessionProjection: mockSetSessionProjection,
-        }),
-}));
+        });
+    useGatewayStore.getState = () => ({ connectionState: mockConnectionState });
+    return { useGatewayStore };
+});
 
 const { useGatewaySession } =
     // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -162,6 +182,10 @@ describe('useGatewaySession', () => {
         mockGatewayEventListener = null;
         mockAppStateListener = null;
         mockActiveThreadSnapshot = null;
+        mockConnectionState = 'Idle';
+        mockSetConnectionState.mockImplementation((state) => {
+            mockConnectionState = String(state);
+        });
         mockConnectGatewayEndpoint.mockResolvedValue({
             connection_id: 1,
             projection,
@@ -319,6 +343,36 @@ describe('useGatewaySession', () => {
         expect(mockSetConnectionId).not.toHaveBeenCalled();
         expect(mockSetConnectionGatewayId).not.toHaveBeenCalled();
         expect(mockSetConnectionState).not.toHaveBeenCalledWith('Connecting');
+        expect(mockSetConnectionState).toHaveBeenLastCalledWith('Connected');
+    });
+
+    it('keeps protected state visible while reconnecting after a transient transport loss', async () => {
+        mockConnectGatewayEndpoint
+            .mockResolvedValueOnce({ connection_id: 1, projection })
+            .mockResolvedValueOnce({ connection_id: 2, projection });
+
+        await act(async () => {
+            renderer.create(<Harness endpoint={gateway()} />);
+        });
+
+        mockSetConnectionId.mockClear();
+        mockSetConnectionState.mockClear();
+
+        await act(async () => {
+            await mockGatewayEventListener?.({
+                GatewayConnectionChanged: {
+                    connection_id: 1,
+                    connection_state: 'Disconnected',
+                    gateway_error: null,
+                },
+            });
+            await Promise.resolve();
+            await Promise.resolve();
+        });
+
+        expect(mockConnectGatewayEndpoint).toHaveBeenCalledTimes(2);
+        expect(mockSetConnectionId).not.toHaveBeenCalledWith(null);
+        expect(mockSetConnectionState).not.toHaveBeenCalledWith('Disconnected');
         expect(mockSetConnectionState).toHaveBeenLastCalledWith('Connected');
     });
 

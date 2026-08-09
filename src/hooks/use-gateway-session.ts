@@ -14,6 +14,10 @@ import {
     failClosedMobileAccessChange,
 } from '@/services/gateway/access-change';
 import {
+    applyMobileAdministrationEvent,
+    isAdministrationEvent,
+} from '@/services/administration/events';
+import {
     connectGatewayEndpoint,
     disconnectGateway,
     gatewaySessionProjection,
@@ -377,6 +381,14 @@ export const useGatewaySession = (
                     failClosedMobileAccessChange(accessChangedWorkspace, queryClient);
                 }
             }
+            if (isAdministrationEvent(event)) {
+                try {
+                    await applyMobileAdministrationEvent(event, queryClient);
+                } catch {
+                    // An event is only an invalidation hint. A reconnect or the
+                    // next screen query repairs the authoritative snapshot.
+                }
+            }
             setLastEvent(event, sessionGateway.id, activeConnectionId);
             if ('GatewayNotification' in event) {
                 const notification = event.GatewayNotification;
@@ -405,22 +417,28 @@ export const useGatewaySession = (
             }
             if ('GatewayConnectionChanged' in event) {
                 const connection = event.GatewayConnectionChanged;
-                beginMobileAuthorizationEpoch(queryClient);
                 const state = connection.connection_state;
-                setConnectionState(state);
                 if (state === 'Disconnected') {
-                    activeConnectionId = null;
-                    setConnectionId(null);
                     markMobileGatewayConnectionDisconnected(sessionGateway.id);
                     const terminalReason = terminalReasonFromMachineCode(connection.gateway_error);
                     if (terminalReason) {
                         clearRefreshTimer();
+                        beginMobileAuthorizationEpoch(queryClient);
+                        activeConnectionId = null;
+                        setConnectionId(null);
                         await markMobileGatewaySessionTerminal(sessionGateway.id, terminalReason);
+                        setConnectionState('Disconnected');
+                    } else if (activeConnectionId !== null && appActive) {
+                        // A transient transport loss is not an authorization
+                        // epoch. Keep the last safe projection visible while
+                        // the existing coordinator restores the socket.
+                        void connect(true);
+                    } else {
+                        setConnectionState('Disconnected');
                     }
                     applyCurrentProjection();
-                    if (appActive && !terminalReason) {
-                        void connect();
-                    }
+                } else {
+                    setConnectionState(state);
                 }
             }
             const nextSessionError = sessionErrorFromClientEvent(event);

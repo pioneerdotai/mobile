@@ -33,8 +33,6 @@ import { useActiveThreadSnapshotQuery } from '@/hooks/use-active-thread-snapshot
 import { useActiveThreadStore } from '@/stores/active-thread';
 import { useGatewayStore } from '@/stores/gateway';
 
-const MODEL_SELECTION_REQUIRED_ERROR = 'model and provider must';
-
 const errorMessage = (error: unknown, fallback: string): string => {
     if (error instanceof Error) {
         return error.message;
@@ -64,6 +62,8 @@ export const useActiveThread = (
         composerAttachments,
         composerCapabilities,
         composerSkillSelections,
+        composerReplyTarget,
+        composerSelectedMentions,
         composerSelectedMode,
         composerSelectedProvider,
         composerCapabilityTarget,
@@ -82,6 +82,7 @@ export const useActiveThread = (
         markComposerAttachmentsUploading,
         markComposerAttachmentsFailed,
         clearComposerPayload,
+        retainComposerAfterSendFailure,
         setExpandedKeys,
     } = useActiveThreadStore(
         useShallow((state) => ({
@@ -91,6 +92,8 @@ export const useActiveThread = (
             composerAttachments: state.composerAttachments,
             composerCapabilities: state.composerCapabilities,
             composerSkillSelections: state.composerSkillSelections,
+            composerReplyTarget: state.composerReplyTarget,
+            composerSelectedMentions: state.composerSelectedMentions,
             composerSelectedMode: state.composerSelectedMode,
             composerSelectedProvider: state.composerSelectedProvider,
             composerCapabilityTarget: state.composerCapabilityTarget,
@@ -109,6 +112,7 @@ export const useActiveThread = (
             markComposerAttachmentsUploading: state.markComposerAttachmentsUploading,
             markComposerAttachmentsFailed: state.markComposerAttachmentsFailed,
             clearComposerPayload: state.clearComposerPayload,
+            retainComposerAfterSendFailure: state.retainComposerAfterSendFailure,
             setExpandedKeys: state.setExpandedKeys,
         })),
     );
@@ -319,36 +323,41 @@ export const useActiveThread = (
 
             const storeState = useActiveThreadStore.getState();
             const currentSnapshot = cachedActiveThreadSnapshot(queryClient, threadId);
+            const messageMode = storeState.composerSelectedMode === 'Message';
             const hasCompleteComposerModelSelection = Boolean(
                 storeState.composerSelectedProvider && storeState.composerSelectedModel,
             );
-            const selectedProviderForSend = hasCompleteComposerModelSelection
-                ? storeState.composerSelectedProvider
-                : null;
-            const selectedModelForSend = hasCompleteComposerModelSelection
-                ? storeState.composerSelectedModel
-                : null;
-            const selectedReasoningEffortForSend = hasCompleteComposerModelSelection
-                ? storeState.composerSelectedReasoningEffort
-                : null;
+            const selectedProviderForSend =
+                !messageMode && hasCompleteComposerModelSelection
+                    ? storeState.composerSelectedProvider
+                    : null;
+            const selectedModelForSend =
+                !messageMode && hasCompleteComposerModelSelection
+                    ? storeState.composerSelectedModel
+                    : null;
+            const selectedReasoningEffortForSend =
+                !messageMode && hasCompleteComposerModelSelection
+                    ? storeState.composerSelectedReasoningEffort
+                    : null;
             const attachments = storeState.composerAttachments;
             const submissionPlan = composerSubmissionPlanForProvider(
                 selectedProviderForSend,
                 normalizedText,
                 attachments.length > 0,
-                storeState.composerCapabilities,
+                messageMode ? [] : storeState.composerCapabilities,
             );
             if (
                 (!thread && !workspaceId) ||
                 !connected ||
                 connectionId === null ||
                 (!submissionPlan.has_composer_payload &&
-                    storeState.composerSkillSelections.length === 0)
+                    (messageMode || storeState.composerSkillSelections.length === 0))
             ) {
                 return false;
             }
 
             if (
+                !messageMode &&
                 storeState.composerModelManuallySelected &&
                 (!storeState.composerSelectedProvider || !storeState.composerSelectedModel)
             ) {
@@ -375,7 +384,7 @@ export const useActiveThread = (
                 thread?.status === 'Closed' || currentSnapshot?.thread?.status === 'Closed';
             if (
                 storeState.sending ||
-                currentSnapshot?.projection.composer_locked ||
+                (!messageMode && currentSnapshot?.projection.composer_locked) ||
                 requestThreadClosed
             ) {
                 return false;
@@ -397,10 +406,18 @@ export const useActiveThread = (
                         ...selectedReasoningEffortRequestFields(selectedReasoningEffortForSend),
                         selected_mode: storeState.composerSelectedMode,
                         permission_mode: storeState.composerSelectedPermissionMode,
+                        reply_to_turn_id: storeState.composerReplyTarget?.turn_id ?? null,
+                        mentioned_principal_ids: Array.from(
+                            new Set(
+                                storeState.composerSelectedMentions.map(
+                                    (mention) => mention.principal_id,
+                                ),
+                            ),
+                        ),
                         attachments: attachmentsForSend,
                         capabilities: submissionPlan.capabilities,
                         ...skillSelectionRequestFields(
-                            storeState.composerSkillSelections,
+                            messageMode ? [] : storeState.composerSkillSelections,
                             skillPicker,
                         ),
                         expanded_keys: useActiveThreadStore.getState().expandedKeys,
@@ -419,20 +436,17 @@ export const useActiveThread = (
                 cacheActiveThreadSnapshot(queryClient, result.snapshot);
                 clearComposerPayload();
                 return true;
-            } catch (caught) {
+            } catch {
                 if (
                     useGatewayStore.getState().connectionId === connectionId &&
                     activeThreadIdRef.current === requestThreadId
                 ) {
-                    const message = errorMessage(caught, t('sendFailed'));
+                    const message = t('sendFailed');
+                    retainComposerAfterSendFailure();
                     if (attachmentsForSend.length > 0) {
                         markComposerAttachmentsFailed(message);
                     }
-                    setComposerError(
-                        message.includes(MODEL_SELECTION_REQUIRED_ERROR)
-                            ? t('modelSelectionRequired')
-                            : message,
-                    );
+                    setComposerError(message);
                     try {
                         const rejectedSnapshot = activeThreadSnapshot({
                             expanded_keys: useActiveThreadStore.getState().expandedKeys,
@@ -460,6 +474,7 @@ export const useActiveThread = (
             connectionId,
             setComposerError,
             clearComposerPayload,
+            retainComposerAfterSendFailure,
             markComposerAttachmentsFailed,
             markComposerAttachmentsUploading,
             setSending,
@@ -546,8 +561,10 @@ export const useActiveThread = (
         active &&
         connected &&
         !sending &&
-        (!composerModelManuallySelected || (composerSelectedProvider && composerSelectedModel)) &&
-        !snapshot?.projection.composer_locked &&
+        (composerSelectedMode === 'Message' ||
+            !composerModelManuallySelected ||
+            (composerSelectedProvider && composerSelectedModel)) &&
+        (composerSelectedMode === 'Message' || !snapshot?.projection.composer_locked) &&
         thread?.status !== 'Closed' &&
         !snapshotThreadClosed,
     );
@@ -564,6 +581,8 @@ export const useActiveThread = (
             composerAttachments,
             composerCapabilities,
             composerSkillSelections,
+            composerReplyTarget,
+            composerSelectedMentions,
             composerSelectedMode,
             connected,
             canSend,
@@ -593,6 +612,8 @@ export const useActiveThread = (
             composerAttachments,
             composerCapabilities,
             composerSkillSelections,
+            composerReplyTarget,
+            composerSelectedMentions,
             composerModelManuallySelected,
             composerSelectedMode,
             composerSelectedModel,
