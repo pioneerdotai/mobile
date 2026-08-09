@@ -49,7 +49,34 @@ const reduceDomainForStoreAdapterTest = (
 ): ComposerDomainState => {
     if (typeof action === 'string') {
         if (action === 'ClearPayload') {
-            return { ...state, attachments: [], capabilities: [], skill_selections: [] };
+            return {
+                ...state,
+                attachments: [],
+                capabilities: [],
+                skill_selections: [],
+                reply_target: null,
+                selected_mentions: [],
+            };
+        }
+        if (action === 'ClearReplyTarget') {
+            return { ...state, reply_target: null };
+        }
+        if (action === 'SendSucceeded') {
+            return {
+                ...state,
+                attachments: [],
+                capabilities: [],
+                skill_selections: [],
+                selected_mode: 'Message',
+                mode_manually_selected: false,
+                selected_provider: null,
+                selected_model: null,
+                selected_reasoning_effort: null,
+                selected_permission_mode: 'full_access',
+                model_manually_selected: false,
+                reply_target: null,
+                selected_mentions: [],
+            };
         }
         if (action === 'ClearReasoningEffort') {
             return { ...state, selected_reasoning_effort: null };
@@ -137,10 +164,67 @@ const reduceDomainForStoreAdapterTest = (
         };
     }
     if ('SetModeFromUser' in action) {
-        return {
+        const next = {
             ...state,
             selected_mode: action.SetModeFromUser.mode,
             mode_manually_selected: true,
+        };
+        return action.SetModeFromUser.mode === 'Message'
+            ? {
+                  ...next,
+                  capabilities: [],
+                  skill_selections: [],
+                  selected_provider: null,
+                  selected_model: null,
+                  selected_reasoning_effort: null,
+                  selected_permission_mode: 'full_access' as const,
+                  model_manually_selected: false,
+              }
+            : next;
+    }
+    if ('SetReplyTarget' in action) {
+        const messageState =
+            state.selected_mode === 'Message'
+                ? state
+                : reduceDomainForStoreAdapterTest(state, {
+                      SetModeFromUser: { mode: 'Message' },
+                  });
+        return { ...messageState, reply_target: action.SetReplyTarget.target };
+    }
+    if ('SelectMention' in action) {
+        const candidate = action.SelectMention.candidate;
+        const selectedMentions = state.selected_mentions ?? [];
+        return selectedMentions.some(
+            (selection) => selection.principal_id === candidate.principal_id,
+        )
+            ? state
+            : {
+                  ...state,
+                  selected_mentions: [
+                      ...selectedMentions,
+                      {
+                          principal_id: candidate.principal_id,
+                          display_name: candidate.display_name.trim(),
+                          nickname: candidate.nickname.trim(),
+                          text_token: `@${candidate.nickname.trim()}`,
+                      },
+                  ],
+              };
+    }
+    if ('RemoveMention' in action) {
+        return {
+            ...state,
+            selected_mentions: (state.selected_mentions ?? []).filter(
+                (selection) => selection.principal_id !== action.RemoveMention.principal_id,
+            ),
+        };
+    }
+    if ('ReconcileMentionsWithText' in action) {
+        return {
+            ...state,
+            selected_mentions: (state.selected_mentions ?? []).filter((selection) =>
+                action.ReconcileMentionsWithText.text.includes(selection.text_token),
+            ),
         };
     }
     if ('SetPermissionMode' in action) {
@@ -212,11 +296,18 @@ beforeEach(() => {
     mockComposerDomainTransition.mockReset();
     mockComposerDomainTransition.mockImplementation(({ state, action }) => {
         const next = reduceDomainForStoreAdapterTest(state, action);
+        const executionCapabilitiesRemoved =
+            next.selected_mode === 'Message' &&
+            ((next.capabilities?.length ?? 0) < (state.capabilities?.length ?? 0) ||
+                (next.skill_selections?.length ?? 0) < (state.skill_selections?.length ?? 0) ||
+                (!!state.selected_provider && !next.selected_provider) ||
+                (!!state.selected_model && !next.selected_model));
         return {
             state: next,
             changed: next !== state,
             payload_changed: false,
             model_selection_changed: false,
+            execution_capabilities_removed: executionCapabilitiesRemoved,
         };
     });
     mockComposerDraftLifecycleTransition.mockReset();
@@ -496,17 +587,98 @@ describe('active thread shared composer domain adapter', () => {
         );
     });
 
-    it('keeps hot text input local while draft switches cross the shared lifecycle reducer', () => {
+    it('reconciles mention authority through Rust while draft switches use the shared lifecycle', () => {
         mockComposerDomainTransition.mockClear();
         mockComposerDraftLifecycleTransition.mockClear();
 
         useActiveThreadStore.getState().setComposerText('typed without an FFI round-trip');
 
-        expect(mockComposerDomainTransition).not.toHaveBeenCalled();
+        expect(mockComposerDomainTransition).toHaveBeenCalledWith(
+            expect.objectContaining({
+                action: {
+                    ReconcileMentionsWithText: { text: 'typed without an FFI round-trip' },
+                },
+            }),
+        );
         expect(mockComposerDraftLifecycleTransition).not.toHaveBeenCalled();
 
+        mockComposerDomainTransition.mockClear();
         useActiveThreadStore.getState().activateComposerThread('thread-b');
         expect(mockComposerDraftLifecycleTransition).toHaveBeenCalledTimes(1);
+    });
+});
+
+describe('active thread Message collaboration draft', () => {
+    beforeEach(() => {
+        resetStore();
+        useActiveThreadStore.getState().activateComposerThread('thread-a');
+    });
+
+    it('switches explicitly to Message, removes execution state, and exposes a bounded notice', () => {
+        useActiveThreadStore.getState().setComposerMode('Agent');
+        useActiveThreadStore.getState().setComposerModelSelectionFromUser('openai', 'gpt-5');
+        useActiveThreadStore.getState().setComposerCapabilities([mcpCapability]);
+        useActiveThreadStore.getState().setComposerText('keep this text');
+
+        useActiveThreadStore.getState().setComposerMode('Message', 'AI-only options were removed.');
+
+        const state = useActiveThreadStore.getState();
+        expect(state.composerSelectedMode).toBe('Message');
+        expect(state.composerText).toBe('keep this text');
+        expect(state.composerCapabilities).toEqual([]);
+        expect(state.composerSelectedProvider).toBeNull();
+        expect(state.composerModeNotice).toBe('AI-only options were removed.');
+    });
+
+    it('stores reply and canonical mentions, then removes mention authority with its text token', () => {
+        useActiveThreadStore.getState().setComposerReplyTarget({
+            turn_id: 'turn-parent',
+            author_display_name: 'Teammate',
+            preview: 'Earlier message',
+        });
+        useActiveThreadStore.getState().selectComposerMention({
+            principal_id: 'principal-b',
+            display_name: 'Teammate',
+            nickname: 'teammate',
+            avatar_revision: null,
+        });
+        useActiveThreadStore.getState().setComposerText('Hello @teammate');
+
+        expect(useActiveThreadStore.getState().composerReplyTarget?.turn_id).toBe('turn-parent');
+        expect(useActiveThreadStore.getState().composerSelectedMentions).toEqual([
+            expect.objectContaining({ principal_id: 'principal-b', text_token: '@teammate' }),
+        ]);
+
+        useActiveThreadStore.getState().setComposerText('Hello');
+
+        expect(useActiveThreadStore.getState().composerSelectedMentions).toEqual([]);
+        useActiveThreadStore.getState().clearComposerReplyTarget();
+        expect(useActiveThreadStore.getState().composerReplyTarget).toBeNull();
+    });
+
+    it('switches replies to Message and preserves the reply after failure', () => {
+        useActiveThreadStore.getState().setComposerMode('Chat');
+        useActiveThreadStore.getState().setComposerReplyTarget({
+            turn_id: 'turn-parent',
+            author_display_name: null,
+            preview: null,
+        });
+        useActiveThreadStore.getState().setComposerText('retry me');
+
+        useActiveThreadStore.getState().retainComposerAfterSendFailure();
+        expect(useActiveThreadStore.getState()).toMatchObject({
+            composerSelectedMode: 'Message',
+            composerText: 'retry me',
+            composerReplyTarget: { turn_id: 'turn-parent' },
+        });
+
+        useActiveThreadStore.getState().clearComposerPayload();
+        expect(useActiveThreadStore.getState()).toMatchObject({
+            composerSelectedMode: 'Message',
+            composerText: '',
+            composerReplyTarget: null,
+            composerSelectedMentions: [],
+        });
     });
 });
 

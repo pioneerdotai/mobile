@@ -7,6 +7,9 @@ import type {
     ComposerDomainDraft,
     ComposerDomainState,
     ComposerDraftLifecycleState,
+    ComposerMentionCandidate,
+    ComposerMentionSelection,
+    ComposerReplyTarget,
     ComposerSkillSelection,
     PreparedVoiceComposerSnapshot,
     ThreadMode,
@@ -29,6 +32,9 @@ type ActiveThreadStoreState = {
     composerAttachments: ComposerAttachment[];
     composerCapabilities: ComposerCapability[];
     composerSkillSelections: ComposerSkillSelection[];
+    composerReplyTarget: ComposerReplyTarget | null;
+    composerSelectedMentions: ComposerMentionSelection[];
+    composerModeNotice: string | null;
     showComposerAttachmentMenu: boolean;
     showComposerModeSwitcher: boolean;
     showComposerPermissionModeSwitcher: boolean;
@@ -67,7 +73,13 @@ type ActiveThreadStoreState = {
     setComposerAttachmentMenuOpen: (open: boolean) => void;
     setComposerModeSwitcherOpen: (open: boolean) => void;
     setComposerPermissionModeSwitcherOpen: (open: boolean) => void;
-    setComposerMode: (mode: ThreadMode) => void;
+    setComposerMode: (mode: ThreadMode, executionStateRemovedNotice?: string) => void;
+    dismissComposerModeNotice: () => void;
+    setComposerReplyTarget: (target: ComposerReplyTarget) => void;
+    clearComposerReplyTarget: () => void;
+    selectComposerMention: (candidate: ComposerMentionCandidate) => void;
+    removeComposerMention: (principalId: string) => void;
+    retainComposerAfterSendFailure: () => void;
     clearComposerPayload: () => void;
     setExpandedKeys: (keys: string[]) => void;
     setComposerModelSelectionFromUser: (
@@ -116,9 +128,11 @@ type ComposerDraftState = {
     selectedReasoningEffort: string | null;
     selectedPermissionMode: TurnPermissionMode;
     modelManuallySelected: boolean;
+    replyTarget: ComposerReplyTarget | null;
+    selectedMentions: ComposerMentionSelection[];
 };
 
-const DEFAULT_COMPOSER_MODE: ThreadMode = 'Agent';
+const DEFAULT_COMPOSER_MODE: ThreadMode = 'Message';
 const DEFAULT_COMPOSER_PERMISSION_MODE: TurnPermissionMode = 'full_access';
 
 const normalizeReasoningEffort = (effort: string | null | undefined): string | null => {
@@ -158,6 +172,8 @@ const composerDomainStateFromStore = (state: ActiveThreadStoreState): ComposerDo
     selected_reasoning_effort: state.composerSelectedReasoningEffort,
     selected_permission_mode: state.composerSelectedPermissionMode,
     model_manually_selected: state.composerModelManuallySelected,
+    reply_target: state.composerReplyTarget,
+    selected_mentions: state.composerSelectedMentions,
 });
 
 const composerDomainStateFromDraft = (draft: ComposerDraftState): ComposerDomainState => ({
@@ -172,6 +188,8 @@ const composerDomainStateFromDraft = (draft: ComposerDraftState): ComposerDomain
     selected_reasoning_effort: draft.selectedReasoningEffort,
     selected_permission_mode: draft.selectedPermissionMode,
     model_manually_selected: draft.modelManuallySelected,
+    reply_target: draft.replyTarget,
+    selected_mentions: draft.selectedMentions,
 });
 
 const composerDomainPatch = (
@@ -189,6 +207,8 @@ const composerDomainPatch = (
     | 'composerSelectedReasoningEffort'
     | 'composerSelectedPermissionMode'
     | 'composerModelManuallySelected'
+    | 'composerReplyTarget'
+    | 'composerSelectedMentions'
 > => ({
     composerAttachments: domain.attachments ?? [],
     composerCapabilities: domain.capabilities ?? [],
@@ -202,6 +222,8 @@ const composerDomainPatch = (
     composerSelectedPermissionMode:
         domain.selected_permission_mode ?? DEFAULT_COMPOSER_PERMISSION_MODE,
     composerModelManuallySelected: domain.model_manually_selected ?? false,
+    composerReplyTarget: domain.reply_target ?? null,
+    composerSelectedMentions: domain.selected_mentions ?? [],
 });
 
 const composerDraftDomainPatch = (
@@ -218,6 +240,8 @@ const composerDraftDomainPatch = (
     selectedReasoningEffort: domain.selected_reasoning_effort ?? null,
     selectedPermissionMode: domain.selected_permission_mode ?? DEFAULT_COMPOSER_PERMISSION_MODE,
     modelManuallySelected: domain.model_manually_selected ?? false,
+    replyTarget: domain.reply_target ?? null,
+    selectedMentions: domain.selected_mentions ?? [],
 });
 
 const composerDomainDraftFromDraft = (draft: ComposerDraftState): ComposerDomainDraft => ({
@@ -273,6 +297,8 @@ const draftFromState = (state: ActiveThreadStoreState): ComposerDraftState => ({
     selectedReasoningEffort: state.composerSelectedReasoningEffort,
     selectedPermissionMode: state.composerSelectedPermissionMode,
     modelManuallySelected: state.composerModelManuallySelected,
+    replyTarget: state.composerReplyTarget,
+    selectedMentions: state.composerSelectedMentions,
 });
 
 const defaultDraftForThread = (state: ActiveThreadStoreState): ComposerDraftState => ({
@@ -280,7 +306,7 @@ const defaultDraftForThread = (state: ActiveThreadStoreState): ComposerDraftStat
     attachments: [],
     capabilities: [],
     skillSelections: [],
-    selectedMode: state.composerSelectedMode,
+    selectedMode: DEFAULT_COMPOSER_MODE,
     modeManuallySelected: false,
     selectedProvider: state.defaultComposerProvider,
     capabilityTarget: state.defaultComposerCapabilityTarget,
@@ -288,6 +314,8 @@ const defaultDraftForThread = (state: ActiveThreadStoreState): ComposerDraftStat
     selectedReasoningEffort: state.defaultComposerReasoningEffort,
     selectedPermissionMode: DEFAULT_COMPOSER_PERMISSION_MODE,
     modelManuallySelected: false,
+    replyTarget: null,
+    selectedMentions: [],
 });
 
 const updateActiveDraft = (
@@ -339,6 +367,9 @@ export const useActiveThreadStore = create<ActiveThreadStoreState>((set) => ({
     composerAttachments: [],
     composerCapabilities: [],
     composerSkillSelections: [],
+    composerReplyTarget: null,
+    composerSelectedMentions: [],
+    composerModeNotice: null,
     showComposerAttachmentMenu: false,
     showComposerModeSwitcher: false,
     showComposerPermissionModeSwitcher: false,
@@ -389,6 +420,7 @@ export const useActiveThreadStore = create<ActiveThreadStoreState>((set) => ({
                 ...composerDomainPatch(domain),
                 composerModeThreadId: threadId,
                 composerError: null,
+                composerModeNotice: null,
             };
         });
     },
@@ -398,10 +430,20 @@ export const useActiveThreadStore = create<ActiveThreadStoreState>((set) => ({
     },
 
     setComposerText: (composerText) => {
-        set((state) => ({
-            composerText,
-            ...updateActiveDraft(state, { text: composerText }),
-        }));
+        set((state) => {
+            const domain = reduceComposerDomain(state, {
+                ReconcileMentionsWithText: { text: composerText },
+            });
+
+            return {
+                composerText,
+                ...composerDomainPatch(domain),
+                ...updateActiveDraft(state, {
+                    text: composerText,
+                    ...composerDraftDomainPatch(domain),
+                }),
+            };
+        });
     },
 
     setComposerError: (composerError) => {
@@ -556,12 +598,71 @@ export const useActiveThreadStore = create<ActiveThreadStoreState>((set) => ({
         set({ showComposerPermissionModeSwitcher });
     },
 
-    setComposerMode: (composerSelectedMode) => {
+    setComposerMode: (composerSelectedMode, executionStateRemovedNotice) => {
         set((state) => {
-            const domain = reduceComposerDomain(state, {
-                SetModeFromUser: { mode: composerSelectedMode },
+            const transition = pioneerClient.composerDomainTransition({
+                state: composerDomainStateFromStore(state),
+                action: { SetModeFromUser: { mode: composerSelectedMode } },
             });
+            const domain = transition.state;
 
+            return {
+                ...composerDomainPatch(domain),
+                composerModeNotice: transition.execution_capabilities_removed
+                    ? (executionStateRemovedNotice ?? null)
+                    : null,
+                ...updateActiveDraft(state, composerDraftDomainPatch(domain)),
+            };
+        });
+    },
+
+    dismissComposerModeNotice: () => {
+        set({ composerModeNotice: null });
+    },
+
+    setComposerReplyTarget: (target) => {
+        set((state) => {
+            const domain = reduceComposerDomain(state, { SetReplyTarget: { target } });
+            return {
+                ...composerDomainPatch(domain),
+                ...updateActiveDraft(state, composerDraftDomainPatch(domain)),
+            };
+        });
+    },
+
+    clearComposerReplyTarget: () => {
+        set((state) => {
+            const domain = reduceComposerDomain(state, 'ClearReplyTarget');
+            return {
+                ...composerDomainPatch(domain),
+                ...updateActiveDraft(state, composerDraftDomainPatch(domain)),
+            };
+        });
+    },
+
+    selectComposerMention: (candidate) => {
+        set((state) => {
+            const domain = reduceComposerDomain(state, { SelectMention: { candidate } });
+            return {
+                ...composerDomainPatch(domain),
+                ...updateActiveDraft(state, composerDraftDomainPatch(domain)),
+            };
+        });
+    },
+
+    removeComposerMention: (principal_id) => {
+        set((state) => {
+            const domain = reduceComposerDomain(state, { RemoveMention: { principal_id } });
+            return {
+                ...composerDomainPatch(domain),
+                ...updateActiveDraft(state, composerDraftDomainPatch(domain)),
+            };
+        });
+    },
+
+    retainComposerAfterSendFailure: () => {
+        set((state) => {
+            const domain = reduceComposerDomain(state, 'SendFailed');
             return {
                 ...composerDomainPatch(domain),
                 ...updateActiveDraft(state, composerDraftDomainPatch(domain)),
@@ -571,7 +672,7 @@ export const useActiveThreadStore = create<ActiveThreadStoreState>((set) => ({
 
     clearComposerPayload: () => {
         set((state) => {
-            const domain = reduceComposerDomain(state, 'ClearPayload');
+            const domain = reduceComposerDomain(state, 'SendSucceeded');
             const clearedDraft: ComposerDraftState = {
                 text: '',
                 ...composerDraftDomainPatch(domain),
@@ -581,6 +682,7 @@ export const useActiveThreadStore = create<ActiveThreadStoreState>((set) => ({
                 ...composerDomainPatch(domain),
                 composerText: '',
                 composerError: null,
+                composerModeNotice: null,
                 composerDrafts: rememberActiveDraftThroughLifecycle(state, clearedDraft),
             };
         });
@@ -796,6 +898,8 @@ export const useActiveThreadStore = create<ActiveThreadStoreState>((set) => ({
                         selected_reasoning_effort: state.defaultComposerReasoningEffort,
                         selected_permission_mode: DEFAULT_COMPOSER_PERMISSION_MODE,
                         model_manually_selected: false,
+                        reply_target: null,
+                        selected_mentions: [],
                     },
                 },
             });
@@ -814,6 +918,7 @@ export const useActiveThreadStore = create<ActiveThreadStoreState>((set) => ({
                 showComposerAttachmentMenu: false,
                 showComposerModeSwitcher: false,
                 showComposerPermissionModeSwitcher: false,
+                composerModeNotice: null,
                 expandedKeys: [],
                 composerModeThreadId: composerModeContext?.threadId ?? null,
             };
