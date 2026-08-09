@@ -12,6 +12,7 @@ import {
 import { HStack } from '@/components/primitives/hstack';
 import { Text } from '@/components/primitives/text';
 import { VStack } from '@/components/primitives/vstack';
+import { TIMELINE_RUNNING_ROW_BOTTOM_PADDING_UNITS } from '../timeline-grouping';
 
 const DINO_DARK = require('../../../../../assets/images/dino-dark.webp');
 const DINO_LIGHT = require('../../../../../assets/images/dino-light.webp');
@@ -134,7 +135,7 @@ const styles = StyleSheet.create((theme) => ({
     wrap: {
         gap: theme.space(2),
         paddingTop: theme.space(5),
-        paddingBottom: theme.space(2),
+        paddingBottom: theme.space(TIMELINE_RUNNING_ROW_BOTTOM_PADDING_UNITS),
     },
     mainRow: {
         alignItems: 'center',

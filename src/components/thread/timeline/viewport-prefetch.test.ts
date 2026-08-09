@@ -71,6 +71,14 @@ const userRow = (): TimelineRow => ({
     text: 'hello',
     attachments: [],
     timestampLabel: '',
+    mode: 'Message',
+    author: null,
+    reply: null,
+    replyState: null,
+    mentions: [],
+    revision: 0,
+    edited: false,
+    deleted: false,
 });
 
 const assistantRow = (): TimelineRow => ({

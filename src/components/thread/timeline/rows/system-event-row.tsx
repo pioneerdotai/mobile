@@ -8,6 +8,7 @@ import { Pressable } from '@/components/primitives/pressable';
 import { ScrollView } from '@/components/primitives/scrollview';
 import { Text } from '@/components/primitives/text';
 import { VStack } from '@/components/primitives/vstack';
+import { TIMELINE_TECHNICAL_ROW_VERTICAL_PADDING_UNITS } from '../timeline-grouping';
 
 type SystemEventRowProps = {
     row: Extract<TimelineRow, { type: 'system-event' }>;
@@ -206,7 +207,7 @@ const styles = StyleSheet.create((theme) => ({
     container: {
         width: '100%',
         maxWidth: '100%',
-        paddingVertical: theme.space(2),
+        paddingVertical: theme.space(TIMELINE_TECHNICAL_ROW_VERTICAL_PADDING_UNITS),
         gap: theme.space(2),
     },
     header: {

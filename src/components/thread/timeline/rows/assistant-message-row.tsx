@@ -12,28 +12,38 @@ import Spinner from '@/components/feedback/spinner';
 
 import { MarkdownContent } from './markdown-content';
 import { TimelineCopyButton } from './timeline-copy-button';
+import {
+    TIMELINE_AGENT_MESSAGE_VERTICAL_PADDING_UNITS,
+    TIMELINE_AGENT_TASK_VERTICAL_PADDING_UNITS,
+} from '../timeline-grouping';
 
 type AssistantMessageRowProps = {
     row: Extract<TimelineRow, { type: 'assistant-message' }>;
     expanded: boolean;
     onToggle: () => void;
+    onLongPress?: (row: Extract<TimelineRow, { type: 'assistant-message' }>) => void;
 };
 
-export const AssistantMessageRow = ({ row, expanded, onToggle }: AssistantMessageRowProps) => {
+export const AssistantMessageRow = ({
+    row,
+    expanded,
+    onToggle,
+    onLongPress,
+}: AssistantMessageRowProps) => {
     const { theme } = useUnistyles();
     const { t } = useTranslation('threads');
 
     const hasText = row.text.trim().length > 0 || (row.markdown?.blocks?.length ?? 0) > 0;
     const iconSize = theme.space(4);
     const activityColor = theme.colors.textMuted;
-    const showActionRow = row.phase !== 'commentary';
-
     if (row.taskTimeline) {
         return (
             <VStack style={styles.taskContainer}>
                 <Pressable
                     accessibilityRole="button"
+                    delayLongPress={300}
                     onPress={onToggle}
+                    onLongPress={onLongPress ? () => onLongPress(row) : undefined}
                     style={({ pressed }) => [styles.taskHeader, pressed && styles.pressed]}
                 >
                     <HStack style={styles.taskTitleWrap}>
@@ -71,7 +81,11 @@ export const AssistantMessageRow = ({ row, expanded, onToggle }: AssistantMessag
     }
 
     return (
-        <VStack style={[styles.container, row.streaming && styles.streamingContainer]}>
+        <Pressable
+            delayLongPress={300}
+            onLongPress={onLongPress ? () => onLongPress(row) : undefined}
+            style={[styles.container, row.streaming && styles.streamingContainer]}
+        >
             {hasText ? (
                 <MarkdownContent
                     text={row.text}
@@ -82,17 +96,7 @@ export const AssistantMessageRow = ({ row, expanded, onToggle }: AssistantMessag
             ) : row.streaming ? (
                 <Spinner color={activityColor} />
             ) : null}
-            {showActionRow && (
-                <HStack style={styles.actionRow}>
-                    {!!row.timestampLabel && (
-                        <Text numberOfLines={1} style={styles.timestamp}>
-                            {row.timestampLabel}
-                        </Text>
-                    )}
-                    <TimelineCopyButton value={row.text} />
-                </HStack>
-            )}
-        </VStack>
+        </Pressable>
     );
 };
 
@@ -100,7 +104,8 @@ const styles = StyleSheet.create((theme) => ({
     container: {
         width: '100%',
         maxWidth: '100%',
-        paddingVertical: theme.space(3),
+        paddingVertical: theme.space(TIMELINE_AGENT_MESSAGE_VERTICAL_PADDING_UNITS),
+        marginBottom: -theme.space(1.25),
     },
     streamingContainer: {
         opacity: 0.92,
@@ -112,7 +117,7 @@ const styles = StyleSheet.create((theme) => ({
     taskContainer: {
         width: '100%',
         maxWidth: '100%',
-        paddingVertical: theme.space(2),
+        paddingVertical: theme.space(TIMELINE_AGENT_TASK_VERTICAL_PADDING_UNITS),
         gap: theme.space(2),
     },
     taskHeader: {
@@ -150,17 +155,5 @@ const styles = StyleSheet.create((theme) => ({
     },
     taskBody: {
         paddingVertical: theme.space(0.5),
-    },
-    actionRow: {
-        minHeight: theme.space(7.5),
-        alignItems: 'center',
-        justifyContent: 'flex-start',
-        gap: theme.space(1.5),
-        marginTop: theme.space(0.5),
-    },
-    timestamp: {
-        color: theme.colors.textMuted,
-        fontSize: theme.fontSize.xs.fontSize,
-        lineHeight: theme.fontSize.xs.lineHeight,
     },
 }));

@@ -95,6 +95,7 @@ export const MarkdownContent = ({
 
     return (
         <EnrichedMarkdownText
+            key={selectable ? 'selection-enabled' : 'selection-disabled'}
             allowTrailingMargin={false}
             containerStyle={styles.document}
             codeBlockHeader={codeBlockHeader}

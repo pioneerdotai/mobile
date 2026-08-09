@@ -1053,9 +1053,9 @@ const ComposerSkillSelectionChip = ({
 const styles = StyleSheet.create((theme, rt) => ({
     container: {
         backgroundColor: 'transparent',
-        paddingRight: rt.insets.right + theme.space(4),
+        paddingRight: rt.insets.right + theme.space(2),
         paddingBottom: rt.insets.bottom + theme.space(2),
-        paddingLeft: rt.insets.left + theme.space(4),
+        paddingLeft: rt.insets.left + theme.space(2),
     },
     wrapper: {
         backgroundColor:

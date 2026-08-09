@@ -5,6 +5,7 @@ import type { TimelineRow } from '@/services/threads/conversation/timeline';
 import { HStack } from '@/components/primitives/hstack';
 import { Pressable } from '@/components/primitives/pressable';
 import { Text } from '@/components/primitives/text';
+import { TIMELINE_TECHNICAL_ROW_VERTICAL_PADDING_UNITS } from '../timeline-grouping';
 
 type ToolGroupRowProps = {
     row: Extract<TimelineRow, { type: 'tool-group' }>;
@@ -44,7 +45,7 @@ const styles = StyleSheet.create((theme) => ({
         alignItems: 'center',
         justifyContent: 'space-between',
         gap: theme.space(3),
-        paddingVertical: theme.space(2),
+        paddingVertical: theme.space(TIMELINE_TECHNICAL_ROW_VERTICAL_PADDING_UNITS),
         opacity: 0.6,
     },
     pressed: {

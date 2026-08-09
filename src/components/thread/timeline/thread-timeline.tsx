@@ -2,6 +2,7 @@ import {
     forwardRef,
     useCallback,
     useEffect,
+    useImperativeHandle,
     useMemo,
     useRef,
     useState,
@@ -12,11 +13,13 @@ import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import Reanimated, {
     interpolate,
     useAnimatedStyle,
+    useSharedValue,
     type SharedValue,
 } from 'react-native-reanimated';
 import { useReanimatedKeyboardAnimation } from 'react-native-keyboard-controller';
 import { KeyboardAwareLegendList } from '@legendapp/list/keyboard';
 import type { LegendListRef, OnViewableItemsChanged } from '@legendapp/list/react-native';
+import { useTranslation } from 'react-i18next';
 
 import type { ClientActiveThreadSnapshot } from '@/client';
 import {
@@ -26,8 +29,10 @@ import {
 import type { TimelinePendingRequest, TimelineRow } from '@/services/threads/conversation/timeline';
 import { PendingRequestCard } from '@/components/thread/cli-runtime-pending-requests';
 import { Box } from '@/components/primitives/box';
+import { HStack } from '@/components/primitives/hstack';
 import { Text } from '@/components/primitives/text';
 import Spinner from '@/components/feedback/spinner';
+import { MessageActionsSheet } from '@/components/overlays/message-actions';
 
 import {
     ArtifactRow,
@@ -48,12 +53,22 @@ import { viewportPrefetchPlan } from './viewport-prefetch';
 import type { TimelineViewportPrefetchPlan } from './viewport-prefetch';
 import { defaultTimelineRowExpanded } from './row-expansion';
 import { timelineRowsAreEqual } from './timeline-row-equality';
+import { viewedThroughLatestUserTurn } from './read-viewability';
 import { ensureTimelineRowRenderFingerprint } from '@/services/threads/conversation/render-fingerprint';
 import { VStack } from '@/components/primitives/vstack';
 import {
     mobileArtifactActionKey,
     type MobileArtifactActionState,
 } from '@/services/artifacts/mobile-action-state';
+import { TimelineAvatarRail, TimelineAvatarRailController } from './timeline-avatar-rail';
+import {
+    TIMELINE_AVATAR_RAIL_WIDTH_UNITS,
+    TIMELINE_AVATAR_SIZE_UNITS,
+    TIMELINE_GROUP_VERTICAL_PADDING_UNITS,
+    TimelineGroupingIndex,
+    type TimelinePresentationContext,
+    type TimelineRowLayout,
+} from './timeline-grouping';
 
 export type {
     TimelineTurnWorkBoundaryHint,
@@ -74,6 +89,7 @@ type ThreadTimelineProps = {
     pendingRequests: TimelinePendingRequest[];
     semanticWorkItemKeys?: ReadonlySet<string>;
     contentTopInset?: number;
+    avatarRailTopInset?: number;
     contentBottomInset?: number;
     emptyReady?: boolean;
     ListHeaderComponent?: ReactElement | null;
@@ -89,6 +105,13 @@ type ThreadTimelineProps = {
         operationId: string,
     ) => void;
     artifactActionStateByKey?: Readonly<Record<string, MobileArtifactActionState>>;
+    currentPrincipalId?: string | null;
+    presentationContext?: TimelinePresentationContext;
+    onOpenMessageRevisions?: (turnId: string) => void;
+    onReplyToMessage?: (row: Extract<TimelineRow, { type: 'user-message' }>) => void;
+    onEditMessage?: (row: Extract<TimelineRow, { type: 'user-message' }>) => void;
+    onDeleteMessage?: (row: Extract<TimelineRow, { type: 'user-message' }>) => void;
+    onViewedThroughUserTurn?: (turnId: string) => void;
     onOpenMcpServer?: (serverId: string) => void;
     onOpenTaskThread?: (row: Extract<TimelineRow, { type: 'task-anchor' }>) => void;
     onExpandedKeysChange: (keys: string[]) => void;
@@ -104,7 +127,13 @@ const TIMELINE_KEYBOARD_LIFT_BEHAVIOR = 'whenAtEnd';
 const TIMELINE_VIEWABILITY_CONFIG = {
     itemVisiblePercentThreshold: 1,
 };
-
+type UserMessageTimelineRow = Extract<TimelineRow, { type: 'user-message' }>;
+type AssistantMessageTimelineRow = Extract<TimelineRow, { type: 'assistant-message' }>;
+type MessageActionsTimelineRow = UserMessageTimelineRow | AssistantMessageTimelineRow;
+type MessageActionsTarget = {
+    timelineIdentityKey: string;
+    row: MessageActionsTimelineRow;
+};
 export const ThreadTimeline = forwardRef<LegendListRef, ThreadTimelineProps>((props, ref) => {
     return <ThreadTimelineContent {...props} timelineRef={ref} />;
 });
@@ -129,6 +158,7 @@ const ThreadTimelineContent = ({
     pendingRequests,
     semanticWorkItemKeys,
     contentTopInset = 0,
+    avatarRailTopInset = 0,
     contentBottomInset = 0,
     emptyReady = true,
     ListHeaderComponent,
@@ -140,6 +170,13 @@ const ThreadTimelineContent = ({
     onShareArtifact,
     onCancelArtifactDownload,
     artifactActionStateByKey,
+    currentPrincipalId,
+    presentationContext,
+    onOpenMessageRevisions,
+    onReplyToMessage,
+    onEditMessage,
+    onDeleteMessage,
+    onViewedThroughUserTurn,
     onOpenMcpServer,
     onOpenTaskThread,
     onExpandedKeysChange,
@@ -149,16 +186,43 @@ const ThreadTimelineContent = ({
 }: ThreadTimelineContentProps) => {
     const [refreshing, setRefreshing] = useState(false);
     const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
+    const [messageActionsTarget, setMessageActionsTarget] = useState<MessageActionsTarget | null>(
+        null,
+    );
     const [timelineNowMs, setTimelineNowMs] = useState(() => Date.now());
     const lastViewportPrefetchPlanKeyRef = useRef<string | null>(null);
     const viewportScrollIntentGenerationRef = useRef(0);
     const consumedViewportScrollIntentGenerationRef = useRef(0);
+    const internalTimelineRef = useRef<LegendListRef | null>(null);
+    const avatarRailController = useMemo(() => new TimelineAvatarRailController(), []);
+    const listScrollOffset = useSharedValue(0);
+    const listSharedValues = useMemo(
+        () => ({ scrollOffset: listScrollOffset }),
+        [listScrollOffset],
+    );
+    useImperativeHandle(timelineRef, () => internalTimelineRef.current as LegendListRef);
 
     useEffect(() => {
         lastViewportPrefetchPlanKeyRef.current = null;
         viewportScrollIntentGenerationRef.current = 0;
         consumedViewportScrollIntentGenerationRef.current = 0;
-    }, [timelineIdentityKey]);
+        avatarRailController.setVisibleGroups(timelineIdentityKey, []);
+    }, [avatarRailController, timelineIdentityKey]);
+
+    const messageActionsRow =
+        messageActionsTarget?.timelineIdentityKey === timelineIdentityKey
+            ? messageActionsTarget.row
+            : null;
+    const messageActionsRowKey = messageActionsRow?.key ?? null;
+    const openMessageActions = useCallback(
+        (row: MessageActionsTimelineRow) => {
+            setMessageActionsTarget({ timelineIdentityKey, row });
+        },
+        [timelineIdentityKey],
+    );
+    const closeMessageActions = useCallback(() => {
+        setMessageActionsTarget(null);
+    }, []);
 
     const expandedKeys = useMemo(
         () => Object.keys(expandedRows).filter((key) => expandedRows[key]),
@@ -195,6 +259,30 @@ const ThreadTimelineContent = ({
             timelineNowMs,
         ],
     );
+    const timelineGrouping = useMemo(
+        () => TimelineGroupingIndex.build(rows, currentPrincipalId, presentationContext),
+        [currentPrincipalId, presentationContext, rows],
+    );
+    const updateVisibleAvatarGroups = useCallback(
+        (visibleIndices: number[]) => {
+            const nextKeys = timelineGrouping.visibleAvatarGroupKeys(visibleIndices);
+            avatarRailController.setVisibleGroups(timelineIdentityKey, nextKeys);
+        },
+        [avatarRailController, timelineGrouping, timelineIdentityKey],
+    );
+    const handleTimelineItemSizeChanged = useCallback(
+        ({ index }: { index: number }) => {
+            const group = timelineGrouping.avatarGroupAt(index);
+            if (group?.endIndex === index) {
+                avatarRailController.synchronizeGroup(group.key);
+            }
+        },
+        [avatarRailController, timelineGrouping],
+    );
+
+    useEffect(() => {
+        avatarRailController.synchronizeVisibleGroups();
+    }, [avatarRailController, timelineGrouping]);
 
     const rowCount = rows.length;
     const hasRunningTimelineRow = useMemo(() => rows.some((row) => row.type === 'running'), [rows]);
@@ -243,16 +331,28 @@ const ThreadTimelineContent = ({
             mcpServerIdByName,
             artifactWorkspaceId,
             artifactActionStateByKey,
+            currentPrincipalId,
+            messageActionsRowKey,
+            timelineGroupingFingerprint: timelineGrouping.renderFingerprint,
         }),
-        [artifactActionStateByKey, artifactWorkspaceId, expandedRows, mcpServerIdByName],
+        [
+            artifactActionStateByKey,
+            artifactWorkspaceId,
+            currentPrincipalId,
+            expandedRows,
+            messageActionsRowKey,
+            mcpServerIdByName,
+            timelineGrouping.renderFingerprint,
+        ],
     );
 
     const emptyMessage = closed ? closedLabel : connected ? emptyLabel : disconnectedLabel;
 
     const renderTimelineItem = useCallback(
-        ({ item }: { item: TimelineRow }) => (
+        ({ item, index }: { item: TimelineRow; index: number }) => (
             <TimelineRowContainer
                 row={item}
+                rowLayout={timelineGrouping.rowLayout(index)}
                 expanded={expandedRows[item.key] ?? defaultTimelineRowExpanded(item)}
                 mcpServerIdByName={mcpServerIdByName}
                 artifactWorkspaceId={artifactWorkspaceId}
@@ -271,6 +371,10 @@ const ThreadTimelineContent = ({
                         : undefined
                 }
                 artifactActionStateByKey={artifactActionStateByKey}
+                currentPrincipalId={currentPrincipalId}
+                presentationContext={presentationContext}
+                messageActionsRowKey={messageActionsRowKey}
+                onOpenMessageActions={openMessageActions}
                 onOpenMcpServer={onOpenMcpServer}
                 onOpenTaskThread={onOpenTaskThread}
                 onToggleExpanded={() => toggleExpandedRow(item)}
@@ -278,32 +382,52 @@ const ThreadTimelineContent = ({
         ),
         [
             expandedRows,
+            timelineGrouping,
             mcpServerIdByName,
             artifactWorkspaceId,
             onOpenArtifact,
             onShareArtifact,
             onCancelArtifactDownload,
             artifactActionStateByKey,
+            currentPrincipalId,
+            presentationContext,
+            messageActionsRowKey,
+            openMessageActions,
             onOpenMcpServer,
             onOpenTaskThread,
             toggleExpandedRow,
         ],
     );
+    const getTimelineItemType = useCallback(
+        (row: TimelineRow, index: number) => {
+            const rowLayout = timelineGrouping.rowLayout(index);
+            const groupPosition = rowLayout.startsAvatarGroup
+                ? 'start'
+                : rowLayout.compactTopSpacing
+                  ? 'continuation'
+                  : 'single';
+            return `${row.type}:${rowLayout.groupKind}:${groupPosition}`;
+        },
+        [timelineGrouping],
+    );
     const handleViewableItemsChanged = useCallback<
         NonNullable<OnViewableItemsChanged<TimelineRow>>
     >(
         (info) => {
-            if (!onViewportPrefetchPlanChange) {
-                return;
+            const visibleIndices = info.viewableItems
+                .map((token) => token.index)
+                .filter((index) => index >= 0 && index < rows.length);
+            updateVisibleAvatarGroups(visibleIndices);
+            const viewedThroughTurnId = viewedThroughLatestUserTurn(rows, visibleIndices);
+            if (viewedThroughTurnId) {
+                onViewedThroughUserTurn?.(viewedThroughTurnId);
             }
+
+            if (!onViewportPrefetchPlanChange) return;
             const scrollIntentGeneration = viewportScrollIntentGenerationRef.current;
             if (scrollIntentGeneration <= consumedViewportScrollIntentGenerationRef.current) {
                 return;
             }
-
-            const visibleIndices = info.viewableItems
-                .map((token) => token.index)
-                .filter((index) => index >= 0 && index < rows.length);
             const plan = viewportPrefetchPlan(rows, visibleIndices, info.start, info.end);
             if (!plan || plan.key === lastViewportPrefetchPlanKeyRef.current) {
                 return;
@@ -313,21 +437,21 @@ const ThreadTimelineContent = ({
             consumedViewportScrollIntentGenerationRef.current = scrollIntentGeneration;
             onViewportPrefetchPlanChange(plan);
         },
-        [onViewportPrefetchPlanChange, rows],
+        [onViewedThroughUserTurn, onViewportPrefetchPlanChange, rows, updateVisibleAvatarGroups],
     );
 
     return (
         <Box style={styles.timelineRoot}>
             <KeyboardAwareLegendList<TimelineRow>
                 key={timelineIdentityKey}
-                ref={timelineRef}
+                ref={internalTimelineRef}
                 alignItemsAtEnd
                 contentInsetEndAdjustment={contentInsetEndAdjustment}
                 data={rows}
                 drawDistance={TIMELINE_DRAW_DISTANCE}
                 estimatedItemSize={TIMELINE_ESTIMATED_ITEM_SIZE}
                 extraData={listExtraData}
-                getItemType={(row) => row.type}
+                getItemType={getTimelineItemType}
                 initialScrollAtEnd
                 itemsAreEqual={timelineRowsAreEqual}
                 keyExtractor={(row) => row.key}
@@ -342,12 +466,14 @@ const ThreadTimelineContent = ({
                 maintainScrollAtEndThreshold={BOTTOM_FOLLOW_THRESHOLD_RATIO}
                 maintainVisibleContentPosition
                 onMomentumScrollBegin={markViewportScrollIntent}
+                onItemSizeChanged={handleTimelineItemSizeChanged}
                 onScrollBeginDrag={markViewportScrollIntent}
                 onViewableItemsChanged={handleViewableItemsChanged}
                 onRefresh={handleRefresh}
                 recycleItems
                 refreshing={refreshing}
                 renderItem={renderTimelineItem}
+                sharedValues={listSharedValues}
                 scrollEnabled={rowCount > 0}
                 scrollEventThrottle={16}
                 showsVerticalScrollIndicator={false}
@@ -357,6 +483,17 @@ const ThreadTimelineContent = ({
                     styles.content,
                     contentTopInset > 0 && { paddingTop: contentTopInset },
                 ]}
+            />
+            <TimelineAvatarRail
+                controller={avatarRailController}
+                connected={connected}
+                contentInsetEndAdjustment={contentInsetEndAdjustment}
+                contentTopInset={contentTopInset}
+                grouping={timelineGrouping}
+                listRef={internalTimelineRef}
+                scrollOffset={listScrollOffset}
+                timelineIdentityKey={timelineIdentityKey}
+                viewportTopInset={avatarRailTopInset}
             />
             {rowCount === 0 && emptyReady ? (
                 <TimelineEmptyOverlay
@@ -368,6 +505,15 @@ const ThreadTimelineContent = ({
                     keyboardOffset={keyboardOffset}
                 />
             ) : null}
+            <MessageActionsSheet
+                row={messageActionsRow}
+                currentPrincipalId={currentPrincipalId}
+                onClose={closeMessageActions}
+                onOpenRevisions={onOpenMessageRevisions}
+                onReply={onReplyToMessage}
+                onEdit={onEditMessage}
+                onDelete={onDeleteMessage}
+            />
         </Box>
     );
 };
@@ -430,6 +576,7 @@ const TimelineEmptyOverlay = ({
 
 const TimelineRowContainer = ({
     row,
+    rowLayout,
     expanded,
     mcpServerIdByName,
     artifactWorkspaceId,
@@ -438,11 +585,16 @@ const TimelineRowContainer = ({
     onCancelArtifactDownload,
     artifactActionState,
     artifactActionStateByKey,
+    currentPrincipalId,
+    presentationContext,
+    messageActionsRowKey,
+    onOpenMessageActions,
     onOpenMcpServer,
     onOpenTaskThread,
     onToggleExpanded,
 }: {
     row: TimelineRow;
+    rowLayout: TimelineRowLayout;
     expanded: boolean;
     mcpServerIdByName: Readonly<Record<string, string>>;
     artifactWorkspaceId?: string | null;
@@ -455,14 +607,35 @@ const TimelineRowContainer = ({
     ) => void;
     artifactActionState?: MobileArtifactActionState;
     artifactActionStateByKey?: Readonly<Record<string, MobileArtifactActionState>>;
+    currentPrincipalId?: string | null;
+    presentationContext?: TimelinePresentationContext;
+    messageActionsRowKey: string | null;
+    onOpenMessageActions: (row: MessageActionsTimelineRow) => void;
     onOpenMcpServer?: (serverId: string) => void;
     onOpenTaskThread?: (row: Extract<TimelineRow, { type: 'task-anchor' }>) => void;
     onToggleExpanded: () => void;
 }) => {
+    const { t } = useTranslation('threads');
+    const isAgentGroup = rowLayout.groupKind === 'agent';
+
     return (
-        <Box style={styles.timelineRow}>
+        <Box
+            style={[
+                styles.timelineRow,
+                isAgentGroup && styles.agentTimelineRow,
+                isAgentGroup && rowLayout.startsAvatarGroup && styles.agentGroupStart,
+            ]}
+        >
+            {isAgentGroup && rowLayout.startsAvatarGroup ? (
+                <HStack accessible style={styles.agentAuthor}>
+                    <Text numberOfLines={1} style={styles.agentName}>
+                        {t('modeAgentLabel')}
+                    </Text>
+                </HStack>
+            ) : null}
             <TimelineRowRenderer
                 row={row}
+                compactTopSpacing={rowLayout.compactTopSpacing}
                 expanded={expanded}
                 mcpServerIdByName={mcpServerIdByName}
                 artifactWorkspaceId={artifactWorkspaceId}
@@ -470,6 +643,10 @@ const TimelineRowContainer = ({
                 onShareArtifact={onShareArtifact}
                 onCancelArtifactDownload={onCancelArtifactDownload}
                 artifactActionStateByKey={artifactActionStateByKey}
+                currentPrincipalId={currentPrincipalId}
+                presentationContext={presentationContext}
+                messageActionsRowKey={messageActionsRowKey}
+                onOpenMessageActions={onOpenMessageActions}
                 artifactActionState={artifactActionState}
                 onOpenMcpServer={onOpenMcpServer}
                 onOpenTaskThread={onOpenTaskThread}
@@ -481,6 +658,7 @@ const TimelineRowContainer = ({
 
 const TimelineRowRenderer = ({
     row,
+    compactTopSpacing,
     expanded,
     mcpServerIdByName,
     artifactWorkspaceId,
@@ -489,11 +667,16 @@ const TimelineRowRenderer = ({
     onCancelArtifactDownload,
     artifactActionState,
     artifactActionStateByKey,
+    currentPrincipalId,
+    presentationContext,
+    messageActionsRowKey,
+    onOpenMessageActions,
     onOpenMcpServer,
     onOpenTaskThread,
     onToggleExpanded,
 }: {
     row: TimelineRow;
+    compactTopSpacing: boolean;
     expanded: boolean;
     mcpServerIdByName: Readonly<Record<string, string>>;
     artifactWorkspaceId?: string | null;
@@ -506,6 +689,10 @@ const TimelineRowRenderer = ({
     ) => void;
     artifactActionState?: MobileArtifactActionState;
     artifactActionStateByKey?: Readonly<Record<string, MobileArtifactActionState>>;
+    currentPrincipalId?: string | null;
+    presentationContext?: TimelinePresentationContext;
+    messageActionsRowKey: string | null;
+    onOpenMessageActions: (row: MessageActionsTimelineRow) => void;
     onOpenMcpServer?: (serverId: string) => void;
     onOpenTaskThread?: (row: Extract<TimelineRow, { type: 'task-anchor' }>) => void;
     onToggleExpanded: () => void;
@@ -515,16 +702,26 @@ const TimelineRowRenderer = ({
             return (
                 <UserMessageRow
                     row={row}
+                    compactTopSpacing={compactTopSpacing}
                     artifactWorkspaceId={artifactWorkspaceId}
                     onOpenArtifact={onOpenArtifact}
                     onShareArtifact={onShareArtifact}
                     onCancelArtifactDownload={onCancelArtifactDownload}
                     artifactActionStateByKey={artifactActionStateByKey}
+                    currentPrincipalId={currentPrincipalId}
+                    presentationContext={presentationContext}
+                    onLongPress={(messageRow) => onOpenMessageActions(messageRow)}
+                    textSelectionEnabled={messageActionsRowKey !== row.key}
                 />
             );
         case 'assistant-message':
             return (
-                <AssistantMessageRow row={row} expanded={expanded} onToggle={onToggleExpanded} />
+                <AssistantMessageRow
+                    row={row}
+                    expanded={expanded}
+                    onToggle={onToggleExpanded}
+                    onLongPress={() => onOpenMessageActions(row)}
+                />
             );
         case 'reasoning':
             return <ReasoningRow row={row} expanded={expanded} onToggle={onToggleExpanded} />;
@@ -661,6 +858,7 @@ const hydrateRunningRowsElapsed = (rows: readonly TimelineRow[], nowMs: number):
 const styles = StyleSheet.create((theme) => ({
     timelineRoot: {
         flex: 1,
+        overflow: 'hidden',
     },
     timelineList: {
         flex: 1,
@@ -669,8 +867,27 @@ const styles = StyleSheet.create((theme) => ({
         width: '100%',
         maxWidth: '100%',
     },
+    agentTimelineRow: {
+        paddingLeft: theme.space(TIMELINE_AVATAR_RAIL_WIDTH_UNITS),
+    },
+    agentGroupStart: {
+        paddingTop: theme.space(TIMELINE_GROUP_VERTICAL_PADDING_UNITS),
+    },
+    agentAuthor: {
+        minHeight: theme.space(TIMELINE_AVATAR_SIZE_UNITS),
+        alignItems: 'center',
+        marginBottom: theme.space(1.5),
+    },
+    agentName: {
+        minWidth: 0,
+        flexShrink: 1,
+        color: theme.colors.typography,
+        fontSize: theme.fontSize.sm.fontSize,
+        lineHeight: theme.fontSize.sm.lineHeight,
+        fontWeight: theme.fontWeight.semibold.fontWeight,
+    },
     content: {
-        paddingHorizontal: theme.space(4),
+        paddingHorizontal: theme.space(2),
         paddingBottom: theme.space(TIMELINE_CONTENT_BOTTOM_PADDING_UNITS),
     },
     emptyOverlay: {

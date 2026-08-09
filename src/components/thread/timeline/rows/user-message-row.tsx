@@ -10,7 +10,6 @@ import {
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
-
 import type { TimelineRow, TimelineUserAttachment } from '@/services/threads/conversation/timeline';
 import {
     mobileArtifactActionKey,
@@ -21,11 +20,17 @@ import { Box } from '@/components/primitives/box';
 import { HStack } from '@/components/primitives/hstack';
 import { Pressable } from '@/components/primitives/pressable';
 import { Text } from '@/components/primitives/text';
-import { VStack } from '@/components/primitives/vstack';
 
 import { MarkdownContent } from './markdown-content';
-import { TimelineCopyButton } from './timeline-copy-button';
 import { stableOutlineWidth } from '@/helpers/styles';
+import {
+    DEFAULT_TIMELINE_PRESENTATION_CONTEXT,
+    TIMELINE_AVATAR_RAIL_WIDTH_UNITS,
+    TIMELINE_AVATAR_SIZE_UNITS,
+    TIMELINE_GROUP_VERTICAL_PADDING_UNITS,
+    isCurrentPrincipalUserMessage,
+    type TimelinePresentationContext,
+} from '../timeline-grouping';
 
 type UserMessageRowProps = {
     row: Extract<TimelineRow, { type: 'user-message' }>;
@@ -38,6 +43,11 @@ type UserMessageRowProps = {
         operationId: string,
     ) => void;
     artifactActionStateByKey?: Readonly<Record<string, MobileArtifactActionState>>;
+    currentPrincipalId?: string | null;
+    presentationContext?: TimelinePresentationContext;
+    onLongPress?: (row: Extract<TimelineRow, { type: 'user-message' }>) => void;
+    textSelectionEnabled?: boolean;
+    compactTopSpacing?: boolean;
 };
 
 export const UserMessageRow = ({
@@ -47,17 +57,80 @@ export const UserMessageRow = ({
     onShareArtifact,
     onCancelArtifactDownload,
     artifactActionStateByKey,
+    currentPrincipalId,
+    presentationContext = DEFAULT_TIMELINE_PRESENTATION_CONTEXT,
+    onLongPress,
+    textSelectionEnabled = true,
+    compactTopSpacing = false,
 }: UserMessageRowProps) => {
     const { theme } = useUnistyles();
     const { t } = useTranslation('threads');
 
     const attachmentIconSize = theme.space(3.5);
     const attachmentIconColor = theme.colors.textMuted;
+    const isCurrentPrincipal = isCurrentPrincipalUserMessage(
+        row,
+        currentPrincipalId,
+        presentationContext,
+    );
+    const showAuthor = !isCurrentPrincipal && !compactTopSpacing;
+
+    const authorLabel = row.author
+        ? `${row.author.display_name} · @${row.author.nickname}`
+        : t('timelineMessageUnknownAuthor');
+
+    const replyLabel = row.reply
+        ? row.replyState === 'deleted'
+            ? t('timelineMessageReplyDeleted')
+            : row.replyState === 'unavailable'
+              ? t('timelineMessageReplyUnavailable')
+              : (row.reply.text ?? t('timelineMessageReplyUnavailable'))
+        : null;
 
     return (
-        <VStack style={styles.container}>
-            {row.attachments.length > 0 && (
-                <HStack style={styles.attachments}>
+        <Pressable
+            delayLongPress={300}
+            onLongPress={onLongPress ? () => onLongPress(row) : undefined}
+            style={[
+                styles.container,
+                compactTopSpacing && { paddingTop: 0 },
+                !isCurrentPrincipal && styles.containerOther,
+            ]}
+        >
+            {showAuthor ? (
+                <HStack accessible accessibilityLabel={authorLabel} style={styles.author}>
+                    {row.author ? (
+                        <>
+                            <Text numberOfLines={1} style={styles.authorName}>
+                                {row.author.display_name}
+                            </Text>
+                            <Text numberOfLines={1} style={styles.authorNickname}>
+                                @{row.author.nickname}
+                            </Text>
+                        </>
+                    ) : (
+                        <Text numberOfLines={1} style={styles.authorName}>
+                            {t('timelineMessageUnknownAuthor')}
+                        </Text>
+                    )}
+                </HStack>
+            ) : null}
+            {replyLabel ? (
+                <Box
+                    accessible
+                    accessibilityLabel={replyLabel}
+                    nativeID={`timeline-reply-${row.reply?.turnId ?? 'unavailable'}`}
+                    style={styles.reply}
+                >
+                    <Text numberOfLines={3} style={styles.replyText}>
+                        {replyLabel}
+                    </Text>
+                </Box>
+            ) : null}
+            {!row.deleted && row.attachments.length > 0 && (
+                <HStack
+                    style={[styles.attachments, !isCurrentPrincipal && styles.attachmentsOther]}
+                >
                     {row.attachments.map((attachment) => {
                         const artifactId = attachment.artifact?.artifact_id ?? null;
                         const versionId = attachment.artifact?.version_id ?? null;
@@ -152,20 +225,20 @@ export const UserMessageRow = ({
                     })}
                 </HStack>
             )}
-            {!!row.text.trim() && (
-                <Box style={styles.bubble}>
-                    <MarkdownContent text={row.text} tone="inverted" />
+            {row.deleted ? (
+                <Box style={isCurrentPrincipal ? styles.bubble : styles.otherMessage}>
+                    <Text style={styles.deleted}>{t('timelineMessageDeleted')}</Text>
                 </Box>
-            )}
-            <HStack style={styles.actionRow}>
-                {!!row.timestampLabel && (
-                    <Text numberOfLines={1} style={styles.timestamp}>
-                        {row.timestampLabel}
-                    </Text>
-                )}
-                <TimelineCopyButton value={row.text} />
-            </HStack>
-        </VStack>
+            ) : !!row.text.trim() ? (
+                <Box style={isCurrentPrincipal ? styles.bubble : styles.otherMessage}>
+                    <MarkdownContent
+                        text={row.text}
+                        tone={isCurrentPrincipal ? 'inverted' : 'default'}
+                        selectable={textSelectionEnabled}
+                    />
+                </Box>
+            ) : null}
+        </Pressable>
     );
 };
 
@@ -218,8 +291,51 @@ const artifactActionLabel = (state: MobileArtifactActionState, t: TFunction): st
 const styles = StyleSheet.create((theme) => ({
     container: {
         width: '100%',
+        flexDirection: 'column',
         alignItems: 'flex-end',
-        paddingVertical: theme.space(3.5),
+        paddingVertical: theme.space(TIMELINE_GROUP_VERTICAL_PADDING_UNITS),
+    },
+    containerOther: {
+        alignItems: 'flex-start',
+        paddingLeft: theme.space(TIMELINE_AVATAR_RAIL_WIDTH_UNITS),
+    },
+    author: {
+        maxWidth: '82%',
+        minHeight: theme.space(TIMELINE_AVATAR_SIZE_UNITS),
+        alignItems: 'center',
+        gap: theme.space(2),
+        marginBottom: theme.space(1.5),
+    },
+    authorName: {
+        minWidth: 0,
+        flexShrink: 1,
+        color: theme.colors.typography,
+        fontSize: theme.fontSize.sm.fontSize,
+        lineHeight: theme.fontSize.sm.lineHeight,
+        fontWeight: theme.fontWeight.semibold.fontWeight,
+    },
+    authorNickname: {
+        minWidth: 0,
+        flexShrink: 1,
+        color: theme.colors.typography,
+        fontSize: theme.fontSize.sm.fontSize,
+        lineHeight: theme.fontSize.sm.lineHeight,
+        opacity: 0.6,
+    },
+    reply: {
+        maxWidth: '82%',
+        paddingHorizontal: theme.space(3),
+        paddingVertical: theme.space(2),
+        marginBottom: theme.space(2),
+    },
+    replyText: {
+        color: theme.colors.textMuted,
+        fontSize: theme.fontSize.xs.fontSize,
+        lineHeight: theme.fontSize.xs.lineHeight,
+    },
+    deleted: {
+        color: theme.colors.textMuted,
+        fontStyle: 'italic',
     },
     attachments: {
         maxWidth: '82%',
@@ -227,6 +343,11 @@ const styles = StyleSheet.create((theme) => ({
         justifyContent: 'flex-end',
         gap: theme.space(1.5),
         marginBottom: theme.space(2),
+    },
+    attachmentsOther: {
+        width: '100%',
+        maxWidth: '100%',
+        justifyContent: 'flex-start',
     },
     artifactAttachment: {
         alignItems: 'center',
@@ -282,17 +403,10 @@ const styles = StyleSheet.create((theme) => ({
         paddingHorizontal: theme.space(3.5),
         paddingVertical: theme.space(3),
     },
-    actionRow: {
-        minHeight: theme.space(7.5),
-        maxWidth: '82%',
-        alignItems: 'center',
-        justifyContent: 'flex-end',
-        gap: theme.space(1.5),
-        marginTop: theme.space(0.5),
-    },
-    timestamp: {
-        color: theme.colors.textMuted,
-        fontSize: theme.fontSize.xs.fontSize,
-        lineHeight: theme.fontSize.xs.lineHeight,
+    otherMessage: {
+        width: '100%',
+        maxWidth: '100%',
+        minWidth: 0,
+        marginBottom: -theme.space(1.25),
     },
 }));

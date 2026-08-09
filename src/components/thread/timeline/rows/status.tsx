@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { Box } from '@/components/primitives/box';
 import { Text } from '@/components/primitives/text';
 import { VStack } from '@/components/primitives/vstack';
+import { TIMELINE_CARD_VERTICAL_MARGIN_UNITS } from '../timeline-grouping';
 
 export type TimelineTone = 'neutral' | 'info' | 'success' | 'warning' | 'danger' | 'active';
 
@@ -180,7 +181,7 @@ const styles = StyleSheet.create((theme) => ({
         maxWidth: '100%',
         borderWidth: 1,
         borderRadius: theme.radius.lg,
-        marginVertical: theme.space(1.5),
+        marginVertical: theme.space(TIMELINE_CARD_VERTICAL_MARGIN_UNITS),
         paddingHorizontal: theme.space(3),
         paddingVertical: theme.space(2.5),
         gap: theme.space(2),

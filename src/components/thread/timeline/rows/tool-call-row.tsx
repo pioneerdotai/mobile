@@ -21,6 +21,7 @@ import { VStack } from '@/components/primitives/vstack';
 import Spinner from '@/components/feedback/spinner';
 
 import { BodyText } from './status';
+import { TIMELINE_TECHNICAL_ROW_VERTICAL_PADDING_UNITS } from '../timeline-grouping';
 
 type ToolCallRowProps = {
     row: Extract<TimelineRow, { type: 'tool-call' }>;
@@ -234,7 +235,7 @@ const styles = StyleSheet.create((theme) => ({
     container: {
         width: '100%',
         maxWidth: '100%',
-        paddingVertical: theme.space(2),
+        paddingVertical: theme.space(TIMELINE_TECHNICAL_ROW_VERTICAL_PADDING_UNITS),
         gap: theme.space(2),
     },
     header: {
