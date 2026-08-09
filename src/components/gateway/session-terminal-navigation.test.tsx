@@ -9,6 +9,8 @@ type TerminalReason =
     | 'session_revoked'
     | 'session_expired'
     | 'session_compromised'
+    | 'principal_suspended'
+    | 'principal_removed'
     | 'gateway_identity_mismatch'
     | 'secure_storage_failed'
     | 'refresh_outcome_unknown'
@@ -44,6 +46,8 @@ describe('TerminalGatewaySessionNavigation', () => {
         'session_revoked',
         'session_expired',
         'session_compromised',
+        'principal_suspended',
+        'principal_removed',
         'gateway_identity_mismatch',
         'secure_storage_failed',
         'refresh_outcome_unknown',
@@ -59,7 +63,7 @@ describe('TerminalGatewaySessionNavigation', () => {
         expect(mockDismissTo).toHaveBeenCalledWith('/');
     });
 
-    it.each(['/', '/activate', '/editor', '/settings', '/settings/language', '/settings/theme'])(
+    it.each(['/', '/activate', '/invite', '/editor'])(
         'does not interrupt terminal-session route %s',
         async (pathname) => {
             mockTerminalReason = 'authentication_required';
@@ -72,6 +76,18 @@ describe('TerminalGatewaySessionNavigation', () => {
 
             expect(tree!.toJSON()).toBeNull();
             expect(mockDismissTo).not.toHaveBeenCalled();
+        },
+    );
+
+    it.each(['/settings', '/settings/language', '/settings/theme'])(
+        'returns safe settings route %s to the typed terminal Home state',
+        async (pathname) => {
+            mockTerminalReason = 'principal_suspended';
+            mockUsePathname.mockReturnValue(pathname);
+            await act(async () => {
+                renderer.create(<TerminalGatewaySessionNavigation />);
+            });
+            expect(mockDismissTo).toHaveBeenCalledWith('/');
         },
     );
 

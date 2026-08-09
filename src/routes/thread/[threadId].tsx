@@ -1,4 +1,5 @@
-import { useLocalSearchParams } from 'expo-router';
+import { useCallback, useState } from 'react';
+import { router, useLocalSearchParams } from 'expo-router';
 import Stack from 'expo-router/js-stack';
 import { Text, View } from 'react-native';
 
@@ -20,18 +21,41 @@ const InvalidThreadRoute = () => {
 };
 
 const ExistingThreadRoute = () => {
-    const { options } = useThreadScreen({ navigation: 'stack' });
     const params = useLocalSearchParams<{
         threadId?: string | string[];
         parentThreadId?: string | string[];
         taskTitle?: string | string[];
     }>();
     const threadId = normalizeRouteParam(params.threadId);
+    const [actionsOpen, setActionsOpen] = useState(false);
+    const openActions = useCallback(() => setActionsOpen(true), []);
+    const closeActions = useCallback(() => setActionsOpen(false), []);
+    const openMembers = useCallback(() => {
+        if (!threadId) return;
+        router.push({
+            pathname: './members/[threadId]',
+            params: { threadId },
+        });
+    }, [threadId]);
+    const { options } = useThreadScreen({
+        navigation: 'stack',
+        threadId,
+        onActionsPress: threadId ? openActions : undefined,
+    });
 
     return (
         <>
             <Stack.Screen options={options} />
-            {threadId ? <ThreadScreen threadId={threadId} /> : <InvalidThreadRoute />}
+            {threadId ? (
+                <ThreadScreen
+                    threadId={threadId}
+                    threadActionsOpen={actionsOpen}
+                    onThreadActionsClose={closeActions}
+                    onOpenMembers={openMembers}
+                />
+            ) : (
+                <InvalidThreadRoute />
+            )}
         </>
     );
 };

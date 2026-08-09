@@ -31,7 +31,11 @@ const ChildThreadRoute = () => {
     return (
         <>
             <Stack.Screen options={options} />
-            {threadId ? <ThreadScreen threadId={threadId} /> : <InvalidThreadRoute />}
+            {threadId ? (
+                <ThreadScreen threadId={threadId} taskChildThread />
+            ) : (
+                <InvalidThreadRoute />
+            )}
         </>
     );
 };

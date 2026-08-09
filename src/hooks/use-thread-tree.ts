@@ -12,6 +12,7 @@ import { refreshCliRuntimeSummaries } from '@/services/providers/cli-runtime-liv
 import { cachedActiveThreadSnapshot } from '@/services/threads/timeline-query';
 import {
     refreshThreadTree,
+    applyThreadUpdatedToTreeSnapshot,
     threadUnreadById,
     threadTreeInvalidationWorkspaceId,
     threadTreeLevel,
@@ -168,11 +169,10 @@ const useThreadTreeRefresh = () => {
 };
 
 export const useThreadTreeController = () => {
-    const { connectionId, connectionState, lastEvent } = useGatewayStore(
+    const { connectionId, connectionState } = useGatewayStore(
         useShallow((state) => ({
             connectionId: state.connectionId,
             connectionState: state.connectionState,
-            lastEvent: state.lastEvent,
         })),
     );
     const activeWorkspaceId = useWorkspaceStore((state) => state.activeWorkspaceId);
@@ -189,14 +189,41 @@ export const useThreadTreeController = () => {
     }, [activeWorkspaceId, connectionId, connectionState, refresh, reset]);
 
     useEffect(() => {
-        const eventWorkspaceId = threadTreeInvalidationWorkspaceId(lastEvent);
+        return useGatewayStore.subscribe((state, previousState) => {
+            if (state.lastEventSerial === previousState.lastEventSerial) return;
 
-        if (!eventWorkspaceId || eventWorkspaceId !== activeWorkspaceId) {
-            return;
-        }
+            const event = state.lastEvent;
+            const currentWorkspaceId = useWorkspaceStore.getState().activeWorkspaceId;
+            if (
+                event &&
+                'GatewayNotification' in event &&
+                event.GatewayNotification.kind === 'thread_updated'
+            ) {
+                const notification = event.GatewayNotification.params;
+                const tree = useThreadTreeStore.getState();
+                if (
+                    tree.snapshot &&
+                    tree.workspaceId === currentWorkspaceId &&
+                    notification.thread.workspace_id === currentWorkspaceId
+                ) {
+                    tree.setSnapshot(
+                        applyThreadUpdatedToTreeSnapshot(
+                            tree.snapshot,
+                            notification.thread,
+                            notification.placement,
+                        ),
+                    );
+                }
+                return;
+            }
 
-        void refresh();
-    }, [activeWorkspaceId, lastEvent, refresh]);
+            const eventWorkspaceId = threadTreeInvalidationWorkspaceId(event);
+
+            if (!eventWorkspaceId || eventWorkspaceId !== currentWorkspaceId) return;
+
+            void refresh();
+        });
+    }, [refresh]);
 
     return null;
 };

@@ -5,8 +5,8 @@ import { Pressable } from '../primitives/pressable';
 import { Box } from '../primitives/box';
 
 interface BackButtonProps {
+    accessibilityLabel?: string;
     backgroundColor?: string;
-    iconColor?: string;
     onPressHandler: () => void;
 }
 
@@ -21,13 +21,24 @@ const styles = StyleSheet.create((theme) => ({
     }),
 }));
 
-const ActionsButton = ({ backgroundColor, iconColor, onPressHandler }: BackButtonProps) => {
-    const { theme } = useUnistyles();
+const ActionsButton = ({
+    accessibilityLabel,
+    backgroundColor,
+    onPressHandler,
+}: BackButtonProps) => {
+    const { theme, rt } = useUnistyles();
 
     return (
-        <Pressable onPress={onPressHandler}>
+        <Pressable
+            accessibilityLabel={accessibilityLabel}
+            accessibilityRole="button"
+            onPress={onPressHandler}
+        >
             <Box style={styles.container(backgroundColor)}>
-                <Ellipsis size={theme.space(7)} color={iconColor || theme.colors.typography} />
+                <Ellipsis
+                    size={theme.space(7)}
+                    color={rt.themeName === 'dark' ? theme.colors.neutral[950] : theme.colors.white}
+                />
             </Box>
         </Pressable>
     );

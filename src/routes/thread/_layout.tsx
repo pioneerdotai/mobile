@@ -24,6 +24,7 @@ export default function ThreadStackLayout() {
             <Stack.Screen name="new" />
             <Stack.Screen name="[threadId]" />
             <Stack.Screen name="child/[threadId]" />
+            <Stack.Screen name="members/[threadId]" />
         </Stack>
     );
 }

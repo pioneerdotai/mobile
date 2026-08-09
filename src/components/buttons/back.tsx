@@ -6,7 +6,6 @@ import { Box } from '../primitives/box';
 
 interface BackButtonProps {
     backgroundColor?: string;
-    iconColor?: string;
     onPressHandler: () => void;
 }
 
@@ -24,8 +23,8 @@ const styles = StyleSheet.create((theme) => ({
     },
 }));
 
-const BackButton = ({ backgroundColor, iconColor, onPressHandler }: BackButtonProps) => {
-    const { theme } = useUnistyles();
+const BackButton = ({ backgroundColor, onPressHandler }: BackButtonProps) => {
+    const { theme, rt } = useUnistyles();
 
     return (
         <Pressable onPress={onPressHandler}>
@@ -33,7 +32,7 @@ const BackButton = ({ backgroundColor, iconColor, onPressHandler }: BackButtonPr
                 <ChevronLeft
                     style={styles.icon}
                     size={theme.space(7)}
-                    color={iconColor || theme.colors.typography}
+                    color={rt.themeName === 'dark' ? theme.colors.neutral[950] : theme.colors.white}
                 />
             </Box>
         </Pressable>

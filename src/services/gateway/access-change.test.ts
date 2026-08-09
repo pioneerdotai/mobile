@@ -40,15 +40,20 @@ jest.mock('@/services/gateway/registry', () => ({
 
 import type { ClientActiveThreadEventResult, Workspace } from '@/client';
 import {
+    applyMobileAccessChangedEvent,
     applyMobileAccessChangedLifecycle,
     beginMobileAuthorizationEpoch,
     failClosedMobileAccessChange,
 } from '@/services/gateway/access-change';
+import { applyActiveThreadEvent } from '@/services/threads/active';
 import { timelineQueryKeys } from '@/services/threads/timeline-query';
+import { threadScopeQueryKeys } from '@/services/threads/scope';
 import { useActiveThreadStore } from '@/stores/active-thread';
 import { useGatewayStore } from '@/stores/gateway';
 import { useThreadTreeStore } from '@/stores/thread-tree';
 import { useWorkspaceStore } from '@/stores/workspace';
+
+const mockApplyActiveThreadEvent = jest.mocked(applyActiveThreadEvent);
 
 type AccessChangedLifecycle = NonNullable<ClientActiveThreadEventResult['access_changed']>;
 
@@ -83,10 +88,69 @@ const createQueryClient = () =>
 
 describe('mobile access-change lifecycle', () => {
     beforeEach(() => {
+        mockApplyActiveThreadEvent.mockReset();
         useActiveThreadStore.getState().reset();
         useActiveThreadStore.getState().resetDefaultComposerModelSelection();
         useThreadTreeStore.getState().reset();
         useWorkspaceStore.getState().resetConnectionBootstrap();
+    });
+
+    it('preserves an open thread and tree when visibility changes without access loss', async () => {
+        const queryClient = createQueryClient();
+        const snapshot = {
+            thread_id: 'thread-protected',
+            workspace_id: 'workspace-protected',
+            projection: { revision: 8 },
+        } as never;
+        const membersQueryKey = [...threadScopeQueryKeys.detail('thread-protected'), 12] as const;
+        useActiveThreadStore.setState({
+            activeComposerThreadId: 'thread-protected',
+            expandedKeys: ['turn:expanded'],
+        });
+        useThreadTreeStore.setState({
+            snapshot: {
+                workspace_id: 'workspace-protected',
+                threads_by_id: { 'thread-protected': { id: 'thread-protected' } },
+            } as never,
+            workspaceId: 'workspace-protected',
+        });
+        queryClient.setQueryData(timelineQueryKeys.threadSnapshot('thread-protected'), snapshot);
+        queryClient.setQueryData(membersQueryKey, { participants: [] });
+        mockApplyActiveThreadEvent.mockResolvedValue({
+            access_changed: lifecycle({
+                change: 'thread_visibility',
+                active_scope_cleared: false,
+                active_thread_cleared: false,
+                refresh_workspace_catalog: false,
+            }),
+            administration_refetch: [],
+            semantic_timeline_patch: {} as never,
+            snapshot: { thread_id: null } as never,
+        });
+        await applyMobileAccessChangedEvent(
+            {
+                GatewayNotification: {
+                    kind: 'access_changed',
+                    params: {
+                        authorization_revision: 7,
+                        workspace_id: 'workspace-protected',
+                        thread_id: 'thread-protected',
+                        access_lost: false,
+                        change: 'thread_visibility',
+                    },
+                },
+            },
+            queryClient,
+        );
+
+        expect(queryClient.getQueryData(timelineQueryKeys.threadSnapshot('thread-protected'))).toBe(
+            snapshot,
+        );
+        expect(useActiveThreadStore.getState().activeComposerThreadId).toBe('thread-protected');
+        expect(
+            useThreadTreeStore.getState().snapshot?.threads_by_id['thread-protected'],
+        ).toBeTruthy();
+        expect(queryClient.getQueryState(membersQueryKey)?.isInvalidated).toBe(true);
     });
 
     it('clears inaccessible projections without logging out or changing registry', () => {
@@ -107,7 +171,15 @@ describe('mobile access-change lifecycle', () => {
         useThreadTreeStore.setState({
             snapshot: {
                 workspace_id: 'workspace-protected',
-                threads_by_id: { protected: { preview: 'secret' } },
+                threads_by_id: {
+                    'thread-protected': { id: 'thread-protected', preview: 'secret' },
+                    'thread-kept': { id: 'thread-kept', preview: 'kept' },
+                },
+                placements_by_thread_id: {},
+                thread_ids_by_folder_id: {
+                    __root__: ['thread-protected', 'thread-kept'],
+                },
+                unread: [],
             } as never,
             workspaceId: 'workspace-protected',
         });
@@ -220,7 +292,15 @@ describe('mobile access-change lifecycle', () => {
         useThreadTreeStore.setState({
             snapshot: {
                 workspace_id: 'workspace-protected',
-                threads_by_id: { protected: { preview: 'secret' } },
+                threads_by_id: {
+                    'thread-protected': { id: 'thread-protected', preview: 'secret' },
+                    'thread-kept': { id: 'thread-kept', preview: 'kept' },
+                },
+                placements_by_thread_id: {},
+                thread_ids_by_folder_id: {
+                    __root__: ['thread-protected', 'thread-kept'],
+                },
+                unread: [],
             } as never,
             workspaceId: 'workspace-protected',
         });
@@ -243,21 +323,25 @@ describe('mobile access-change lifecycle', () => {
                 change: 'thread_participant_removed',
                 active_scope_cleared: false,
                 active_thread_cleared: true,
+                refresh_workspace_catalog: false,
             }),
             queryClient,
             ['thread-protected'],
+            true,
         );
 
         expect(useWorkspaceStore.getState()).toMatchObject({
             activeWorkspaceId: 'workspace-protected',
             preferredWorkspaceId: 'workspace-protected',
-            bootstrappedConnectionId: null,
+            bootstrappedConnectionId: 15,
         });
         expect(useWorkspaceStore.getState().workspaces.map(({ id }) => id)).toEqual([
             'workspace-protected',
             'workspace-kept',
         ]);
-        expect(useThreadTreeStore.getState().snapshot).toBeNull();
+        expect(useThreadTreeStore.getState().snapshot?.threads_by_id).toEqual({
+            'thread-kept': { id: 'thread-kept', preview: 'kept' },
+        });
         expect(useActiveThreadStore.getState().activeComposerThreadId).toBeNull();
         expect(useActiveThreadStore.getState().composerAttachments).toEqual([]);
         expect(

@@ -20,7 +20,6 @@ const MessageRevisionsRoute = () => {
     const { options } = useThreadScreen({
         navigation: 'modal',
         threadId,
-        showScopeAction: false,
     });
 
     return (

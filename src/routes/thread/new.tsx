@@ -1,10 +1,13 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Text, View } from 'react-native';
 import Stack from 'expo-router/js-stack';
+import { router } from 'expo-router';
 import { StyleSheet } from 'react-native-unistyles';
 import { useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 
-import type { Thread } from '@/client';
+import { pioneerClient, type Thread } from '@/client';
+import { useAdministrationPrincipal } from '@/hooks/use-administration-capabilities';
 import ThreadScreen from '@/screens/thread';
 import { useThreadScreen } from '@/screens/thread/hooks';
 import { openOrCreateNewThread } from '@/services/threads/active';
@@ -20,38 +23,81 @@ type DraftRouteState = {
     thread: Thread | null;
 };
 
-const NewThreadRoute = () => {
+type NewThreadDraftRouteProps = {
+    activeWorkspaceId: string | null;
+    principal: ReturnType<typeof useAdministrationPrincipal>;
+};
+
+const NewThreadDraftRoute = ({ activeWorkspaceId, principal }: NewThreadDraftRouteProps) => {
+    const { t } = useTranslation('threads');
     const queryClient = useQueryClient();
     const connectionId = useGatewayStore((state) => state.connectionId);
     const connectionState = useGatewayStore((state) => state.connectionState);
-    const activeWorkspaceId = useWorkspaceStore((state) => state.activeWorkspaceId);
     const workspaceError = useWorkspaceStore((state) => state.error);
     const [draft, setDraft] = useState<DraftRouteState | null>(null);
     const [error, setError] = useState<string | null>(null);
-    const { options } = useThreadScreen({ threadId: draft?.threadId ?? null });
     const sequenceRef = useRef(0);
-    const routeError =
-        error ??
-        (workspaceError ? `Failed to load workspace: ${workspaceError}` : null) ??
-        (connectionState === 'Disconnected' ? 'Gateway disconnected' : null);
     const draftReady = Boolean(
         draft && draft.connectionId === connectionId && draft.workspaceId === activeWorkspaceId,
     );
+    const [actionsOpen, setActionsOpen] = useState(false);
+    const openActions = useCallback(() => setActionsOpen(true), []);
+    const closeActions = useCallback(() => setActionsOpen(false), []);
+    const openMembers = useCallback(() => {
+        if (!draftReady || !draft?.threadId) return;
+        router.push({
+            pathname: './members/[threadId]',
+            params: { threadId: draft.threadId },
+        });
+    }, [draft, draftReady]);
+    const { options } = useThreadScreen({
+        threadId: draft?.threadId ?? null,
+        onActionsPress: draftReady ? openActions : undefined,
+    });
+    const visibilityPlan = useMemo(() => {
+        if (!principal.data) return null;
+        try {
+            return pioneerClient.threadCreateVisibilityPlan({
+                auth: principal.data,
+                origin_kind: 'collaborative',
+            });
+        } catch {
+            return null;
+        }
+    }, [principal.data]);
+    const visibilityPlanUnavailable = Boolean(
+        principal.isError ||
+        (principal.data && (!visibilityPlan || visibilityPlan.options.length === 0)),
+    );
+    const routeError =
+        error ??
+        (workspaceError || visibilityPlanUnavailable ? t('createThreadFailed') : null) ??
+        (connectionState === 'Disconnected' ? t('disconnected') : null);
+    const selectedVisibility = visibilityPlan?.default_visibility ?? 'private';
 
     useEffect(() => {
-        if (connectionState !== 'Connected' || connectionId === null || !activeWorkspaceId) {
+        if (
+            !visibilityPlan ||
+            connectionState !== 'Connected' ||
+            connectionId === null ||
+            !activeWorkspaceId ||
+            !selectedVisibility
+        ) {
             return;
         }
 
+        let cancelled = false;
         const sequence = sequenceRef.current + 1;
         sequenceRef.current = sequence;
 
         void openOrCreateNewThread({
             workspace_id: activeWorkspaceId,
+            visibility: selectedVisibility,
             expanded_keys: useActiveThreadStore.getState().expandedKeys,
         })
             .then((snapshot) => {
                 if (
+                    cancelled ||
                     sequenceRef.current !== sequence ||
                     useGatewayStore.getState().connectionId !== connectionId ||
                     useWorkspaceStore.getState().activeWorkspaceId !== activeWorkspaceId
@@ -72,27 +118,52 @@ const NewThreadRoute = () => {
                     thread: snapshot.thread ?? null,
                 });
             })
-            .catch((caught) => {
-                if (sequenceRef.current !== sequence) {
+            .catch(() => {
+                if (cancelled || sequenceRef.current !== sequence) {
                     return;
                 }
 
                 setDraft(null);
-                setError(caught instanceof Error ? caught.message : 'Failed to open draft thread');
+                setError(t('createThreadFailed'));
             });
-    }, [activeWorkspaceId, connectionId, connectionState, queryClient]);
+
+        return () => {
+            cancelled = true;
+            if (sequenceRef.current === sequence) {
+                sequenceRef.current += 1;
+            }
+        };
+    }, [
+        activeWorkspaceId,
+        connectionId,
+        connectionState,
+        queryClient,
+        selectedVisibility,
+        t,
+        visibilityPlan,
+    ]);
 
     let content;
     if (routeError) {
         content = (
             <View style={{ alignItems: 'center', flex: 1, justifyContent: 'center', padding: 24 }}>
-                <Text>{routeError}</Text>
+                <Text accessibilityRole="alert">{routeError}</Text>
             </View>
         );
+    } else if (principal.isPending || !visibilityPlan) {
+        content = <View style={styles.pendingDraft} />;
     } else if (!draft || !draftReady) {
         content = <View style={styles.pendingDraft} />;
     } else {
-        content = <ThreadScreen threadId={draft.threadId} initialThread={draft.thread} />;
+        content = (
+            <ThreadScreen
+                threadId={draft.threadId}
+                initialThread={draft.thread}
+                threadActionsOpen={actionsOpen}
+                onThreadActionsClose={closeActions}
+                onOpenMembers={openMembers}
+            />
+        );
     }
 
     return (
@@ -100,6 +171,25 @@ const NewThreadRoute = () => {
             <Stack.Screen options={options} />
             {content}
         </>
+    );
+};
+
+const NewThreadRoute = () => {
+    const principal = useAdministrationPrincipal();
+    const activeWorkspaceId = useWorkspaceStore((state) => state.activeWorkspaceId);
+    const contextKey = [
+        principal.data?.principal.id ?? '',
+        principal.data?.principal.kind ?? '',
+        principal.data?.role_key ?? '',
+        activeWorkspaceId ?? '',
+    ].join(':');
+
+    return (
+        <NewThreadDraftRoute
+            key={contextKey}
+            activeWorkspaceId={activeWorkspaceId}
+            principal={principal}
+        />
     );
 };
 

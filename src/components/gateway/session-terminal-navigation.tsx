@@ -3,14 +3,7 @@ import { usePathname, useRouter } from 'expo-router';
 
 import { useGatewayStore } from '@/stores/gateway';
 
-const TERMINAL_SESSION_ROUTES = new Set([
-    '/',
-    '/activate',
-    '/editor',
-    '/settings',
-    '/settings/language',
-    '/settings/theme',
-]);
+const TERMINAL_SESSION_ROUTES = new Set(['/', '/activate', '/invite', '/editor']);
 
 export const TerminalGatewaySessionNavigation = () => {
     const pathname = usePathname();
