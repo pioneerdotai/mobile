@@ -81,6 +81,12 @@ export class MobileMemberAvatarController {
         this.backgrounded = backgrounded;
     }
 
+    clear(): void {
+        this.backgrounded = true;
+        this.visible.clear();
+        this.inFlight.clear();
+    }
+
     presentation(principalId: string): MobileMemberAvatarPresentation | undefined {
         const value = this.visible.get(principalId);
         return value ? { ...value } : undefined;
