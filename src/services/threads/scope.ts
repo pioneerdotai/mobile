@@ -21,6 +21,14 @@ export const threadScopeQueryKeys = {
 export const threadScopeMutationKey = ['thread-scope', 'mutation'] as const;
 export type ThreadScopeAction = ThreadScopeMutationPlan['action'];
 
+export const nextThreadVisibility = (
+    visibility: Thread['visibility'],
+): 'private' | 'workspace' | null => {
+    if (visibility === 'private') return 'workspace';
+    if (visibility === 'workspace') return 'private';
+    return null;
+};
+
 export const planThreadScopeMutation = (
     workspaceId: string,
     threadId: string,

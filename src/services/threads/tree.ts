@@ -5,9 +5,91 @@ import type {
     ClientThreadTreeQueryData,
     ClientThreadTreeSnapshot,
     Thread,
+    ThreadPlacement,
     ThreadReadResponse,
     ThreadTreeRefreshRequest,
 } from '@/client';
+
+const THREAD_TREE_ROOT_FOLDER_KEY = '__root__';
+
+const withoutThread = (
+    snapshot: ClientThreadTreeSnapshot,
+    threadId: string,
+    removeUnread: boolean,
+): ClientThreadTreeSnapshot => {
+    const threadsById = { ...snapshot.threads_by_id };
+    const placementsByThreadId = { ...snapshot.placements_by_thread_id };
+    delete threadsById[threadId];
+    delete placementsByThreadId[threadId];
+
+    return {
+        ...snapshot,
+        threads_by_id: threadsById,
+        placements_by_thread_id: placementsByThreadId,
+        thread_ids_by_folder_id: Object.fromEntries(
+            Object.entries(snapshot.thread_ids_by_folder_id).map(([folderId, threadIds]) => [
+                folderId,
+                threadIds.filter((candidate) => candidate !== threadId),
+            ]),
+        ),
+        unread: removeUnread
+            ? snapshot.unread.filter((entry) => entry.thread_id !== threadId)
+            : snapshot.unread,
+    };
+};
+
+export const removeThreadFromTreeSnapshot = (
+    snapshot: ClientThreadTreeSnapshot,
+    threadId: string,
+): ClientThreadTreeSnapshot => withoutThread(snapshot, threadId, true);
+
+export const applyThreadUpdatedToTreeSnapshot = (
+    snapshot: ClientThreadTreeSnapshot,
+    thread: Thread,
+    placement: ThreadPlacement | null | undefined,
+): ClientThreadTreeSnapshot => {
+    if (snapshot.workspace_id !== thread.workspace_id) return snapshot;
+
+    const withoutPrevious = withoutThread(
+        snapshot,
+        thread.id,
+        thread.sidebar_visibility === 'hidden',
+    );
+    if (thread.sidebar_visibility === 'hidden') return withoutPrevious;
+
+    const nextPlacement = placement ??
+        snapshot.placements_by_thread_id[thread.id] ?? {
+            thread_id: thread.id,
+            workspace_id: thread.workspace_id,
+            folder_id: null,
+        };
+    const folderKey =
+        nextPlacement.folder_id && withoutPrevious.folders_by_id[nextPlacement.folder_id]
+            ? nextPlacement.folder_id
+            : THREAD_TREE_ROOT_FOLDER_KEY;
+    const threadsById = { ...withoutPrevious.threads_by_id, [thread.id]: thread };
+    const folderThreadIds = [
+        ...(withoutPrevious.thread_ids_by_folder_id[folderKey] ?? []),
+        thread.id,
+    ].sort((leftId, rightId) => {
+        const left = threadsById[leftId];
+        const right = threadsById[rightId];
+        return (right?.updated_at ?? 0) - (left?.updated_at ?? 0) || leftId.localeCompare(rightId);
+    });
+
+    return {
+        ...withoutPrevious,
+        threads_by_id: threadsById,
+        placements_by_thread_id: {
+            ...withoutPrevious.placements_by_thread_id,
+            [thread.id]: nextPlacement,
+        },
+        thread_ids_by_folder_id: {
+            ...withoutPrevious.thread_ids_by_folder_id,
+            [folderKey]: folderThreadIds,
+        },
+    };
+};
 
 export const threadUnreadById = (
     snapshot: ClientThreadTreeSnapshot | null,
@@ -59,7 +141,6 @@ export const threadTreeInvalidationWorkspaceId = (event: ClientEvent | null): st
         case 'thread_read_cursor_changed':
             return notification.params.workspace_id;
         case 'thread_started':
-        case 'thread_updated':
             return notification.params.thread.workspace_id;
         case 'thread_closed':
             return notification.params.workspaceId;

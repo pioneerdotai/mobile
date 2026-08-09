@@ -8,6 +8,7 @@ import {
     executeThreadScopeMutation,
     invalidateThreadScope,
     loadThreadScopePresentation,
+    nextThreadVisibility,
     planThreadScopeMutation,
     removeThreadParticipant,
     updateThreadVisibility,
@@ -39,6 +40,13 @@ const privateThread = {
 describe('thread scope service', () => {
     beforeEach(() => {
         jest.clearAllMocks();
+    });
+
+    it('toggles only user-selectable thread visibility values', () => {
+        expect(nextThreadVisibility('private')).toBe('workspace');
+        expect(nextThreadVisibility('workspace')).toBe('private');
+        expect(nextThreadVisibility(null)).toBeNull();
+        expect(nextThreadVisibility(undefined)).toBeNull();
     });
 
     it('projects only authoritative participant and workspace snapshots', async () => {
