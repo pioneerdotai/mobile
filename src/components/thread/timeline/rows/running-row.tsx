@@ -19,22 +19,29 @@ const DINO_LIGHT = require('../../../../../assets/images/dino-light.webp');
 
 type RunningRowProps = {
     row: Extract<TimelineRow, { type: 'running' }>;
+    showDino?: boolean;
 };
 
 type RunningActivityContentProps = {
     elapsedLabel: string | null;
+    showDino?: boolean;
 };
 
-export const RunningRow = ({ row }: RunningRowProps) => {
+export const RunningRow = ({ row, showDino = true }: RunningRowProps) => {
     return (
         <VStack style={styles.wrap}>
-            <RunningActivityContent elapsedLabel={row.elapsedLabel} />
-            {row.securitySummary ? <RunningSecuritySummary summary={row.securitySummary} /> : null}
+            <RunningActivityContent elapsedLabel={row.elapsedLabel} showDino={showDino} />
+            {row.securitySummary ? (
+                <RunningSecuritySummary summary={row.securitySummary} indent={showDino} />
+            ) : null}
         </VStack>
     );
 };
 
-export const RunningActivityContent = ({ elapsedLabel }: RunningActivityContentProps) => {
+export const RunningActivityContent = ({
+    elapsedLabel,
+    showDino = true,
+}: RunningActivityContentProps) => {
     const { t } = useTranslation('threads');
     const { rt } = useUnistyles();
     const dinoSource = rt.themeName === 'dark' ? DINO_DARK : DINO_LIGHT;
@@ -42,13 +49,15 @@ export const RunningActivityContent = ({ elapsedLabel }: RunningActivityContentP
     return (
         <HStack style={styles.mainRow}>
             <HStack style={styles.labelGroup}>
-                <Image contentFit="contain" source={dinoSource} style={styles.dino} autoplay />
-                <Text numberOfLines={1} style={styles.title}>
+                {showDino ? (
+                    <Image contentFit="contain" source={dinoSource} style={styles.dino} autoplay />
+                ) : null}
+                <Text numberOfLines={1} style={styles.title(showDino)}>
                     {t('timelineRunning')}
                 </Text>
             </HStack>
             {!!elapsedLabel && (
-                <Text numberOfLines={1} style={styles.meta}>
+                <Text numberOfLines={1} style={styles.meta(showDino)}>
                     {elapsedLabel}
                 </Text>
             )}
@@ -56,7 +65,13 @@ export const RunningActivityContent = ({ elapsedLabel }: RunningActivityContentP
     );
 };
 
-const RunningSecuritySummary = ({ summary }: { summary: ClientTurnSecuritySummary }) => {
+const RunningSecuritySummary = ({
+    summary,
+    indent,
+}: {
+    summary: ClientTurnSecuritySummary;
+    indent: boolean;
+}) => {
     const { t } = useTranslation('threads');
     const { theme } = useUnistyles();
     const translate = (key: string, options?: Record<string, unknown>) => String(t(key, options));
@@ -64,7 +79,7 @@ const RunningSecuritySummary = ({ summary }: { summary: ClientTurnSecuritySummar
     const iconColor = securityTint(summary, theme.colors);
 
     return (
-        <VStack style={styles.securityWrap}>
+        <VStack style={[styles.securityWrap, !indent && styles.securityWrapWithoutDino]}>
             <HStack style={[styles.securityBadge, styles.securityTone(summary.enforcement)]}>
                 <SecurityIcon summary={summary} size={theme.space(3.5)} color={iconColor} />
                 <Text numberOfLines={1} style={[styles.securityText, { color: iconColor }]}>
@@ -146,27 +161,33 @@ const styles = StyleSheet.create((theme) => ({
         flex: 1,
         minWidth: 0,
         alignItems: 'center',
-        gap: theme.space(4),
+        gap: theme.space(3),
     },
     dino: {
         width: theme.space(8),
         height: theme.space(8),
     },
-    title: {
+    title: (showDino) => ({
         flexShrink: 1,
         fontSize: theme.fontSize.sm.fontSize,
         fontWeight: theme.fontWeight.semibold.fontWeight,
-    },
-    meta: {
+        marginBottom: !showDino ? theme.space(0.5) : 0,
+        paddingLeft: !showDino ? theme.space(1.5) : 0,
+    }),
+    meta: (showDino) => ({
         color: theme.colors.typography,
         fontSize: theme.fontSize.sm.fontSize,
         fontWeight: theme.fontWeight.semibold.fontWeight,
-    },
+        marginBottom: !showDino ? theme.space(0.5) : 0,
+    }),
     securityWrap: {
         alignSelf: 'flex-start',
         maxWidth: '100%',
         gap: theme.space(1),
         paddingLeft: theme.space(12),
+    },
+    securityWrapWithoutDino: {
+        paddingLeft: 0,
     },
     securityBadge: {
         alignItems: 'center',

@@ -9,6 +9,7 @@ import {
     type RefObject,
 } from 'react';
 import type { LayoutChangeEvent } from 'react-native';
+import { Image } from 'expo-image';
 import type { LegendListRef } from '@legendapp/list/react-native';
 import Reanimated, {
     useAnimatedStyle,
@@ -29,6 +30,9 @@ import {
     type TimelineGroupingIndex,
 } from './timeline-grouping';
 import { calculateTimelineEndAlignmentPadding } from './timeline-avatar-rail-layout';
+
+const DINO_DARK = require('../../../../assets/images/dino-dark.webp');
+const DINO_LIGHT = require('../../../../assets/images/dino-light.webp');
 
 type VisibleAvatarGroupsSnapshot = {
     timelineIdentityKey: string;
@@ -257,8 +261,9 @@ const TimelineAvatarRailItem = memo(
         scrollOffset: SharedValue<number>;
         viewportHeight: SharedValue<number>;
     }) => {
-        const { theme } = useUnistyles();
+        const { rt, theme } = useUnistyles();
         const avatarSize = theme.space(TIMELINE_AVATAR_SIZE_UNITS);
+        const dinoSource = rt.themeName === 'dark' ? DINO_DARK : DINO_LIGHT;
         const stickyBottomGap = theme.space(TIMELINE_AVATAR_STICKY_BOTTOM_GAP_UNITS);
         const bottomStopOffset = theme.space(TIMELINE_AVATAR_BOTTOM_STOP_OFFSET_UNITS);
         const groupBottomInset = theme.space(group.bottomInsetUnits);
@@ -366,6 +371,14 @@ const TimelineAvatarRailItem = memo(
                         size={avatarSize}
                         borderColor={theme.colors.border}
                     />
+                ) : group.source.showsRunningDino ? (
+                    <Image
+                        accessible={false}
+                        autoplay
+                        contentFit="contain"
+                        source={dinoSource}
+                        style={styles.runningDino(avatarSize)}
+                    />
                 ) : (
                     <MemberAvatar
                         displayName="Agent"
@@ -398,4 +411,8 @@ const styles = StyleSheet.create((theme) => ({
         top: 0,
         left: theme.space(2),
     },
+    runningDino: (size: number) => ({
+        width: size,
+        height: size,
+    }),
 }));

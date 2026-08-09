@@ -16,6 +16,7 @@ import {
     TIMELINE_AGENT_MESSAGE_VERTICAL_PADDING_UNITS,
     TIMELINE_AGENT_TASK_VERTICAL_PADDING_UNITS,
 } from '../timeline-grouping';
+import { timelineTextBottomMargin } from '../timeline-text-layout';
 
 type AssistantMessageRowProps = {
     row: Extract<TimelineRow, { type: 'assistant-message' }>;
@@ -105,7 +106,7 @@ const styles = StyleSheet.create((theme) => ({
         width: '100%',
         maxWidth: '100%',
         paddingVertical: theme.space(TIMELINE_AGENT_MESSAGE_VERTICAL_PADDING_UNITS),
-        marginBottom: -theme.space(1.25),
+        marginBottom: timelineTextBottomMargin(theme.fontSize.default),
     },
     streamingContainer: {
         opacity: 0.92,

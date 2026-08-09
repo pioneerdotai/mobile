@@ -30,7 +30,7 @@ export type TimelineAvatarSource =
           kind: 'historical-user';
           author: UserMessageTimelineRow['author'];
       }
-    | { kind: 'agent' };
+    | { kind: 'agent'; showsRunningDino: boolean };
 
 export type TimelineAvatarGroup = {
     key: string;
@@ -113,6 +113,17 @@ export class TimelineGroupingIndex {
             }
             const endIndex = index;
             const startsAvatarGroup = descriptor.avatarSource !== null;
+            const avatarSource =
+                descriptor.avatarSource?.kind === 'agent'
+                    ? {
+                          kind: 'agent' as const,
+                          showsRunningDino:
+                              presentationContext.taskChildThread &&
+                              rows
+                                  .slice(startIndex, endIndex + 1)
+                                  .some((row) => row.type === 'running'),
+                      }
+                    : descriptor.avatarSource;
 
             for (let rowIndex = startIndex; rowIndex <= endIndex; rowIndex += 1) {
                 rowLayouts[rowIndex] = {
@@ -123,8 +134,10 @@ export class TimelineGroupingIndex {
             }
 
             const groupKey = `${descriptor.kind}:${rows[startIndex].key}`;
-            fingerprintParts.push(`${groupKey}:${rows[endIndex].key}`);
-            if (descriptor.avatarSource !== null) {
+            fingerprintParts.push(
+                `${groupKey}:${rows[endIndex].key}:${avatarSource?.kind === 'agent' && avatarSource.showsRunningDino ? 'running-dino' : 'avatar'}`,
+            );
+            if (avatarSource !== null) {
                 const group: TimelineAvatarGroup = {
                     key: groupKey,
                     startIndex,
@@ -132,7 +145,7 @@ export class TimelineGroupingIndex {
                     startKey: rows[startIndex].key,
                     endKey: rows[endIndex].key,
                     bottomInsetUnits: timelineAvatarGroupBottomInsetUnits(rows[endIndex]),
-                    source: descriptor.avatarSource,
+                    source: avatarSource,
                 };
                 avatarGroups.push(group);
                 avatarGroupsByKey.set(group.key, group);
@@ -233,7 +246,7 @@ const timelineClusterDescriptor = (
     return {
         key: turnId ? `agent:${turnId}` : `agent:standalone:${row.key}`,
         kind: 'agent',
-        avatarSource: { kind: 'agent' },
+        avatarSource: { kind: 'agent', showsRunningDino: false },
     };
 };
 

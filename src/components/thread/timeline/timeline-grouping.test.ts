@@ -144,6 +144,29 @@ describe('TimelineGroupingIndex', () => {
         );
     });
 
+    it('shows the running dino only for the active agent group in a child thread', () => {
+        const rows = [
+            timelineRow({ type: 'assistant-message', key: 'answer', turnId: 'turn-a' }),
+            timelineRow({ type: 'running', key: 'running', turnId: 'turn-b' }),
+        ];
+
+        const rootGrouping = TimelineGroupingIndex.build(rows, 'current-principal');
+        const childGrouping = TimelineGroupingIndex.build(
+            rows,
+            'current-principal',
+            TASK_CHILD_TIMELINE_PRESENTATION_CONTEXT,
+        );
+
+        expect(rootGrouping.avatarGroups.map(({ source }) => source)).toEqual([
+            { kind: 'agent', showsRunningDino: false },
+            { kind: 'agent', showsRunningDino: false },
+        ]);
+        expect(childGrouping.avatarGroups.map(({ source }) => source)).toEqual([
+            { kind: 'agent', showsRunningDino: false },
+            { kind: 'agent', showsRunningDino: true },
+        ]);
+    });
+
     it('uses the rendered footer and bottom padding as the group bottom inset', () => {
         const rows = [
             timelineRow({

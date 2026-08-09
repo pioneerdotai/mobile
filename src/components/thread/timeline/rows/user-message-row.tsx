@@ -31,6 +31,7 @@ import {
     isCurrentPrincipalUserMessage,
     type TimelinePresentationContext,
 } from '../timeline-grouping';
+import { timelineTextBottomMargin } from '../timeline-text-layout';
 
 type UserMessageRowProps = {
     row: Extract<TimelineRow, { type: 'user-message' }>;
@@ -407,6 +408,6 @@ const styles = StyleSheet.create((theme) => ({
         width: '100%',
         maxWidth: '100%',
         minWidth: 0,
-        marginBottom: -theme.space(1.25),
+        marginBottom: timelineTextBottomMargin(theme.fontSize.default),
     },
 }));

@@ -750,7 +750,7 @@ const TimelineRowRenderer = ({
         case 'tool-group':
             return <ToolGroupRow row={row} expanded={expanded} onToggle={onToggleExpanded} />;
         case 'running':
-            return <RunningRow row={row} />;
+            return <RunningRow row={row} showDino={!presentationContext?.taskChildThread} />;
         case 'pending-request':
             return <PendingRequestCard entry={row.entry} />;
         case 'artifact':

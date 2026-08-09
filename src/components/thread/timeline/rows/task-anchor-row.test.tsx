@@ -7,6 +7,7 @@ import renderer, {
 import { describe, expect, it, jest } from '@jest/globals';
 
 import type { TimelineRow } from '@/services/threads/conversation/timeline';
+import { RunningActivityContent } from './running-row';
 import { TaskAnchorRow } from './task-anchor-row';
 
 jest.mock('expo-image', () => ({ Image: 'Image' }));
@@ -139,6 +140,23 @@ describe('mobile detached Task card', () => {
         expect(queuedJson.props.disabled).toBe(true);
         expect(completedJson.props.disabled).toBe(false);
         expect(cardStructure(queuedJson)).toEqual(cardStructure(completedJson));
+    });
+});
+
+describe('mobile running activity', () => {
+    it('can hide the inline Dino when the Avatar Rail owns the animation', async () => {
+        let tree: ReactTestRenderer;
+
+        await act(async () => {
+            tree = renderer.create(
+                <RunningActivityContent elapsedLabel="12 sec" showDino={false} />,
+            );
+        });
+
+        const output = JSON.stringify(tree!.toJSON());
+        expect(output).toContain('timelineRunning');
+        expect(output).toContain('12 sec');
+        expect(output).not.toContain('"type":"Image"');
     });
 });
 
