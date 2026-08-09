@@ -1731,6 +1731,10 @@ export type VoiceSessionOutcome = 'turn_started' | 'cancelled' | 'no_speech' | '
  */
 export interface AccessChangedNotification {
   authorization_revision: number;
+  /**
+   * Whether this particular connection actually lost access to the scope.
+   */
+  access_lost?: boolean | null;
   change: AccessChangeKind;
   /**
    * Exact affected thread when the committed ACL mutation is thread-scoped.
@@ -1899,7 +1903,14 @@ export interface ThreadClosedNotification {
   [k: string]: unknown;
 }
 export interface ThreadUpdatedNotification {
+  placement?: ThreadPlacement | null;
   thread: Thread;
+  [k: string]: unknown;
+}
+export interface ThreadPlacement {
+  folder_id?: string | null;
+  thread_id: string;
+  workspace_id: string;
   [k: string]: unknown;
 }
 export interface ThreadParticipantsChangedNotification {
