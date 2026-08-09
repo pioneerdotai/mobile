@@ -231,6 +231,12 @@ const ensureSerialized = async (
     let envelope = runtime.envelope;
     let begin: ClientGatewaySessionLifecycleResult;
     if (runtime.connectionGeneration !== null && envelope) {
+        // Read the durable credential before advancing the lifecycle planner.
+        // SecureStore can be temporarily unavailable during an iOS lifecycle
+        // transition. If that happens, a later reconnect must be able to retry
+        // from the planner's previous connected state.
+        envelope = await loadSessionEnvelopeOrStop(endpoint, installationId, runtime);
+        setRuntimeEnvelope(runtime, envelope);
         begin = await reduceLifecycle(endpoint.id, {
             kind: 'clock_advanced',
             data: {
@@ -238,12 +244,6 @@ const ensureSerialized = async (
                 refresh_leeway_seconds: MOBILE_ACCESS_REFRESH_LEEWAY_SECONDS,
             },
         });
-        // The runtime copy intentionally contains identity metadata only after
-        // a connection is established. Load the refresh credential from
-        // SecureStore for the direct refresh call instead of retaining it for
-        // the lifetime of the foreground session.
-        envelope = await loadSessionEnvelopeOrStop(endpoint, installationId, runtime);
-        setRuntimeEnvelope(runtime, envelope);
     } else {
         setPhase(requestedEndpoint.id, runtime, 'loading_session');
         envelope = await loadSessionEnvelopeOrStop(endpoint, installationId, runtime);
@@ -342,6 +342,21 @@ const loadSessionEnvelopeOrStop = async (
             throw error;
         }
         if (error instanceof MobileGatewaySessionStorageError) {
+            if (error.code === 'read_failed') {
+                // No credential was consumed or changed. Treat a temporarily
+                // unavailable Keychain as a reconnectable transport condition,
+                // not as an irreversible credential-storage failure.
+                const existingConnectionRemainsUsable =
+                    runtime.connectionId !== null &&
+                    runtime.access !== null &&
+                    runtime.access.accessExpiresAtUnix > nowUnix();
+                setPhase(
+                    endpoint.id,
+                    runtime,
+                    existingConnectionRemainsUsable ? 'connected' : 'transiently_disconnected',
+                );
+                throw error;
+            }
             return stopFromLifecycle(
                 endpoint.id,
                 { kind: 'auth_failed', data: { reason: 'secure_storage_failed' } },
@@ -368,12 +383,15 @@ const refreshSession = async (
             await writeMobileGatewaySession(endpoint.session_ref ?? endpoint.id, current);
             setRuntimeEnvelope(runtime, current);
         } catch (error) {
-            await stopFromLifecycle(
-                endpoint.id,
-                { kind: 'secure_storage_failed', data: { intent_id: intentId } },
-                runtime,
-                error,
-            );
+            // This write only makes the idempotency key durable. The refresh
+            // request has not been dispatched, so the predecessor credential
+            // is still valid and a later reconnect can safely try again.
+            await reduceLifecycle(endpoint.id, {
+                kind: 'refresh_transport_lost',
+                data: { intent_id: intentId },
+            }).catch(() => null);
+            await resetAfterRetryableRefreshFailure(endpoint.id, runtime);
+            throw error;
         }
     }
     try {
@@ -696,7 +714,7 @@ const connectWithAccess = async (
                 me.gateway.id !== runtime.envelope!.gateway_id
                     ? 'gateway_identity_mismatch'
                     : me.principal.id !== runtime.envelope!.principal_id ||
-                        me.principal.kind !== 'superuser' ||
+                        (me.principal.kind !== 'superuser' && me.principal.kind !== 'user') ||
                         me.device.id !== runtime.envelope!.device_id ||
                         me.device.installation_id !== installationId ||
                         me.device.client_kind !== 'mobile' ||
@@ -1017,6 +1035,10 @@ export const terminalReasonFromMachineCode = (
             return 'session_expired';
         case 'session_compromised':
             return 'session_compromised';
+        case 'principal_suspended':
+            return 'principal_suspended';
+        case 'principal_removed':
+            return 'principal_removed';
         case 'gateway_identity_mismatch':
             return 'gateway_identity_mismatch';
         case 'authentication_required':
@@ -1059,6 +1081,9 @@ const terminalPhase = (reason: SessionTerminalReason): MobileSessionLifecyclePha
         case 'session_compromised':
         case 'refresh_outcome_unknown':
             return 'compromised';
+        case 'principal_suspended':
+        case 'principal_removed':
+            return 'revoked';
         case 'gateway_identity_mismatch':
             return 'gateway_mismatch';
         case 'secure_storage_failed':

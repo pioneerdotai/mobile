@@ -6,6 +6,11 @@ import type {
 import type { ClientTurnSecuritySummary } from '@/client/generated/client_turn_security_summary';
 import type { PendingRequest } from '@/client/generated/pending_request';
 import type { TurnWorkState } from '@/client/generated/turn_work_state';
+import type {
+    TimelineReplySummary,
+    TurnAuthorSnapshot,
+    TurnMention,
+} from '@/client/generated/timeline_row';
 
 export type TimelineUserAttachment = {
     id: string;
@@ -43,6 +48,15 @@ export type TimelineRow = TimelineRowMeta &
               text: string;
               attachments: TimelineUserAttachment[];
               timestampLabel: string;
+              lastEditedTimestampLabel?: string;
+              mode: 'Message' | 'Chat' | 'Agent' | null;
+              author: TurnAuthorSnapshot | null;
+              reply: TimelineReplySummary | null;
+              replyState: 'available' | 'deleted' | 'unavailable' | null;
+              mentions: TurnMention[];
+              revision: number;
+              edited: boolean;
+              deleted: boolean;
           }
         | {
               type: 'assistant-message';

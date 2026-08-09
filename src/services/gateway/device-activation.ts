@@ -6,7 +6,9 @@ import type {
     GatewayEndpoint,
     GatewayRegistry,
 } from '@/client';
+import { pioneerQueryClient } from '@/services/query/client';
 import { storage } from '@/storage';
+import { beginMobileAuthorizationEpoch } from './access-change';
 import {
     findGatewayEndpoint,
     loadGatewayRegistry,
@@ -364,13 +366,7 @@ const cleanupDeviceActivationSession = async (
     cleanupIssuedMobileSession(gateway_base_url, grant, DEVICE_ACTIVATION_TIMEOUT_MS);
 
 export const listMobileGatewaySessions = async () => {
-    const response = await pioneerClient.gatewayAuthSessionList();
-    return {
-        ...response,
-        sessions: response.sessions.filter(
-            (item) => item.session.status === 'active' && item.device.status === 'active',
-        ),
-    };
+    return pioneerClient.gatewayAuthSessionList();
 };
 
 export const revokeMobileGatewaySession = async (
@@ -383,6 +379,7 @@ export const revokeMobileGatewaySession = async (
         return;
     }
     const endpoint = findGatewayEndpoint(loadGatewayRegistry(), endpointId);
+    beginMobileAuthorizationEpoch(pioneerQueryClient);
     let deletionError: unknown = null;
     if (endpoint?.session_ref) {
         try {
@@ -399,6 +396,7 @@ export const revokeMobileGatewaySession = async (
 
 export const logoutMobileGatewaySession = async (endpoint: GatewayEndpoint): Promise<void> => {
     await pioneerClient.gatewayAuthLogout();
+    beginMobileAuthorizationEpoch(pioneerQueryClient);
     let deletionError: unknown = null;
     if (endpoint.session_ref) {
         try {

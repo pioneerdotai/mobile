@@ -66,6 +66,7 @@ import {
     resetMobileSessionCoordinatorForTests,
     refreshMobileGatewaySessionAfterUnauthorized,
     suspendMobileGatewaySession,
+    terminalReasonFromMachineCode,
 } from './session-coordinator';
 import type { MobileGatewaySessionEnvelope } from './session-storage';
 import {
@@ -519,7 +520,7 @@ describe('mobile Gateway session coordinator', () => {
         });
     });
 
-    it('distinguishes a missing session from an unreadable secure store', async () => {
+    it('distinguishes a missing session from a temporarily unreadable secure store', async () => {
         mockReadMobileGatewaySession.mockResolvedValueOnce(null);
         await expect(ensureMobileGatewaySession(endpoint, timings)).rejects.toMatchObject({
             reason: 'authentication_required',
@@ -535,8 +536,74 @@ describe('mobile Gateway session coordinator', () => {
             new MobileGatewaySessionStorageError('read_failed'),
         );
         await expect(ensureMobileGatewaySession(endpoint, timings)).rejects.toMatchObject({
+            code: 'read_failed',
+        });
+        expect(mobileSessionProjection(endpoint.id)).toMatchObject({
+            phase: 'transiently_disconnected',
+            terminalReason: null,
+        });
+
+        await expect(ensureMobileGatewaySession(endpoint, timings)).resolves.toMatchObject({
+            connection_id: 41,
+        });
+    });
+
+    it('retries when the refresh request id cannot be stored before dispatch', async () => {
+        mockWriteMobileGatewaySession.mockRejectedValueOnce(
+            new MobileGatewaySessionStorageError('write_failed'),
+        );
+
+        await expect(ensureMobileGatewaySession(endpoint, timings)).rejects.toMatchObject({
+            code: 'write_failed',
+        });
+        expect(mockGatewayAuthRefresh).not.toHaveBeenCalled();
+        expect(mobileSessionProjection(endpoint.id)).toMatchObject({
+            phase: 'transiently_disconnected',
+            terminalReason: null,
+        });
+
+        await expect(ensureMobileGatewaySession(endpoint, timings)).resolves.toMatchObject({
+            connection_id: 41,
+        });
+        expect(mockGatewayAuthRefresh).toHaveBeenCalledTimes(1);
+    });
+
+    it('keeps an existing connection visible while retrying a SecureStore read', async () => {
+        await ensureMobileGatewaySession(endpoint, timings);
+        nowSeconds += 850;
+        mockReadMobileGatewaySession.mockRejectedValueOnce(
+            new MobileGatewaySessionStorageError('read_failed'),
+        );
+
+        await expect(ensureMobileGatewaySession(endpoint, timings)).rejects.toMatchObject({
+            code: 'read_failed',
+        });
+        expect(mockGatewayDisconnect).not.toHaveBeenCalled();
+        expect(mobileSessionProjection(endpoint.id)).toMatchObject({
+            phase: 'connected',
+            terminalReason: null,
+            accessExpiresAtUnix: 1_800_000_900,
+        });
+
+        await expect(ensureMobileGatewaySession(endpoint, timings)).resolves.toMatchObject({
+            connection_id: 41,
+        });
+    });
+
+    it('still fails closed if the rotated successor cannot be stored', async () => {
+        mockWriteMobileGatewaySession
+            .mockImplementationOnce(
+                async (_sessionRef: string, next: MobileGatewaySessionEnvelope) => {
+                    durableEnvelope = structuredClone(next);
+                },
+            )
+            .mockRejectedValueOnce(new MobileGatewaySessionStorageError('write_failed'));
+
+        await expect(ensureMobileGatewaySession(endpoint, timings)).rejects.toMatchObject({
             reason: 'secure_storage_failed',
         });
+        expect(mockGatewayAuthRefresh).toHaveBeenCalledTimes(1);
+        expect(mockGatewayAuthSessionCleanup).toHaveBeenCalledTimes(1);
         expect(mobileSessionProjection(endpoint.id)).toMatchObject({
             phase: 'storage_failed',
             terminalReason: 'secure_storage_failed',
@@ -844,5 +911,13 @@ describe('mobile Gateway session coordinator', () => {
 
         expect(mockGatewayAuthRefresh.mock.calls[1]?.[0].credential).toBe(refreshToken(1));
         expect(durableEnvelope.refresh_generation).toBe(2);
+    });
+});
+
+describe('terminalReasonFromMachineCode', () => {
+    it('preserves member suspension and removal as distinct terminal outcomes', () => {
+        expect(terminalReasonFromMachineCode('principal_suspended')).toBe('principal_suspended');
+        expect(terminalReasonFromMachineCode('principal_removed')).toBe('principal_removed');
+        expect(terminalReasonFromMachineCode('unrelated_gateway_error')).toBeNull();
     });
 });

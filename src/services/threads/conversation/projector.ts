@@ -136,6 +136,44 @@ const projectClientConversationRowContent = (
         };
     }
 
+    if ('UserMessage' in row.kind) {
+        const entry = projection.timeline[row.kind.UserMessage.timeline_index];
+        const item = entry ? itemsById.get(entry.item_id) : null;
+        const projected = item ? projectItemToRow(item, options.nowMs) : null;
+        if (!projected || projected.type !== 'user-message' || !item) {
+            return null;
+        }
+        const presentation = row.kind.UserMessage.presentation;
+        const replyState =
+            'reply_state' in presentation
+                ? ((presentation.reply_state as
+                      'available' | 'deleted' | 'unavailable' | null | undefined) ?? null)
+                : presentation.reply
+                  ? presentation.reply.deleted
+                      ? 'deleted'
+                      : presentation.reply.text || presentation.reply.author
+                        ? 'available'
+                        : 'unavailable'
+                  : null;
+        return {
+            ...projected,
+            key: row.key,
+            startedAtUnixMs: item.started_at_unix_ms ?? null,
+            text: presentation.deleted ? '' : projected.text,
+            attachments: presentation.deleted
+                ? []
+                : projectUserMessageAttachments(presentation.attachments ?? []),
+            mode: presentation.mode,
+            author: presentation.author ?? null,
+            reply: presentation.reply ?? null,
+            replyState,
+            mentions: presentation.deleted ? [] : (presentation.mentions ?? []),
+            revision: presentation.revision,
+            edited: presentation.edited,
+            deleted: presentation.deleted,
+        };
+    }
+
     if ('TurnWorkToggle' in row.kind) {
         const group = row.kind.TurnWorkToggle;
         const anchorEntry = projection.timeline.find((entry) => entry.id === group.anchor_entry_id);
@@ -320,9 +358,7 @@ const formatElapsed = (item: ItemView, nowMs?: number): string | null => {
     return formatElapsedMs(Math.max(0, (nowMs ?? Date.now()) - started));
 };
 
-const formatTimelineTimestamp = (item: ItemView): string => {
-    const timestamp =
-        item.started_at_unix_ms ?? item.updated_at_unix_ms ?? item.completed_at_unix_ms;
+const formatTimestamp = (timestamp: number | null | undefined): string => {
     if (timestamp == null) {
         return '';
     }
@@ -336,6 +372,16 @@ const formatTimelineTimestamp = (item: ItemView): string => {
 
     return `${day}.${month}.${year} ${hours}:${minutes}`;
 };
+
+const formatTimelineTimestamp = (item: ItemView): string =>
+    formatTimestamp(
+        item.started_at_unix_ms ?? item.updated_at_unix_ms ?? item.completed_at_unix_ms,
+    );
+
+const formatLastEditedTimestamp = (item: ItemView): string =>
+    formatTimestamp(
+        item.updated_at_unix_ms ?? item.started_at_unix_ms ?? item.completed_at_unix_ms,
+    );
 
 const isTaskTimelineItem = (item: ItemView): boolean => {
     const origin = item.timeline_origin;
@@ -446,6 +492,15 @@ const projectItemToRow = (item: ItemView, nowMs?: number): TimelineRow => {
                 text: turnItem.text || text,
                 attachments: readUserMessageAttachments(turnItem),
                 timestampLabel: formatTimelineTimestamp(item),
+                lastEditedTimestampLabel: formatLastEditedTimestamp(item),
+                mode: null,
+                author: null,
+                reply: null,
+                replyState: null,
+                mentions: [],
+                revision: 0,
+                edited: false,
+                deleted: false,
             };
         case 'agentMessage':
             return {
@@ -620,8 +675,12 @@ const rowKey = (type: TimelineRow['type'], id: string) => {
 
 const readUserMessageAttachments = (
     item: Extract<TurnItem, { type: 'userMessage' }>,
+): TimelineUserAttachment[] => projectUserMessageAttachments(item.attachments ?? []);
+
+const projectUserMessageAttachments = (
+    attachments: readonly UserMessageAttachment[],
 ): TimelineUserAttachment[] => {
-    return (item.attachments ?? [])
+    return attachments
         .map(userMessageAttachmentToTimelineAttachment)
         .filter((attachment): attachment is TimelineUserAttachment => !!attachment);
 };

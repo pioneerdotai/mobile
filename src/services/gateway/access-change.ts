@@ -1,8 +1,13 @@
 import type { QueryClient } from '@tanstack/react-query';
 
 import type { ClientActiveThreadEventResult, ClientEvent } from '@/client';
+import {
+    clearAdministrationQueries,
+    invalidateAdministrationTargets,
+} from '@/services/administration/query';
 import { applyActiveThreadEvent } from '@/services/threads/active';
 import { timelineQueryKeys } from '@/services/threads/timeline-query';
+import { clearThreadScopeQueries } from '@/services/threads/scope';
 import { useActiveThreadStore } from '@/stores/active-thread';
 import { useThreadTreeStore } from '@/stores/thread-tree';
 import { useWorkspaceStore } from '@/stores/workspace';
@@ -15,6 +20,8 @@ const clearProtectedMobileProjections = (queryClient: QueryClient) => {
     useActiveThreadStore.getState().resetDefaultComposerModelSelection();
     void queryClient.cancelQueries({ queryKey: timelineQueryKeys.all });
     queryClient.removeQueries({ queryKey: timelineQueryKeys.all });
+    clearThreadScopeQueries(queryClient);
+    void clearAdministrationQueries(queryClient);
 };
 
 export const accessChangedWorkspaceId = (event: ClientEvent): string | null => {
@@ -87,6 +94,7 @@ export const applyMobileAccessChangedLifecycle = (
         // case must invalidate the protected family rather than guess.
         void queryClient.cancelQueries({ queryKey: timelineQueryKeys.all });
         queryClient.removeQueries({ queryKey: timelineQueryKeys.all });
+        clearThreadScopeQueries(queryClient);
     } else {
         // The exact eviction keys come from the server-owned notification and
         // shared Rust lifecycle. They are cleanup scope, never a client grant.
@@ -95,6 +103,7 @@ export const applyMobileAccessChangedLifecycle = (
             void queryClient.cancelQueries({ queryKey });
             queryClient.removeQueries({ queryKey });
         }
+        clearThreadScopeQueries(queryClient, invalidatedThreadIds);
     }
 };
 
@@ -125,6 +134,7 @@ export const applyMobileAccessChangedEvent = async (
         expanded_keys: useActiveThreadStore.getState().expandedKeys,
     });
     const lifecycle = result.access_changed ?? null;
+    await invalidateAdministrationTargets(queryClient, result.administration_refetch ?? []);
     if (lifecycle) {
         applyMobileAccessChangedLifecycle(lifecycle, queryClient, accessChangedThreadIds(event));
     }

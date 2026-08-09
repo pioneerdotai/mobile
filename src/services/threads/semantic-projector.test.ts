@@ -265,6 +265,72 @@ describe('mobile semantic timeline projector', () => {
         });
     });
 
+    it('preserves authoritative historical author, reply, mentions and tombstone fields', () => {
+        const block = userBlock('authored');
+        if (block.kind.kind !== 'user_message') {
+            throw new Error('expected user-message fixture');
+        }
+        block.kind.mode = 'Message';
+        block.kind.author = {
+            actor: { kind: 'principal', id: 'principal-a' },
+            display_name: 'Historical Name',
+            nickname: 'historical',
+            avatar_revision: 'avatar-revision-a',
+        };
+        block.kind.reply = {
+            turnId: 'parent-turn',
+            text: 'parent text',
+            deleted: false,
+            author: null,
+        };
+        block.kind.mentions = [{ principal_id: 'principal-b', nickname: 'friend' }];
+        block.kind.revision = 2;
+        block.kind.edited = true;
+        block.kind.deleted = false;
+
+        const rows = projectSemanticTimelineToRows({
+            snapshot: snapshot(),
+            blocks: [block],
+            expandedKeys: [],
+            workRangesByTurn: {},
+            nowMs: 10_000,
+        });
+
+        expect(rows[0]).toMatchObject({
+            type: 'user-message',
+            mode: 'Message',
+            author: { display_name: 'Historical Name', nickname: 'historical' },
+            reply: { turnId: 'parent-turn', text: 'parent text' },
+            replyState: 'available',
+            mentions: [{ principal_id: 'principal-b', nickname: 'friend' }],
+            revision: 2,
+            edited: true,
+            deleted: false,
+        });
+
+        block.kind.deleted = true;
+        block.kind.attachments = [
+            {
+                type: 'file',
+                url: 'private://must-not-survive-tombstone',
+            },
+        ];
+        const deletedRows = projectSemanticTimelineToRows({
+            snapshot: snapshot(),
+            blocks: [block],
+            expandedKeys: [],
+            workRangesByTurn: {},
+            nowMs: 10_000,
+        });
+        expect(deletedRows[0]).toMatchObject({
+            type: 'user-message',
+            text: '',
+            attachments: [],
+            mentions: [],
+            deleted: true,
+        });
+    });
+
     it('projects native work toggle turn id from the semantic group key', () => {
         const rows = projectConversationToRows({
             ...snapshot(),

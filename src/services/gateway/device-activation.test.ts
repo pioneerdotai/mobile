@@ -37,6 +37,14 @@ jest.mock('./session-coordinator', () => ({
     markMobileGatewaySessionTerminal: jest.fn(),
 }));
 
+jest.mock('@/services/gateway/access-change', () => ({
+    beginMobileAuthorizationEpoch: jest.fn(),
+}));
+
+jest.mock('@/services/query/client', () => ({
+    pioneerQueryClient: {},
+}));
+
 jest.mock('@/storage', () => ({
     storage: {
         getAllKeys: jest.fn(),
@@ -48,6 +56,7 @@ jest.mock('@/storage', () => ({
 
 import { pioneerClient } from '@/client';
 import type { AuthSessionGrant, GatewayRegistry } from '@/client';
+import { beginMobileAuthorizationEpoch } from '@/services/gateway/access-change';
 import { storage } from '@/storage';
 import { nanoid } from 'nanoid';
 import {
@@ -77,6 +86,7 @@ import {
 } from './device-activation';
 
 const mockGatewayDeviceActivationParse = jest.mocked(pioneerClient.gatewayDeviceActivationParse);
+const mockBeginMobileAuthorizationEpoch = jest.mocked(beginMobileAuthorizationEpoch);
 const mockGatewayLoadRegistryV3 = jest.mocked(pioneerClient.gatewayLoadRegistryV3);
 const mockGatewayAuthDeviceActivate = jest.mocked(pioneerClient.gatewayAuthDeviceActivate);
 const mockGatewayAuthDeviceCreate = jest.mocked(pioneerClient.gatewayAuthDeviceCreate);
@@ -231,7 +241,7 @@ describe('mobile device activation service', () => {
         expect(mockGatewayDeviceActivationParse).toHaveBeenCalledWith({ uri });
     });
 
-    it('shows only active device sessions in the mobile devices list', async () => {
+    it('preserves authoritative ordering and status for every own session', async () => {
         const active = {
             current: true,
             last_seen_at_unix: 1_800_000_000,
@@ -259,7 +269,19 @@ describe('mobile device activation service', () => {
             ],
         });
 
-        await expect(listMobileGatewaySessions()).resolves.toEqual({ sessions: [active] });
+        await expect(listMobileGatewaySessions()).resolves.toEqual({
+            sessions: expect.arrayContaining([
+                active,
+                expect.objectContaining({
+                    session: expect.objectContaining({ status: 'revoked' }),
+                }),
+            ]),
+        });
+        const result = await listMobileGatewaySessions();
+        expect(result.sessions.map((item) => item.session.id)).toEqual([
+            active.session.id,
+            'S00000000000000000002',
+        ]);
     });
 
     it('rejects a six-digit manual code before any exchange', async () => {
@@ -1087,6 +1109,10 @@ describe('mobile device activation service', () => {
             'remote-1',
             'session_revoked',
         );
+        expect(mockBeginMobileAuthorizationEpoch).toHaveBeenCalledTimes(1);
+        expect(mockBeginMobileAuthorizationEpoch.mock.invocationCallOrder[0]).toBeLessThan(
+            mockMarkMobileGatewaySessionTerminal.mock.invocationCallOrder[0]!,
+        );
     });
 
     it('marks logout terminal even when SecureStore deletion fails', async () => {
@@ -1109,6 +1135,10 @@ describe('mobile device activation service', () => {
         expect(mockMarkMobileGatewaySessionTerminal).toHaveBeenCalledWith(
             'remote-1',
             'session_revoked',
+        );
+        expect(mockBeginMobileAuthorizationEpoch).toHaveBeenCalledTimes(1);
+        expect(mockBeginMobileAuthorizationEpoch.mock.invocationCallOrder[0]).toBeLessThan(
+            mockMarkMobileGatewaySessionTerminal.mock.invocationCallOrder[0]!,
         );
     });
 });

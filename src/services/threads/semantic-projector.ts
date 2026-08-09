@@ -210,6 +210,29 @@ const pushUserBlock = (semantic: MutableSemanticProjection, block: TimelineBlock
         } as LegacyTurnItem,
         opaqueMeta: null,
     });
+    semantic.rows[semantic.rows.length - 1] = {
+        key: block.blockId,
+        kind: {
+            UserMessage: {
+                timeline_index: semantic.projection.timeline.length - 1,
+                presentation: {
+                    workspace_id: block.workspaceId,
+                    thread_id: block.threadId,
+                    block_id: block.blockId,
+                    turn_id: block.turnId ?? block.blockId,
+                    item_id: itemId,
+                    mode: block.kind.mode ?? 'Agent',
+                    author: block.kind.author ?? null,
+                    reply: block.kind.reply ?? null,
+                    mentions: block.kind.deleted ? [] : (block.kind.mentions ?? []),
+                    attachments: block.kind.deleted ? [] : (block.kind.attachments ?? []),
+                    revision: block.kind.revision ?? 0,
+                    edited: block.kind.edited ?? false,
+                    deleted: block.kind.deleted ?? false,
+                },
+            },
+        },
+    };
 };
 
 const pushAssistantBlock = (semantic: MutableSemanticProjection, block: TimelineBlock) => {
