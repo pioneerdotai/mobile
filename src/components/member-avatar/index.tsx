@@ -7,6 +7,8 @@ import { Text } from '@/components/primitives/text';
 import { stableOutlineWidth } from '@/helpers/styles';
 import { resolveMemberAvatar } from '@/services/members/resolve-avatar';
 
+import { avatarFallbackAppearance } from './avatar-appearance';
+
 type MemberAvatarProps = {
     displayName: string;
     size: number;
@@ -17,16 +19,6 @@ type MemberAvatarProps = {
     borderColor?: string;
     borderWidth?: number;
 };
-
-const getInitials = (displayName: string): string =>
-    displayName
-        .trim()
-        .split(/\s+/u)
-        .filter(Boolean)
-        .slice(0, 2)
-        .map((part) => Array.from(part)[0])
-        .join('')
-        .toUpperCase() || '?';
 
 const MemberAvatar = ({
     displayName,
@@ -45,7 +37,7 @@ const MemberAvatar = ({
         key: string;
         uri: string | null;
     } | null>(null);
-    const initials = useMemo(() => getInitials(displayName), [displayName]);
+    const fallbackAppearance = useMemo(() => avatarFallbackAppearance(displayName), [displayName]);
 
     useEffect(() => {
         let cancelled = false;
@@ -90,9 +82,16 @@ const MemberAvatar = ({
     return (
         <Box
             accessible={false}
-            style={styles.fallback(size, fallbackBackgroundColor, borderColor, borderWidth)}
+            style={styles.fallback(
+                size,
+                fallbackBackgroundColor ?? fallbackAppearance.backgroundColor,
+                borderColor,
+                borderWidth,
+            )}
         >
-            <Text style={styles.initials(size)}>{initials}</Text>
+            <Text style={styles.initials(size, fallbackAppearance.textColor)}>
+                {fallbackAppearance.initials}
+            </Text>
         </Box>
     );
 };
@@ -105,23 +104,18 @@ const styles = StyleSheet.create((theme) => ({
         borderColor,
         borderWidth,
     }),
-    fallback: (
-        size: number,
-        fallbackBackgroundColor?: string,
-        borderColor?: string,
-        borderWidth = 0,
-    ) => ({
+    fallback: (size: number, backgroundColor: string, borderColor?: string, borderWidth = 0) => ({
         width: size,
         height: size,
         borderRadius: size / 2,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: fallbackBackgroundColor ?? theme.colors.surfaceMuted,
+        backgroundColor,
         borderColor,
         borderWidth,
     }),
-    initials: (size: number) => ({
-        color: theme.colors.typography,
+    initials: (size: number, color: string) => ({
+        color,
         fontSize: Math.max(10, Math.round(size * 0.36)),
         lineHeight: Math.max(12, Math.round(size * 0.44)),
         fontWeight: theme.fontWeight.medium.fontWeight,
