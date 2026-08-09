@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ClientAgentAvatarCacheResult",
+  "type": "object",
+  "properties": {
+    "avatar_revision": {
+      "type": "string"
+    },
+    "cached_image_path": {
+      "type": "string"
+    },
+    "media_type": {
+      "$ref": "#/$defs/ProfileAvatarMediaType"
+    },
+    "source": {
+      "$ref": "#/$defs/AvatarCacheSource"
+    }
+  },
+  "required": [
+    "cached_image_path",
+    "avatar_revision",
+    "media_type",
+    "source"
+  ],
+  "$defs": {
+    "AvatarCacheSource": {
+      "type": "string",
+      "enum": [
+        "downloaded",
+        "revalidated",
+        "offline_cache"
+      ]
+    },
+    "ProfileAvatarMediaType": {
+      "type": "string",
+      "enum": [
+        "image/png",
+        "image/jpeg",
+        "image/webp"
+      ]
+    }
+  }
+}

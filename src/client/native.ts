@@ -139,6 +139,8 @@ import type { InvitationRevokeParams } from './generated/invitation_revoke_param
 import type { InvitationRevokeResponse } from './generated/invitation_revoke_response';
 import type { ClientMemberAvatarCacheRequest } from './generated/client_member_avatar_cache_request';
 import type { ClientMemberAvatarCacheResult } from './generated/client_member_avatar_cache_result';
+import type { ClientAgentAvatarCacheRequest } from './generated/client_agent_avatar_cache_request';
+import type { ClientAgentAvatarCacheResult } from './generated/client_agent_avatar_cache_result';
 import type { ClientMemberPresentationRequest } from './generated/client_member_presentation_request';
 import type { ClientInvitationListRowRequest } from './generated/client_invitation_list_row_request';
 import type { InvitationListRow } from './generated/invitation_list_row';
@@ -438,6 +440,8 @@ export type { InvitationRevokeParams } from './generated/invitation_revoke_param
 export type { InvitationRevokeResponse } from './generated/invitation_revoke_response';
 export type { ClientMemberAvatarCacheRequest } from './generated/client_member_avatar_cache_request';
 export type { ClientMemberAvatarCacheResult } from './generated/client_member_avatar_cache_result';
+export type { ClientAgentAvatarCacheRequest } from './generated/client_agent_avatar_cache_request';
+export type { ClientAgentAvatarCacheResult } from './generated/client_agent_avatar_cache_result';
 export type { ClientMemberPresentationRequest } from './generated/client_member_presentation_request';
 export type { ClientCurrentPrincipalPresentationRequest } from './generated/client_current_principal_presentation_request';
 export type {
@@ -808,6 +812,14 @@ export const pioneerClient = {
     ): Promise<ClientMemberAvatarCacheResult> {
         return parsePioneerClientResponse<ClientMemberAvatarCacheResult>(
             await getPioneerClientNitro().memberAvatarCacheJson(JSON.stringify(input)),
+        );
+    },
+
+    async agentAvatarCache(
+        input: ClientAgentAvatarCacheRequest,
+    ): Promise<ClientAgentAvatarCacheResult> {
+        return parsePioneerClientResponse<ClientAgentAvatarCacheResult>(
+            await getPioneerClientNitro().agentAvatarCacheJson(JSON.stringify(input)),
         );
     },
 

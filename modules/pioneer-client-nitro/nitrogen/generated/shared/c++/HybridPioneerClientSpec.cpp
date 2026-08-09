@@ -49,6 +49,7 @@ namespace margelo::nitro::pioneer::client {
       prototype.registerHybridMethod("invitationRevokeJson", &HybridPioneerClientSpec::invitationRevokeJson);
       prototype.registerHybridMethod("memberListJson", &HybridPioneerClientSpec::memberListJson);
       prototype.registerHybridMethod("memberAvatarCacheJson", &HybridPioneerClientSpec::memberAvatarCacheJson);
+      prototype.registerHybridMethod("agentAvatarCacheJson", &HybridPioneerClientSpec::agentAvatarCacheJson);
       prototype.registerHybridMethod("memberSuspendJson", &HybridPioneerClientSpec::memberSuspendJson);
       prototype.registerHybridMethod("memberRestoreJson", &HybridPioneerClientSpec::memberRestoreJson);
       prototype.registerHybridMethod("memberRemoveJson", &HybridPioneerClientSpec::memberRemoveJson);

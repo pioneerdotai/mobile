@@ -248,6 +248,11 @@ HybridPioneerClient::memberAvatarCacheJson(const std::string& inputJson) {
 }
 
 std::shared_ptr<margelo::nitro::Promise<std::string>>
+HybridPioneerClient::agentAvatarCacheJson(const std::string& inputJson) {
+  return callWithClientAsync(pioneer_client_ffi_agent_avatar_cache, inputJson);
+}
+
+std::shared_ptr<margelo::nitro::Promise<std::string>>
 HybridPioneerClient::memberSuspendJson(const std::string& inputJson) {
   return callWithClientAsync(pioneer_client_ffi_member_suspend, inputJson);
 }

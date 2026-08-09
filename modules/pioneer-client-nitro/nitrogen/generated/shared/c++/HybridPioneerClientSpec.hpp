@@ -85,6 +85,7 @@ namespace margelo::nitro::pioneer::client {
       virtual std::shared_ptr<Promise<std::string>> invitationRevokeJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> memberListJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> memberAvatarCacheJson(const std::string& inputJson) = 0;
+      virtual std::shared_ptr<Promise<std::string>> agentAvatarCacheJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> memberSuspendJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> memberRestoreJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> memberRemoveJson(const std::string& inputJson) = 0;

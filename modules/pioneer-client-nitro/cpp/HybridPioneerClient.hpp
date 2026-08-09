@@ -103,6 +103,8 @@ public:
       const std::string& inputJson) override;
   std::shared_ptr<margelo::nitro::Promise<std::string>> memberAvatarCacheJson(
       const std::string& inputJson) override;
+  std::shared_ptr<margelo::nitro::Promise<std::string>> agentAvatarCacheJson(
+      const std::string& inputJson) override;
   std::shared_ptr<margelo::nitro::Promise<std::string>> memberSuspendJson(
       const std::string& inputJson) override;
   std::shared_ptr<margelo::nitro::Promise<std::string>> memberRestoreJson(

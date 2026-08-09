@@ -46,6 +46,7 @@ char* pioneer_client_ffi_invitation_list(PioneerClientFfi* client, const char* i
 char* pioneer_client_ffi_invitation_revoke(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_member_list(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_member_avatar_cache(PioneerClientFfi* client, const char* input_json);
+char* pioneer_client_ffi_agent_avatar_cache(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_member_suspend(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_member_restore(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_member_remove(PioneerClientFfi* client, const char* input_json);

@@ -36,6 +36,7 @@ export interface PioneerClient extends HybridObject<{ ios: 'c++'; android: 'c++'
     invitationRevokeJson(inputJson: string): Promise<string>;
     memberListJson(inputJson: string): Promise<string>;
     memberAvatarCacheJson(inputJson: string): Promise<string>;
+    agentAvatarCacheJson(inputJson: string): Promise<string>;
     memberSuspendJson(inputJson: string): Promise<string>;
     memberRestoreJson(inputJson: string): Promise<string>;
     memberRemoveJson(inputJson: string): Promise<string>;
