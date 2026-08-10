@@ -1,8 +1,7 @@
 import { BottomSheetModal, BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { useInfiniteQuery, useMutation, useQueries, useQueryClient } from '@tanstack/react-query';
-import { useNavigation } from 'expo-router';
 import { Ban, KeyRound, Pencil, RotateCcw, Trash2 } from 'lucide-react-native';
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, AppState, RefreshControl } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
@@ -74,7 +73,6 @@ const EMPTY_MEMBERS: MemberSummary[] = [];
 const MembersSettingsScreen = () => {
     const { t } = useTranslation(['settings', 'common', 'gateway']);
     const { theme, rt } = useUnistyles();
-    const navigation = useNavigation();
     const queryClient = useQueryClient();
     const capabilities = useAdministrationCapabilities();
     const principal = useAdministrationPrincipal();
@@ -97,10 +95,6 @@ const MembersSettingsScreen = () => {
     const recoverySheetRef = useRef<BottomSheetModal>(null);
     const recoveryRef = useRef<ClientDeviceActivationPresentationResult | null>(null);
     const [recovery, setRecovery] = useState<ClientDeviceActivationPresentationResult | null>(null);
-
-    useLayoutEffect(() => {
-        navigation.setOptions({ headerTitle: () => null, headerRight: () => null });
-    }, [navigation]);
 
     const replaceRecovery = useCallback((next: ClientDeviceActivationPresentationResult | null) => {
         recoveryRef.current = next;

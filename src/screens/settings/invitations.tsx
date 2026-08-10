@@ -153,7 +153,6 @@ const InvitationsSettingsScreen = () => {
     useLayoutEffect(() => {
         const canCreate = capabilities.data?.can_create_invitation === true;
         navigation.setOptions({
-            headerTitle: () => null,
             headerRight: canCreate
                 ? () => (
                       <CreateButton
