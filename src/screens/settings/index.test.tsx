@@ -9,6 +9,14 @@ const mockPressable = (props: Record<string, unknown>) =>
 const mockText = (props: Record<string, unknown>) =>
     mockReact.createElement('Text', props, props.children as React.ReactNode);
 let mockTerminalReason: 'session_revoked' | null = null;
+let mockCanViewInvitations = false;
+let mockCanViewMembers = false;
+let mockCurrentPrincipal: {
+    display_name: string;
+    nickname: string;
+    principal_id: string;
+    kind: 'superuser' | 'member' | 'unknown';
+} | null = null;
 
 jest.setMock('expo-router', {
     __esModule: true,
@@ -42,8 +50,21 @@ jest.mock('lucide-react-native', () => ({
     ChevronRight: (props: Record<string, unknown>) =>
         mockReact.createElement('ChevronRight', props),
     Globe: (props: Record<string, unknown>) => mockReact.createElement('Globe', props),
+    MailPlus: (props: Record<string, unknown>) => mockReact.createElement('MailPlus', props),
     Smartphone: (props: Record<string, unknown>) => mockReact.createElement('Smartphone', props),
     Sun: (props: Record<string, unknown>) => mockReact.createElement('Sun', props),
+    Users: (props: Record<string, unknown>) => mockReact.createElement('Users', props),
+    UserRound: (props: Record<string, unknown>) => mockReact.createElement('UserRound', props),
+}));
+
+jest.mock('@/hooks/use-administration-capabilities', () => ({
+    useAdministrationCapabilities: () => ({
+        data: {
+            can_view_invitations: mockCanViewInvitations,
+            can_view_member_directory: mockCanViewMembers,
+        },
+    }),
+    useCurrentPrincipalPresentation: () => ({ data: mockCurrentPrincipal }),
 }));
 
 jest.mock('@/components/primitives/box', () => ({
@@ -90,6 +111,50 @@ describe('SettingsScreen', () => {
     beforeEach(() => {
         jest.clearAllMocks();
         mockTerminalReason = null;
+        mockCanViewInvitations = false;
+        mockCanViewMembers = false;
+        mockCurrentPrincipal = null;
+    });
+
+    it('shows the authenticated principal as a read-only profile', async () => {
+        mockCurrentPrincipal = {
+            display_name: 'Alice',
+            nickname: 'alice',
+            principal_id: 'P00000000000000000001',
+            kind: 'member',
+        };
+        let tree: ReactTestRenderer | null = null;
+        await act(async () => {
+            tree = renderer.create(<SettingsScreen />);
+        });
+        const labels = renderedLabels(tree!);
+        expect(labels).toContain('Alice');
+        expect(labels).toContain('profile.readOnly');
+        expect(JSON.stringify(labels)).toContain('profile.kind.member');
+    });
+
+    it('shows Members only when the shared capability allows it', async () => {
+        mockCanViewMembers = true;
+        let tree: ReactTestRenderer | null = null;
+        await act(async () => {
+            tree = renderer.create(<SettingsScreen />);
+        });
+        expect(renderedLabels(tree!)).toContain('members.eyebrow');
+        const memberRow = tree!.root.findAllByType(mockPressable).at(-1)!;
+        await act(async () => memberRow.props.onPress());
+        expect(mockNavigate).toHaveBeenCalledWith({ pathname: '/settings/members' });
+    });
+
+    it('shows Invitations only when the shared capability allows it', async () => {
+        mockCanViewInvitations = true;
+        let tree: ReactTestRenderer | null = null;
+        await act(async () => {
+            tree = renderer.create(<SettingsScreen />);
+        });
+        expect(renderedLabels(tree!)).toContain('invitations.eyebrow');
+        const invitationRow = tree!.root.findAllByType(mockPressable).at(-1)!;
+        await act(async () => invitationRow.props.onPress());
+        expect(mockNavigate).toHaveBeenCalledWith({ pathname: '/settings/invitations' });
     });
 
     it('shows Devices while the active Gateway session is usable', async () => {

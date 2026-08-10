@@ -109,7 +109,11 @@ describe('mobile member administration', () => {
             'utf8',
         );
         expect(screen).toContain('onDismiss={clearRecovery}');
-        expect(screen).toContain('avatarController.clear()');
+        expect(screen).toContain('<MemberAvatar');
+        expect(screen).toContain('principalId={item.principal_id}');
+        expect(screen).toContain('{rows.map(renderMember)}');
+        expect(screen).toContain('<WorkspaceToggleSelector');
+        expect(screen).toContain('<CredentialPresentation');
         expect(screen).not.toContain('MMKV');
         expect(screen).not.toContain('content_base64');
         expect(screen).not.toContain('console.');

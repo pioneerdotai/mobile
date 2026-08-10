@@ -1,7 +1,6 @@
 import { router } from 'expo-router';
 import Stack from 'expo-router/js-stack';
 import { useTranslation } from 'react-i18next';
-import { useUnistyles } from 'react-native-unistyles';
 
 import { BackButton } from '@/components/buttons/back';
 import { useSettingScreen } from '@/screens/settings/hooks';
@@ -9,7 +8,6 @@ import { useSettingScreen } from '@/screens/settings/hooks';
 export default function SettingsStackLayout() {
     const { t } = useTranslation('settings');
     const { options } = useSettingScreen();
-    const { theme } = useUnistyles();
 
     const handleBack = () => {
         router.back();
@@ -21,15 +19,7 @@ export default function SettingsStackLayout() {
                 ...options,
                 headerShown: true,
                 headerMode: 'screen',
-                animation: 'slide_from_right',
-                animationTypeForReplace: 'pop',
-                headerLeft: () => (
-                    <BackButton
-                        onPressHandler={handleBack}
-                        backgroundColor={theme.colors.background}
-                        iconColor={theme.colors.typography}
-                    />
-                ),
+                headerLeft: () => <BackButton onPressHandler={handleBack} />,
             }}
         >
             <Stack.Screen
@@ -48,6 +38,18 @@ export default function SettingsStackLayout() {
                 name="devices"
                 options={{
                     headerTitle: t('devices.eyebrow'),
+                }}
+            />
+            <Stack.Screen
+                name="invitations"
+                options={{
+                    headerTitle: t('invitations.eyebrow'),
+                }}
+            />
+            <Stack.Screen
+                name="members"
+                options={{
+                    headerTitle: t('members.eyebrow'),
                 }}
             />
         </Stack>

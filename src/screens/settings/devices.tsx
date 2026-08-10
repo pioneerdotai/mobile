@@ -1,20 +1,27 @@
 import { BottomSheetModal, BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { useNavigation } from 'expo-router';
+import { LogOut, Trash2 } from 'lucide-react-native';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Alert } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 
-import type { AuthSessionListItem, ClientDeviceActivationPresentationResult } from '@/client';
+import {
+    pioneerClient,
+    type AuthSessionListItem,
+    type ClientDeviceActivationPresentationResult,
+} from '@/client';
 import { Button } from '@/components/buttons/base';
-import { CopyButton } from '@/components/buttons/copy';
 import { CreateButton } from '@/components/buttons/create';
+import { CredentialPresentation } from '@/components/credential-presentation';
 import Spinner from '@/components/feedback/spinner';
-import { DeviceActivationQr } from '@/components/gateway/device-activation-qr';
+import { ActionsSheet } from '@/components/overlays/actions';
+import { MenuItem } from '@/components/overlays/actions/menu-item';
 import { Backdrop } from '@/components/overlays/components/backdrop';
 import { Handle } from '@/components/overlays/components/handle';
 import { Box } from '@/components/primitives/box';
 import { HStack } from '@/components/primitives/hstack';
+import { Pressable } from '@/components/primitives/pressable';
 import { ScrollView } from '@/components/primitives/scrollview';
 import { Text } from '@/components/primitives/text';
 import { VStack } from '@/components/primitives/vstack';
@@ -46,10 +53,11 @@ const DevicesSettingsScreen = () => {
     const activationRef = useRef<ClientDeviceActivationPresentationResult | null>(null);
     const activationRequestRef = useRef(0);
     const activationBusyRef = useRef(false);
-    const [sessionBusy, setSessionBusy] = useState(false);
+    const [pendingSessionId, setPendingSessionId] = useState<string | null>(null);
     const [activationBusy, setActivationBusy] = useState(false);
     const [sessionError, setSessionError] = useState<string | null>(null);
     const [activationError, setActivationError] = useState<string | null>(null);
+    const [selectedSession, setSelectedSession] = useState<AuthSessionListItem | null>(null);
 
     const replaceDeviceActivation = useCallback(
         (next: ClientDeviceActivationPresentationResult | null) => {
@@ -163,6 +171,7 @@ const DevicesSettingsScreen = () => {
             if (!activeEndpoint) {
                 return;
             }
+            setSelectedSession(null);
             Alert.alert(
                 t('devices.revokeTitle', { ns: 'gateway' }),
                 t('devices.revokeOtherMessage', { ns: 'gateway' }),
@@ -172,7 +181,7 @@ const DevicesSettingsScreen = () => {
                         text: t('devices.revokeAction', { ns: 'gateway' }),
                         style: 'destructive',
                         onPress: () => {
-                            setSessionBusy(true);
+                            setPendingSessionId(item.session.id);
                             void revokeMobileGatewaySession(
                                 activeEndpoint.id,
                                 item.session.id,
@@ -182,7 +191,7 @@ const DevicesSettingsScreen = () => {
                                 .catch(() =>
                                     setSessionError(t('devices.revokeFailed', { ns: 'gateway' })),
                                 )
-                                .finally(() => setSessionBusy(false));
+                                .finally(() => setPendingSessionId(null));
                         },
                     },
                 ],
@@ -195,6 +204,7 @@ const DevicesSettingsScreen = () => {
         if (!activeEndpoint) {
             return;
         }
+        setSelectedSession(null);
         Alert.alert(
             t('devices.logoutTitle', { ns: 'gateway' }),
             t('devices.logoutMessage', { ns: 'gateway' }),
@@ -204,17 +214,19 @@ const DevicesSettingsScreen = () => {
                     text: t('devices.logoutAction', { ns: 'gateway' }),
                     style: 'destructive',
                     onPress: () => {
-                        setSessionBusy(true);
+                        const current = sessions.find((item) => item.current);
+                        if (!current) return;
+                        setPendingSessionId(current.session.id);
                         void logoutMobileGatewaySession(activeEndpoint)
                             .catch(() =>
                                 setSessionError(t('devices.logoutFailed', { ns: 'gateway' })),
                             )
-                            .finally(() => setSessionBusy(false));
+                            .finally(() => setPendingSessionId(null));
                     },
                 },
             ],
         );
-    }, [activeEndpoint, t]);
+    }, [activeEndpoint, sessions, t]);
 
     const closeActivationSheet = useCallback(() => {
         activationSheetRef.current?.close();
@@ -232,48 +244,89 @@ const DevicesSettingsScreen = () => {
             <ScrollView style={styles.container} contentContainerStyle={styles.content}>
                 {sessions.length > 0 ? (
                     <VStack testID="devices-list" style={styles.devicesCard}>
-                        {sessions.map((item, index) => (
-                            <VStack key={item.session.id}>
-                                {index > 0 ? <Box style={styles.divider} /> : null}
-                                <HStack
-                                    style={[styles.row, index > 0 ? styles.rowWithDivider : null]}
-                                >
-                                    <VStack style={styles.rowText}>
-                                        <Text fontWeight="medium">{item.device.display_name}</Text>
-                                        <Text style={styles.secondary}>
-                                            {t('devices.sessionMeta', {
-                                                ns: 'gateway',
-                                                kind: item.device.client_kind,
-                                                date: new Date(
-                                                    item.last_seen_at_unix * 1_000,
-                                                ).toLocaleString(),
-                                            })}
-                                        </Text>
-                                        {item.current ? (
-                                            <Text style={styles.current}>
-                                                {t('devices.current', { ns: 'gateway' })}
-                                            </Text>
-                                        ) : null}
-                                    </VStack>
-                                    <Button
-                                        type="link"
-                                        size="sm"
-                                        disabled={sessionBusy}
-                                        title={t(
-                                            item.current
-                                                ? 'devices.logoutAction'
-                                                : 'devices.revokeAction',
-                                            { ns: 'gateway' },
-                                        )}
-                                        onPress={item.current ? logout : () => revoke(item)}
-                                    />
-                                </HStack>
-                            </VStack>
-                        ))}
+                        {sessions.map((item, index) => {
+                            const presentation = pioneerClient.sessionListRowPresentation(item);
+                            return (
+                                <VStack key={item.session.id}>
+                                    {index > 0 ? <Box style={styles.divider} /> : null}
+                                    <Pressable
+                                        delayLongPress={350}
+                                        onLongPress={
+                                            presentation.actionable && pendingSessionId === null
+                                                ? () => setSelectedSession(item)
+                                                : undefined
+                                        }
+                                    >
+                                        <HStack
+                                            style={[
+                                                styles.row,
+                                                index > 0 ? styles.rowWithDivider : null,
+                                            ]}
+                                        >
+                                            <VStack style={styles.rowText}>
+                                                <Text fontWeight="medium">
+                                                    {item.device.display_name}
+                                                </Text>
+                                                <Text style={styles.secondary}>
+                                                    {t('devices.sessionMeta', {
+                                                        ns: 'gateway',
+                                                        kind: item.device.client_kind,
+                                                        date: new Date(
+                                                            item.last_seen_at_unix * 1_000,
+                                                        ).toLocaleString(),
+                                                    })}
+                                                </Text>
+                                                <Text
+                                                    style={[
+                                                        styles.secondary,
+                                                        presentation.status === 'active'
+                                                            ? styles.statusActive
+                                                            : presentation.status === 'pending'
+                                                              ? styles.statusPending
+                                                              : styles.statusTerminal,
+                                                    ]}
+                                                >
+                                                    {t(`devices.status.${presentation.status}`, {
+                                                        ns: 'gateway',
+                                                    })}
+                                                </Text>
+                                                {item.current ? (
+                                                    <Text style={styles.current}>
+                                                        {t('devices.current', { ns: 'gateway' })}
+                                                    </Text>
+                                                ) : null}
+                                            </VStack>
+                                        </HStack>
+                                    </Pressable>
+                                </VStack>
+                            );
+                        })}
                     </VStack>
                 ) : null}
                 {sessionError ? <Text style={styles.error}>{sessionError}</Text> : null}
             </ScrollView>
+
+            <ActionsSheet open={selectedSession !== null} onClose={() => setSelectedSession(null)}>
+                <VStack>
+                    {selectedSession ? (
+                        <MenuItem
+                            Icon={selectedSession.current ? LogOut : Trash2}
+                            title={t(
+                                selectedSession.current
+                                    ? 'devices.logoutAction'
+                                    : 'devices.revokeAction',
+                                { ns: 'gateway' },
+                            )}
+                            variant="destructive"
+                            disabled={pendingSessionId !== null}
+                            last
+                            onPress={
+                                selectedSession.current ? logout : () => revoke(selectedSession)
+                            }
+                        />
+                    ) : null}
+                </VStack>
+            </ActionsSheet>
 
             <BottomSheetModal
                 ref={activationSheetRef}
@@ -299,61 +352,27 @@ const DevicesSettingsScreen = () => {
                             <Spinner size={theme.space(6)} color={theme.colors.typography} />
                         </Box>
                     ) : activation ? (
-                        <VStack style={styles.activationContent}>
-                            <DeviceActivationQr
-                                modules={activation.qr_modules}
-                                width={activation.qr_width}
-                                accessibilityLabel={t('devices.activationQrLabel', {
-                                    ns: 'gateway',
-                                })}
-                            />
-
-                            <VStack style={styles.activationField}>
-                                <Text style={styles.activationLabel}>
-                                    {t('devices.codeLabel', { ns: 'gateway' })}
-                                </Text>
-                                <Box style={styles.activationValueCard}>
-                                    <Text selectable fontWeight="semibold" style={styles.code}>
-                                        {activation.manual_code}
-                                    </Text>
-                                    <Box style={styles.copyButtonContainer}>
-                                        <CopyButton
-                                            value={activation.manual_code}
-                                            accessibilityLabel={t('devices.copyCode', {
-                                                ns: 'gateway',
-                                            })}
-                                            copiedAccessibilityLabel={t('devices.copied', {
-                                                ns: 'gateway',
-                                            })}
-                                            iconSize={theme.space(4)}
-                                        />
-                                    </Box>
-                                </Box>
-                            </VStack>
-
-                            <VStack style={styles.activationField}>
-                                <Text style={styles.activationLabel}>
-                                    {t('devices.linkLabel', { ns: 'gateway' })}
-                                </Text>
-                                <Box style={styles.activationValueCard}>
-                                    <Text selectable fontWeight="medium" style={styles.link}>
-                                        {activation.deep_link}
-                                    </Text>
-                                    <Box style={styles.copyButtonContainer}>
-                                        <CopyButton
-                                            value={activation.deep_link}
-                                            accessibilityLabel={t('devices.copyLink', {
-                                                ns: 'gateway',
-                                            })}
-                                            copiedAccessibilityLabel={t('devices.copied', {
-                                                ns: 'gateway',
-                                            })}
-                                            iconSize={theme.space(4)}
-                                        />
-                                    </Box>
-                                </Box>
-                            </VStack>
-                        </VStack>
+                        <CredentialPresentation
+                            qrModules={activation.qr_modules}
+                            qrWidth={activation.qr_width}
+                            qrAccessibilityLabel={t('devices.activationQrLabel', {
+                                ns: 'gateway',
+                            })}
+                            code={{
+                                value: activation.manual_code,
+                                label: t('devices.codeLabel', { ns: 'gateway' }),
+                                copyAccessibilityLabel: t('devices.copyCode', { ns: 'gateway' }),
+                                copiedAccessibilityLabel: t('devices.copied', { ns: 'gateway' }),
+                                kind: 'code',
+                            }}
+                            link={{
+                                value: activation.deep_link,
+                                label: t('devices.linkLabel', { ns: 'gateway' }),
+                                copyAccessibilityLabel: t('devices.copyLink', { ns: 'gateway' }),
+                                copiedAccessibilityLabel: t('devices.copied', { ns: 'gateway' }),
+                                kind: 'link',
+                            }}
+                        />
                     ) : (
                         <VStack style={styles.sheetFeedback}>
                             {activationError ? (
@@ -399,7 +418,10 @@ const styles = StyleSheet.create((theme, rt) => ({
         paddingTop: theme.space(3),
     },
     rowText: { flex: 1, gap: theme.space(1) },
-    secondary: { ...theme.fontSize.xs, opacity: 0.65 },
+    secondary: { ...theme.fontSize.xs, opacity: 0.6 },
+    statusActive: { color: theme.colors.lime[400], opacity: 1 },
+    statusPending: { color: theme.colors.warningText, opacity: 1 },
+    statusTerminal: { color: theme.colors.dangerText, opacity: 1 },
     current: { ...theme.fontSize.xs, color: theme.colors.lime[400] },
     error: { color: theme.colors.dangerText, textAlign: 'center' },
     sheetBackground: {
@@ -430,48 +452,6 @@ const styles = StyleSheet.create((theme, rt) => ({
         alignItems: 'center',
         justifyContent: 'center',
         gap: theme.space(3),
-    },
-    activationContent: {
-        width: '100%',
-        alignItems: 'center',
-        gap: theme.space(5),
-    },
-    activationField: {
-        width: '100%',
-        alignItems: 'center',
-        gap: theme.space(1),
-    },
-    activationLabel: {
-        ...theme.fontSize.sm,
-        opacity: 0.6,
-    },
-    activationValueCard: {
-        position: 'relative',
-        width: '100%',
-        minHeight: theme.space(16),
-        padding: theme.space(4),
-        paddingHorizontal: theme.space(12),
-        borderRadius: theme.radius['2xl'],
-        backgroundColor: theme.colors.muted,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    code: {
-        ...theme.fontSize.xl,
-        textAlign: 'center',
-    },
-    link: {
-        ...theme.fontSize.sm,
-        textAlign: 'center',
-    },
-    copyButtonContainer: {
-        position: 'absolute',
-        top: theme.space(1.5),
-        right: theme.space(1.5),
-        width: theme.space(9),
-        height: theme.space(9),
-        alignItems: 'center',
-        justifyContent: 'center',
     },
 }));
 

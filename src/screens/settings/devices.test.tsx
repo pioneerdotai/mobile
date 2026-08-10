@@ -13,6 +13,10 @@ const mockCreateActivation = jest.fn<() => Promise<unknown>>();
 const mockCancelActivation = jest.fn<(sessionId: string) => Promise<void>>();
 const mockLogout = jest.fn<() => Promise<void>>();
 const mockRevoke = jest.fn<() => Promise<void>>();
+const mockSessionPresentation = jest.fn((item: { session: { status: string } }) => ({
+    status: item.session.status,
+    actionable: item.session.status === 'active',
+}));
 const mockButton = (props: Record<string, unknown>) => mockReact.createElement('Button', props);
 const mockCopyButton = (props: Record<string, unknown>) =>
     mockReact.createElement('CopyButton', props);
@@ -20,6 +24,11 @@ const mockCreateButton = (props: Record<string, unknown>) =>
     mockReact.createElement('CreateButton', props);
 const mockDeviceActivationQr = (props: Record<string, unknown>) =>
     mockReact.createElement('DeviceActivationQr', props);
+const mockActionsSheet = (props: Record<string, unknown>) =>
+    mockReact.createElement('ActionsSheet', props, props.children as React.ReactNode);
+const mockMenuItem = (props: Record<string, unknown>) => mockReact.createElement('MenuItem', props);
+const mockPressable = (props: Record<string, unknown>) =>
+    mockReact.createElement('Pressable', props, props.children as React.ReactNode);
 const mockText = (props: Record<string, unknown>) =>
     mockReact.createElement('Text', props, props.children as React.ReactNode);
 const mockVStack = (props: Record<string, unknown>) =>
@@ -37,6 +46,11 @@ jest.setMock('expo-router', {
     __esModule: true,
     useNavigation: () => ({ setOptions: mockSetOptions }),
 });
+
+jest.mock('lucide-react-native', () => ({
+    LogOut: (props: Record<string, unknown>) => mockReact.createElement('LogOut', props),
+    Trash2: (props: Record<string, unknown>) => mockReact.createElement('Trash2', props),
+}));
 
 jest.mock('react-i18next', () => ({
     useTranslation: () => ({ t: mockT }),
@@ -79,6 +93,8 @@ jest.mock('@/components/feedback/spinner', () => ({
 jest.mock('@/components/gateway/device-activation-qr', () => ({
     DeviceActivationQr: mockDeviceActivationQr,
 }));
+jest.mock('@/components/overlays/actions', () => ({ ActionsSheet: mockActionsSheet }));
+jest.mock('@/components/overlays/actions/menu-item', () => ({ MenuItem: mockMenuItem }));
 jest.mock('@/components/overlays/components/backdrop', () => ({
     Backdrop: (props: Record<string, unknown>) => mockReact.createElement('Backdrop', props),
 }));
@@ -93,6 +109,7 @@ jest.mock('@/components/primitives/hstack', () => ({
     HStack: (props: Record<string, unknown>) =>
         mockReact.createElement('HStack', props, props.children as React.ReactNode),
 }));
+jest.mock('@/components/primitives/pressable', () => ({ Pressable: mockPressable }));
 jest.mock('@/components/primitives/scrollview', () => ({
     ScrollView: (props: Record<string, unknown>) =>
         mockReact.createElement('ScrollView', props, props.children as React.ReactNode),
@@ -110,6 +127,10 @@ jest.mock('@/services/gateway/device-activation', () => ({
     listMobileGatewaySessions: mockListSessions,
     logoutMobileGatewaySession: mockLogout,
     revokeMobileGatewaySession: mockRevoke,
+}));
+
+jest.mock('@/client', () => ({
+    pioneerClient: { sessionListRowPresentation: mockSessionPresentation },
 }));
 
 jest.mock('@/stores/gateway', () => ({
@@ -133,15 +154,15 @@ const DevicesSettingsScreen = require('./devices').default as typeof import('./d
 
 const currentSession = {
     current: true,
-    device: { display_name: 'This iPhone', client_kind: 'mobile' },
+    device: { display_name: 'This iPhone', client_kind: 'mobile', status: 'active' },
     last_seen_at_unix: 1,
-    session: { id: 'current-session' },
+    session: { id: 'current-session', status: 'active' },
 };
 const otherSession = {
     current: false,
-    device: { display_name: 'Mac', client_kind: 'desktop' },
+    device: { display_name: 'Mac', client_kind: 'desktop', status: 'active' },
     last_seen_at_unix: 2,
-    session: { id: 'other-session' },
+    session: { id: 'other-session', status: 'active' },
 };
 const activation = {
     session_id: 'activation-session',
@@ -167,7 +188,7 @@ describe('DevicesSettingsScreen', () => {
         jest.spyOn(Alert, 'alert').mockImplementation(jest.fn());
     });
 
-    it('uses one device list and moves Sign out onto the current device row', async () => {
+    it('moves Sign out and Revoke into each row Actions menu', async () => {
         let tree: ReactTestRenderer | null = null;
         await act(async () => {
             tree = renderer.create(<DevicesSettingsScreen />);
@@ -186,19 +207,30 @@ describe('DevicesSettingsScreen', () => {
                 .filter((title) =>
                     ['devices.logoutAction', 'devices.revokeAction'].includes(title),
                 ),
-        ).toEqual(['devices.logoutAction', 'devices.revokeAction']);
+        ).toEqual([]);
         expect(mockT).toHaveBeenCalledWith(
             'devices.sessionMeta',
             expect.objectContaining({ kind: 'mobile', ns: 'gateway' }),
         );
+        expect(mockT).toHaveBeenCalledWith('devices.status.active', { ns: 'gateway' });
         expect(mockT).toHaveBeenCalledWith(
             'devices.sessionMeta',
             expect.objectContaining({ kind: 'desktop', ns: 'gateway' }),
         );
 
-        act(() => {
-            actions[0].props.onPress();
+        let actionTriggers = tree!.root
+            .findAllByType(mockPressable)
+            .filter((pressable) => typeof pressable.props.onLongPress === 'function');
+        expect(actionTriggers).toHaveLength(2);
+
+        act(() => actionTriggers[0].props.onLongPress());
+        expect(tree!.root.findByType(mockActionsSheet).props.open).toBe(true);
+        const logoutAction = tree!.root.findByType(mockMenuItem);
+        expect(logoutAction.props).toMatchObject({
+            title: 'devices.logoutAction',
+            variant: 'destructive',
         });
+        act(() => logoutAction.props.onPress());
         const logoutConfirmation = jest.mocked(Alert.alert).mock.calls[0][2];
         await act(async () => {
             logoutConfirmation?.[1]?.onPress?.();
@@ -208,9 +240,19 @@ describe('DevicesSettingsScreen', () => {
         expect(mockLogout).toHaveBeenCalledTimes(1);
         expect(mockRevoke).not.toHaveBeenCalled();
 
-        act(() => {
-            actions[1].props.onPress();
+        actionTriggers = tree!.root
+            .findAllByType(mockPressable)
+            .filter((pressable) => typeof pressable.props.onLongPress === 'function');
+        act(() => actionTriggers[1].props.onLongPress());
+
+        expect(tree!.root.findByType(mockActionsSheet).props.open).toBe(true);
+        const revokeAction = tree!.root.findByType(mockMenuItem);
+        expect(revokeAction.props).toMatchObject({
+            title: 'devices.revokeAction',
+            variant: 'destructive',
         });
+
+        act(() => revokeAction.props.onPress());
         const revokeConfirmation = jest.mocked(Alert.alert).mock.calls[1][2];
         await act(async () => {
             revokeConfirmation?.[1]?.onPress?.();
@@ -218,6 +260,29 @@ describe('DevicesSettingsScreen', () => {
         });
 
         expect(mockRevoke).toHaveBeenCalledWith('gateway-1', 'other-session', false);
+    });
+
+    it('shows terminal session status and disables its action', async () => {
+        mockListSessions.mockResolvedValue({
+            sessions: [
+                currentSession,
+                {
+                    ...otherSession,
+                    device: { ...otherSession.device, status: 'revoked' },
+                    session: { ...otherSession.session, status: 'revoked' },
+                },
+            ],
+        });
+        let tree: ReactTestRenderer | null = null;
+        await act(async () => {
+            tree = renderer.create(<DevicesSettingsScreen />);
+            await flushPromises();
+        });
+        expect(mockT).toHaveBeenCalledWith('devices.status.revoked', { ns: 'gateway' });
+        const actionTriggers = tree!.root.findAllByType(mockPressable);
+        expect(typeof actionTriggers[0].props.onLongPress).toBe('function');
+        expect(actionTriggers[1].props.onLongPress).toBeUndefined();
+        expect(tree!.root.findAllByType(mockMenuItem)).toHaveLength(0);
     });
 
     it('opens activation from the header plus and renders QR, code, and link in the sheet', async () => {

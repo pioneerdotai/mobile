@@ -56,7 +56,9 @@ describe('mobile invitation administration', () => {
             join(process.cwd(), 'src/screens/settings/invitations.tsx'),
             'utf8',
         );
-        expect(source).toContain('onDismiss={dismissPresentation}');
+        expect(source).toContain('onDismiss={dismissCreation}');
+        expect(source).toContain('<WorkspaceToggleSelector');
+        expect(source).toContain('<CredentialPresentation');
         expect(source).not.toContain('router.push');
         expect(source).not.toContain('MMKV');
         expect(source).not.toContain('console.');

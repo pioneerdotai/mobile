@@ -1,15 +1,27 @@
 import { router } from 'expo-router';
-import { ChevronRight, Globe, Smartphone, Sun } from 'lucide-react-native';
+import {
+    ChevronRight,
+    Globe,
+    MailPlus,
+    Smartphone,
+    Sun,
+    UserRound,
+    Users,
+} from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 
 import { Box } from '@/components/primitives/box';
+import { Label } from '@/components/forms/label';
 import { HStack } from '@/components/primitives/hstack';
 import { Pressable } from '@/components/primitives/pressable';
 import { ScrollView } from '@/components/primitives/scrollview';
 import { Text } from '@/components/primitives/text';
 import { VStack } from '@/components/primitives/vstack';
-import { Title } from '@/components/typography/title';
+import {
+    useAdministrationCapabilities,
+    useCurrentPrincipalPresentation,
+} from '@/hooks/use-administration-capabilities';
 import { useGatewayStore } from '@/stores/gateway';
 
 const styles = StyleSheet.create((theme, rt) => ({
@@ -27,6 +39,11 @@ const styles = StyleSheet.create((theme, rt) => ({
         backgroundColor: theme.colors.muted,
         borderRadius: theme.radius['4xl'],
         padding: theme.space(5),
+    },
+    settingsContainerGeneral: {
+        borderTopLeftRadius: 0,
+        borderTopRightRadius: 0,
+        paddingTop: 0,
     },
     settingsWrapper: {
         flex: 1,
@@ -62,6 +79,40 @@ const styles = StyleSheet.create((theme, rt) => ({
         marginLeft: theme.space(11),
         marginVertical: theme.space(2),
     },
+    dividerWide: {
+        marginLeft: 0,
+    },
+    profileCard: {
+        alignItems: 'center',
+        gap: theme.space(3),
+        backgroundColor: theme.colors.muted,
+        borderTopLeftRadius: theme.radius['4xl'],
+        borderTopRightRadius: theme.radius['4xl'],
+        paddingHorizontal: theme.space(5),
+        paddingTop: theme.space(5),
+        paddingBottom: theme.space(2),
+    },
+    profileIcon: {
+        height: theme.space(11),
+        width: theme.space(11),
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: theme.radius.full,
+        backgroundColor: theme.colors.background,
+    },
+    profileText: { flex: 1, gap: theme.space(1) },
+    secondary: { color: theme.colors.neutral[500] },
+    readOnly: {
+        alignSelf: 'flex-start',
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: theme.colors.border,
+        borderRadius: theme.radius.full,
+        paddingHorizontal: theme.space(2),
+        paddingVertical: theme.space(1),
+    },
+    fieldContainer: {
+        gap: theme.space(3),
+    },
 }));
 
 const SettingsScreen = () => {
@@ -74,6 +125,20 @@ const SettingsScreen = () => {
                 (gateway) => gateway.id === gatewayState.registry.active_gateway_id,
             ),
     );
+    const capabilities = useAdministrationCapabilities();
+    const principal = useCurrentPrincipalPresentation();
+
+    const general = [
+        ...(canManageDevices
+            ? [
+                  {
+                      icon: Smartphone,
+                      title: t('devices.eyebrow'),
+                      onPress: () => router.navigate({ pathname: '/settings/devices' }),
+                  },
+              ]
+            : []),
+    ];
 
     const settings = [
         {
@@ -86,12 +151,23 @@ const SettingsScreen = () => {
             title: t('theme.eyebrow'),
             onPress: () => router.navigate({ pathname: '/settings/theme' }),
         },
-        ...(canManageDevices
+    ];
+    const memberSettings = [
+        ...(capabilities.data?.can_view_member_directory
             ? [
                   {
-                      icon: Smartphone,
-                      title: t('devices.eyebrow'),
-                      onPress: () => router.navigate({ pathname: '/settings/devices' }),
+                      icon: Users,
+                      title: t('members.eyebrow'),
+                      onPress: () => router.navigate({ pathname: '/settings/members' }),
+                  },
+              ]
+            : []),
+        ...(capabilities.data?.can_view_invitations
+            ? [
+                  {
+                      icon: MailPlus,
+                      title: t('invitations.eyebrow'),
+                      onPress: () => router.navigate({ pathname: '/settings/invitations' }),
                   },
               ]
             : []),
@@ -99,45 +175,169 @@ const SettingsScreen = () => {
 
     return (
         <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-            <Title type="h1">{t('title')}</Title>
-            <VStack style={styles.settingsContainer}>
-                <VStack style={styles.settingsWrapper}>
-                    {settings.map((setting, index) => (
-                        <VStack key={setting.title}>
-                            <Pressable accessibilityRole="button" onPress={setting.onPress}>
-                                <HStack style={styles.settingContainer}>
-                                    <Box style={styles.iconContainer}>
-                                        <setting.icon
-                                            size={theme.space(5)}
-                                            strokeWidth={theme.space(0.375)}
-                                            opacity={0.8}
-                                            color={theme.colors.typography}
-                                        />
-                                    </Box>
-                                    <HStack style={styles.settingContentContainer}>
-                                        <VStack style={styles.settingTitleContainer}>
-                                            <Box>
-                                                <Text
-                                                    fontWeight="medium"
-                                                    style={styles.settingTitle}
-                                                >
-                                                    {setting.title}
-                                                </Text>
+            {principal.data ? (
+                <VStack>
+                    <HStack
+                        accessibilityRole="summary"
+                        accessibilityLabel={`${principal.data.display_name}, ${t(`profile.kind.${principal.data.kind}`)}, ${t('profile.readOnly')}`}
+                        style={styles.profileCard}
+                    >
+                        <Box style={styles.profileIcon}>
+                            <UserRound
+                                size={theme.space(6)}
+                                color={theme.colors.typography}
+                                accessibilityElementsHidden
+                            />
+                        </Box>
+                        <VStack style={styles.profileText}>
+                            <Text fontWeight="semibold">{principal.data.display_name}</Text>
+                            <Text style={styles.secondary}>
+                                @{principal.data.nickname} ·{' '}
+                                {t(`profile.kind.${principal.data.kind}`)}
+                            </Text>
+                            <Text selectable style={styles.secondary}>
+                                {principal.data.principal_id}
+                            </Text>
+                            <Box style={styles.readOnly}>
+                                <Text style={styles.secondary}>{t('profile.readOnly')}</Text>
+                            </Box>
+                        </VStack>
+                    </HStack>
+                    <VStack style={[styles.settingsContainer, styles.settingsContainerGeneral]}>
+                        <VStack style={styles.settingsWrapper}>
+                            <Box style={[styles.divider, styles.dividerWide]} />
+                            {general.map((setting, index) => (
+                                <VStack key={setting.title}>
+                                    <Pressable accessibilityRole="button" onPress={setting.onPress}>
+                                        <HStack style={styles.settingContainer}>
+                                            <Box style={styles.iconContainer}>
+                                                <setting.icon
+                                                    size={theme.space(5)}
+                                                    strokeWidth={theme.space(0.375)}
+                                                    opacity={0.8}
+                                                    color={theme.colors.typography}
+                                                />
                                             </Box>
-                                        </VStack>
-                                        <Box>
-                                            <ChevronRight
+                                            <HStack style={styles.settingContentContainer}>
+                                                <VStack style={styles.settingTitleContainer}>
+                                                    <Box>
+                                                        <Text
+                                                            fontWeight="medium"
+                                                            style={styles.settingTitle}
+                                                        >
+                                                            {setting.title}
+                                                        </Text>
+                                                    </Box>
+                                                </VStack>
+                                                <Box>
+                                                    <ChevronRight
+                                                        size={theme.space(5)}
+                                                        opacity={0.8}
+                                                        color={theme.colors.typography}
+                                                    />
+                                                </Box>
+                                            </HStack>
+                                        </HStack>
+                                    </Pressable>
+                                    {index < general.length - 1 ? (
+                                        <Box style={styles.divider} />
+                                    ) : null}
+                                </VStack>
+                            ))}
+                        </VStack>
+                    </VStack>
+                </VStack>
+            ) : null}
+            {memberSettings.length > 0 ? (
+                <VStack style={styles.fieldContainer}>
+                    <Label>{t('members.eyebrow')}</Label>
+                    <VStack style={styles.settingsContainer}>
+                        <VStack style={styles.settingsWrapper}>
+                            {memberSettings.map((setting, index) => (
+                                <VStack key={setting.title}>
+                                    <Pressable accessibilityRole="button" onPress={setting.onPress}>
+                                        <HStack style={styles.settingContainer}>
+                                            <Box style={styles.iconContainer}>
+                                                <setting.icon
+                                                    size={theme.space(5)}
+                                                    strokeWidth={theme.space(0.375)}
+                                                    opacity={0.8}
+                                                    color={theme.colors.typography}
+                                                />
+                                            </Box>
+                                            <HStack style={styles.settingContentContainer}>
+                                                <VStack style={styles.settingTitleContainer}>
+                                                    <Box>
+                                                        <Text
+                                                            fontWeight="medium"
+                                                            style={styles.settingTitle}
+                                                        >
+                                                            {setting.title}
+                                                        </Text>
+                                                    </Box>
+                                                </VStack>
+                                                <Box>
+                                                    <ChevronRight
+                                                        size={theme.space(5)}
+                                                        opacity={0.8}
+                                                        color={theme.colors.typography}
+                                                    />
+                                                </Box>
+                                            </HStack>
+                                        </HStack>
+                                    </Pressable>
+                                    {index < memberSettings.length - 1 ? (
+                                        <Box style={styles.divider} />
+                                    ) : null}
+                                </VStack>
+                            ))}
+                        </VStack>
+                    </VStack>
+                </VStack>
+            ) : null}
+            <VStack style={styles.fieldContainer}>
+                <Label>{t('title')}</Label>
+                <VStack style={styles.settingsContainer}>
+                    <VStack style={styles.settingsWrapper}>
+                        {settings.map((setting, index) => (
+                            <VStack key={setting.title}>
+                                <Pressable accessibilityRole="button" onPress={setting.onPress}>
+                                    <HStack style={styles.settingContainer}>
+                                        <Box style={styles.iconContainer}>
+                                            <setting.icon
                                                 size={theme.space(5)}
+                                                strokeWidth={theme.space(0.375)}
                                                 opacity={0.8}
                                                 color={theme.colors.typography}
                                             />
                                         </Box>
+                                        <HStack style={styles.settingContentContainer}>
+                                            <VStack style={styles.settingTitleContainer}>
+                                                <Box>
+                                                    <Text
+                                                        fontWeight="medium"
+                                                        style={styles.settingTitle}
+                                                    >
+                                                        {setting.title}
+                                                    </Text>
+                                                </Box>
+                                            </VStack>
+                                            <Box>
+                                                <ChevronRight
+                                                    size={theme.space(5)}
+                                                    opacity={0.8}
+                                                    color={theme.colors.typography}
+                                                />
+                                            </Box>
+                                        </HStack>
                                     </HStack>
-                                </HStack>
-                            </Pressable>
-                            {index < settings.length - 1 ? <Box style={styles.divider} /> : null}
-                        </VStack>
-                    ))}
+                                </Pressable>
+                                {index < settings.length - 1 ? (
+                                    <Box style={styles.divider} />
+                                ) : null}
+                            </VStack>
+                        ))}
+                    </VStack>
                 </VStack>
             </VStack>
         </ScrollView>
