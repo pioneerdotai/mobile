@@ -7,6 +7,13 @@ const appVersion = cleanEnv(process.env.APP_VERSION) || '1.0';
 const appBuildNumber = cleanEnv(process.env.APP_BUILD_NUMBER) || '1';
 const appBundleIdentifier = cleanEnv(process.env.APP_BUNDLE_IDENTIFIER) || '';
 const appVariant = cleanEnv(process.env.APP_VARIANT);
+const configuredAppUrlScheme = cleanEnv(process.env.PIONEER_APP_URL_SCHEME);
+const appUrlScheme =
+    configuredAppUrlScheme ||
+    (appVariant === 'development' || appVariant === 'preview' ? 'pioneer-dev' : 'pioneer');
+if (!['pioneer', 'pioneer-dev'].includes(appUrlScheme)) {
+    throw new Error('PIONEER_APP_URL_SCHEME must be either pioneer or pioneer-dev');
+}
 const appAppleTeamId = cleanEnv(process.env.APP_APPLE_TEAM_ID) || '';
 const appEasProjectId = cleanEnv(process.env.APP_EAS_PROJECT_ID);
 const iosDeploymentTarget = '16.4';
@@ -48,7 +55,7 @@ module.exports = {
     owner: 'pioneerdotai',
     slug: 'pioneer',
     orientation: 'portrait',
-    scheme: 'pioneer',
+    scheme: appUrlScheme,
     userInterfaceStyle: 'automatic',
     newArchEnabled: true,
     experiments: {
@@ -189,6 +196,7 @@ module.exports = {
         policy: 'appVersion',
     },
     extra: {
+        appUrlScheme,
         sentry: sentryExtra,
         eas: {
             projectId: appEasProjectId,

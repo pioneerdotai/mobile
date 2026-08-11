@@ -100,6 +100,7 @@ describe('mobile member administration', () => {
         expect(pioneerClient.gatewayDeviceActivationPresentation).toHaveBeenCalledWith({
             gateway_base_url: 'https://gateway.test/',
             created_device: activation,
+            app_url_scheme: 'pioneer-dev',
         });
     });
 

@@ -3,6 +3,9 @@
   "title": "ClientDeviceActivationPresentationRequest",
   "type": "object",
   "properties": {
+    "app_url_scheme": {
+      "$ref": "#/$defs/PioneerAppUrlScheme"
+    },
     "created_device": {
       "$ref": "#/$defs/AuthDeviceCreateResponse"
     },
@@ -13,7 +16,8 @@
   "additionalProperties": false,
   "required": [
     "gateway_base_url",
-    "created_device"
+    "created_device",
+    "app_url_scheme"
   ],
   "$defs": {
     "AuthDeviceCreateResponse": {
@@ -62,6 +66,14 @@
       "maxLength": 21,
       "minLength": 21,
       "pattern": "^[A-Za-z0-9]{21}$"
+    },
+    "PioneerAppUrlScheme": {
+      "description": "The custom URL scheme owned by a Pioneer application build.\n\nDebug builds default to the development scheme so they can coexist with an\ninstalled production application. Release packaging can override the\ndefault at compile time with `PIONEER_APP_URL_SCHEME`.",
+      "type": "string",
+      "enum": [
+        "pioneer",
+        "pioneer-dev"
+      ]
     }
   }
 }

@@ -7,6 +7,7 @@ import type {
     GatewayRegistry,
 } from '@/client';
 import { pioneerQueryClient } from '@/services/query/client';
+import { PIONEER_APP_URL_SCHEME } from '@/helpers/app-url';
 import { storage } from '@/storage';
 import { beginMobileAuthorizationEpoch } from './access-change';
 import {
@@ -131,6 +132,7 @@ export const createMobileDeviceActivationPresentation = async (
     return pioneerClient.gatewayDeviceActivationPresentation({
         gateway_base_url: endpoint.gateway_base_url,
         created_device: createdDevice,
+        app_url_scheme: PIONEER_APP_URL_SCHEME,
     });
 };
 

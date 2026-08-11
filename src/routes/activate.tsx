@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 
 import GatewayEditorScreen from '@/screens/gateway/editor';
 import type { GatewayActivationPrefill } from '@/screens/gateway/editor';
+import { isPioneerAppUrl } from '@/helpers/app-url';
 import {
     MobileDeviceActivationError,
     parseMobileDeviceActivationUri,
@@ -19,8 +20,7 @@ const activationErrorKey: Record<MobileDeviceActivationErrorCode, string> = {
     storage_failed: 'activation.storageFailed',
 };
 
-const isActivationLink = (url: string | null): url is string =>
-    Boolean(url?.includes('://activate'));
+const isActivationLink = (url: string | null): url is string => isPioneerAppUrl(url, 'activate');
 
 const ActivateRoute = () => {
     const { t } = useTranslation('gateway');

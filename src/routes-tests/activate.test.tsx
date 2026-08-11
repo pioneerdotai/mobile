@@ -68,7 +68,7 @@ const ActivateRoute =
 const gatewayId = 'G00000000000000000001';
 const activationCode = 'K7M4-P9Q2';
 const activationLink =
-    `pioneer://activate?gateway_base_url=https%3A%2F%2Fgateway.example%2F` +
+    `pioneer-dev://activate?gateway_base_url=https%3A%2F%2Fgateway.example%2F` +
     `&gateway_id=${gatewayId}` +
     `#code=${activationCode}`;
 const activationInput = {
@@ -119,7 +119,7 @@ describe('ActivateRoute', () => {
     });
 
     it('uses the same editor with a localized error for a malformed link', async () => {
-        mockLinkingUrl = `pioneer://activate#code=${activationCode}`;
+        mockLinkingUrl = `pioneer-dev://activate#code=${activationCode}`;
         mockParseMobileDeviceActivationUri.mockRejectedValue(
             new MockMobileDeviceActivationError('invalid_presentation'),
         );
@@ -151,5 +151,15 @@ describe('ActivateRoute', () => {
         });
         expect(editor(tree!).props.activationPrefill).toBeUndefined();
         expect(mockParseMobileDeviceActivationUri).not.toHaveBeenCalled();
+    });
+
+    it('does not consume a production link in the development application', async () => {
+        mockLinkingUrl = activationLink.replace('pioneer-dev://', 'pioneer://');
+        await act(async () => {
+            renderer.create(<ActivateRoute />);
+            await flushPromises();
+        });
+        expect(mockParseMobileDeviceActivationUri).not.toHaveBeenCalled();
+        expect(mockClearInitialUrl).not.toHaveBeenCalled();
     });
 });

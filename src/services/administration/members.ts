@@ -8,6 +8,7 @@ import type {
     WorkspaceMemberListResponse,
 } from '@/client';
 import { pioneerClient } from '@/client';
+import { PIONEER_APP_URL_SCHEME } from '@/helpers/app-url';
 
 export const MEMBER_PAGE_LIMIT = 50;
 const WORKSPACE_MEMBER_PAGE_LIMIT = 100;
@@ -103,6 +104,7 @@ export const createRecoveryDevicePresentation = async (
         return pioneerClient.gatewayDeviceActivationPresentation({
             gateway_base_url: endpoint.gateway_base_url,
             created_device: response.activation,
+            app_url_scheme: PIONEER_APP_URL_SCHEME,
         });
     } catch (error) {
         await cancelRecoveryDevice(response.activation.session_id).catch(() => {});

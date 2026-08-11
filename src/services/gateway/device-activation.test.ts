@@ -1085,6 +1085,7 @@ describe('mobile device activation service', () => {
         expect(mockGatewayDeviceActivationPresentation).toHaveBeenCalledWith({
             gateway_base_url: activation.gateway_base_url,
             created_device: createdDevice,
+            app_url_scheme: 'pioneer-dev',
         });
     });
 

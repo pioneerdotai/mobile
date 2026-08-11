@@ -203,6 +203,7 @@ describe('mobile Nitro auth contract', () => {
         const parsed = await pioneerClient.gatewayDeviceActivationParse({ uri: deepLink });
         const presented = await pioneerClient.gatewayDeviceActivationPresentation({
             gateway_base_url: parsed.gateway_base_url,
+            app_url_scheme: 'pioneer-dev',
             created_device: {
                 device_id: 'D00000000000000000002',
                 session_id: 'S00000000000000000002',

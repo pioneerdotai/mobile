@@ -21,7 +21,7 @@ const isSecretField = (value: string): boolean => {
 
 export const redactAuthText = (value: string): string => {
     return value
-        .replace(/pioneer:\/\/activate[^\s"']*/gi, 'pioneer://activate?[redacted]')
+        .replace(/pioneer(?:-dev)?:\/\/activate[^\s"']*/gi, 'pioneer://activate?[redacted]')
         .replace(/\bBearer\s+[A-Za-z0-9._~+/=-]+/gi, 'Bearer [redacted]')
         .replace(/\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g, '[redacted-jwt]')
         .replace(/\b(?:prf2_|prf_|device_)[A-Za-z0-9._~+/=-]{20,}/g, '[redacted-credential]')
