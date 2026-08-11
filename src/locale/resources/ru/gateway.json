@@ -48,6 +48,12 @@
         "loadFailed": "Не удалось загрузить устройства.",
         "current": "Это устройство",
         "sessionMeta": "$t(devices.clientKind.{{kind}}) · Последняя активность: {{date}}",
+        "status": {
+            "active": "Активна",
+            "pending": "Ожидает активации",
+            "expired": "Истекла",
+            "revoked": "Отозвана"
+        },
         "clientKind": {
             "desktop": "Компьютер",
             "mobile": "Мобильное",
@@ -90,6 +96,14 @@
             "title": "Проблема безопасности",
             "description": "Семейство credentials отозвано для защиты Gateway."
         },
+        "principal_suspended": {
+            "title": "Аккаунт приостановлен",
+            "description": "Администратор Gateway приостановил ваш аккаунт."
+        },
+        "principal_removed": {
+            "title": "Доступ удалён",
+            "description": "У вашего аккаунта больше нет доступа к этому Gateway."
+        },
         "gateway_identity_mismatch": {
             "title": "Другой Gateway",
             "description": "Сервер не совпадает с закреплённой identity Gateway."
@@ -105,6 +119,34 @@
         "refresh_credential_invalid": {
             "title": "Credential сессии недействителен",
             "description": "Устройство нужно подключить заново."
+        }
+    },
+    "invitation": {
+        "join": {
+            "title": "Приглашение",
+            "oneTimeWarning": "Это приглашение — одноразовый секрет. Не передавайте его другим.",
+            "loading": "Проверяем приглашение",
+            "accept": "Принять приглашение",
+            "cancel": "Отмена",
+            "displayName": "Имя",
+            "nickname": "Никнейм",
+            "chooseAvatar": "Выбрать фото профиля (необязательно)",
+            "avatarSelected": "Фото профиля выбрано",
+            "inviter": "Пригласил: {{name}}",
+            "workspaces": "Рабочие пространства: {{names}}",
+            "expires": "Срок действия, Unix: {{timestamp}}",
+            "transport": {
+                "secure_wss": "Защищённое соединение",
+                "insecure_ws": "Незашифрованное соединение"
+            },
+            "errors": {
+                "unavailable": "Приглашение некорректно, истекло, отозвано или недоступно.",
+                "displayName": "Введите корректное имя.",
+                "nickname": "Никнейм: 2–32 латинских символа, цифры, точки, дефисы или подчёркивания.",
+                "nicknameUnavailable": "Этот никнейм уже занят.",
+                "storage": "Не удалось сохранить защищённую сессию. Повторите попытку.",
+                "avatar": "Выберите PNG, JPEG или WebP не более 256 КБ и 1024×1024."
+            }
         }
     }
 }

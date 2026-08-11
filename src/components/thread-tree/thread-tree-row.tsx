@@ -1,5 +1,6 @@
 import { ChevronRight, FileText, Folder } from 'lucide-react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
+import { useTranslation } from 'react-i18next';
 
 import type { Thread, ThreadFolder } from '@/client';
 import { Box } from '@/components/primitives/box';
@@ -22,6 +23,7 @@ type ThreadTreeAgentsDocRowProps = {
 type ThreadTreeThreadRowProps = {
     thread: Thread;
     untitledLabel: string;
+    unreadCount?: number;
     onPress?: () => void;
 };
 
@@ -86,7 +88,14 @@ const ThreadTreeAgentsDocRow = ({ label, onPress }: ThreadTreeAgentsDocRowProps)
     return <HStack style={styles.row}>{content}</HStack>;
 };
 
-const ThreadTreeThreadRow = ({ thread, untitledLabel, onPress }: ThreadTreeThreadRowProps) => {
+const ThreadTreeThreadRow = ({
+    thread,
+    untitledLabel,
+    unreadCount = 0,
+    onPress,
+}: ThreadTreeThreadRowProps) => {
+    const { t } = useTranslation('threads');
+    const visibleUnreadCount = Math.max(0, Math.trunc(unreadCount));
     const content = (
         <HStack style={styles.row}>
             <VStack style={styles.textContainer}>
@@ -94,6 +103,17 @@ const ThreadTreeThreadRow = ({ thread, untitledLabel, onPress }: ThreadTreeThrea
                     <Text numberOfLines={1} ellipsizeMode="tail" style={styles.itemTitle}>
                         {threadTitle(thread, untitledLabel)}
                     </Text>
+                    {visibleUnreadCount > 0 ? (
+                        <Box
+                            accessible
+                            accessibilityLabel={t('threadUnreadCount', {
+                                count: visibleUnreadCount,
+                            })}
+                            style={styles.unreadBadge}
+                        >
+                            <Text style={styles.unreadBadgeText}>{visibleUnreadCount}</Text>
+                        </Box>
+                    ) : null}
                 </HStack>
             </VStack>
         </HStack>
@@ -144,6 +164,22 @@ const styles = StyleSheet.create((theme, rt) => ({
     },
     folderTitle: {
         fontWeight: theme.fontWeight.bold.fontWeight,
+    },
+    unreadBadge: {
+        minWidth: theme.space(6),
+        height: theme.space(6),
+        paddingHorizontal: theme.space(1.25),
+        borderRadius: theme.radius.full,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: theme.colors.muted,
+    },
+    unreadBadgeText: {
+        color: theme.colors.typography,
+        fontSize: theme.fontSize.xs.fontSize,
+        lineHeight: theme.fontSize.xs.lineHeight,
+        fontWeight: theme.fontWeight.medium.fontWeight,
+        opacity: 0.6,
     },
     meta: {
         flexShrink: 0,

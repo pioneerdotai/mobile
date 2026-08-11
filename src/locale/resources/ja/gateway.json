@@ -48,6 +48,12 @@
         "loadFailed": "デバイスを読み込めませんでした。",
         "current": "このデバイス",
         "sessionMeta": "$t(devices.clientKind.{{kind}}) · 最終使用 {{date}}",
+        "status": {
+            "active": "有効",
+            "pending": "保留中",
+            "expired": "期限切れ",
+            "revoked": "取り消し済み"
+        },
         "clientKind": {
             "desktop": "デスクトップ",
             "mobile": "モバイル",
@@ -90,6 +96,14 @@
             "title": "セキュリティ上の問題",
             "description": "Gateway保護のため認証情報ファミリーを無効化しました。"
         },
+        "principal_suspended": {
+            "title": "アカウントが停止されました",
+            "description": "Gateway 管理者がアカウントを停止しました。"
+        },
+        "principal_removed": {
+            "title": "アクセスが削除されました",
+            "description": "このアカウントは Gateway にアクセスできなくなりました。"
+        },
         "gateway_identity_mismatch": {
             "title": "Gateway不一致",
             "description": "サーバーが固定されたGateway identityと一致しません。"
@@ -105,6 +119,34 @@
         "refresh_credential_invalid": {
             "title": "セッション認証情報が無効です",
             "description": "このデバイスを再度登録してください。"
+        }
+    },
+    "invitation": {
+        "join": {
+            "title": "招待",
+            "oneTimeWarning": "この招待は一度限りの認証情報です。共有しないでください。",
+            "loading": "招待を確認中",
+            "accept": "招待を承認",
+            "cancel": "キャンセル",
+            "displayName": "表示名",
+            "nickname": "ニックネーム",
+            "chooseAvatar": "プロフィール画像を選択（任意）",
+            "avatarSelected": "プロフィール画像を選択しました",
+            "inviter": "{{name}} からの招待",
+            "workspaces": "ワークスペース: {{names}}",
+            "expires": "Unix時間 {{timestamp}} に期限切れ",
+            "transport": {
+                "secure_wss": "安全に暗号化された接続",
+                "insecure_ws": "暗号化されていない接続"
+            },
+            "errors": {
+                "unavailable": "この招待は無効、期限切れ、取り消し済み、または利用できません。",
+                "displayName": "有効な表示名を入力してください。",
+                "nickname": "ニックネームは2〜32文字のASCII英数字、ピリオド、ハイフン、またはアンダースコアで入力してください。",
+                "nicknameUnavailable": "そのニックネームはすでに使用されています。",
+                "storage": "新しいセッションを安全に保存できませんでした。もう一度お試しください。",
+                "avatar": "256 KB以下、1024×1024以下のPNG、JPEG、またはWebP画像を選択してください。"
+            }
         }
     }
 }

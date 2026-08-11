@@ -16,8 +16,15 @@ type ThreadTreeLevelScreenProps = {
 const ThreadFolderScreen = ({ folderId }: ThreadTreeLevelScreenProps) => {
     const { t } = useTranslation('threads');
     const router = useRouter();
-    const { currentFolder, currentAgentsDocSummary, folders, threads, loading, error } =
-        useThreadTreeLevel(folderId);
+    const {
+        currentFolder,
+        currentAgentsDocSummary,
+        folders,
+        threads,
+        unreadByThreadId,
+        loading,
+        error,
+    } = useThreadTreeLevel(folderId);
 
     const title = currentFolder?.name.trim() || t('title');
     const agentsDocWorkspaceId = currentAgentsDocSummary?.workspace_id ?? null;
@@ -72,6 +79,7 @@ const ThreadFolderScreen = ({ folderId }: ThreadTreeLevelScreenProps) => {
             showAgentsDoc={!!currentAgentsDocSummary}
             style={styles.container}
             threads={threads}
+            unreadByThreadId={unreadByThreadId}
             untitledLabel={t('untitled')}
         />
     );

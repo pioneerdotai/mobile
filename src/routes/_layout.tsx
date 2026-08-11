@@ -254,6 +254,15 @@ const RootStack = () => {
                 <Stack.Screen name="(tabs)" />
                 <Stack.Screen name="thread" options={threadModalOptions} />
                 <Stack.Screen
+                    name="message-revisions"
+                    options={{
+                        presentation: 'card',
+                        animationTypeForReplace: 'pop',
+                        cardOverlayEnabled: false,
+                        animation: 'slide_from_bottom',
+                    }}
+                />
+                <Stack.Screen
                     name="agents-doc"
                     options={{
                         presentation: 'card',
@@ -288,6 +297,15 @@ const RootStack = () => {
                         animationTypeForReplace: 'pop',
                         cardOverlayEnabled: false,
                         animation: 'slide_from_bottom',
+                    }}
+                />
+                <Stack.Screen
+                    name="invite"
+                    options={{
+                        presentation: 'card',
+                        animationTypeForReplace: 'pop',
+                        cardOverlayEnabled: false,
+                        animation: 'slide_from_right',
                     }}
                 />
                 <Stack.Screen

@@ -4,6 +4,7 @@ import renderer, { act, type ReactTestRenderer } from 'react-test-renderer';
 
 const mockReact = React;
 const mockRouterReplace = jest.fn();
+const mockRouterSetParams = jest.fn();
 const mockClearInitialUrl = jest.fn();
 type ParsedActivation = {
     gateway_base_url: string;
@@ -37,7 +38,7 @@ jest.setMock('expo-linking', {
 
 jest.setMock('expo-router', {
     __esModule: true,
-    router: { replace: mockRouterReplace },
+    router: { replace: mockRouterReplace, setParams: mockRouterSetParams },
 });
 
 jest.mock('react-i18next', () => ({
@@ -103,8 +104,13 @@ describe('ActivateRoute', () => {
             await flushPromises();
         });
 
-        expect(mockRouterReplace).toHaveBeenCalledWith('/activate');
+        expect(mockRouterReplace).not.toHaveBeenCalledWith('/activate');
         expect(mockRouterReplace).not.toHaveBeenCalledWith(expect.stringContaining(activationCode));
+        expect(mockRouterSetParams).toHaveBeenCalledWith({
+            '#': undefined,
+            gateway_base_url: undefined,
+            gateway_id: undefined,
+        });
         expect(mockClearInitialUrl).toHaveBeenCalledTimes(1);
         expect(mockParseMobileDeviceActivationUri).toHaveBeenCalledWith(activationLink);
         expect(editor(tree!).props).toMatchObject({

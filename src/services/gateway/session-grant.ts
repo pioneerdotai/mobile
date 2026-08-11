@@ -5,6 +5,7 @@ import { Platform } from 'react-native';
 import { pioneerClient } from '@/client';
 import type { AuthSessionGrant } from '@/client';
 import { DEVICE_SESSION_AUTH_PROTOCOL_VERSION, isRefreshCredential } from './refresh-credential';
+import { isSupportedSessionPrincipalKind } from './session-principal';
 import {
     MOBILE_GATEWAY_SESSION_SCHEMA_VERSION,
     type MobileGatewaySessionEnvelope,
@@ -46,7 +47,7 @@ export const validateMobileSessionGrant = (
         !/^[A-Za-z0-9]{21}$/.test(grant.principal.id) ||
         !/^[A-Za-z0-9]{21}$/.test(grant.device.id) ||
         !/^[A-Za-z0-9]{21}$/.test(grant.session.id) ||
-        grant.principal.kind !== 'superuser' ||
+        !isSupportedSessionPrincipalKind(grant.principal.kind) ||
         grant.device.installation_id !== installationId ||
         grant.device.client_kind !== 'mobile' ||
         grant.device.status !== 'active' ||

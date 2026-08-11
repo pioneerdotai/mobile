@@ -48,6 +48,12 @@
         "loadFailed": "No se pudieron cargar los dispositivos.",
         "current": "Este dispositivo",
         "sessionMeta": "$t(devices.clientKind.{{kind}}) · Última actividad: {{date}}",
+        "status": {
+            "active": "Activa",
+            "pending": "Pendiente",
+            "expired": "Caducada",
+            "revoked": "Revocada"
+        },
         "clientKind": {
             "desktop": "Escritorio",
             "mobile": "Móvil",
@@ -90,6 +96,14 @@
             "title": "Problema de seguridad",
             "description": "La familia de credenciales se revocó para proteger el gateway."
         },
+        "principal_suspended": {
+            "title": "Cuenta suspendida",
+            "description": "Un administrador del Gateway ha suspendido tu cuenta."
+        },
+        "principal_removed": {
+            "title": "Acceso eliminado",
+            "description": "Tu cuenta ya no tiene acceso a este Gateway."
+        },
         "gateway_identity_mismatch": {
             "title": "Gateway diferente",
             "description": "El servidor no coincide con la identidad fijada del gateway."
@@ -105,6 +119,34 @@
         "refresh_credential_invalid": {
             "title": "Credencial de sesión no válida",
             "description": "Este dispositivo debe registrarse de nuevo."
+        }
+    },
+    "invitation": {
+        "join": {
+            "title": "Invitación",
+            "oneTimeWarning": "Esta invitación es una credencial de un solo uso. No la compartas.",
+            "loading": "Comprobando la invitación",
+            "accept": "Aceptar invitación",
+            "cancel": "Cancelar",
+            "displayName": "Nombre visible",
+            "nickname": "Alias",
+            "chooseAvatar": "Elegir imagen de perfil (opcional)",
+            "avatarSelected": "Imagen de perfil seleccionada",
+            "inviter": "Invitación de {{name}}",
+            "workspaces": "Espacios de trabajo: {{names}}",
+            "expires": "Caduca en el instante Unix {{timestamp}}",
+            "transport": {
+                "secure_wss": "Conexión cifrada segura",
+                "insecure_ws": "Conexión sin cifrar"
+            },
+            "errors": {
+                "unavailable": "Esta invitación no es válida, ha caducado, fue revocada o no está disponible.",
+                "displayName": "Introduce un nombre visible válido.",
+                "nickname": "El alias debe tener entre 2 y 32 letras ASCII, números, puntos, guiones o guiones bajos.",
+                "nicknameUnavailable": "Ese alias ya está en uso.",
+                "storage": "No se pudo guardar de forma segura la nueva sesión. Inténtalo de nuevo.",
+                "avatar": "Elige una imagen PNG, JPEG o WebP de hasta 256 KB y 1024×1024."
+            }
         }
     }
 }

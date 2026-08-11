@@ -48,6 +48,12 @@
         "loadFailed": "无法加载设备。",
         "current": "此设备",
         "sessionMeta": "$t(devices.clientKind.{{kind}}) · 最近活动 {{date}}",
+        "status": {
+            "active": "有效",
+            "pending": "等待中",
+            "expired": "已过期",
+            "revoked": "已撤销"
+        },
         "clientKind": {
             "desktop": "桌面端",
             "mobile": "移动端",
@@ -84,6 +90,14 @@
             "title": "会话安全问题",
             "description": "为保护 Gateway，凭据系列已被撤销。"
         },
+        "principal_suspended": {
+            "title": "账户已暂停",
+            "description": "Gateway 管理员已暂停你的账户。"
+        },
+        "principal_removed": {
+            "title": "访问权限已移除",
+            "description": "你的账户已无法访问此 Gateway。"
+        },
         "gateway_identity_mismatch": {
             "title": "Gateway 不匹配",
             "description": "服务器与固定的 Gateway identity 不匹配。"
@@ -99,6 +113,34 @@
         "refresh_credential_invalid": {
             "title": "会话凭据无效",
             "description": "此设备必须重新注册。"
+        }
+    },
+    "invitation": {
+        "join": {
+            "title": "邀请",
+            "oneTimeWarning": "此邀请是一次性凭据。请勿分享。",
+            "loading": "正在检查邀请",
+            "accept": "接受邀请",
+            "cancel": "取消",
+            "displayName": "显示名称",
+            "nickname": "昵称",
+            "chooseAvatar": "选择个人资料图片（可选）",
+            "avatarSelected": "已选择个人资料图片",
+            "inviter": "{{name}} 邀请了你",
+            "workspaces": "工作区：{{names}}",
+            "expires": "Unix 时间 {{timestamp}} 过期",
+            "transport": {
+                "secure_wss": "安全加密连接",
+                "insecure_ws": "未加密连接"
+            },
+            "errors": {
+                "unavailable": "此邀请无效、已过期、已撤销或不可用。",
+                "displayName": "请输入有效的显示名称。",
+                "nickname": "昵称必须由 2–32 个 ASCII 字母、数字、句点、连字符或下划线组成。",
+                "nicknameUnavailable": "该昵称已被使用。",
+                "storage": "无法安全保存新会话。请重试。",
+                "avatar": "请选择不超过 256 KB 且不大于 1024×1024 的 PNG、JPEG 或 WebP 图片。"
+            }
         }
     }
 }

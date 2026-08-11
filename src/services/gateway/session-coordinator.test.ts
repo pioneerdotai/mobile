@@ -307,6 +307,33 @@ describe('mobile Gateway session coordinator', () => {
         expect(mockGatewaySessionReplaceAccess).toHaveBeenCalledTimes(1);
     });
 
+    it('connects an invited member after rotating the initial refresh credential', async () => {
+        const principal = {
+            ...refreshGrant(1, nowSeconds + 900).principal,
+            kind: 'user' as const,
+            display_name: 'Invited Member',
+            nickname: 'invited_member',
+        };
+        mockGatewayAuthRefresh.mockResolvedValueOnce({
+            ...refreshGrant(1, nowSeconds + 900),
+            principal,
+        });
+        mockGatewayAuthMe.mockResolvedValueOnce({
+            ...currentAuthMe(1),
+            principal,
+        });
+
+        await expect(ensureMobileGatewaySession(endpoint, timings)).resolves.toMatchObject({
+            connection_id: 41,
+        });
+
+        expect(mockGatewayAuthSessionCleanup).not.toHaveBeenCalled();
+        expect(mobileSessionProjection(endpoint.id)).toMatchObject({
+            phase: 'connected',
+            terminalReason: null,
+        });
+    });
+
     it('coalesces concurrent HTTP unauthorized recovery into the existing session lifecycle', async () => {
         const firstConnection = await ensureMobileGatewaySession(endpoint, timings);
         const rejectedGeneration = firstConnection.projection.connectionGeneration;

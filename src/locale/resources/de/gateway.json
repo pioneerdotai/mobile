@@ -48,6 +48,12 @@
         "loadFailed": "Geräte konnten nicht geladen werden.",
         "current": "Dieses Gerät",
         "sessionMeta": "$t(devices.clientKind.{{kind}}) · Zuletzt gesehen {{date}}",
+        "status": {
+            "active": "Aktiv",
+            "pending": "Ausstehend",
+            "expired": "Abgelaufen",
+            "revoked": "Widerrufen"
+        },
         "clientKind": {
             "desktop": "Desktop",
             "mobile": "Mobil",
@@ -90,6 +96,14 @@
             "title": "Sicherheitsproblem",
             "description": "Die Berechtigungsfamilie wurde zum Schutz des Gateways widerrufen."
         },
+        "principal_suspended": {
+            "title": "Konto gesperrt",
+            "description": "Ein Gateway-Administrator hat dein Konto gesperrt."
+        },
+        "principal_removed": {
+            "title": "Zugriff entfernt",
+            "description": "Dein Konto hat keinen Zugriff mehr auf dieses Gateway."
+        },
         "gateway_identity_mismatch": {
             "title": "Gateway stimmt nicht überein",
             "description": "Der Server entspricht nicht der gespeicherten Gateway-Identität."
@@ -105,6 +119,34 @@
         "refresh_credential_invalid": {
             "title": "Sitzungsnachweis ungültig",
             "description": "Dieses Gerät muss erneut registriert werden."
+        }
+    },
+    "invitation": {
+        "join": {
+            "title": "Einladung",
+            "oneTimeWarning": "Diese Einladung ist ein einmaliger Zugangsnachweis. Teile sie nicht.",
+            "loading": "Einladung wird geprüft",
+            "accept": "Einladung annehmen",
+            "cancel": "Abbrechen",
+            "displayName": "Anzeigename",
+            "nickname": "Kurzname",
+            "chooseAvatar": "Profilbild auswählen (optional)",
+            "avatarSelected": "Profilbild ausgewählt",
+            "inviter": "Eingeladen von {{name}}",
+            "workspaces": "Workspaces: {{names}}",
+            "expires": "Läuft zum Unix-Zeitpunkt {{timestamp}} ab",
+            "transport": {
+                "secure_wss": "Sicher verschlüsselte Verbindung",
+                "insecure_ws": "Unverschlüsselte Verbindung"
+            },
+            "errors": {
+                "unavailable": "Diese Einladung ist ungültig, abgelaufen, widerrufen oder nicht verfügbar.",
+                "displayName": "Gib einen gültigen Anzeigenamen ein.",
+                "nickname": "Der Kurzname muss aus 2–32 ASCII-Buchstaben, Zahlen, Punkten, Bindestrichen oder Unterstrichen bestehen.",
+                "nicknameUnavailable": "Dieser Kurzname wird bereits verwendet.",
+                "storage": "Die neue Sitzung konnte nicht sicher gespeichert werden. Versuche es erneut.",
+                "avatar": "Wähle ein PNG-, JPEG- oder WebP-Bild mit höchstens 256 KB und 1024×1024 Pixeln."
+            }
         }
     }
 }

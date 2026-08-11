@@ -16,6 +16,7 @@ import {
 import type { MobileGatewaySessionEnvelope } from './session-storage';
 import { loadGatewayRegistry } from './registry';
 import { DEVICE_SESSION_AUTH_PROTOCOL_VERSION, isRefreshCredential } from './refresh-credential';
+import { isSupportedSessionPrincipalKind } from './session-principal';
 
 export const MOBILE_ACCESS_REFRESH_LEEWAY_SECONDS = 60;
 
@@ -714,7 +715,7 @@ const connectWithAccess = async (
                 me.gateway.id !== runtime.envelope!.gateway_id
                     ? 'gateway_identity_mismatch'
                     : me.principal.id !== runtime.envelope!.principal_id ||
-                        (me.principal.kind !== 'superuser' && me.principal.kind !== 'user') ||
+                        !isSupportedSessionPrincipalKind(me.principal.kind) ||
                         me.device.id !== runtime.envelope!.device_id ||
                         me.device.installation_id !== installationId ||
                         me.device.client_kind !== 'mobile' ||
@@ -998,7 +999,7 @@ const validateRefreshGrant = (
         grant.credential_storage_order !== 'persist_refresh_before_activating_access' ||
         grant.gateway.id !== current.gateway_id ||
         grant.principal.id !== current.principal_id ||
-        grant.principal.kind !== 'superuser' ||
+        !isSupportedSessionPrincipalKind(grant.principal.kind) ||
         grant.session.id !== current.session_id ||
         grant.session.device_id !== current.device_id ||
         grant.session.token_family_id !== current.token_family_id ||

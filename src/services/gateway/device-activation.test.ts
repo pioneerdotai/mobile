@@ -567,6 +567,27 @@ describe('mobile device activation service', () => {
         }
     });
 
+    it('accepts a device activation grant for an invited member', async () => {
+        const memberGrant: AuthSessionGrant = {
+            ...grant(),
+            principal: {
+                ...grant().principal,
+                kind: 'user',
+                display_name: 'Invited Member',
+                nickname: 'invited_member',
+            },
+        };
+        mockGatewayAuthDeviceActivate.mockResolvedValue(memberGrant);
+
+        await expect(acceptMobileDeviceActivation(activation)).resolves.toMatchObject({
+            endpoint: {
+                server_gateway_id: gatewayId,
+            },
+        });
+
+        expect(mockGatewayAuthSessionCleanup).not.toHaveBeenCalled();
+    });
+
     it('preserves an existing local endpoint kind when activation attaches its session', async () => {
         const local = {
             id: 'local',

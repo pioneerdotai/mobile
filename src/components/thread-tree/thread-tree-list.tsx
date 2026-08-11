@@ -46,6 +46,7 @@ type ThreadTreeListProps = {
     showAgentsDoc: boolean;
     style?: ViewStyle;
     threads: Thread[];
+    unreadByThreadId?: Readonly<Record<string, number>>;
     untitledLabel: string;
 };
 
@@ -86,6 +87,7 @@ const ThreadTreeList = ({
     showAgentsDoc,
     style,
     threads,
+    unreadByThreadId = {},
     untitledLabel,
 }: ThreadTreeListProps) => {
     const { theme, rt } = useUnistyles();
@@ -133,12 +135,20 @@ const ThreadTreeList = ({
             return (
                 <ThreadTreeThreadRow
                     thread={item.thread}
+                    unreadCount={unreadByThreadId[item.thread.id] ?? 0}
                     untitledLabel={untitledLabel}
                     onPress={onThreadPress ? () => onThreadPress(item.thread) : undefined}
                 />
             );
         },
-        [agentsDocLabel, onAgentsDocPress, onFolderPress, onThreadPress, untitledLabel],
+        [
+            agentsDocLabel,
+            onAgentsDocPress,
+            onFolderPress,
+            onThreadPress,
+            unreadByThreadId,
+            untitledLabel,
+        ],
     );
 
     return (
@@ -148,7 +158,7 @@ const ThreadTreeList = ({
             data={rows}
             getItemType={getItemType}
             keyExtractor={keyExtractor}
-            extraData={rt.themeName}
+            extraData={{ themeName: rt.themeName, unreadByThreadId }}
             ListEmptyComponent={
                 hideEmptyState ? null : (
                     <ThreadTreeListState

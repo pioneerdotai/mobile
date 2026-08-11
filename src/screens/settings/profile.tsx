@@ -1,18 +1,20 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { router, useNavigation } from 'expo-router';
-import { ChevronRight, ImagePlus, Trash2 } from 'lucide-react-native';
+import { ImagePlus, Trash2 } from 'lucide-react-native';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { StyleSheet, useUnistyles } from 'react-native-unistyles';
+import { StyleSheet } from 'react-native-unistyles';
 
 import { PioneerClientNativeError, type AuthProfileUpdateParams } from '@/client';
 import { HeaderCheckButton } from '@/components/buttons/header-action';
-import { MemberAvatar } from '@/components/member-avatar';
+import {
+    ProfileAvatarField,
+    ProfileIdentityGroup,
+    ProfileNameFields,
+    ProfileUsernameField,
+} from '@/components/forms/profile-editor';
 import { MenuItem } from '@/components/overlays/actions/menu-item';
 import { ActionsSheet } from '@/components/overlays/actions';
-import { Box } from '@/components/primitives/box';
-import { Input } from '@/components/primitives/input';
-import { Pressable } from '@/components/primitives/pressable';
 import { ScrollView } from '@/components/primitives/scrollview';
 import { Text } from '@/components/primitives/text';
 import { VStack } from '@/components/primitives/vstack';
@@ -24,6 +26,7 @@ import {
 } from '@/services/profile/avatar';
 import {
     applyCurrentProfileUpdate,
+    isValidProfileDisplayName,
     joinProfileDisplayName,
     splitProfileDisplayName,
     updateCurrentProfile,
@@ -34,7 +37,6 @@ type AvatarEdit =
 
 const ProfileSettingsScreen = () => {
     const { t } = useTranslation('settings');
-    const { theme } = useUnistyles();
     const navigation = useNavigation();
     const queryClient = useQueryClient();
     const principalQuery = useAdministrationPrincipal();
@@ -63,7 +65,7 @@ const ProfileSettingsScreen = () => {
     const dirty = Boolean(
         principal && (displayName !== principal.display_name || avatarEdit.kind !== 'unchanged'),
     );
-    const valid = displayName.length > 0 && [...displayName].length <= 128;
+    const valid = isValidProfileDisplayName(displayName);
 
     const { mutate: saveProfile, isPending: isSaving } = useMutation({
         mutationFn: updateCurrentProfile,
@@ -155,66 +157,30 @@ const ProfileSettingsScreen = () => {
             >
                 {principal ? (
                     <>
-                        <VStack style={styles.avatarSection}>
-                            <MemberAvatar
+                        <ProfileIdentityGroup>
+                            <ProfileAvatarField
                                 displayName={displayName || principal.display_name}
-                                size={theme.space(24)}
                                 imageUri={previewUri}
                                 principalId={principal.id}
                                 avatarRevision={principal.avatar_revision}
-                            />
-                            <Pressable
-                                accessibilityRole="button"
+                                actionLabel={t('profile.changePhoto')}
                                 onPress={() => setAvatarMenuOpen(true)}
-                            >
-                                <Text fontWeight="medium" style={styles.photoAction}>
-                                    {t('profile.changePhoto')}
-                                </Text>
-                            </Pressable>
-                            <VStack style={styles.nameCardContainer}>
-                                <VStack style={styles.nameCard}>
-                                    <Input
-                                        value={firstName}
-                                        placeholder={t('profile.firstName')}
-                                        autoCapitalize="words"
-                                        autoCorrect={false}
-                                        maxLength={128}
-                                        returnKeyType="next"
-                                        style={styles.nameInput}
-                                        onChangeText={setFirstName}
-                                    />
-                                    <Box style={styles.divider} />
-                                    <Input
-                                        value={lastName}
-                                        placeholder={t('profile.lastName')}
-                                        autoCapitalize="words"
-                                        autoCorrect={false}
-                                        maxLength={128}
-                                        returnKeyType="done"
-                                        style={styles.nameInput}
-                                        onChangeText={setLastName}
-                                    />
-                                </VStack>
-                                <Text style={styles.hint}>{t('profile.nameHint')}</Text>
-                            </VStack>
-                        </VStack>
-
-                        <Pressable
-                            accessibilityRole="button"
+                            />
+                            <ProfileNameFields
+                                firstName={firstName}
+                                lastName={lastName}
+                                firstNamePlaceholder={t('profile.firstName')}
+                                lastNamePlaceholder={t('profile.lastName')}
+                                hint={t('profile.nameHint')}
+                                onFirstNameChange={setFirstName}
+                                onLastNameChange={setLastName}
+                            />
+                        </ProfileIdentityGroup>
+                        <ProfileUsernameField
+                            label={t('profile.username')}
+                            value={principal.nickname}
                             onPress={() => router.navigate({ pathname: '/settings/username' })}
-                        >
-                            <Box style={styles.usernameCard}>
-                                <Text style={styles.usernameLabel}>{t('profile.username')}</Text>
-                                <Box style={styles.usernameValue}>
-                                    <Text style={styles.secondary}>@{principal.nickname}</Text>
-                                    <ChevronRight
-                                        size={theme.space(5)}
-                                        opacity={0.6}
-                                        color={theme.colors.typography}
-                                    />
-                                </Box>
-                            </Box>
-                        </Pressable>
+                        />
 
                         {error ? (
                             <Text accessibilityRole="alert" style={styles.error}>
@@ -254,58 +220,10 @@ const styles = StyleSheet.create((theme, rt) => ({
         paddingLeft: rt.insets.left + theme.space(4),
         paddingRight: rt.insets.right + theme.space(4),
     },
-    usernameLabel: {
-        opacity: 1,
-    },
-    usernameValue: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: theme.space(2),
-    },
     content: {
         ...theme.screenContentPadding('child'),
         gap: theme.space(6),
     },
-    avatarSection: {
-        alignItems: 'center',
-        gap: theme.space(2),
-    },
-    photoAction: { color: theme.colors.blue['500'], paddingBottom: theme.space(1) },
-    nameCardContainer: {
-        width: '100%',
-        gap: theme.space(2),
-    },
-    nameCard: {
-        paddingHorizontal: theme.space(5),
-        paddingVertical: theme.space(3),
-        borderRadius: theme.radius['4xl'],
-        backgroundColor: theme.colors.muted,
-    },
-    nameInput: {
-        paddingVertical: theme.space(3),
-        color: theme.colors.typography,
-        fontSize: theme.fontSize.default.fontSize,
-    },
-    divider: {
-        height: StyleSheet.hairlineWidth,
-        backgroundColor: theme.colors.border,
-    },
-    hint: {
-        paddingLeft: theme.space(5),
-        opacity: 0.6,
-        fontSize: theme.fontSize.xs.fontSize,
-        lineHeight: theme.fontSize.xs.lineHeight,
-    },
-    usernameCard: {
-        padding: theme.space(5),
-        borderRadius: theme.radius['4xl'],
-        backgroundColor: theme.colors.muted,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: theme.space(3),
-    },
-    secondary: { opacity: 0.6 },
     error: {
         textAlign: 'center',
         color: theme.colors.dangerText,

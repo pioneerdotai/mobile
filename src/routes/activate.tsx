@@ -1,11 +1,11 @@
 import * as Linking from 'expo-linking';
-import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import GatewayEditorScreen from '@/screens/gateway/editor';
 import type { GatewayActivationPrefill } from '@/screens/gateway/editor';
 import { isPioneerAppUrl } from '@/helpers/app-url';
+import { sanitizePioneerAppUrlRoute } from '@/helpers/app-url-route';
 import {
     MobileDeviceActivationError,
     parseMobileDeviceActivationUri,
@@ -44,10 +44,9 @@ const ActivateRoute = () => {
         setInitialErrorKey(null);
         setActivationPrefill(null);
 
-        // Remove the secret-bearing URL from navigation and the native linking
-        // cache before handing the parsed values to the shared editor.
-        router.replace('/activate');
-        Linking.clearInitialURL();
+        // Remove the secret-bearing params without replacing and unmounting
+        // the route that owns the one-time activation code.
+        sanitizePioneerAppUrlRoute('gateway_base_url', 'gateway_id');
 
         void parseMobileDeviceActivationUri(incomingUrl)
             .then((parsed) => {

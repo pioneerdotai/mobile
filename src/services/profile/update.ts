@@ -13,6 +13,27 @@ export type ProfileNameParts = {
     lastName: string;
 };
 
+const utf8ByteLength = (value: string): number =>
+    [...value].reduce((total, character) => {
+        const codePoint = character.codePointAt(0) ?? 0;
+        return (
+            total + (codePoint <= 0x7f ? 1 : codePoint <= 0x7ff ? 2 : codePoint <= 0xffff ? 3 : 4)
+        );
+    }, 0);
+
+export const isValidProfileDisplayName = (value: string): boolean => {
+    const normalized = value.trim();
+    return (
+        normalized.length > 0 &&
+        [...normalized].length <= 128 &&
+        utf8ByteLength(normalized) <= 512 &&
+        !/[\u0000-\u001f\u007f]/u.test(normalized)
+    );
+};
+
+export const isValidProfileNickname = (value: string): boolean =>
+    value.length >= 2 && value.length <= 32 && /^[A-Za-z0-9][A-Za-z0-9._-]*$/u.test(value);
+
 export const splitProfileDisplayName = (displayName: string): ProfileNameParts => {
     const normalized = displayName.trim().replace(/\s+/gu, ' ');
     const separator = normalized.indexOf(' ');

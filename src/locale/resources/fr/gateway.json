@@ -48,6 +48,12 @@
         "loadFailed": "Impossible de charger les appareils.",
         "current": "Cet appareil",
         "sessionMeta": "$t(devices.clientKind.{{kind}}) · Dernière activité : {{date}}",
+        "status": {
+            "active": "Active",
+            "pending": "En attente",
+            "expired": "Expirée",
+            "revoked": "Révoquée"
+        },
         "clientKind": {
             "desktop": "Ordinateur",
             "mobile": "Mobile",
@@ -90,6 +96,14 @@
             "title": "Problème de sécurité",
             "description": "La famille d’identifiants a été révoquée pour protéger le Gateway."
         },
+        "principal_suspended": {
+            "title": "Compte suspendu",
+            "description": "Un administrateur du Gateway a suspendu votre compte."
+        },
+        "principal_removed": {
+            "title": "Accès supprimé",
+            "description": "Votre compte n’a plus accès à ce Gateway."
+        },
         "gateway_identity_mismatch": {
             "title": "Gateway différent",
             "description": "Le serveur ne correspond pas à l’identité Gateway enregistrée."
@@ -105,6 +119,34 @@
         "refresh_credential_invalid": {
             "title": "Identifiant de session invalide",
             "description": "Cet appareil doit être inscrit à nouveau."
+        }
+    },
+    "invitation": {
+        "join": {
+            "title": "Invitation",
+            "oneTimeWarning": "Cette invitation est un identifiant à usage unique. Ne la partagez pas.",
+            "loading": "Vérification de l’invitation",
+            "accept": "Accepter l’invitation",
+            "cancel": "Annuler",
+            "displayName": "Nom affiché",
+            "nickname": "Pseudo",
+            "chooseAvatar": "Choisir une image de profil (facultatif)",
+            "avatarSelected": "Image de profil sélectionnée",
+            "inviter": "Invitation de {{name}}",
+            "workspaces": "Espaces de travail : {{names}}",
+            "expires": "Expire à l’horodatage Unix {{timestamp}}",
+            "transport": {
+                "secure_wss": "Connexion chiffrée sécurisée",
+                "insecure_ws": "Connexion non chiffrée"
+            },
+            "errors": {
+                "unavailable": "Cette invitation est invalide, expirée, révoquée ou indisponible.",
+                "displayName": "Saisissez un nom affiché valide.",
+                "nickname": "Le pseudo doit contenir 2 à 32 lettres ASCII, chiffres, points, tirets ou traits de soulignement.",
+                "nicknameUnavailable": "Ce pseudo est déjà utilisé.",
+                "storage": "La nouvelle session n’a pas pu être enregistrée de façon sécurisée. Réessayez.",
+                "avatar": "Choisissez une image PNG, JPEG ou WebP de 256 Ko maximum et 1024×1024 au plus."
+            }
         }
     }
 }

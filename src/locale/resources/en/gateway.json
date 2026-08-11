@@ -48,6 +48,12 @@
         "loadFailed": "Could not load devices.",
         "current": "This device",
         "sessionMeta": "$t(devices.clientKind.{{kind}}) · Last seen {{date}}",
+        "status": {
+            "active": "Active",
+            "pending": "Pending",
+            "expired": "Expired",
+            "revoked": "Revoked"
+        },
         "clientKind": {
             "desktop": "Desktop",
             "mobile": "Mobile",
@@ -90,6 +96,14 @@
             "title": "Session security issue",
             "description": "The credential family was revoked to protect the gateway."
         },
+        "principal_suspended": {
+            "title": "Account suspended",
+            "description": "Your account has been suspended by a gateway administrator."
+        },
+        "principal_removed": {
+            "title": "Access removed",
+            "description": "Your account no longer has access to this gateway."
+        },
         "gateway_identity_mismatch": {
             "title": "Gateway mismatch",
             "description": "The connected server does not match the pinned gateway identity."
@@ -105,6 +119,34 @@
         "refresh_credential_invalid": {
             "title": "Session credential invalid",
             "description": "This device must be activated again."
+        }
+    },
+    "invitation": {
+        "join": {
+            "title": "Invitation",
+            "oneTimeWarning": "This invitation is a one-time credential. Do not share it.",
+            "loading": "Checking invitation",
+            "accept": "Accept invitation",
+            "cancel": "Cancel",
+            "displayName": "Display name",
+            "nickname": "Nickname",
+            "chooseAvatar": "Choose profile image (optional)",
+            "avatarSelected": "Profile image selected",
+            "inviter": "Invited by {{name}}",
+            "workspaces": "Workspaces: {{names}}",
+            "expires": "Expires at Unix time {{timestamp}}",
+            "transport": {
+                "secure_wss": "Secure encrypted connection",
+                "insecure_ws": "Unencrypted connection"
+            },
+            "errors": {
+                "unavailable": "This invitation is invalid, expired, revoked or unavailable.",
+                "displayName": "Enter a valid display name.",
+                "nickname": "Nickname must be 2–32 ASCII letters, numbers, dots, dashes or underscores.",
+                "nicknameUnavailable": "That nickname is already in use.",
+                "storage": "The secure session could not be saved. Try again.",
+                "avatar": "Choose a PNG, JPEG or WebP image no larger than 256 KB and 1024×1024."
+            }
         }
     }
 }
