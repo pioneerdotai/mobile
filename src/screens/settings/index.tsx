@@ -1,19 +1,12 @@
 import { router } from 'expo-router';
-import {
-    ChevronRight,
-    Globe,
-    MailPlus,
-    Smartphone,
-    Sun,
-    UserRound,
-    Users,
-} from 'lucide-react-native';
+import { ChevronRight, Globe, MailPlus, Smartphone, Sun, Users } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 
 import { Box } from '@/components/primitives/box';
 import { Label } from '@/components/forms/label';
 import { HStack } from '@/components/primitives/hstack';
+import { MemberAvatar } from '@/components/member-avatar';
 import { Pressable } from '@/components/primitives/pressable';
 import { ScrollView } from '@/components/primitives/scrollview';
 import { Text } from '@/components/primitives/text';
@@ -32,13 +25,13 @@ const styles = StyleSheet.create((theme, rt) => ({
     },
     content: {
         ...theme.screenContentPadding('root'),
-        gap: theme.space(5),
+        gap: theme.space(6),
     },
     settingsContainer: {
         flex: 1,
         backgroundColor: theme.colors.muted,
         borderRadius: theme.radius['4xl'],
-        padding: theme.space(5),
+        padding: theme.space(3),
     },
     settingsContainerGeneral: {
         borderTopLeftRadius: 0,
@@ -88,28 +81,12 @@ const styles = StyleSheet.create((theme, rt) => ({
         backgroundColor: theme.colors.muted,
         borderTopLeftRadius: theme.radius['4xl'],
         borderTopRightRadius: theme.radius['4xl'],
-        paddingHorizontal: theme.space(5),
-        paddingTop: theme.space(5),
+        paddingHorizontal: theme.space(3),
+        paddingTop: theme.space(3),
         paddingBottom: theme.space(2),
     },
-    profileIcon: {
-        height: theme.space(11),
-        width: theme.space(11),
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderRadius: theme.radius.full,
-        backgroundColor: theme.colors.background,
-    },
-    profileText: { flex: 1, gap: theme.space(1) },
-    secondary: { color: theme.colors.neutral[500] },
-    readOnly: {
-        alignSelf: 'flex-start',
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: theme.colors.border,
-        borderRadius: theme.radius.full,
-        paddingHorizontal: theme.space(2),
-        paddingVertical: theme.space(1),
-    },
+    profileText: { flex: 1 },
+    secondary: { opacity: 0.6, ...theme.fontSize.xs },
     fieldContainer: {
         gap: theme.space(3),
     },
@@ -177,32 +154,29 @@ const SettingsScreen = () => {
         <ScrollView style={styles.container} contentContainerStyle={styles.content}>
             {principal.data ? (
                 <VStack>
-                    <HStack
-                        accessibilityRole="summary"
-                        accessibilityLabel={`${principal.data.display_name}, ${t(`profile.kind.${principal.data.kind}`)}, ${t('profile.readOnly')}`}
-                        style={styles.profileCard}
+                    <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={`${principal.data.display_name}, ${t(`profile.kind.${principal.data.kind}`)}`}
+                        onPress={() => router.navigate({ pathname: '/settings/profile' })}
                     >
-                        <Box style={styles.profileIcon}>
-                            <UserRound
-                                size={theme.space(6)}
-                                color={theme.colors.typography}
-                                accessibilityElementsHidden
+                        <HStack style={styles.profileCard}>
+                            <MemberAvatar
+                                displayName={principal.data.display_name}
+                                size={theme.space(12)}
+                                principalId={principal.data.principal_id}
+                                avatarRevision={principal.data.avatar_revision}
                             />
-                        </Box>
-                        <VStack style={styles.profileText}>
-                            <Text fontWeight="semibold">{principal.data.display_name}</Text>
-                            <Text style={styles.secondary}>
-                                @{principal.data.nickname} ·{' '}
-                                {t(`profile.kind.${principal.data.kind}`)}
-                            </Text>
-                            <Text selectable style={styles.secondary}>
-                                {principal.data.principal_id}
-                            </Text>
-                            <Box style={styles.readOnly}>
-                                <Text style={styles.secondary}>{t('profile.readOnly')}</Text>
-                            </Box>
-                        </VStack>
-                    </HStack>
+                            <VStack style={styles.profileText}>
+                                <Text fontWeight="semibold">{principal.data.display_name}</Text>
+                                <Text style={styles.secondary}>@{principal.data.nickname}</Text>
+                            </VStack>
+                            <ChevronRight
+                                size={theme.space(5)}
+                                opacity={0.8}
+                                color={theme.colors.typography}
+                            />
+                        </HStack>
+                    </Pressable>
                     <VStack style={[styles.settingsContainer, styles.settingsContainerGeneral]}>
                         <VStack style={styles.settingsWrapper}>
                             <Box style={[styles.divider, styles.dividerWide]} />

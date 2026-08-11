@@ -90,6 +90,12 @@
     "AuthPrincipalSnapshot": {
       "type": "object",
       "properties": {
+        "avatar_revision": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "display_name": {
           "type": "string"
         },

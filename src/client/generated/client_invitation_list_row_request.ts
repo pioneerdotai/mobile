@@ -41,6 +41,7 @@ export interface AuthGatewaySnapshot {
   [k: string]: unknown;
 }
 export interface AuthPrincipalSnapshot {
+  avatar_revision?: string | null;
   display_name: string;
   id: PrincipalId;
   kind: PrincipalKind;

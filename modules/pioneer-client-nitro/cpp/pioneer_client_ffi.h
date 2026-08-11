@@ -29,6 +29,7 @@ char* pioneer_client_ffi_gateway_auth_refresh(PioneerClientFfi* client, const ch
 char* pioneer_client_ffi_gateway_auth_device_activate(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_gateway_auth_session_cleanup(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_gateway_auth_me(PioneerClientFfi* client, const char* input_json);
+char* pioneer_client_ffi_gateway_auth_profile_update(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_gateway_auth_session_list(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_gateway_auth_session_revoke(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_gateway_auth_logout(PioneerClientFfi* client, const char* input_json);

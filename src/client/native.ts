@@ -7,6 +7,8 @@ import type { AdministrationAction } from './generated/administration_action';
 import type { AdministrationRefetch } from './generated/administration_refetch';
 import type { AuthLogoutResponse } from './generated/auth_logout_response';
 import type { AuthMeResponse } from './generated/auth_me_response';
+import type { AuthProfileUpdateParams } from './generated/auth_profile_update_params';
+import type { AuthProfileUpdateResponse } from './generated/auth_profile_update_response';
 import type { AuthDeviceCreateResponse } from './generated/auth_device_create_response';
 import type { AuthRefreshGrant } from './generated/auth_refresh_grant';
 import type { AuthSessionGrant } from './generated/auth_session_grant';
@@ -241,6 +243,8 @@ import { parsePioneerClientResponse } from './response';
 export type { ActivateGatewayRegistryPlan } from './generated/activate_gateway_registry_plan';
 export type { AuthLogoutResponse } from './generated/auth_logout_response';
 export type { AuthMeResponse } from './generated/auth_me_response';
+export type { AuthProfileUpdateParams } from './generated/auth_profile_update_params';
+export type { AuthProfileUpdateResponse } from './generated/auth_profile_update_response';
 export type { AuthDeviceCreateResponse } from './generated/auth_device_create_response';
 export type { AuthRefreshGrant } from './generated/auth_refresh_grant';
 export type { AuthSessionGrant } from './generated/auth_session_grant';
@@ -926,6 +930,14 @@ export const pioneerClient = {
     async gatewayAuthMe(): Promise<AuthMeResponse> {
         return parsePioneerClientResponse<AuthMeResponse>(
             await getPioneerClientNitro().gatewayAuthMeJson('{}'),
+        );
+    },
+
+    async gatewayAuthProfileUpdate(
+        input: AuthProfileUpdateParams,
+    ): Promise<AuthProfileUpdateResponse> {
+        return parsePioneerClientResponse<AuthProfileUpdateResponse>(
+            await getPioneerClientNitro().gatewayAuthProfileUpdateJson(JSON.stringify(input)),
         );
     },
 

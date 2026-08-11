@@ -94,17 +94,17 @@
       "description": "Minimal notification telling an authenticated client to re-resolve access.",
       "type": "object",
       "properties": {
-        "authorization_revision": {
-          "type": "integer",
-          "format": "uint64",
-          "minimum": 0
-        },
         "access_lost": {
-          "description": "Whether this particular connection actually lost access to the scope.",
+          "description": "Whether this particular connection actually lost access to the scope.\n\n`None` is retained for compatibility with older Gateways and must be\nhandled fail-closed by clients. `Some(false)` lets an already-authorized\nclient apply the accompanying targeted projection update without\ndiscarding unrelated workspace state.",
           "type": [
             "boolean",
             "null"
           ]
+        },
+        "authorization_revision": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
         },
         "change": {
           "$ref": "#/$defs/AccessChangeKind"
@@ -8831,6 +8831,27 @@
         "principal_id"
       ]
     },
+    "ThreadPlacement": {
+      "type": "object",
+      "properties": {
+        "folder_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "thread_id": {
+          "type": "string"
+        },
+        "workspace_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "thread_id",
+        "workspace_id"
+      ]
+    },
     "ThreadReadCursor": {
       "type": "object",
       "properties": {
@@ -8956,27 +8977,6 @@
         }
       },
       "required": [
-        "workspace_id"
-      ]
-    },
-    "ThreadPlacement": {
-      "type": "object",
-      "properties": {
-        "folder_id": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "thread_id": {
-          "type": "string"
-        },
-        "workspace_id": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "thread_id",
         "workspace_id"
       ]
     },

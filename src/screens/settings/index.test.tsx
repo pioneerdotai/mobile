@@ -16,6 +16,7 @@ let mockCurrentPrincipal: {
     nickname: string;
     principal_id: string;
     kind: 'superuser' | 'member' | 'unknown';
+    avatar_revision?: string | null;
 } | null = null;
 
 jest.setMock('expo-router', {
@@ -71,6 +72,10 @@ jest.mock('@/components/primitives/box', () => ({
     Box: (props: Record<string, unknown>) =>
         mockReact.createElement('Box', props, props.children as React.ReactNode),
 }));
+jest.mock('@/components/member-avatar', () => ({
+    MemberAvatar: (props: Record<string, unknown>) =>
+        mockReact.createElement('MemberAvatar', props),
+}));
 jest.mock('@/components/primitives/hstack', () => ({
     HStack: (props: Record<string, unknown>) =>
         mockReact.createElement('HStack', props, props.children as React.ReactNode),
@@ -107,6 +112,13 @@ const SettingsScreen = require('./index').default as typeof import('./index').de
 const renderedLabels = (tree: ReactTestRenderer) =>
     tree.root.findAllByType(mockText).map((node) => node.props.children);
 
+const pressableWithLabel = (tree: ReactTestRenderer, label: string) =>
+    tree.root
+        .findAllByType(mockPressable)
+        .find((node) =>
+            node.findAllByType(mockText).some((textNode) => textNode.props.children === label),
+        );
+
 describe('SettingsScreen', () => {
     beforeEach(() => {
         jest.clearAllMocks();
@@ -116,7 +128,7 @@ describe('SettingsScreen', () => {
         mockCurrentPrincipal = null;
     });
 
-    it('shows the authenticated principal as a read-only profile', async () => {
+    it('opens the editable authenticated profile', async () => {
         mockCurrentPrincipal = {
             display_name: 'Alice',
             nickname: 'alice',
@@ -129,8 +141,11 @@ describe('SettingsScreen', () => {
         });
         const labels = renderedLabels(tree!);
         expect(labels).toContain('Alice');
-        expect(labels).toContain('profile.readOnly');
+        expect(labels).not.toContain('profile.readOnly');
         expect(JSON.stringify(labels)).toContain('profile.kind.member');
+        const profileRow = tree!.root.findAllByType(mockPressable)[0];
+        await act(async () => profileRow.props.onPress());
+        expect(mockNavigate).toHaveBeenCalledWith({ pathname: '/settings/profile' });
     });
 
     it('shows Members only when the shared capability allows it', async () => {
@@ -140,7 +155,7 @@ describe('SettingsScreen', () => {
             tree = renderer.create(<SettingsScreen />);
         });
         expect(renderedLabels(tree!)).toContain('members.eyebrow');
-        const memberRow = tree!.root.findAllByType(mockPressable).at(-1)!;
+        const memberRow = pressableWithLabel(tree!, 'members.eyebrow')!;
         await act(async () => memberRow.props.onPress());
         expect(mockNavigate).toHaveBeenCalledWith({ pathname: '/settings/members' });
     });
@@ -152,22 +167,26 @@ describe('SettingsScreen', () => {
             tree = renderer.create(<SettingsScreen />);
         });
         expect(renderedLabels(tree!)).toContain('invitations.eyebrow');
-        const invitationRow = tree!.root.findAllByType(mockPressable).at(-1)!;
+        const invitationRow = pressableWithLabel(tree!, 'invitations.eyebrow')!;
         await act(async () => invitationRow.props.onPress());
         expect(mockNavigate).toHaveBeenCalledWith({ pathname: '/settings/invitations' });
     });
 
     it('shows Devices while the active Gateway session is usable', async () => {
+        mockCurrentPrincipal = {
+            display_name: 'Alice',
+            nickname: 'alice',
+            principal_id: 'P00000000000000000001',
+            kind: 'member',
+        };
         let tree: ReactTestRenderer | null = null;
         await act(async () => {
             tree = renderer.create(<SettingsScreen />);
         });
 
-        expect(renderedLabels(tree!)).toEqual([
-            'language.eyebrow',
-            'theme.eyebrow',
-            'devices.eyebrow',
-        ]);
+        expect(renderedLabels(tree!)).toEqual(
+            expect.arrayContaining(['language.eyebrow', 'theme.eyebrow', 'devices.eyebrow']),
+        );
     });
 
     it('keeps Language and Theme usable but hides Devices after session revocation', async () => {
@@ -177,7 +196,9 @@ describe('SettingsScreen', () => {
             tree = renderer.create(<SettingsScreen />);
         });
 
-        expect(renderedLabels(tree!)).toEqual(['language.eyebrow', 'theme.eyebrow']);
+        const labels = renderedLabels(tree!);
+        expect(labels).toEqual(expect.arrayContaining(['language.eyebrow', 'theme.eyebrow']));
+        expect(labels).not.toContain('devices.eyebrow');
 
         const rows = tree!.root.findAllByType(mockPressable);
         await act(async () => {

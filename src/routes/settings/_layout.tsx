@@ -52,6 +52,18 @@ export default function SettingsStackLayout() {
                     headerTitle: t('members.eyebrow'),
                 }}
             />
+            <Stack.Screen
+                name="profile"
+                options={{
+                    headerTitle: t('profile.editTitle'),
+                }}
+            />
+            <Stack.Screen
+                name="username"
+                options={{
+                    headerTitle: t('profile.username'),
+                }}
+            />
         </Stack>
     );
 }

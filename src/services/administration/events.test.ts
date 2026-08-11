@@ -15,9 +15,9 @@ jest.mock('@/stores/active-thread', () => ({
     useActiveThreadStore: { getState: () => ({ expandedKeys: [] }) },
 }));
 
-const event = (kind: string): ClientEvent =>
+const event = (kind: string, params: Record<string, unknown> = {}): ClientEvent =>
     ({
-        GatewayNotification: { kind, params: {} },
+        GatewayNotification: { kind, params },
     }) as ClientEvent;
 
 describe('administration realtime invalidation', () => {
@@ -43,6 +43,26 @@ describe('administration realtime invalidation', () => {
         expect(
             queryClient.getQueryState(administrationQueryKeys.invitations())?.isInvalidated,
         ).toBe(false);
+        queryClient.clear();
+    });
+
+    it('refreshes auth/me when another session changes the current profile', async () => {
+        const queryClient = new QueryClient();
+        queryClient.setQueryData(administrationQueryKeys.currentPrincipal(), {
+            principal: { id: 'P00000000000000000001' },
+        });
+        jest.mocked(applyActiveThreadEvent).mockResolvedValue({
+            administration_refetch: [{ kind: 'member_directory' }],
+        } as never);
+
+        await applyMobileAdministrationEvent(
+            event('member_changed', { principal_id: 'P00000000000000000001', revision: 1 }),
+            queryClient,
+        );
+
+        expect(
+            queryClient.getQueryState(administrationQueryKeys.currentPrincipal())?.isInvalidated,
+        ).toBe(true);
         queryClient.clear();
     });
 });

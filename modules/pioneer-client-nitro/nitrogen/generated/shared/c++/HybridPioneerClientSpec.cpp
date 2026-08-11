@@ -32,6 +32,7 @@ namespace margelo::nitro::pioneer::client {
       prototype.registerHybridMethod("gatewayAuthDeviceActivateJson", &HybridPioneerClientSpec::gatewayAuthDeviceActivateJson);
       prototype.registerHybridMethod("gatewayAuthSessionCleanupJson", &HybridPioneerClientSpec::gatewayAuthSessionCleanupJson);
       prototype.registerHybridMethod("gatewayAuthMeJson", &HybridPioneerClientSpec::gatewayAuthMeJson);
+      prototype.registerHybridMethod("gatewayAuthProfileUpdateJson", &HybridPioneerClientSpec::gatewayAuthProfileUpdateJson);
       prototype.registerHybridMethod("gatewayAuthSessionListJson", &HybridPioneerClientSpec::gatewayAuthSessionListJson);
       prototype.registerHybridMethod("gatewayAuthSessionRevokeJson", &HybridPioneerClientSpec::gatewayAuthSessionRevokeJson);
       prototype.registerHybridMethod("gatewayAuthLogoutJson", &HybridPioneerClientSpec::gatewayAuthLogoutJson);

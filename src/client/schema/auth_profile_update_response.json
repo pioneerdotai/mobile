@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AuthProfileUpdateResponse",
+  "type": "object",
+  "properties": {
+    "changed": {
+      "type": "boolean"
+    },
+    "principal": {
+      "$ref": "#/$defs/AuthPrincipalSnapshot"
+    }
+  },
+  "required": [
+    "principal",
+    "changed"
+  ],
+  "$defs": {
+    "AuthPrincipalSnapshot": {
+      "type": "object",
+      "properties": {
+        "avatar_revision": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "display_name": {
+          "type": "string"
+        },
+        "id": {
+          "$ref": "#/$defs/PrincipalId"
+        },
+        "kind": {
+          "$ref": "#/$defs/PrincipalKind"
+        },
+        "nickname": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "display_name",
+        "nickname"
+      ]
+    },
+    "PrincipalId": {
+      "type": "string",
+      "maxLength": 21,
+      "minLength": 21,
+      "pattern": "^[A-Za-z0-9]{21}$"
+    },
+    "PrincipalKind": {
+      "type": "string",
+      "enum": [
+        "superuser",
+        "user"
+      ]
+    }
+  }
+}

@@ -19,6 +19,7 @@ export interface PioneerClient extends HybridObject<{ ios: 'c++'; android: 'c++'
     gatewayAuthDeviceActivateJson(inputJson: string): Promise<string>;
     gatewayAuthSessionCleanupJson(inputJson: string): Promise<string>;
     gatewayAuthMeJson(inputJson: string): Promise<string>;
+    gatewayAuthProfileUpdateJson(inputJson: string): Promise<string>;
     gatewayAuthSessionListJson(inputJson: string): Promise<string>;
     gatewayAuthSessionRevokeJson(inputJson: string): Promise<string>;
     gatewayAuthLogoutJson(inputJson: string): Promise<string>;

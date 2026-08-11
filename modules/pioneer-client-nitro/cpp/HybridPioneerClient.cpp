@@ -163,6 +163,11 @@ HybridPioneerClient::gatewayAuthMeJson(const std::string& inputJson) {
 }
 
 std::shared_ptr<margelo::nitro::Promise<std::string>>
+HybridPioneerClient::gatewayAuthProfileUpdateJson(const std::string& inputJson) {
+  return callWithClientAsync(pioneer_client_ffi_gateway_auth_profile_update, inputJson);
+}
+
+std::shared_ptr<margelo::nitro::Promise<std::string>>
 HybridPioneerClient::gatewayAuthSessionListJson(const std::string& inputJson) {
   return callWithClientAsync(pioneer_client_ffi_gateway_auth_session_list, inputJson);
 }

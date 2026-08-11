@@ -68,6 +68,7 @@ namespace margelo::nitro::pioneer::client {
       virtual std::shared_ptr<Promise<std::string>> gatewayAuthDeviceActivateJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> gatewayAuthSessionCleanupJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> gatewayAuthMeJson(const std::string& inputJson) = 0;
+      virtual std::shared_ptr<Promise<std::string>> gatewayAuthProfileUpdateJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> gatewayAuthSessionListJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> gatewayAuthSessionRevokeJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> gatewayAuthLogoutJson(const std::string& inputJson) = 0;

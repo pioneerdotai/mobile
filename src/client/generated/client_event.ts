@@ -1767,11 +1767,16 @@ export interface ClientGatewayConnectionEvent {
  * Minimal notification telling an authenticated client to re-resolve access.
  */
 export interface AccessChangedNotification {
-  authorization_revision: number;
   /**
    * Whether this particular connection actually lost access to the scope.
+   *
+   * `None` is retained for compatibility with older Gateways and must be
+   * handled fail-closed by clients. `Some(false)` lets an already-authorized
+   * client apply the accompanying targeted projection update without
+   * discarding unrelated workspace state.
    */
   access_lost?: boolean | null;
+  authorization_revision: number;
   change: AccessChangeKind;
   /**
    * Exact affected thread when the committed ACL mutation is thread-scoped.
