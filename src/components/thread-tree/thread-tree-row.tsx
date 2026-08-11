@@ -179,7 +179,7 @@ const styles = StyleSheet.create((theme, rt) => ({
         fontSize: theme.fontSize.xs.fontSize,
         lineHeight: theme.fontSize.xs.lineHeight,
         fontWeight: theme.fontWeight.medium.fontWeight,
-        opacity: 0.6,
+        opacity: 0.8,
     },
     meta: {
         flexShrink: 0,
@@ -187,7 +187,7 @@ const styles = StyleSheet.create((theme, rt) => ({
         fontSize: theme.fontSize.xs.fontSize,
         lineHeight: theme.fontSize.xs.fontSize,
         color: theme.colors.typography,
-        opacity: 0.55,
+        opacity: 0.6,
         fontWeight: theme.fontWeight.medium.fontWeight,
     },
     preview: {
