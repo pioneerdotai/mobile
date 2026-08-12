@@ -29,6 +29,7 @@ import {
 } from '@/services/threads/timeline-query';
 import { reconcileTurnWorkItemsForEvent } from '@/services/threads/turn-work-reconciliation';
 import { composerSubmissionPlanForProvider } from '@/services/providers/cli-runtime';
+import { invalidateMaterializedThreadAuthorization } from '@/services/administration/query';
 import { useActiveThreadSnapshotQuery } from '@/hooks/use-active-thread-snapshot-query';
 import { useActiveThreadStore } from '@/stores/active-thread';
 import { useGatewayStore } from '@/stores/gateway';
@@ -117,8 +118,9 @@ export const useActiveThread = (
         })),
     );
 
-    const { connectionId, connectionState } = useGatewayStore(
+    const { connectionGatewayId, connectionId, connectionState } = useGatewayStore(
         useShallow((state) => ({
+            connectionGatewayId: state.connectionGatewayId,
             connectionId: state.connectionId,
             connectionState: state.connectionState,
         })),
@@ -380,6 +382,7 @@ export const useActiveThread = (
                 setComposerError(t('sendFailed'));
                 return false;
             }
+            const materializingDraft = currentSnapshot?.draft_thread_id === requestThreadId;
             const requestThreadClosed =
                 thread?.status === 'Closed' || currentSnapshot?.thread?.status === 'Closed';
             if (
@@ -434,6 +437,14 @@ export const useActiveThread = (
                 activeThreadIdRef.current = result.thread_id;
                 void invalidateTimelineQueriesForThread(queryClient, result.thread_id);
                 cacheActiveThreadSnapshot(queryClient, result.snapshot);
+                if (materializingDraft && connectionGatewayId !== null) {
+                    void invalidateMaterializedThreadAuthorization(
+                        queryClient,
+                        { gatewayId: connectionGatewayId, connectionId },
+                        requestWorkspaceId,
+                        result.thread_id,
+                    );
+                }
                 clearComposerPayload();
                 return true;
             } catch {
@@ -471,6 +482,7 @@ export const useActiveThread = (
         },
         [
             connected,
+            connectionGatewayId,
             connectionId,
             setComposerError,
             clearComposerPayload,

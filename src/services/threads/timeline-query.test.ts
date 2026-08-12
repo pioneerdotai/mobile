@@ -133,10 +133,20 @@ describe('mobile timeline query orchestration', () => {
         await invalidateTurnWorkQueries(queryClient, 'thread_a', null);
 
         expect(invalidateSpy).toHaveBeenCalledTimes(3);
-        expect(invalidateSpy.mock.calls[0]?.[0]).toEqual({
-            queryKey: timelineQueryKeys.thread('thread_a'),
-            refetchType: 'active',
-        });
+        const threadFilter = invalidateSpy.mock.calls[0]?.[0];
+        expect(threadFilter?.refetchType).toBe('active');
+        expect(threadFilter?.predicate?.(query(timelineQueryKeys.threadSnapshot('thread_a')))).toBe(
+            false,
+        );
+        expect(threadFilter?.predicate?.(query(timelineQueryKeys.threadPages('thread_a')))).toBe(
+            true,
+        );
+        expect(
+            threadFilter?.predicate?.(query(timelineQueryKeys.turnWorkPages('thread_a', 'turn_a'))),
+        ).toBe(true);
+        expect(threadFilter?.predicate?.(query(timelineQueryKeys.threadPages('thread_b')))).toBe(
+            false,
+        );
         expect(invalidateSpy.mock.calls[1]?.[0]).toEqual({
             queryKey: timelineQueryKeys.threadPages('thread_a'),
             refetchType: 'active',

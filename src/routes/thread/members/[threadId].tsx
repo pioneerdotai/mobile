@@ -19,6 +19,7 @@ const ThreadMembersRoute = () => {
     const params = useLocalSearchParams<{ threadId?: string | string[] }>();
     const threadId = normalizeRouteParam(params.threadId);
     const [pickerOpen, setPickerOpen] = useState(false);
+    const [canAddMember, setCanAddMember] = useState(false);
     const { t } = useTranslation('threads');
     const { options } = useScreen();
     const { theme } = useUnistyles();
@@ -45,7 +46,7 @@ const ThreadMembersRoute = () => {
                     },
                     headerLeft: () => <BackButton onPressHandler={close} />,
                     headerRight: () =>
-                        threadId ? (
+                        threadId && canAddMember ? (
                             <CreateButton
                                 accessibilityLabel={t('members.add')}
                                 onPressHandler={openPicker}
@@ -62,6 +63,7 @@ const ThreadMembersRoute = () => {
                     threadId={threadId}
                     pickerOpen={pickerOpen}
                     onPickerClose={closePicker}
+                    onCanAddMemberChange={setCanAddMember}
                 />
             ) : null}
         </>

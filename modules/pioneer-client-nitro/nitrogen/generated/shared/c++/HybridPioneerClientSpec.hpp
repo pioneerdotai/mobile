@@ -68,6 +68,7 @@ namespace margelo::nitro::pioneer::client {
       virtual std::shared_ptr<Promise<std::string>> gatewayAuthDeviceActivateJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> gatewayAuthSessionCleanupJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> gatewayAuthMeJson(const std::string& inputJson) = 0;
+      virtual std::shared_ptr<Promise<std::string>> gatewayAuthorizationCapabilitiesJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> gatewayAuthProfileUpdateJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> gatewayAuthSessionListJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> gatewayAuthSessionRevokeJson(const std::string& inputJson) = 0;
@@ -121,6 +122,9 @@ namespace margelo::nitro::pioneer::client {
       virtual std::shared_ptr<Promise<std::string>> cliRuntimeReviewStartJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> cliRuntimeRequestRespondJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> turnPermissionRequestRespondJson(const std::string& inputJson) = 0;
+      virtual std::shared_ptr<Promise<std::string>> taskAcceptJson(const std::string& inputJson) = 0;
+      virtual std::shared_ptr<Promise<std::string>> taskReviseJson(const std::string& inputJson) = 0;
+      virtual std::shared_ptr<Promise<std::string>> taskCancelJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> voiceStatusJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> voiceSessionStartJson(const std::string& inputJson) = 0;
       virtual std::string voiceAudioChunkJson(const std::string& inputJson, const std::shared_ptr<ArrayBuffer>& pcmChunk) = 0;

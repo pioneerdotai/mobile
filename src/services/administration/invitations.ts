@@ -1,5 +1,6 @@
 import type {
     AuthMeResponse,
+    AuthorizationCapabilitySnapshot,
     ClientInvitationPresentationResult,
     InvitationListResponse,
 } from '@/client';
@@ -9,6 +10,15 @@ export const INVITATION_PAGE_LIMIT = 50;
 
 export const loadCurrentAdministrationPrincipal = (): Promise<AuthMeResponse> =>
     pioneerClient.gatewayAuthMe();
+
+export const loadAuthorizationCapabilitySnapshot = (
+    workspaceId: string | null,
+    threadId: string | null = null,
+): Promise<AuthorizationCapabilitySnapshot> =>
+    pioneerClient.gatewayAuthorizationCapabilities({
+        workspace_id: workspaceId,
+        thread_id: threadId,
+    });
 
 export const loadInvitationPage = (cursor: string | null): Promise<InvitationListResponse> =>
     pioneerClient.invitationList({

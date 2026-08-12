@@ -23,9 +23,10 @@ import {
 
 type PendingRequestCardProps = {
     entry: TimelinePendingRequest;
+    canRespond: boolean;
 };
 
-export const PendingRequestCard = ({ entry }: PendingRequestCardProps) => {
+export const PendingRequestCard = ({ entry, canRespond }: PendingRequestCardProps) => {
     const queryClient = useQueryClient();
     const [answers, setAnswers] = useState<Record<string, string>>({});
     const [fallbackAnswer, setFallbackAnswer] = useState('');
@@ -64,6 +65,7 @@ export const PendingRequestCard = ({ entry }: PendingRequestCardProps) => {
 
     const respond = useCallback(
         async (resolution: PendingRequestResolution) => {
+            if (!canRespond) return;
             setError(null);
 
             try {
@@ -72,7 +74,7 @@ export const PendingRequestCard = ({ entry }: PendingRequestCardProps) => {
                 setError(errorMessage(requestError));
             }
         },
-        [respondToPendingRequest],
+        [canRespond, respondToPendingRequest],
     );
 
     const answerQuestion = useCallback((id: string, value: string) => {
@@ -122,13 +124,15 @@ export const PendingRequestCard = ({ entry }: PendingRequestCardProps) => {
                 />
             ) : null}
             {error ? <Text style={styles.error}>{error}</Text> : null}
-            <RequestActions
-                actions={presentation.actions}
-                submitting={submitting}
-                canSubmitAnswer={canSubmitAnswer}
-                onRespond={(resolution) => void respond(resolution)}
-                onSubmitAnswer={submitAnswer}
-            />
+            {canRespond ? (
+                <RequestActions
+                    actions={presentation.actions}
+                    submitting={submitting}
+                    canSubmitAnswer={canSubmitAnswer}
+                    onRespond={(resolution) => void respond(resolution)}
+                    onSubmitAnswer={submitAnswer}
+                />
+            ) : null}
         </VStack>
     );
 };

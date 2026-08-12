@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { getPioneerClientNitro } from '@pioneer/client-nitro';
 
-import { pioneerClient, type AuthMeResponse } from './index';
+import { pioneerClient, type AuthMeResponse, type AuthorizationCapabilitySnapshot } from './index';
 
 jest.mock('@pioneer/client-nitro', () => ({
     getPioneerClientNitro: jest.fn(),
@@ -14,6 +14,7 @@ describe('collaboration presentation Nitro contract', () => {
         threadParticipantsListJson: jest.fn<(input: string) => Promise<string>>(),
         threadParticipantAddJson: jest.fn<(input: string) => Promise<string>>(),
         threadParticipantRemoveJson: jest.fn<(input: string) => Promise<string>>(),
+        gatewayAuthorizationCapabilitiesJson: jest.fn<(input: string) => Promise<string>>(),
         composerTurnModeOptionsJson: jest.fn<() => string>(),
         principalPresentationCapabilitiesJson: jest.fn<(input: string) => string>(),
         sessionListRowPresentationJson: jest.fn<(input: string) => string>(),
@@ -26,6 +27,13 @@ describe('collaboration presentation Nitro contract', () => {
         principal: { id: 'principal_a', kind: 'user', display_name: 'A', nickname: 'a' },
         role_key: 'member',
     } as AuthMeResponse;
+    const capabilitySnapshot = {
+        schema_version: 1,
+        authorization_revision: 1,
+        principal_id: 'principal_a',
+        role_key: 'member',
+        global: {},
+    } as AuthorizationCapabilitySnapshot;
 
     beforeEach(() => {
         jest.resetAllMocks();
@@ -87,11 +95,31 @@ describe('collaboration presentation Nitro contract', () => {
             }),
         );
         expect(pioneerClient.composerTurnModeOptions()).toEqual(['Message', 'Chat', 'Agent']);
-        expect(pioneerClient.principalPresentationCapabilities(auth).can_manage_own_sessions).toBe(
-            true,
-        );
+        expect(
+            pioneerClient.principalPresentationCapabilities(capabilitySnapshot)
+                .can_manage_own_sessions,
+        ).toBe(true);
         expect(JSON.parse(nitro.principalPresentationCapabilitiesJson.mock.calls[0][0])).toEqual(
-            auth,
+            capabilitySnapshot,
+        );
+    });
+
+    it('accepts only the capability snapshot version and scope requested by mobile', async () => {
+        nitro.gatewayAuthorizationCapabilitiesJson.mockResolvedValue(
+            ok({
+                ...capabilitySnapshot,
+                workspace: { workspace_id: 'workspace_a', capabilities: {} },
+            }),
+        );
+        await expect(
+            pioneerClient.gatewayAuthorizationCapabilities({ workspace_id: 'workspace_a' }),
+        ).resolves.toMatchObject({ schema_version: 1, principal_id: 'principal_a' });
+
+        nitro.gatewayAuthorizationCapabilitiesJson.mockResolvedValue(
+            ok({ ...capabilitySnapshot, schema_version: 2 }),
+        );
+        await expect(pioneerClient.gatewayAuthorizationCapabilities({})).rejects.toThrow(
+            'incompatible_authorization_capability_snapshot',
         );
     });
 
@@ -128,6 +156,7 @@ describe('collaboration presentation Nitro contract', () => {
         });
         pioneerClient.invitationListRow({
             auth,
+            capability_snapshot: capabilitySnapshot,
             invitation: { invitation_id: 'invitation_a' } as never,
         });
         expect(pioneerClient.administrationConflictRefetch({ kind: 'create_invitation' })).toEqual([

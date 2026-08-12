@@ -11,6 +11,7 @@ import { ThreadTreeList } from '@/components/thread-tree/thread-tree-list';
 import { CreateButton } from '@/components/buttons/create';
 import type { Thread } from '@/client';
 import { useEditor } from '@/hooks/use-editor';
+import { useAdministrationCapabilities } from '@/hooks/use-administration-capabilities';
 import { useThreadTreeLevel } from '@/hooks/use-thread-tree';
 import { useWorkspace } from '@/hooks/use-workspace';
 import { useGatewayStore } from '@/stores/gateway';
@@ -22,6 +23,8 @@ const ThreadTree = () => {
     const { t } = useTranslation(['threads', 'gateway']);
     const router = useRouter();
     const { navigate } = useEditor();
+    const capabilities = useAdministrationCapabilities();
+    const canManageWorkspace = capabilities.data?.can_manage_workspace ?? false;
     const { activeWorkspaceId, bootstrappedConnectionId } = useWorkspace();
     const { activeGatewayId, connectionId, connectionState, terminalReason } = useGatewayStore(
         useShallow((state) => {
@@ -107,10 +110,10 @@ const ThreadTree = () => {
                 }
                 hideEmptyState={!canBrowseThreads}
                 loading={canBrowseThreads && loading}
-                onAgentsDocPress={openAgentsDoc}
+                onAgentsDocPress={canManageWorkspace ? openAgentsDoc : undefined}
                 onFolderPress={openFolder}
                 onThreadPress={openThread}
-                showAgentsDoc={canBrowseThreads && !!currentAgentsDocSummary}
+                showAgentsDoc={canBrowseThreads && canManageWorkspace && !!currentAgentsDocSummary}
                 style={styles.list}
                 threads={canBrowseThreads ? threads : []}
                 unreadByThreadId={canBrowseThreads ? unreadByThreadId : {}}

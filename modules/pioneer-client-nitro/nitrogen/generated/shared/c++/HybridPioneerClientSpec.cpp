@@ -32,6 +32,7 @@ namespace margelo::nitro::pioneer::client {
       prototype.registerHybridMethod("gatewayAuthDeviceActivateJson", &HybridPioneerClientSpec::gatewayAuthDeviceActivateJson);
       prototype.registerHybridMethod("gatewayAuthSessionCleanupJson", &HybridPioneerClientSpec::gatewayAuthSessionCleanupJson);
       prototype.registerHybridMethod("gatewayAuthMeJson", &HybridPioneerClientSpec::gatewayAuthMeJson);
+      prototype.registerHybridMethod("gatewayAuthorizationCapabilitiesJson", &HybridPioneerClientSpec::gatewayAuthorizationCapabilitiesJson);
       prototype.registerHybridMethod("gatewayAuthProfileUpdateJson", &HybridPioneerClientSpec::gatewayAuthProfileUpdateJson);
       prototype.registerHybridMethod("gatewayAuthSessionListJson", &HybridPioneerClientSpec::gatewayAuthSessionListJson);
       prototype.registerHybridMethod("gatewayAuthSessionRevokeJson", &HybridPioneerClientSpec::gatewayAuthSessionRevokeJson);
@@ -85,6 +86,9 @@ namespace margelo::nitro::pioneer::client {
       prototype.registerHybridMethod("cliRuntimeReviewStartJson", &HybridPioneerClientSpec::cliRuntimeReviewStartJson);
       prototype.registerHybridMethod("cliRuntimeRequestRespondJson", &HybridPioneerClientSpec::cliRuntimeRequestRespondJson);
       prototype.registerHybridMethod("turnPermissionRequestRespondJson", &HybridPioneerClientSpec::turnPermissionRequestRespondJson);
+      prototype.registerHybridMethod("taskAcceptJson", &HybridPioneerClientSpec::taskAcceptJson);
+      prototype.registerHybridMethod("taskReviseJson", &HybridPioneerClientSpec::taskReviseJson);
+      prototype.registerHybridMethod("taskCancelJson", &HybridPioneerClientSpec::taskCancelJson);
       prototype.registerHybridMethod("voiceStatusJson", &HybridPioneerClientSpec::voiceStatusJson);
       prototype.registerHybridMethod("voiceSessionStartJson", &HybridPioneerClientSpec::voiceSessionStartJson);
       prototype.registerHybridMethod("voiceAudioChunkJson", &HybridPioneerClientSpec::voiceAudioChunkJson);

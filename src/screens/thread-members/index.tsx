@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { LegendList, type LegendListRenderItemProps } from '@legendapp/list/react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Alert } from 'react-native';
@@ -36,6 +36,7 @@ type ThreadMembersScreenProps = {
     threadId: string;
     pickerOpen: boolean;
     onPickerClose: () => void;
+    onCanAddMemberChange?: (canAdd: boolean) => void;
 };
 
 type MemberMutation = {
@@ -50,7 +51,12 @@ const EMPTY_CANDIDATES: ComposerMentionCandidate[] = [];
 const memberKeyExtractor = (member: ThreadParticipantRow) => member.principal_id;
 const MemberSeparator = () => <Box style={styles.separator} />;
 
-const ThreadMembersScreen = ({ threadId, pickerOpen, onPickerClose }: ThreadMembersScreenProps) => {
+const ThreadMembersScreen = ({
+    threadId,
+    pickerOpen,
+    onPickerClose,
+    onCanAddMemberChange,
+}: ThreadMembersScreenProps) => {
     const { t } = useTranslation('threads');
     const { theme } = useUnistyles();
     const queryClient = useQueryClient();
@@ -159,6 +165,11 @@ const ThreadMembersScreen = ({ threadId, pickerOpen, onPickerClose }: ThreadMemb
     );
 
     const presentation = membersQuery.data;
+    const canAddMember = presentation?.capabilities.can_manage_private_participants ?? false;
+    useEffect(() => {
+        onCanAddMemberChange?.(canAddMember);
+        return () => onCanAddMemberChange?.(false);
+    }, [canAddMember, onCanAddMemberChange]);
     const members = presentation?.participants ?? EMPTY_MEMBERS;
     const candidates = presentation?.candidate_members ?? EMPTY_CANDIDATES;
     const initialLoading = auth.isPending || membersQuery.isPending;

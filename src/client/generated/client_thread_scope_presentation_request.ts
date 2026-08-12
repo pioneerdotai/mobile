@@ -58,7 +58,7 @@ export type WorkspaceId = string;
 
 export interface ClientThreadScopePresentationRequest {
   auth: AuthMeResponse;
-  current_principal_is_creator: boolean;
+  capabilities: AuthorizationThreadCapabilities;
   participants: ThreadParticipantsResponse;
   thread: Thread;
   workspace_members: WorkspaceMemberListResponse;
@@ -99,6 +99,19 @@ export interface AuthSessionSnapshot {
   status: AuthSessionStatus;
   token_family_id: TokenFamilyId;
   [k: string]: unknown;
+}
+export interface AuthorizationThreadCapabilities {
+  can_control_cli_runtime: boolean;
+  can_create_task: boolean;
+  can_manage: boolean;
+  can_manage_private_participants: boolean;
+  can_move: boolean;
+  can_read: boolean;
+  can_read_artifacts: boolean;
+  can_respond_to_agent_requests: boolean;
+  can_start_turn: boolean;
+  can_write: boolean;
+  can_write_artifacts: boolean;
 }
 export interface ThreadParticipantsResponse {
   changed?: boolean;

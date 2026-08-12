@@ -3,6 +3,7 @@ import type { QueryClient } from '@tanstack/react-query';
 import {
     pioneerClient,
     type AuthMeResponse,
+    type AuthorizationThreadCapabilities,
     type Thread,
     type ThreadParticipantsResponse,
     type ThreadScopeMutationPlan,
@@ -44,6 +45,19 @@ export const loadThreadScopePresentation = async (
     auth: AuthMeResponse,
     thread: Thread,
 ): Promise<ThreadScopePresentation> => {
+    const emptyCapabilities: AuthorizationThreadCapabilities = {
+        can_read: false,
+        can_write: false,
+        can_start_turn: false,
+        can_respond_to_agent_requests: false,
+        can_control_cli_runtime: false,
+        can_create_task: false,
+        can_read_artifacts: false,
+        can_write_artifacts: false,
+        can_manage: false,
+        can_manage_private_participants: false,
+        can_move: false,
+    };
     let participants: ThreadParticipantsResponse = {
         workspace_id: thread.workspace_id,
         thread_id: thread.id,
@@ -51,28 +65,23 @@ export const loadThreadScopePresentation = async (
         participants: [],
         changed: false,
     };
-    let currentPrincipalIsCreator = false;
-    if (thread.visibility === 'private') {
-        try {
-            participants = await pioneerClient.threadParticipantsList({
+    let capabilities = emptyCapabilities;
+    try {
+        const [participantsResponse, capabilitySnapshot] = await Promise.all([
+            pioneerClient.threadParticipantsList({
                 workspace_id: thread.workspace_id,
                 thread_id: thread.id,
-            });
-            // The current Gateway admits this management RPC only for the creator
-            // or a Superuser. Success is therefore an authoritative capability
-            // fact; the client does not infer ownership from timeline content.
-            currentPrincipalIsCreator = auth.principal.kind === 'user';
-        } catch {
-            // A non-creator may still render the already-authorized thread's
-            // visibility. Participant identities and management remain hidden.
-            participants = {
+            }),
+            pioneerClient.gatewayAuthorizationCapabilities({
                 workspace_id: thread.workspace_id,
                 thread_id: thread.id,
-                participant_ids: [],
-                participants: [],
-                changed: false,
-            };
-        }
+            }),
+        ]);
+        participants = participantsResponse;
+        capabilities = capabilitySnapshot.thread?.capabilities ?? emptyCapabilities;
+    } catch {
+        // Missing or future capability data fails closed. The authorized
+        // thread itself remains readable, but no management action is shown.
     }
     const workspaceMembers: WorkspaceMemberListResponse = await loadAllWorkspaceMembers(
         thread.workspace_id,
@@ -80,7 +89,7 @@ export const loadThreadScopePresentation = async (
     return pioneerClient.threadScopePresentation({
         auth,
         thread,
-        current_principal_is_creator: currentPrincipalIsCreator,
+        capabilities,
         participants,
         workspace_members: workspaceMembers,
     });

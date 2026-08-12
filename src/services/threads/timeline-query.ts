@@ -208,7 +208,8 @@ export const invalidateTimelineQueriesForThread = (
     }
 
     return queryClient.invalidateQueries({
-        queryKey: timelineQueryKeys.thread(threadId),
+        predicate: (query) =>
+            timelineQueryThreadId(query) === threadId && !isActiveThreadSnapshotQuery(query),
         refetchType: 'active',
     });
 };
@@ -268,6 +269,10 @@ const timelineErrorCode = (error: unknown): string | null => {
 
 const timelineQueryThreadId = (query: Query): string | null => {
     return timelineQueryKeyThreadId(query.queryKey);
+};
+
+const isActiveThreadSnapshotQuery = (query: Query): boolean => {
+    return query.queryKey[0] === timelineQueryKeys.all[0] && query.queryKey[2] === 'snapshot';
 };
 
 export const timelineQueryKeyThreadId = (queryKey: QueryKey): string | null => {

@@ -2,11 +2,12 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import type { AuthMeResponse, MemberSummary } from '@/client';
+import type { AuthMeResponse, AuthorizationCapabilitySnapshot, MemberSummary } from '@/client';
 import { pioneerClient } from '@/client';
 
 import {
     createRecoveryDevicePresentation,
+    loadAllMembers,
     loadAllWorkspaceMembers,
     presentMember,
     removeMember,
@@ -14,6 +15,7 @@ import {
 
 jest.mock('@/client', () => ({
     pioneerClient: {
+        memberList: jest.fn(),
         workspaceMemberList: jest.fn(),
         memberPresentation: jest.fn(),
         memberRemove: jest.fn(),
@@ -56,6 +58,18 @@ describe('mobile member administration', () => {
         });
     });
 
+    it('loads every ACL-scoped member-directory page for mention candidates', async () => {
+        jest.mocked(pioneerClient.memberList)
+            .mockResolvedValueOnce({ members: [member], next_cursor: 'next' })
+            .mockResolvedValueOnce({ members: [member], next_cursor: null });
+
+        await expect(loadAllMembers()).resolves.toEqual({ members: [member], next_cursor: null });
+        expect(pioneerClient.memberList).toHaveBeenNthCalledWith(2, {
+            cursor: 'next',
+            limit: 50,
+        });
+    });
+
     it('accepts a single terminal workspace page', async () => {
         jest.mocked(pioneerClient.workspaceMemberList).mockResolvedValueOnce({
             workspace_id: 'workspace-a',
@@ -72,10 +86,12 @@ describe('mobile member administration', () => {
 
     it('delegates row action policy and optimistic concurrency to shared/native owners', async () => {
         const auth = {} as AuthMeResponse;
+        const capabilitySnapshot = {} as AuthorizationCapabilitySnapshot;
         jest.mocked(pioneerClient.memberPresentation).mockReturnValue({ actions: {} } as never);
-        presentMember(auth, member, true);
+        presentMember(auth, capabilitySnapshot, member, true);
         expect(pioneerClient.memberPresentation).toHaveBeenCalledWith({
             auth,
+            capability_snapshot: capabilitySnapshot,
             member,
             is_workspace_member: true,
         });

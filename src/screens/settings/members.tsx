@@ -323,15 +323,25 @@ const MembersSettingsScreen = () => {
 
     const memberActions = useCallback(
         (member: MemberSummary) => {
-            if (!principal.data) return null;
-            const lifecycle = presentMember(principal.data, member, false).actions;
+            if (!principal.data || !capabilities.capabilitySnapshot) return null;
+            const lifecycle = presentMember(
+                principal.data,
+                capabilities.capabilitySnapshot,
+                member,
+                false,
+            ).actions;
             const memberships = membershipByPrincipal.get(member.principal_id) ?? new Set<string>();
             const canEditWorkspaces =
                 !membershipsLoading &&
                 !membershipsUnavailable &&
                 workspaces.some((workspace) => {
                     const isMember = memberships.has(workspace.id);
-                    const actions = presentMember(principal.data!, member, isMember).actions;
+                    const actions = presentMember(
+                        principal.data!,
+                        capabilities.capabilitySnapshot!,
+                        member,
+                        isMember,
+                    ).actions;
                     return isMember
                         ? actions.can_remove_from_workspace
                         : actions.can_add_to_workspace;
@@ -342,6 +352,7 @@ const MembersSettingsScreen = () => {
             membershipByPrincipal,
             membershipsLoading,
             membershipsUnavailable,
+            capabilities.capabilitySnapshot,
             principal.data,
             workspaces,
         ],
@@ -460,13 +471,15 @@ const MembersSettingsScreen = () => {
                 (workspaceId) => !workspaceEditor.initial.has(workspaceId),
             ));
     const disabledWorkspaceIds = useMemo(() => {
-        if (!workspaceEditor || !principal.data) return new Set<string>();
+        const capabilitySnapshot = capabilities.capabilitySnapshot;
+        if (!workspaceEditor || !principal.data || !capabilitySnapshot) return new Set<string>();
         return new Set(
             workspaces
                 .filter((workspace) => {
                     const initiallySelected = workspaceEditor.initial.has(workspace.id);
                     const actions = presentMember(
                         principal.data,
+                        capabilitySnapshot,
                         workspaceEditor.member,
                         initiallySelected,
                     ).actions;
@@ -476,7 +489,7 @@ const MembersSettingsScreen = () => {
                 })
                 .map((workspace) => workspace.id),
         );
-    }, [principal.data, workspaceEditor, workspaces]);
+    }, [capabilities.capabilitySnapshot, principal.data, workspaceEditor, workspaces]);
     const saveWorkspaces = useCallback(() => {
         if (!workspaceEditor || !workspaceSelectionChanged || actionPending) return;
         mutateAction({

@@ -7,7 +7,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 
 import { pioneerClient, type Thread } from '@/client';
-import { useAdministrationPrincipal } from '@/hooks/use-administration-capabilities';
+import { useAuthorizationCapabilitySnapshot } from '@/hooks/use-administration-capabilities';
 import ThreadScreen from '@/screens/thread';
 import { useThreadScreen } from '@/screens/thread/hooks';
 import { openOrCreateNewThread } from '@/services/threads/active';
@@ -25,10 +25,13 @@ type DraftRouteState = {
 
 type NewThreadDraftRouteProps = {
     activeWorkspaceId: string | null;
-    principal: ReturnType<typeof useAdministrationPrincipal>;
+    capabilitySnapshot: ReturnType<typeof useAuthorizationCapabilitySnapshot>;
 };
 
-const NewThreadDraftRoute = ({ activeWorkspaceId, principal }: NewThreadDraftRouteProps) => {
+const NewThreadDraftRoute = ({
+    activeWorkspaceId,
+    capabilitySnapshot,
+}: NewThreadDraftRouteProps) => {
     const { t } = useTranslation('threads');
     const queryClient = useQueryClient();
     const connectionId = useGatewayStore((state) => state.connectionId);
@@ -55,19 +58,20 @@ const NewThreadDraftRoute = ({ activeWorkspaceId, principal }: NewThreadDraftRou
         onActionsPress: draftReady ? openActions : undefined,
     });
     const visibilityPlan = useMemo(() => {
-        if (!principal.data) return null;
+        const capabilities = capabilitySnapshot.data?.workspace?.capabilities;
+        if (!capabilities) return null;
         try {
             return pioneerClient.threadCreateVisibilityPlan({
-                auth: principal.data,
+                capabilities,
                 origin_kind: 'collaborative',
             });
         } catch {
             return null;
         }
-    }, [principal.data]);
+    }, [capabilitySnapshot.data]);
     const visibilityPlanUnavailable = Boolean(
-        principal.isError ||
-        (principal.data && (!visibilityPlan || visibilityPlan.options.length === 0)),
+        (capabilitySnapshot.isError && !capabilitySnapshot.data) ||
+        (capabilitySnapshot.data && (!visibilityPlan || visibilityPlan.options.length === 0)),
     );
     const routeError =
         error ??
@@ -77,6 +81,7 @@ const NewThreadDraftRoute = ({ activeWorkspaceId, principal }: NewThreadDraftRou
 
     useEffect(() => {
         if (
+            draftReady ||
             !visibilityPlan ||
             connectionState !== 'Connected' ||
             connectionId === null ||
@@ -137,6 +142,7 @@ const NewThreadDraftRoute = ({ activeWorkspaceId, principal }: NewThreadDraftRou
         activeWorkspaceId,
         connectionId,
         connectionState,
+        draftReady,
         queryClient,
         selectedVisibility,
         t,
@@ -150,7 +156,7 @@ const NewThreadDraftRoute = ({ activeWorkspaceId, principal }: NewThreadDraftRou
                 <Text accessibilityRole="alert">{routeError}</Text>
             </View>
         );
-    } else if (principal.isPending || !visibilityPlan) {
+    } else if (capabilitySnapshot.isPending || !visibilityPlan) {
         content = <View style={styles.pendingDraft} />;
     } else if (!draft || !draftReady) {
         content = <View style={styles.pendingDraft} />;
@@ -175,12 +181,11 @@ const NewThreadDraftRoute = ({ activeWorkspaceId, principal }: NewThreadDraftRou
 };
 
 const NewThreadRoute = () => {
-    const principal = useAdministrationPrincipal();
+    const capabilitySnapshot = useAuthorizationCapabilitySnapshot();
     const activeWorkspaceId = useWorkspaceStore((state) => state.activeWorkspaceId);
     const contextKey = [
-        principal.data?.principal.id ?? '',
-        principal.data?.principal.kind ?? '',
-        principal.data?.role_key ?? '',
+        capabilitySnapshot.data?.principal_id ?? '',
+        capabilitySnapshot.data?.role_key ?? '',
         activeWorkspaceId ?? '',
     ].join(':');
 
@@ -188,7 +193,7 @@ const NewThreadRoute = () => {
         <NewThreadDraftRoute
             key={contextKey}
             activeWorkspaceId={activeWorkspaceId}
-            principal={principal}
+            capabilitySnapshot={capabilitySnapshot}
         />
     );
 };

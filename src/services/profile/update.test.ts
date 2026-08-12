@@ -1,6 +1,11 @@
+import { QueryClient } from '@tanstack/react-query';
 import { describe, expect, it, jest } from '@jest/globals';
 
+import type { AuthMeResponse, AuthProfileUpdateResponse } from '@/client';
+import { administrationQueryKeys } from '@/services/administration/query';
+
 import {
+    applyCurrentProfileUpdate,
     isValidProfileDisplayName,
     isValidProfileNickname,
     joinProfileDisplayName,
@@ -8,7 +13,10 @@ import {
 } from './update';
 
 jest.mock('@/client', () => ({
-    pioneerClient: { gatewayAuthProfileUpdate: jest.fn() },
+    pioneerClient: {
+        administrationConflictRefetch: jest.fn(),
+        gatewayAuthProfileUpdate: jest.fn(),
+    },
 }));
 
 describe('profile display name helpers', () => {
@@ -37,5 +45,33 @@ describe('profile display name helpers', () => {
         expect(isValidProfileNickname('')).toBe(false);
         expect(isValidProfileNickname('_superoskin')).toBe(false);
         expect(isValidProfileNickname('a'.repeat(33))).toBe(false);
+    });
+});
+
+describe('current profile cache update', () => {
+    it('patches the auth/me snapshot for the active authorization epoch', async () => {
+        const queryClient = new QueryClient();
+        const queryKey = administrationQueryKeys.currentPrincipalForEpoch({
+            gatewayId: 'gateway-a',
+            connectionId: 7,
+        });
+        queryClient.setQueryData<AuthMeResponse>(queryKey, {
+            principal: {
+                id: 'P00000000000000000001',
+                display_name: 'Before',
+            },
+        } as AuthMeResponse);
+
+        await applyCurrentProfileUpdate(queryClient, {
+            principal: {
+                id: 'P00000000000000000001',
+                display_name: 'After',
+            },
+        } as AuthProfileUpdateResponse);
+
+        expect(queryClient.getQueryData<AuthMeResponse>(queryKey)?.principal.display_name).toBe(
+            'After',
+        );
+        queryClient.clear();
     });
 });

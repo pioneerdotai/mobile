@@ -8,6 +8,7 @@ import { StyleSheet } from 'react-native-unistyles';
 import { ControlledInput } from '@/components/forms/controlled/input';
 import { Box } from '@/components/primitives/box';
 import { Title } from '@/components/typography/title';
+import { useAdministrationCapabilities } from '@/hooks/use-administration-capabilities';
 import { useWorkspace } from '@/hooks/use-workspace';
 import { WorkspaceOperationError } from '@/services/workspace/management';
 import type { WorkspaceOperationErrorCode } from '@/services/workspace/management';
@@ -44,6 +45,10 @@ const WorkspaceEditorScreen = ({ workspaceId }: WorkspaceEditorScreenProps) => {
         error: storeError,
     } = useWorkspace();
     const isEdit = Boolean(workspaceId);
+    const capabilities = useAdministrationCapabilities();
+    const authorized = isEdit
+        ? (capabilities.data?.can_manage_workspace ?? false)
+        : (capabilities.data?.can_create_workspace ?? false);
     const editingWorkspace = useMemo(
         () => (workspaceId ? workspaces.find((workspace) => workspace.id === workspaceId) : null),
         [workspaceId, workspaces],
@@ -97,6 +102,7 @@ const WorkspaceEditorScreen = ({ workspaceId }: WorkspaceEditorScreenProps) => {
     );
 
     const onSubmit = handleSubmit(async (values) => {
+        if (!authorized) return;
         setFormError(null);
         const name = values.name.trim();
 
@@ -121,7 +127,7 @@ const WorkspaceEditorScreen = ({ workspaceId }: WorkspaceEditorScreenProps) => {
     const storeErrorMessage = storeError ? workspaceErrorMessage(storeError) : null;
     const title = isEdit ? t('renameWorkspace') : t('newWorkspace');
     const buttonLabel = isEdit ? t('save') : t('create');
-    const submitDisabled = submitting || (isEdit && !editingWorkspace);
+    const submitDisabled = !authorized || submitting || (isEdit && !editingWorkspace);
 
     return (
         <Container

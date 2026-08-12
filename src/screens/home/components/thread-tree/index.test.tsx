@@ -16,6 +16,8 @@ let mockConnectionId: number | null = null;
 let mockConnectionState = 'Idle';
 let mockTerminalReason: string | null = null;
 let mockRemotes: { id: string }[] = [];
+let mockCanManageWorkspace = false;
+let mockAgentsDocSummary: Record<string, unknown> | null = null;
 
 jest.setMock('expo-router', {
     __esModule: true,
@@ -66,11 +68,16 @@ jest.mock('@/components/typography/title', () => ({
 }));
 jest.mock('@/hooks/use-thread-tree', () => ({
     useThreadTreeLevel: () => ({
-        currentAgentsDocSummary: null,
+        currentAgentsDocSummary: mockAgentsDocSummary,
         folders: [],
         threads: [],
         loading: false,
         error: null,
+    }),
+}));
+jest.mock('@/hooks/use-administration-capabilities', () => ({
+    useAdministrationCapabilities: () => ({
+        data: { can_manage_workspace: mockCanManageWorkspace },
     }),
 }));
 jest.mock('@/hooks/use-editor', () => ({
@@ -111,6 +118,8 @@ describe('ThreadTree', () => {
         mockConnectionState = 'Idle';
         mockTerminalReason = null;
         mockRemotes = [];
+        mockCanManageWorkspace = false;
+        mockAgentsDocSummary = null;
     });
 
     it('renders an empty thread list without an active gateway or workspace', async () => {
@@ -179,6 +188,35 @@ describe('ThreadTree', () => {
         expect(list.props.header).not.toBeNull();
         expect(list.props.hideEmptyState).toBe(false);
         expect(tree!.root.findAllByType(mockCreateButton)).toHaveLength(0);
+    });
+
+    it('only exposes workspace AGENTS.md to workspace managers', async () => {
+        mockActiveGatewayId = 'remote-1';
+        mockRemotes = [{ id: 'remote-1' }];
+        mockConnectionId = 7;
+        mockConnectionState = 'Connected';
+        mockActiveWorkspaceId = 'workspace-1';
+        mockBootstrappedConnectionId = 7;
+        mockAgentsDocSummary = { workspace_id: 'workspace-1' };
+
+        let memberTree: ReactTestRenderer | null = null;
+        await act(async () => {
+            memberTree = renderer.create(<ThreadTree />);
+        });
+        expect(memberTree!.root.findByType(mockThreadTreeList).props).toMatchObject({
+            onAgentsDocPress: undefined,
+            showAgentsDoc: false,
+        });
+
+        mockCanManageWorkspace = true;
+        let managerTree: ReactTestRenderer | null = null;
+        await act(async () => {
+            managerTree = renderer.create(<ThreadTree />);
+        });
+        expect(managerTree!.root.findByType(mockThreadTreeList).props.showAgentsDoc).toBe(true);
+        expect(managerTree!.root.findByType(mockThreadTreeList).props.onAgentsDocPress).toEqual(
+            expect.any(Function),
+        );
     });
 
     it('renders authentication recovery on Home for the active gateway', async () => {

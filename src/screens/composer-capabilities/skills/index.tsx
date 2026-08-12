@@ -20,6 +20,7 @@ import { VStack } from '@/components/primitives/vstack';
 import { composerTargetThreadIsActive } from '@/services/threads/composer-target';
 import { useActiveThreadStore } from '@/stores/active-thread';
 import { useWorkspaceStore } from '@/stores/workspace';
+import { useAdministrationCapabilities } from '@/hooks/use-administration-capabilities';
 
 import { CapabilityCard, Check, ListHeader, ListState, styles, type LoadState } from '../shared';
 
@@ -83,6 +84,8 @@ export const ComposerSkillCapabilitiesScreen = () => {
     const { t } = useTranslation('threads');
     const targetThreadIdRef = useRef(useActiveThreadStore.getState().activeComposerThreadId);
     const activeWorkspaceId = useWorkspaceStore((state) => state.activeWorkspaceId);
+    const capabilities = useAdministrationCapabilities();
+    const canUseSkills = capabilities.data?.can_use_skills === true;
     const { composerSkillSelections, setComposerSkillSelections } = useActiveThreadStore(
         useShallow((state) => ({
             composerSkillSelections: state.composerSkillSelections,
@@ -98,6 +101,11 @@ export const ComposerSkillCapabilitiesScreen = () => {
     useEffect(() => {
         let cancelled = false;
         const timeout = setTimeout(() => {
+            if (!canUseSkills) {
+                setPicker(EMPTY_PICKER);
+                setState({ loading: capabilities.isPending, error: null });
+                return;
+            }
             if (!activeWorkspaceId) {
                 setPicker(EMPTY_PICKER);
                 setState({ loading: false, error: t('modelSelectorNoWorkspace') });
@@ -137,7 +145,7 @@ export const ComposerSkillCapabilitiesScreen = () => {
             cancelled = true;
             clearTimeout(timeout);
         };
-    }, [activeWorkspaceId, query, t]);
+    }, [activeWorkspaceId, canUseSkills, capabilities.isPending, query, t]);
 
     const searching = query.trim().length > 0;
     const displayRows = useMemo(

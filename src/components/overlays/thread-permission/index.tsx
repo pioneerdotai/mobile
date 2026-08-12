@@ -13,7 +13,12 @@ import { Pressable } from '@/components/primitives/pressable';
 import { Text } from '@/components/primitives/text';
 import { VStack } from '@/components/primitives/vstack';
 import { stableOutlineWidth } from '@/helpers/styles';
+import { useAuthorizationCapabilitySnapshot } from '@/hooks/use-administration-capabilities';
 import { useActiveThreadStore } from '@/stores/active-thread';
+import {
+    allowedComposerPermissionModeOptions,
+    reconcileComposerPermissionMode,
+} from '@/services/threads/permission-modes';
 
 const permissionModeIcon = (mode: TurnPermissionMode) => {
     switch (mode) {
@@ -29,7 +34,16 @@ const permissionModeIcon = (mode: TurnPermissionMode) => {
 const ThreadPermissionModeSwitcherSheet = () => {
     const bottomSheetRef = useRef<BottomSheetModal>(null);
     const { theme, rt } = useUnistyles();
-    const options = useMemo(() => pioneerClient.composerPermissionModeOptions(), []);
+    const capabilitySnapshot = useAuthorizationCapabilitySnapshot();
+    const allowedModes = capabilitySnapshot.data?.workspace?.capabilities.turn_permission_modes;
+    const options = useMemo(
+        () =>
+            allowedComposerPermissionModeOptions(
+                pioneerClient.composerPermissionModeOptions(),
+                allowedModes,
+            ),
+        [allowedModes],
+    );
 
     const { selectedMode, showPermissionModeSwitcher, setMode, setPermissionModeSwitcherOpen } =
         useActiveThreadStore(
@@ -40,6 +54,13 @@ const ThreadPermissionModeSwitcherSheet = () => {
                 setPermissionModeSwitcherOpen: state.setComposerPermissionModeSwitcherOpen,
             })),
         );
+
+    useEffect(() => {
+        const reconciledMode = reconcileComposerPermissionMode(selectedMode, options);
+        if (reconciledMode && reconciledMode !== selectedMode) {
+            setMode(reconciledMode);
+        }
+    }, [options, selectedMode, setMode]);
 
     useEffect(() => {
         if (bottomSheetRef.current) {

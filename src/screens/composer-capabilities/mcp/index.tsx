@@ -18,6 +18,7 @@ import { VStack } from '@/components/primitives/vstack';
 import { composerTargetThreadIsActive } from '@/services/threads/composer-target';
 import { useActiveThreadStore } from '@/stores/active-thread';
 import { useWorkspaceStore } from '@/stores/workspace';
+import { useAdministrationCapabilities } from '@/hooks/use-administration-capabilities';
 
 import {
     CapabilityCard,
@@ -60,6 +61,8 @@ export const ComposerMcpCapabilitiesScreen = () => {
     const targetThreadIdRef = useRef(useActiveThreadStore.getState().activeComposerThreadId);
 
     const activeWorkspaceId = useWorkspaceStore((state) => state.activeWorkspaceId);
+    const capabilities = useAdministrationCapabilities();
+    const canUseMcp = capabilities.data?.can_use_mcp === true;
 
     const { composerCapabilities, setComposerCapabilities } = useActiveThreadStore(
         useShallow((state) => ({
@@ -77,6 +80,12 @@ export const ComposerMcpCapabilitiesScreen = () => {
     useEffect(() => {
         let cancelled = false;
         const timeout = setTimeout(() => {
+            if (!canUseMcp) {
+                setServerRows([]);
+                setToolRows([]);
+                setState({ loading: capabilities.isPending, error: null });
+                return;
+            }
             if (!activeWorkspaceId) {
                 setServerRows([]);
                 setToolRows([]);
@@ -123,7 +132,7 @@ export const ComposerMcpCapabilitiesScreen = () => {
             cancelled = true;
             clearTimeout(timeout);
         };
-    }, [activeWorkspaceId, t]);
+    }, [activeWorkspaceId, canUseMcp, capabilities.isPending, t]);
 
     const selectedKeys = useMemo(
         () => selectedCapabilityKeys(composerCapabilities),

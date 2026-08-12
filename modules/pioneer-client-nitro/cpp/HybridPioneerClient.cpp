@@ -163,6 +163,11 @@ HybridPioneerClient::gatewayAuthMeJson(const std::string& inputJson) {
 }
 
 std::shared_ptr<margelo::nitro::Promise<std::string>>
+HybridPioneerClient::gatewayAuthorizationCapabilitiesJson(const std::string& inputJson) {
+  return callWithClientAsync(pioneer_client_ffi_gateway_authorization_capabilities, inputJson);
+}
+
+std::shared_ptr<margelo::nitro::Promise<std::string>>
 HybridPioneerClient::gatewayAuthProfileUpdateJson(const std::string& inputJson) {
   return callWithClientAsync(pioneer_client_ffi_gateway_auth_profile_update, inputJson);
 }
@@ -425,6 +430,21 @@ HybridPioneerClient::cliRuntimeRequestRespondJson(const std::string& inputJson) 
 std::shared_ptr<margelo::nitro::Promise<std::string>>
 HybridPioneerClient::turnPermissionRequestRespondJson(const std::string& inputJson) {
   return callWithClientAsync(pioneer_client_ffi_turn_permission_request_respond, inputJson);
+}
+
+std::shared_ptr<margelo::nitro::Promise<std::string>>
+HybridPioneerClient::taskAcceptJson(const std::string& inputJson) {
+  return callWithClientAsync(pioneer_client_ffi_task_accept, inputJson);
+}
+
+std::shared_ptr<margelo::nitro::Promise<std::string>>
+HybridPioneerClient::taskReviseJson(const std::string& inputJson) {
+  return callWithClientAsync(pioneer_client_ffi_task_revise, inputJson);
+}
+
+std::shared_ptr<margelo::nitro::Promise<std::string>>
+HybridPioneerClient::taskCancelJson(const std::string& inputJson) {
+  return callWithClientAsync(pioneer_client_ffi_task_cancel, inputJson);
 }
 
 std::shared_ptr<margelo::nitro::Promise<std::string>>

@@ -48,7 +48,11 @@ describe('administration realtime invalidation', () => {
 
     it('refreshes auth/me when another session changes the current profile', async () => {
         const queryClient = new QueryClient();
-        queryClient.setQueryData(administrationQueryKeys.currentPrincipal(), {
+        const queryKey = administrationQueryKeys.currentPrincipalForEpoch({
+            gatewayId: 'gateway-a',
+            connectionId: 7,
+        });
+        queryClient.setQueryData(queryKey, {
             principal: { id: 'P00000000000000000001' },
         });
         jest.mocked(applyActiveThreadEvent).mockResolvedValue({
@@ -60,9 +64,7 @@ describe('administration realtime invalidation', () => {
             queryClient,
         );
 
-        expect(
-            queryClient.getQueryState(administrationQueryKeys.currentPrincipal())?.isInvalidated,
-        ).toBe(true);
+        expect(queryClient.getQueryState(queryKey)?.isInvalidated).toBe(true);
         queryClient.clear();
     });
 });

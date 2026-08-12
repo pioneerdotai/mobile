@@ -2,6 +2,7 @@ import type { QueryClient } from '@tanstack/react-query';
 
 import type { ClientActiveThreadEventResult, ClientEvent } from '@/client';
 import {
+    administrationQueryKeys,
     clearAdministrationQueries,
     invalidateAdministrationTargets,
 } from '@/services/administration/query';
@@ -171,6 +172,10 @@ export const applyMobileAccessChangedEvent = async (
     });
     const lifecycle = result.access_changed ?? null;
     await invalidateAdministrationTargets(queryClient, result.administration_refetch ?? []);
+    await queryClient.invalidateQueries({
+        queryKey: administrationQueryKeys.all,
+        predicate: (query) => query.queryKey[1] === 'capabilities',
+    });
     if (lifecycle) {
         applyMobileAccessChangedLifecycle(
             lifecycle,

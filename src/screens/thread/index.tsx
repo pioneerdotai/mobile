@@ -16,10 +16,8 @@ import {
     type CLIRuntimeThreadBinding,
     type ComposerSkillChip,
     type ComposerMentionCandidate,
-    type MemberSummary,
     type ComposerSkillPickerProjection,
     type ComposerSkillSelection,
-    type GatewaySettingsGetResponse,
     type VoiceSessionStartContext,
     type Thread,
     type TimelineBlock,
@@ -89,20 +87,30 @@ import {
     type MobileArtifactActionEvent,
     type MobileArtifactActionState,
 } from '@/services/artifacts/mobile-actions';
-import { voiceInputPollInterval } from '@/services/voice-input/presentation';
-import { fetchVoiceInputSettings, voiceInputQueryKeys } from '@/services/voice-input/query';
 import { useActiveThreadStore } from '@/stores/active-thread';
 import { useGatewayStore } from '@/stores/gateway';
 import { useThreadTreeStore } from '@/stores/thread-tree';
 import { useWorkspaceStore } from '@/stores/workspace';
-import { useCurrentPrincipalPresentation } from '@/hooks/use-administration-capabilities';
+import {
+    useCurrentPrincipalPresentation,
+    useThreadAuthorizationCapabilities,
+} from '@/hooks/use-administration-capabilities';
 import { applyThreadReadResponse } from '@/services/threads/tree';
 import {
     MessageMutationModal,
     type MessageMutationTarget,
 } from '@/components/thread/timeline/message-mutation-modal';
 import { administrationQueryKeys } from '@/services/administration/query';
-import { loadAllWorkspaceMembers } from '@/services/administration/members';
+import { loadAllMembers, loadAllWorkspaceMembers } from '@/services/administration/members';
+import {
+    projectWorkspaceMemberProfiles,
+    projectWorkspaceMentionCandidates,
+} from '@/services/threads/mentions';
+import {
+    allowedComposerPermissionModeOptions,
+    composerPermissionModeIsAllowed,
+    reconcileComposerPermissionMode,
+} from '@/services/threads/permission-modes';
 import { ThreadActionsSheet } from '@/components/overlays/thread-actions';
 
 type ThreadScreenProps = {
@@ -130,33 +138,6 @@ const VOICE_TURN_ID_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuv
 const MESSAGE_REVISION_CONFLICT_CODE = 'pioneer_turn_message_revision_conflict';
 const generateVoiceTurnId = customAlphabet(VOICE_TURN_ID_ALPHABET, VOICE_TURN_ID_LEN);
 const generateArtifactOperationId = customAlphabet(VOICE_TURN_ID_ALPHABET, VOICE_TURN_ID_LEN);
-
-const projectMentionCandidates = (
-    members: MemberSummary[],
-    currentPrincipalId: string | null | undefined,
-): ComposerMentionCandidate[] => {
-    const seen = new Set<string>();
-    const candidates: ComposerMentionCandidate[] = [];
-    for (const member of members) {
-        const nickname = member.nickname.trim();
-        if (
-            member.status !== 'active' ||
-            !nickname ||
-            member.principal_id === currentPrincipalId ||
-            seen.has(member.principal_id)
-        ) {
-            continue;
-        }
-        seen.add(member.principal_id);
-        candidates.push({
-            principal_id: member.principal_id,
-            display_name: member.display_name,
-            nickname,
-            avatar_revision: member.avatar_revision ?? null,
-        });
-    }
-    return candidates;
-};
 
 type ComposerModelSelection = {
     provider: string;
@@ -234,19 +215,6 @@ const ThreadScreen = ({
     const { connectionId, connectionState } = useGateway();
     const voiceInputDataSource = useVoiceInputDataSourceState();
     const voiceInputTarget = voiceInputDataSource.target;
-    const voiceInputSettingsQuery = useQuery<GatewaySettingsGetResponse>({
-        queryKey: voiceInputTarget
-            ? voiceInputQueryKeys.settings(voiceInputTarget)
-            : [...voiceInputQueryKeys.all, 'composer-offline'],
-        queryFn: voiceInputTarget ? () => fetchVoiceInputSettings(voiceInputTarget) : skipToken,
-        refetchInterval: (query) =>
-            voiceInputPollInterval(
-                query.state.data?.settings.voice_input,
-                Boolean(voiceInputTarget),
-            ),
-        refetchIntervalInBackground: false,
-        refetchOnReconnect: true,
-    });
 
     const {
         snapshot,
@@ -305,13 +273,33 @@ const ThreadScreen = ({
         refetchOnMount: 'always',
         refetchOnReconnect: true,
     });
+    const gatewayMemberDirectoryQuery = useQuery({
+        queryKey: [...administrationQueryKeys.members(), connectionId],
+        queryFn: loadAllMembers,
+        enabled: focused && connectionState === 'Connected' && Boolean(mentionWorkspaceId),
+        refetchOnMount: 'always',
+        refetchOnReconnect: true,
+    });
     const mentionCandidates = useMemo(
         () =>
-            projectMentionCandidates(
+            projectWorkspaceMentionCandidates(
                 mentionDirectoryQuery.data?.members ?? [],
+                gatewayMemberDirectoryQuery.data?.members ?? [],
                 currentPrincipal.data?.principal_id,
             ),
-        [currentPrincipal.data?.principal_id, mentionDirectoryQuery.data?.members],
+        [
+            currentPrincipal.data?.principal_id,
+            gatewayMemberDirectoryQuery.data?.members,
+            mentionDirectoryQuery.data?.members,
+        ],
+    );
+    const timelineMemberProfiles = useMemo(
+        () =>
+            projectWorkspaceMemberProfiles(
+                mentionDirectoryQuery.data?.members ?? [],
+                gatewayMemberDirectoryQuery.data?.members ?? [],
+            ),
+        [gatewayMemberDirectoryQuery.data?.members, mentionDirectoryQuery.data?.members],
     );
 
     const syncComposerModelSelection = useActiveThreadStore(
@@ -319,6 +307,9 @@ const ThreadScreen = ({
     );
     const setComposerPermissionModeSwitcherOpen = useActiveThreadStore(
         (state) => state.setComposerPermissionModeSwitcherOpen,
+    );
+    const setComposerPermissionMode = useActiveThreadStore(
+        (state) => state.setComposerPermissionMode,
     );
     const markComposerAttachmentsUploading = useActiveThreadStore(
         (state) => state.markComposerAttachmentsUploading,
@@ -458,10 +449,14 @@ const ThreadScreen = ({
         }),
         [keyboardOffset],
     );
-    const permissionModeOptions = useMemo(() => pioneerClient.composerPermissionModeOptions(), []);
+    const allPermissionModeOptions = useMemo(
+        () => pioneerClient.composerPermissionModeOptions(),
+        [],
+    );
 
     const visibleSnapshot = snapshot?.thread_id === threadId ? snapshot : null;
     const visibleThreadId = visibleSnapshot?.thread_id ?? threadId;
+    const threadAuthorization = useThreadAuthorizationCapabilities(visibleThreadId);
     useEffect(() => {
         const subscription = AppState.addEventListener('change', setAppState);
         return () => subscription.remove();
@@ -836,10 +831,47 @@ const ThreadScreen = ({
     const modelSelectionLabel = selectedModelDisplayName ?? t('modelSelectorSelectModel');
     const modelSelectionEffortLabel =
         modelSelectionLoading || reasoningEffortLabelLoading ? null : selectedReasoningEffortLabel;
+    const workspaceAgentCapabilities = threadAuthorization.data?.workspace?.capabilities;
+    const threadAgentCapabilities = threadAuthorization.data?.thread?.capabilities;
+    const permissionModeOptions = useMemo(() => {
+        return allowedComposerPermissionModeOptions(
+            allPermissionModeOptions,
+            workspaceAgentCapabilities?.turn_permission_modes,
+        );
+    }, [allPermissionModeOptions, workspaceAgentCapabilities?.turn_permission_modes]);
+    useEffect(() => {
+        const reconciledMode = reconcileComposerPermissionMode(
+            composerSelectedPermissionMode,
+            permissionModeOptions,
+        );
+        if (!reconciledMode || reconciledMode === composerSelectedPermissionMode) {
+            return;
+        }
+        setComposerPermissionMode(reconciledMode);
+    }, [composerSelectedPermissionMode, permissionModeOptions, setComposerPermissionMode]);
+    const selectedPermissionModeAllowed = composerPermissionModeIsAllowed(
+        composerSelectedPermissionMode,
+        permissionModeOptions,
+    );
+    const canWriteInActiveThread = Boolean(
+        isLiveDraftThread
+            ? workspaceAgentCapabilities?.can_create_thread
+            : threadAgentCapabilities?.can_write,
+    );
+    const canUseAgentModels = Boolean(
+        workspaceAgentCapabilities &&
+        (workspaceAgentCapabilities.can_use_providers ||
+            workspaceAgentCapabilities.can_use_cli_runtimes) &&
+        canWriteInActiveThread &&
+        (isLiveDraftThread || threadAgentCapabilities?.can_start_turn) &&
+        selectedPermissionModeAllowed,
+    );
     const composerDisabled = Boolean(
         !connected ||
         closed ||
+        (messageMode && !canWriteInActiveThread) ||
         (!messageMode && visibleSnapshot?.projection.composer_locked) ||
+        (!messageMode && !canUseAgentModels) ||
         sending,
     );
     const openComposerModeSelector = useCallback(() => {
@@ -849,7 +881,7 @@ const ThreadScreen = ({
 
         setComposerModeSwitcherOpen(true);
     }, [composerDisabled, setComposerModeSwitcherOpen]);
-    const modelSelectionDisabled = Boolean(sending);
+    const modelSelectionDisabled = Boolean(sending || !canUseAgentModels);
     const voiceStatusResponse =
         voiceInputTarget &&
         voiceStatusSnapshot?.gatewayId === voiceInputTarget.gatewayId &&
@@ -859,9 +891,6 @@ const ThreadScreen = ({
     const voiceStatus = voiceStatusResponse?.status ?? null;
     const voiceAvailability = resolveVoiceComposerAvailability({
         online: voiceInputDataSource.kind === 'online',
-        settingsLoading: voiceInputSettingsQuery.isPending,
-        settingsError: voiceInputSettingsQuery.isError,
-        settings: voiceInputSettingsQuery.data?.settings.voice_input,
         voiceStatus,
     });
     const voiceReady = voiceAvailability.kind === 'ready';
@@ -909,6 +938,7 @@ const ThreadScreen = ({
     const activeCliRuntimeCanSteer = activeCliRuntimeSupportsSteer ?? false;
     const canSteerCliRuntimeTurn = Boolean(
         connected &&
+        threadAgentCapabilities?.can_control_cli_runtime &&
         activeCliRuntimeThreadBinding &&
         activeCliRuntimeCanSteer &&
         visibleThreadId &&
@@ -1921,6 +1951,13 @@ const ThreadScreen = ({
                             artifactWorkspaceId={artifactWorkspaceId}
                             artifactActionStateByKey={artifactActionStateByKey}
                             currentPrincipalId={currentPrincipal.data?.principal_id ?? null}
+                            canManageAllThreads={
+                                currentPrincipal.data?.capabilities.can_manage_all_threads ?? false
+                            }
+                            canRespondToAgentRequests={
+                                threadAgentCapabilities?.can_respond_to_agent_requests ?? false
+                            }
+                            memberProfiles={timelineMemberProfiles}
                             presentationContext={
                                 taskChildThread
                                     ? TASK_CHILD_TIMELINE_PRESENTATION_CONTEXT
@@ -1962,7 +1999,7 @@ const ThreadScreen = ({
                                 canSteerTurn={canSteerCliRuntimeTurn}
                                 steering={steering}
                                 hasInFlightTurn={hasInFlightTurn}
-                                canStopTurn={canStopTurn}
+                                canStopTurn={canStopTurn && canWriteInActiveThread}
                                 turnCancelling={turnCancelling}
                                 composerMode={composerSelectedMode}
                                 modeLabel={composerModeLabel}
@@ -1985,7 +2022,7 @@ const ThreadScreen = ({
                                 attachments={composerAttachments}
                                 capabilities={renderedComposerSubmissionPlan.capabilities}
                                 skillChips={composerSkillChips}
-                                attachmentsEnabled
+                                attachmentsEnabled={canWriteInActiveThread}
                                 attachmentMenuAccessibilityLabel={t('composerAttachmentMenuTitle')}
                                 dismissLabel={t('dismiss')}
                                 replyCancelLabel={t('composerReplyCancel')}

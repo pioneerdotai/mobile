@@ -11,14 +11,24 @@ import {
 import { Linking } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
+import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 
 import type { TimelineRow } from '@/services/threads/conversation/timeline';
+import type { TaskWaitReviewDisplayItem } from '@/client/generated/task_wait_review_display_item';
+import { pioneerClient } from '@/client';
 import { McpIcon } from '@/components/icons/mcp-icon';
 import { HStack } from '@/components/primitives/hstack';
+import { Input } from '@/components/primitives/input';
 import { Pressable } from '@/components/primitives/pressable';
 import { Text } from '@/components/primitives/text';
 import { VStack } from '@/components/primitives/vstack';
 import Spinner from '@/components/feedback/spinner';
+import { canManageTaskReviewItem, taskReviewUserControlsAllowed } from '@/services/tasks/review';
+import {
+    invalidateTimelineQueriesForThread,
+    invalidateTurnWorkQueries,
+} from '@/services/threads/timeline-query';
 
 import { BodyText } from './status';
 import { TIMELINE_TECHNICAL_ROW_VERTICAL_PADDING_UNITS } from '../timeline-grouping';
@@ -26,6 +36,10 @@ import { TIMELINE_TECHNICAL_ROW_VERTICAL_PADDING_UNITS } from '../timeline-group
 type ToolCallRowProps = {
     row: Extract<TimelineRow, { type: 'tool-call' }>;
     expanded: boolean;
+    currentPrincipalId?: string | null;
+    canManageAllThreads: boolean;
+    canRespondToAgentRequests: boolean;
+    threadId: string;
     mcpServerIdByName: Readonly<Record<string, string>>;
     onOpenMcpServer?: (serverId: string) => void;
     onToggle: () => void;
@@ -34,6 +48,10 @@ type ToolCallRowProps = {
 export const ToolCallRow = ({
     row,
     expanded,
+    currentPrincipalId,
+    canManageAllThreads,
+    canRespondToAgentRequests,
+    threadId,
     mcpServerIdByName,
     onOpenMcpServer,
     onToggle,
@@ -137,6 +155,16 @@ export const ToolCallRow = ({
                     {row.resultText ? (
                         <DetailBlock title={t('timelineResult')} text={row.resultText} />
                     ) : null}
+                    {row.taskReview ? (
+                        <TaskReviewPanel
+                            review={row.taskReview}
+                            threadId={threadId}
+                            turnId={row.turnId}
+                            currentPrincipalId={currentPrincipalId}
+                            canManageAllThreads={canManageAllThreads}
+                            canRespondToAgentRequests={canRespondToAgentRequests}
+                        />
+                    ) : null}
                     {row.toolKind === 'dynamicToolCall' &&
                         !row.mcpDetails &&
                         !row.argumentsText &&
@@ -184,6 +212,216 @@ export const ToolCallRow = ({
         </VStack>
     );
 };
+
+const TaskReviewPanel = ({
+    review,
+    threadId,
+    turnId,
+    currentPrincipalId,
+    canManageAllThreads,
+    canRespondToAgentRequests,
+}: {
+    review: NonNullable<Extract<TimelineRow, { type: 'tool-call' }>['taskReview']>;
+    threadId: string;
+    turnId: string;
+    currentPrincipalId?: string | null;
+    canManageAllThreads: boolean;
+    canRespondToAgentRequests: boolean;
+}) => {
+    const { t } = useTranslation('threads');
+
+    return (
+        <VStack style={styles.taskReviewPanel}>
+            <Text style={styles.taskReviewTitle}>
+                {t('timelineTaskReviewRequired', {
+                    count: Math.max(review.review_required_count, review.items.length),
+                })}
+            </Text>
+            {review.items.map((item) => (
+                <TaskReviewItem
+                    key={item.candidate_id}
+                    item={item}
+                    threadId={threadId}
+                    turnId={turnId}
+                    canManage={
+                        taskReviewUserControlsAllowed(item) &&
+                        canManageTaskReviewItem({
+                            item,
+                            currentPrincipalId,
+                            canManageAllThreads,
+                            canRespondToAgentRequests,
+                        })
+                    }
+                />
+            ))}
+        </VStack>
+    );
+};
+
+const TaskReviewItem = ({
+    item,
+    threadId,
+    turnId,
+    canManage,
+}: {
+    item: TaskWaitReviewDisplayItem;
+    threadId: string;
+    turnId: string;
+    canManage: boolean;
+}) => {
+    const { t } = useTranslation('threads');
+    const queryClient = useQueryClient();
+    const [feedback, setFeedback] = useState('');
+    const [pendingAction, setPendingAction] = useState<string | null>(null);
+    const [error, setError] = useState<string | null>(null);
+    const runId = item.run_id?.trim() ?? '';
+    const actions = new Set(item.allowed_actions);
+    const canAccept = canManage && actions.has('task_accept') && !!runId;
+    const canRevise =
+        canManage && actions.has('task_revise') && !!runId && feedback.trim().length > 0;
+    const canCancel = canManage && actions.has('task_cancel');
+
+    const refresh = async () => {
+        await Promise.all([
+            invalidateTimelineQueriesForThread(queryClient, threadId),
+            invalidateTurnWorkQueries(queryClient, threadId, turnId),
+        ]);
+    };
+    const perform = async (action: 'accept' | 'revise' | 'cancel') => {
+        setPendingAction(action);
+        setError(null);
+        try {
+            if (action === 'accept') {
+                await pioneerClient.taskAccept({
+                    taskId: item.task_id,
+                    runId,
+                    candidateId: item.candidate_id,
+                });
+            } else if (action === 'revise') {
+                await pioneerClient.taskRevise({
+                    taskId: item.task_id,
+                    runId,
+                    candidateId: item.candidate_id,
+                    feedback: feedback.trim(),
+                    additionalInstructions: [],
+                });
+            } else {
+                await pioneerClient.taskCancel({
+                    taskId: item.task_id,
+                    scope: 'attached_subtree',
+                });
+            }
+            await refresh();
+        } catch (actionError) {
+            setError(
+                actionError instanceof Error
+                    ? actionError.message
+                    : t('timelineTaskReviewActionFailed'),
+            );
+        } finally {
+            setPendingAction(null);
+        }
+    };
+
+    return (
+        <VStack style={styles.taskReviewItem}>
+            <Text style={styles.taskReviewItemTitle}>{item.title || t('timelineTask')}</Text>
+            {item.summary ? (
+                <DetailBlock title={t('timelineTaskReviewSummary')} text={item.summary} />
+            ) : null}
+            {item.result_preview ? (
+                <DetailBlock title={t('timelineTaskReviewResult')} text={item.result_preview} />
+            ) : null}
+            {item.extraction_error_preview ? (
+                <DetailBlock title={t('timelineError')} text={item.extraction_error_preview} />
+            ) : null}
+            {item.diagnostics.length > 0 ? (
+                <DetailBlock
+                    title={t('timelineTaskReviewDiagnostics')}
+                    text={item.diagnostics.join('\n')}
+                />
+            ) : null}
+            {item.remaining_revision_rounds !== null &&
+            item.remaining_revision_rounds !== undefined ? (
+                <Text style={styles.metaText}>
+                    {t('timelineTaskReviewRevisionRounds', {
+                        count: item.remaining_revision_rounds,
+                    })}
+                </Text>
+            ) : null}
+            {canManage && actions.has('task_revise') ? (
+                <Input
+                    value={feedback}
+                    editable={pendingAction === null}
+                    multiline
+                    placeholder={t('timelineTaskReviewFeedbackPlaceholder')}
+                    onChangeText={setFeedback}
+                    style={styles.taskReviewInput}
+                />
+            ) : null}
+            {error ? <Text style={styles.taskReviewError}>{error}</Text> : null}
+            {canManage ? (
+                <HStack style={styles.taskReviewActions}>
+                    {actions.has('task_accept') ? (
+                        <TaskReviewButton
+                            label={t('timelineTaskReviewAccept')}
+                            disabled={!canAccept || pendingAction !== null}
+                            primary
+                            onPress={() => void perform('accept')}
+                        />
+                    ) : null}
+                    {actions.has('task_revise') ? (
+                        <TaskReviewButton
+                            label={t('timelineTaskReviewRevise')}
+                            disabled={!canRevise || pendingAction !== null}
+                            onPress={() => void perform('revise')}
+                        />
+                    ) : null}
+                    {actions.has('task_cancel') ? (
+                        <TaskReviewButton
+                            label={t('timelineTaskReviewCancel')}
+                            disabled={!canCancel || pendingAction !== null}
+                            danger
+                            onPress={() => void perform('cancel')}
+                        />
+                    ) : null}
+                </HStack>
+            ) : null}
+        </VStack>
+    );
+};
+
+const TaskReviewButton = ({
+    label,
+    disabled,
+    primary = false,
+    danger = false,
+    onPress,
+}: {
+    label: string;
+    disabled: boolean;
+    primary?: boolean;
+    danger?: boolean;
+    onPress: () => void;
+}) => (
+    <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={label}
+        disabled={disabled}
+        onPress={onPress}
+        style={({ pressed }) => [
+            styles.taskReviewButton,
+            primary && styles.taskReviewButtonPrimary,
+            danger && styles.taskReviewButtonDanger,
+            disabled && styles.taskReviewButtonDisabled,
+            pressed && !disabled && styles.pressed,
+        ]}
+    >
+        <Text style={[styles.taskReviewButtonText, primary && styles.taskReviewButtonPrimaryText]}>
+            {label}
+        </Text>
+    </Pressable>
+);
 
 const ToolTitle = ({
     row,
@@ -351,6 +589,81 @@ const styles = StyleSheet.create((theme) => ({
         color: theme.colors.text,
         fontSize: theme.fontSize.sm.fontSize,
         fontWeight: theme.fontWeight.extrabold.fontWeight,
+    },
+    taskReviewPanel: {
+        gap: theme.space(2),
+        borderWidth: 1,
+        borderColor: theme.colors.warningBorder,
+        borderRadius: theme.radius.xl,
+        backgroundColor: theme.colors.warningSurface,
+        padding: theme.space(3),
+    },
+    taskReviewTitle: {
+        color: theme.colors.typography,
+        fontSize: theme.fontSize.sm.fontSize,
+        lineHeight: theme.fontSize.sm.lineHeight,
+        fontWeight: theme.fontWeight.bold.fontWeight,
+    },
+    taskReviewItem: {
+        gap: theme.space(2),
+    },
+    taskReviewItemTitle: {
+        color: theme.colors.typography,
+        fontSize: theme.fontSize.sm.fontSize,
+        lineHeight: theme.fontSize.sm.lineHeight,
+        fontWeight: theme.fontWeight.semibold.fontWeight,
+    },
+    taskReviewInput: {
+        minHeight: theme.space(14),
+        borderRadius: theme.radius.lg,
+        borderWidth: 1,
+        borderColor: theme.colors.border,
+        backgroundColor: theme.colors.background,
+        color: theme.colors.typography,
+        fontSize: theme.fontSize.sm.fontSize,
+        paddingHorizontal: theme.space(3),
+        paddingVertical: theme.space(2),
+        textAlignVertical: 'top',
+    },
+    taskReviewActions: {
+        flexWrap: 'wrap',
+        justifyContent: 'flex-end',
+        gap: theme.space(1.5),
+    },
+    taskReviewButton: {
+        minHeight: theme.space(8),
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: theme.radius.full,
+        borderWidth: 1,
+        borderColor: theme.colors.border,
+        backgroundColor: theme.colors.background,
+        paddingHorizontal: theme.space(3),
+    },
+    taskReviewButtonPrimary: {
+        borderColor: theme.colors.foreground,
+        backgroundColor: theme.colors.foreground,
+    },
+    taskReviewButtonDanger: {
+        borderColor: theme.colors.dangerBorder,
+        backgroundColor: theme.colors.dangerSurface,
+    },
+    taskReviewButtonDisabled: {
+        opacity: 0.45,
+    },
+    taskReviewButtonText: {
+        color: theme.colors.typography,
+        fontSize: theme.fontSize.xs.fontSize,
+        lineHeight: theme.fontSize.xs.lineHeight,
+        fontWeight: theme.fontWeight.semibold.fontWeight,
+    },
+    taskReviewButtonPrimaryText: {
+        color: theme.colors.background,
+    },
+    taskReviewError: {
+        color: theme.colors.dangerText,
+        fontSize: theme.fontSize.xs.fontSize,
+        lineHeight: theme.fontSize.xs.lineHeight,
     },
 }));
 

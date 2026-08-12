@@ -69,6 +69,8 @@ public:
       const std::string& inputJson) override;
   std::shared_ptr<margelo::nitro::Promise<std::string>> gatewayAuthMeJson(
       const std::string& inputJson) override;
+  std::shared_ptr<margelo::nitro::Promise<std::string>> gatewayAuthorizationCapabilitiesJson(
+      const std::string& inputJson) override;
   std::shared_ptr<margelo::nitro::Promise<std::string>> gatewayAuthProfileUpdateJson(
       const std::string& inputJson) override;
   std::shared_ptr<margelo::nitro::Promise<std::string>> gatewayAuthSessionListJson(
@@ -172,6 +174,12 @@ public:
   std::shared_ptr<margelo::nitro::Promise<std::string>> cliRuntimeRequestRespondJson(
       const std::string& inputJson) override;
   std::shared_ptr<margelo::nitro::Promise<std::string>> turnPermissionRequestRespondJson(
+      const std::string& inputJson) override;
+  std::shared_ptr<margelo::nitro::Promise<std::string>> taskAcceptJson(
+      const std::string& inputJson) override;
+  std::shared_ptr<margelo::nitro::Promise<std::string>> taskReviseJson(
+      const std::string& inputJson) override;
+  std::shared_ptr<margelo::nitro::Promise<std::string>> taskCancelJson(
       const std::string& inputJson) override;
   std::shared_ptr<margelo::nitro::Promise<std::string>> voiceStatusJson(
       const std::string& inputJson) override;

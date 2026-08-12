@@ -21,7 +21,7 @@ import { KeyboardAwareLegendList } from '@legendapp/list/keyboard';
 import type { LegendListRef, OnViewableItemsChanged } from '@legendapp/list/react-native';
 import { useTranslation } from 'react-i18next';
 
-import type { ClientActiveThreadSnapshot } from '@/client';
+import type { ClientActiveThreadSnapshot, MemberSummary } from '@/client';
 import {
     formatElapsedMs,
     projectConversationToRows,
@@ -55,6 +55,7 @@ import { defaultTimelineRowExpanded } from './row-expansion';
 import { timelineRowsAreEqual } from './timeline-row-equality';
 import { viewedThroughLatestUserTurn } from './read-viewability';
 import { ensureTimelineRowRenderFingerprint } from '@/services/threads/conversation/render-fingerprint';
+import { applyCurrentMemberProfilesToTimelineRows } from '@/services/threads/timeline-member-profiles';
 import { VStack } from '@/components/primitives/vstack';
 import {
     mobileArtifactActionKey,
@@ -106,6 +107,9 @@ type ThreadTimelineProps = {
     ) => void;
     artifactActionStateByKey?: Readonly<Record<string, MobileArtifactActionState>>;
     currentPrincipalId?: string | null;
+    canManageAllThreads?: boolean;
+    canRespondToAgentRequests?: boolean;
+    memberProfiles?: readonly MemberSummary[];
     presentationContext?: TimelinePresentationContext;
     onOpenMessageRevisions?: (turnId: string) => void;
     onReplyToMessage?: (row: Extract<TimelineRow, { type: 'user-message' }>) => void;
@@ -119,6 +123,7 @@ type ThreadTimelineProps = {
     onRefresh: () => Promise<void>;
 };
 
+const EMPTY_MEMBER_PROFILES: readonly MemberSummary[] = [];
 const BOTTOM_FOLLOW_THRESHOLD_RATIO = 0.12;
 const TIMELINE_DRAW_DISTANCE = 640;
 const TIMELINE_ESTIMATED_ITEM_SIZE = 64;
@@ -171,6 +176,9 @@ const ThreadTimelineContent = ({
     onCancelArtifactDownload,
     artifactActionStateByKey,
     currentPrincipalId,
+    canManageAllThreads = false,
+    canRespondToAgentRequests = false,
+    memberProfiles = EMPTY_MEMBER_PROFILES,
     presentationContext,
     onOpenMessageRevisions,
     onReplyToMessage,
@@ -237,7 +245,7 @@ const ThreadTimelineContent = ({
         [conversation, rowsOverride],
     );
 
-    const rows = useMemo(
+    const projectedRows = useMemo(
         () =>
             rowsOverride
                 ? insertPendingRequestRows(
@@ -258,6 +266,10 @@ const ThreadTimelineContent = ({
             semanticWorkItemKeys,
             timelineNowMs,
         ],
+    );
+    const rows = useMemo(
+        () => applyCurrentMemberProfilesToTimelineRows(projectedRows, memberProfiles),
+        [memberProfiles, projectedRows],
     );
     const timelineGrouping = useMemo(
         () => TimelineGroupingIndex.build(rows, currentPrincipalId, presentationContext),
@@ -332,6 +344,8 @@ const ThreadTimelineContent = ({
             artifactWorkspaceId,
             artifactActionStateByKey,
             currentPrincipalId,
+            canManageAllThreads,
+            canRespondToAgentRequests,
             messageActionsRowKey,
             timelineGroupingFingerprint: timelineGrouping.renderFingerprint,
         }),
@@ -339,6 +353,8 @@ const ThreadTimelineContent = ({
             artifactActionStateByKey,
             artifactWorkspaceId,
             currentPrincipalId,
+            canManageAllThreads,
+            canRespondToAgentRequests,
             expandedRows,
             messageActionsRowKey,
             mcpServerIdByName,
@@ -352,6 +368,7 @@ const ThreadTimelineContent = ({
         ({ item, index }: { item: TimelineRow; index: number }) => (
             <TimelineRowContainer
                 row={item}
+                threadId={conversation.thread_id ?? ''}
                 rowLayout={timelineGrouping.rowLayout(index)}
                 expanded={expandedRows[item.key] ?? defaultTimelineRowExpanded(item)}
                 mcpServerIdByName={mcpServerIdByName}
@@ -372,6 +389,8 @@ const ThreadTimelineContent = ({
                 }
                 artifactActionStateByKey={artifactActionStateByKey}
                 currentPrincipalId={currentPrincipalId}
+                canManageAllThreads={canManageAllThreads}
+                canRespondToAgentRequests={canRespondToAgentRequests}
                 presentationContext={presentationContext}
                 messageActionsRowKey={messageActionsRowKey}
                 onOpenMessageActions={openMessageActions}
@@ -382,6 +401,7 @@ const ThreadTimelineContent = ({
         ),
         [
             expandedRows,
+            conversation.thread_id,
             timelineGrouping,
             mcpServerIdByName,
             artifactWorkspaceId,
@@ -390,6 +410,8 @@ const ThreadTimelineContent = ({
             onCancelArtifactDownload,
             artifactActionStateByKey,
             currentPrincipalId,
+            canManageAllThreads,
+            canRespondToAgentRequests,
             presentationContext,
             messageActionsRowKey,
             openMessageActions,
@@ -576,6 +598,7 @@ const TimelineEmptyOverlay = ({
 
 const TimelineRowContainer = ({
     row,
+    threadId,
     rowLayout,
     expanded,
     mcpServerIdByName,
@@ -586,6 +609,8 @@ const TimelineRowContainer = ({
     artifactActionState,
     artifactActionStateByKey,
     currentPrincipalId,
+    canManageAllThreads,
+    canRespondToAgentRequests,
     presentationContext,
     messageActionsRowKey,
     onOpenMessageActions,
@@ -594,6 +619,7 @@ const TimelineRowContainer = ({
     onToggleExpanded,
 }: {
     row: TimelineRow;
+    threadId: string;
     rowLayout: TimelineRowLayout;
     expanded: boolean;
     mcpServerIdByName: Readonly<Record<string, string>>;
@@ -608,6 +634,8 @@ const TimelineRowContainer = ({
     artifactActionState?: MobileArtifactActionState;
     artifactActionStateByKey?: Readonly<Record<string, MobileArtifactActionState>>;
     currentPrincipalId?: string | null;
+    canManageAllThreads: boolean;
+    canRespondToAgentRequests: boolean;
     presentationContext?: TimelinePresentationContext;
     messageActionsRowKey: string | null;
     onOpenMessageActions: (row: MessageActionsTimelineRow) => void;
@@ -635,6 +663,7 @@ const TimelineRowContainer = ({
             ) : null}
             <TimelineRowRenderer
                 row={row}
+                threadId={threadId}
                 compactTopSpacing={rowLayout.compactTopSpacing}
                 expanded={expanded}
                 mcpServerIdByName={mcpServerIdByName}
@@ -644,6 +673,8 @@ const TimelineRowContainer = ({
                 onCancelArtifactDownload={onCancelArtifactDownload}
                 artifactActionStateByKey={artifactActionStateByKey}
                 currentPrincipalId={currentPrincipalId}
+                canManageAllThreads={canManageAllThreads}
+                canRespondToAgentRequests={canRespondToAgentRequests}
                 presentationContext={presentationContext}
                 messageActionsRowKey={messageActionsRowKey}
                 onOpenMessageActions={onOpenMessageActions}
@@ -658,6 +689,7 @@ const TimelineRowContainer = ({
 
 const TimelineRowRenderer = ({
     row,
+    threadId,
     compactTopSpacing,
     expanded,
     mcpServerIdByName,
@@ -668,6 +700,8 @@ const TimelineRowRenderer = ({
     artifactActionState,
     artifactActionStateByKey,
     currentPrincipalId,
+    canManageAllThreads,
+    canRespondToAgentRequests,
     presentationContext,
     messageActionsRowKey,
     onOpenMessageActions,
@@ -676,6 +710,7 @@ const TimelineRowRenderer = ({
     onToggleExpanded,
 }: {
     row: TimelineRow;
+    threadId: string;
     compactTopSpacing: boolean;
     expanded: boolean;
     mcpServerIdByName: Readonly<Record<string, string>>;
@@ -690,6 +725,8 @@ const TimelineRowRenderer = ({
     artifactActionState?: MobileArtifactActionState;
     artifactActionStateByKey?: Readonly<Record<string, MobileArtifactActionState>>;
     currentPrincipalId?: string | null;
+    canManageAllThreads: boolean;
+    canRespondToAgentRequests: boolean;
     presentationContext?: TimelinePresentationContext;
     messageActionsRowKey: string | null;
     onOpenMessageActions: (row: MessageActionsTimelineRow) => void;
@@ -737,7 +774,11 @@ const TimelineRowRenderer = ({
             return (
                 <ToolCallRow
                     row={row}
+                    threadId={threadId}
                     expanded={expanded}
+                    currentPrincipalId={currentPrincipalId}
+                    canManageAllThreads={canManageAllThreads}
+                    canRespondToAgentRequests={canRespondToAgentRequests}
                     mcpServerIdByName={mcpServerIdByName}
                     onOpenMcpServer={onOpenMcpServer}
                     onToggle={onToggleExpanded}
@@ -752,7 +793,7 @@ const TimelineRowRenderer = ({
         case 'running':
             return <RunningRow row={row} showDino={!presentationContext?.taskChildThread} />;
         case 'pending-request':
-            return <PendingRequestCard entry={row.entry} />;
+            return <PendingRequestCard entry={row.entry} canRespond={canRespondToAgentRequests} />;
         case 'artifact':
             return (
                 <ArtifactRow

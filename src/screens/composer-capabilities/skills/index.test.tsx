@@ -13,6 +13,12 @@ jest.mock('lucide-react-native', () => ({
     ChevronUp: () => null,
 }));
 jest.mock('@/client', () => ({ pioneerClient: {} }));
+jest.mock('@/hooks/use-administration-capabilities', () => ({
+    useAdministrationCapabilities: () => ({
+        data: { can_use_skills: true },
+        isPending: false,
+    }),
+}));
 jest.mock('@/components/feedback/spinner', () => () => null);
 
 const picker: ComposerSkillPickerProjection = {

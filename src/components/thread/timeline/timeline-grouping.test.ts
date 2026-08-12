@@ -15,11 +15,17 @@ const timelineRow = (value: Record<string, unknown>): TimelineRow => value as Ti
 
 const userMessage = ({
     authorId,
+    avatarRevision = null,
+    displayName,
     key,
+    nickname,
     optimistic = false,
 }: {
     authorId?: string;
+    avatarRevision?: string | null;
+    displayName?: string;
     key: string;
+    nickname?: string;
     optimistic?: boolean;
 }): TimelineRow => {
     const turnId = `turn-${key}`;
@@ -31,9 +37,9 @@ const userMessage = ({
         author: authorId
             ? {
                   actor: { kind: 'principal', id: authorId },
-                  display_name: authorId,
-                  nickname: authorId,
-                  avatar_revision: null,
+                  display_name: displayName ?? authorId,
+                  nickname: nickname ?? authorId,
+                  avatar_revision: avatarRevision,
               }
             : null,
     });
@@ -80,6 +86,44 @@ describe('TimelineGroupingIndex', () => {
         expect(grouping.avatarGroups[0].bottomInsetUnits).toBe(
             TIMELINE_GROUP_VERTICAL_PADDING_UNITS,
         );
+    });
+
+    it('keeps profile revisions from the same principal in one group', () => {
+        const rows = [
+            userMessage({
+                key: 'before',
+                authorId: 'alice',
+                displayName: 'Alice',
+                nickname: 'alice',
+                avatarRevision: 'old-avatar',
+            }),
+            userMessage({
+                key: 'after',
+                authorId: 'alice',
+                displayName: 'Alicia',
+                nickname: 'alicia',
+                avatarRevision: 'new-avatar',
+            }),
+        ];
+
+        const grouping = TimelineGroupingIndex.build(rows, 'current-principal');
+
+        expect(
+            grouping.avatarGroups.map(({ startIndex, endIndex }) => [startIndex, endIndex]),
+        ).toEqual([[0, 1]]);
+        expect(grouping.rowLayout(1)).toEqual({
+            groupKind: 'historical-user',
+            compactTopSpacing: true,
+            startsAvatarGroup: false,
+        });
+        expect(grouping.avatarGroups[0].source).toEqual({
+            kind: 'historical-user',
+            author: expect.objectContaining({
+                display_name: 'Alice',
+                nickname: 'alice',
+                avatar_revision: 'old-avatar',
+            }),
+        });
     });
 
     it('renders a system-authored task-child input as the right-side user message', () => {

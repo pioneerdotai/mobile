@@ -9,7 +9,7 @@ const mockCache = jest.fn();
 const mockQueryClient = {};
 const mockTranslate = (key: string) => key;
 const mockPush = jest.fn();
-let mockPrincipal: Record<string, unknown>;
+let mockCapabilitySnapshot: Record<string, unknown>;
 
 jest.mock('@tanstack/react-query', () => ({
     useQueryClient: () => mockQueryClient,
@@ -48,7 +48,7 @@ jest.mock('@/components/overlays/thread-actions', () => ({
         mockReact.createElement('ThreadActionsSheet', props),
 }));
 jest.mock('@/hooks/use-administration-capabilities', () => ({
-    useAdministrationPrincipal: () => mockPrincipal,
+    useAuthorizationCapabilitySnapshot: () => mockCapabilitySnapshot,
 }));
 jest.mock('@/screens/thread', () => ({
     __esModule: true,
@@ -100,8 +100,14 @@ const renderRoute = async (): Promise<ReactTestRenderer> => {
 describe('new collaborative thread route', () => {
     beforeEach(() => {
         jest.clearAllMocks();
-        mockPrincipal = {
-            data: { principal: { id: 'member-a', kind: 'user' }, role_key: 'member' },
+        mockCapabilitySnapshot = {
+            data: {
+                schema_version: 1,
+                authorization_revision: 1,
+                principal_id: 'member-a',
+                role_key: 'member',
+                workspace: { capabilities: { can_create_thread: true } },
+            },
             isPending: false,
             isError: false,
         };
@@ -127,8 +133,14 @@ describe('new collaborative thread route', () => {
     });
 
     it('creates a Superuser thread immediately with the private default', async () => {
-        mockPrincipal = {
-            data: { principal: { id: 'superuser-a', kind: 'superuser' }, role_key: null },
+        mockCapabilitySnapshot = {
+            data: {
+                schema_version: 1,
+                authorization_revision: 2,
+                principal_id: 'superuser-a',
+                role_key: 'superuser',
+                workspace: { capabilities: { can_create_thread: true } },
+            },
             isPending: false,
             isError: false,
         };
@@ -142,6 +154,28 @@ describe('new collaborative thread route', () => {
             visibility: 'private',
             expanded_keys: [],
         });
+        expect(tree.root.find((node) => String(node.type) === 'ThreadScreen').props.threadId).toBe(
+            'thread-a',
+        );
+    });
+
+    it('keeps the created thread mounted when the authorization revision advances', async () => {
+        mockPlan.mockReturnValue({ default_visibility: 'private', options: ['private'] });
+        const tree = await renderRoute();
+
+        mockCapabilitySnapshot = {
+            ...mockCapabilitySnapshot,
+            data: {
+                ...(mockCapabilitySnapshot.data as Record<string, unknown>),
+                authorization_revision: 2,
+            },
+        };
+        await act(async () => {
+            tree.update(<NewThreadRoute />);
+            await flush();
+        });
+
+        expect(mockOpen).toHaveBeenCalledTimes(1);
         expect(tree.root.find((node) => String(node.type) === 'ThreadScreen').props.threadId).toBe(
             'thread-a',
         );

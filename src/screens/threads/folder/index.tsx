@@ -7,6 +7,7 @@ import { VStack } from '@/components/primitives/vstack';
 import { ThreadTreeList } from '@/components/thread-tree/thread-tree-list';
 import { Title } from '@/components/typography/title';
 import type { Thread } from '@/client';
+import { useAdministrationCapabilities } from '@/hooks/use-administration-capabilities';
 import { useThreadTreeLevel } from '@/hooks/use-thread-tree';
 
 type ThreadTreeLevelScreenProps = {
@@ -16,6 +17,8 @@ type ThreadTreeLevelScreenProps = {
 const ThreadFolderScreen = ({ folderId }: ThreadTreeLevelScreenProps) => {
     const { t } = useTranslation('threads');
     const router = useRouter();
+    const capabilities = useAdministrationCapabilities();
+    const canManageWorkspace = capabilities.data?.can_manage_workspace ?? false;
     const {
         currentFolder,
         currentAgentsDocSummary,
@@ -73,10 +76,10 @@ const ThreadFolderScreen = ({ folderId }: ThreadTreeLevelScreenProps) => {
                 </VStack>
             }
             loading={loading}
-            onAgentsDocPress={openAgentsDoc}
+            onAgentsDocPress={canManageWorkspace ? openAgentsDoc : undefined}
             onFolderPress={openFolder}
             onThreadPress={openThread}
-            showAgentsDoc={!!currentAgentsDocSummary}
+            showAgentsDoc={canManageWorkspace && !!currentAgentsDocSummary}
             style={styles.container}
             threads={threads}
             unreadByThreadId={unreadByThreadId}

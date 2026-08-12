@@ -52,6 +52,24 @@ describe('thread tree collaboration invalidations', () => {
         expect(threadTreeInvalidationWorkspaceId(event)).toBeNull();
     });
 
+    it('does not invalidate the thread tree for ordinary message lifecycle events', () => {
+        const events = ['turn_started', 'thread_timeline_blocks_changed'] as const;
+
+        for (const kind of events) {
+            const event = {
+                GatewayNotification: {
+                    kind,
+                    params: {
+                        workspace_id: 'workspace_a',
+                        thread_id: 'thread_a',
+                    },
+                },
+            } as unknown as ClientEvent;
+
+            expect(threadTreeInvalidationWorkspaceId(event)).toBeNull();
+        }
+    });
+
     it('projects only authoritative unread for threads still in the snapshot', () => {
         const snapshot = {
             workspace_id: 'workspace_a',

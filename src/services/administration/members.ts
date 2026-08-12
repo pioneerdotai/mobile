@@ -1,5 +1,6 @@
 import type {
     AuthMeResponse,
+    AuthorizationCapabilitySnapshot,
     ClientDeviceActivationPresentationResult,
     GatewayEndpoint,
     MemberListResponse,
@@ -15,6 +16,27 @@ const WORKSPACE_MEMBER_PAGE_LIMIT = 100;
 
 export const loadMemberPage = (cursor: string | null): Promise<MemberListResponse> =>
     pioneerClient.memberList({ cursor, limit: MEMBER_PAGE_LIMIT });
+
+export const loadAllMembers = async (): Promise<MemberListResponse> => {
+    const members: MemberSummary[] = [];
+    const seen = new Set<string>();
+    let cursor: string | null = null;
+    do {
+        const page = await pioneerClient.memberList({ cursor, limit: MEMBER_PAGE_LIMIT });
+        for (const member of page.members) {
+            if (!seen.has(member.principal_id)) {
+                seen.add(member.principal_id);
+                members.push(member);
+            }
+        }
+        const next = page.next_cursor ?? null;
+        if (next !== null && next === cursor) {
+            throw new Error('invalid_member_cursor');
+        }
+        cursor = next;
+    } while (cursor !== null);
+    return { members, next_cursor: null };
+};
 
 export const loadAllWorkspaceMembers = async (
     workspaceId: string,
@@ -45,11 +67,13 @@ export const loadAllWorkspaceMembers = async (
 
 export const presentMember = (
     auth: AuthMeResponse,
+    capabilitySnapshot: AuthorizationCapabilitySnapshot,
     member: MemberSummary,
     isWorkspaceMember: boolean,
 ): MemberListRow =>
     pioneerClient.memberPresentation({
         auth,
+        capability_snapshot: capabilitySnapshot,
         member,
         is_workspace_member: isWorkspaceMember,
     });

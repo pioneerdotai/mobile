@@ -13,6 +13,12 @@ jest.mock('@/client', () => ({
         composerMcpToggle: jest.fn(),
     },
 }));
+jest.mock('@/hooks/use-administration-capabilities', () => ({
+    useAdministrationCapabilities: () => ({
+        data: { can_use_mcp: true },
+        isPending: false,
+    }),
+}));
 jest.mock('lucide-react-native', () => ({
     ChevronDown: () => null,
     ChevronUp: () => null,

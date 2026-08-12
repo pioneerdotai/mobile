@@ -29,6 +29,7 @@ char* pioneer_client_ffi_gateway_auth_refresh(PioneerClientFfi* client, const ch
 char* pioneer_client_ffi_gateway_auth_device_activate(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_gateway_auth_session_cleanup(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_gateway_auth_me(PioneerClientFfi* client, const char* input_json);
+char* pioneer_client_ffi_gateway_authorization_capabilities(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_gateway_auth_profile_update(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_gateway_auth_session_list(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_gateway_auth_session_revoke(PioneerClientFfi* client, const char* input_json);
@@ -82,6 +83,9 @@ char* pioneer_client_ffi_cli_runtime_turn_steer(PioneerClientFfi* client, const 
 char* pioneer_client_ffi_cli_runtime_review_start(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_cli_runtime_request_respond(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_turn_permission_request_respond(PioneerClientFfi* client, const char* input_json);
+char* pioneer_client_ffi_task_accept(PioneerClientFfi* client, const char* input_json);
+char* pioneer_client_ffi_task_revise(PioneerClientFfi* client, const char* input_json);
+char* pioneer_client_ffi_task_cancel(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_voice_status(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_voice_session_start(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_voice_audio_chunk(PioneerClientFfi* client, const char* input_json, const uint8_t* pcm_ptr, size_t pcm_len);

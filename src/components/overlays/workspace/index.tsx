@@ -15,6 +15,7 @@ import { Text } from '@/components/primitives/text';
 import { VStack } from '@/components/primitives/vstack';
 import { stableOutlineWidth } from '@/helpers/styles';
 import { useEditor } from '@/hooks/use-editor';
+import { useAdministrationCapabilities } from '@/hooks/use-administration-capabilities';
 import { useWorkspace } from '@/hooks/use-workspace';
 import { WorkspaceOperationError } from '@/services/workspace/management';
 import type { WorkspaceOperationErrorCode } from '@/services/workspace/management';
@@ -41,6 +42,9 @@ const WorkspaceSwitcherSheet = () => {
     const { t } = useTranslation('workspace');
     const { theme, rt } = useUnistyles();
     const { navigate } = useEditor();
+    const capabilities = useAdministrationCapabilities();
+    const canCreateWorkspace = capabilities.data?.can_create_workspace ?? false;
+    const canManageWorkspace = capabilities.data?.can_manage_workspace ?? false;
     const {
         workspaces,
         activeWorkspaceId,
@@ -94,16 +98,18 @@ const WorkspaceSwitcherSheet = () => {
     );
 
     const handleWorkspaceCreate = useCallback(() => {
+        if (!canCreateWorkspace) return;
         setWorkspaceSwitcherOpen(false);
         navigate({ type: 'workspace__create' });
-    }, [navigate, setWorkspaceSwitcherOpen]);
+    }, [canCreateWorkspace, navigate, setWorkspaceSwitcherOpen]);
 
     const handleWorkspaceEdit = useCallback(
         (workspaceId: string) => {
+            if (!canManageWorkspace) return;
             setWorkspaceSwitcherOpen(false);
             navigate({ type: 'workspace__edit', payload: { workspaceId } });
         },
-        [navigate, setWorkspaceSwitcherOpen],
+        [canManageWorkspace, navigate, setWorkspaceSwitcherOpen],
     );
 
     const handleWorkspaceSwitch = useCallback(
@@ -131,7 +137,11 @@ const WorkspaceSwitcherSheet = () => {
                     title={t('manageTitle')}
                     closeButton={true}
                     closeButtonType="ghost"
-                    leftButton={<CreateButton onPressHandler={handleWorkspaceCreate} />}
+                    leftButton={
+                        canCreateWorkspace ? (
+                            <CreateButton onPressHandler={handleWorkspaceCreate} />
+                        ) : undefined
+                    }
                     {...props}
                 />
             )}
@@ -175,23 +185,25 @@ const WorkspaceSwitcherSheet = () => {
                                         <Text style={styles.workspaceId}>{workspace.id}</Text>
                                     </VStack>
 
-                                    <HStack style={styles.workspaceActions}>
-                                        <Pressable
-                                            disabled={loading}
-                                            onPress={() => handleWorkspaceEdit(workspace.id)}
-                                            accessibilityRole="button"
-                                            accessibilityLabel={t('editAction')}
-                                            style={[
-                                                styles.iconButton,
-                                                loading ? styles.iconButtonDisabled : null,
-                                            ]}
-                                        >
-                                            <Bolt
-                                                size={theme.space(4.5)}
-                                                color={theme.colors.typography}
-                                            />
-                                        </Pressable>
-                                    </HStack>
+                                    {canManageWorkspace ? (
+                                        <HStack style={styles.workspaceActions}>
+                                            <Pressable
+                                                disabled={loading}
+                                                onPress={() => handleWorkspaceEdit(workspace.id)}
+                                                accessibilityRole="button"
+                                                accessibilityLabel={t('editAction')}
+                                                style={[
+                                                    styles.iconButton,
+                                                    loading ? styles.iconButtonDisabled : null,
+                                                ]}
+                                            >
+                                                <Bolt
+                                                    size={theme.space(4.5)}
+                                                    color={theme.colors.typography}
+                                                />
+                                            </Pressable>
+                                        </HStack>
+                                    ) : null}
                                 </HStack>
                             </Pressable>
                         );

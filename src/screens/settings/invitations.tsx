@@ -91,15 +91,17 @@ const InvitationsSettingsScreen = () => {
         );
     }, [invitationsQuery.data?.pages]);
     const rows = useMemo(() => {
-        if (!principal.data) return EMPTY_INVITATIONS;
+        const capabilitySnapshot = capabilities.capabilitySnapshot;
+        if (!principal.data || !capabilitySnapshot) return EMPTY_INVITATIONS;
         return invitations.map((invitation) => ({
             invitation,
             row: pioneerClient.invitationListRow({
                 auth: principal.data,
+                capability_snapshot: capabilitySnapshot,
                 invitation,
             }),
         }));
-    }, [invitations, principal.data]);
+    }, [capabilities.capabilitySnapshot, invitations, principal.data]);
 
     const createMutation = useMutation({
         mutationKey: administrationMutationKey,

@@ -55,9 +55,12 @@ export const applyCurrentProfileUpdate = async (
     queryClient: QueryClient,
     response: AuthProfileUpdateResponse,
 ): Promise<void> => {
-    queryClient.setQueryData<AuthMeResponse>(
-        administrationQueryKeys.currentPrincipal(),
-        (current) => (current ? { ...current, principal: response.principal } : current),
+    queryClient.setQueriesData<AuthMeResponse>(
+        { queryKey: administrationQueryKeys.currentPrincipal() },
+        (current) =>
+            current?.principal.id === response.principal.id
+                ? { ...current, principal: response.principal }
+                : current,
     );
 
     await Promise.all([

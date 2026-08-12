@@ -31,10 +31,13 @@ export const applyMobileAdministrationEvent = async (
         event.GatewayNotification.kind === 'member_changed' &&
         (result.administration_refetch ?? []).some((target) => target.kind === 'member_directory')
     ) {
-        const current = queryClient.getQueryData<AuthMeResponse>(
-            administrationQueryKeys.currentPrincipal(),
-        );
-        if (current?.principal.id === event.GatewayNotification.params.principal_id) {
+        const currentPrincipalId = event.GatewayNotification.params.principal_id;
+        const currentPrincipalChanged = queryClient
+            .getQueriesData<AuthMeResponse>({
+                queryKey: administrationQueryKeys.currentPrincipal(),
+            })
+            .some(([, current]) => current?.principal.id === currentPrincipalId);
+        if (currentPrincipalChanged) {
             await queryClient.invalidateQueries({
                 queryKey: administrationQueryKeys.currentPrincipal(),
             });

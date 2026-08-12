@@ -173,6 +173,12 @@ import type { ReasoningEffortRowsRequest } from './generated/reasoning_effort_ro
 import type { ReasoningEffortRowsResponse } from './generated/reasoning_effort_rows_response';
 import type { RemoteGatewayValidation } from './generated/remote_gateway_validation';
 import type { RemoteGatewayValidationRequest } from './generated/remote_gateway_validation_request';
+import type { TaskAcceptParams } from './generated/task_accept_params';
+import type { TaskAcceptResponse } from './generated/task_accept_response';
+import type { TaskCancelParams } from './generated/task_cancel_params';
+import type { TaskCancelResponse } from './generated/task_cancel_response';
+import type { TaskReviseParams } from './generated/task_revise_params';
+import type { TaskReviseResponse } from './generated/task_revise_response';
 import type { SelectableSkillCapability } from './generated/selectable_skill_capability';
 import type { SetGatewayWorkspaceRegistryPlan } from './generated/set_gateway_workspace_registry_plan';
 import type { ClientThreadTreeLevel } from './generated/thread_tree_level';
@@ -182,6 +188,8 @@ import type { ClientThreadScopeMutationPlanRequest } from './generated/client_th
 import type { SessionListRowPresentation } from './generated/session_list_row_presentation';
 import type { ThreadCreateVisibilityPlan } from './generated/thread_create_visibility_plan';
 import type { PrincipalPresentationCapabilities } from './generated/principal_presentation_capabilities';
+import type { AuthorizationCapabilitiesParams } from './generated/authorization_capabilities_params';
+import type { AuthorizationCapabilitySnapshot } from './generated/authorization_capability_snapshot';
 import type { ThreadParticipantMutationParams } from './generated/thread_participant_mutation_params';
 import type { ThreadParticipantsListParams } from './generated/thread_participants_list_params';
 import type { ThreadParticipantsResponse } from './generated/thread_participants_response';
@@ -476,6 +484,13 @@ export type { ThreadCreateVisibilityPlan } from './generated/thread_create_visib
 export type { ClientInvitationListRowRequest } from './generated/client_invitation_list_row_request';
 export type { InvitationListRow } from './generated/invitation_list_row';
 export type { PrincipalPresentationCapabilities } from './generated/principal_presentation_capabilities';
+export type { AuthorizationCapabilitiesParams } from './generated/authorization_capabilities_params';
+export type {
+    AuthorizationCapabilitySnapshot,
+    AuthorizationGlobalCapabilities,
+    AuthorizationThreadCapabilities,
+    AuthorizationWorkspaceCapabilities,
+} from './generated/authorization_capability_snapshot';
 export type { ThreadParticipantMutationParams } from './generated/thread_participant_mutation_params';
 export type { ThreadParticipantsListParams } from './generated/thread_participants_list_params';
 export type {
@@ -538,6 +553,12 @@ export type { TurnPermissionRequestOpenedNotification } from './generated/turn_p
 export type { TurnPermissionRequestResolvedNotification } from './generated/turn_permission_request_resolved_notification';
 export type { TurnPermissionRequestRespondParams } from './generated/turn_permission_request_respond_params';
 export type { TurnPermissionRequestRespondResponse } from './generated/turn_permission_request_respond_response';
+export type { TaskAcceptParams } from './generated/task_accept_params';
+export type { TaskAcceptResponse } from './generated/task_accept_response';
+export type { TaskCancelParams } from './generated/task_cancel_params';
+export type { TaskCancelResponse } from './generated/task_cancel_response';
+export type { TaskReviseParams } from './generated/task_revise_params';
+export type { TaskReviseResponse } from './generated/task_revise_response';
 export type { TurnWorkPresentation } from './generated/turn_work_presentation';
 export type { TurnWorkState } from './generated/turn_work_state';
 export type { UpdateRemoteGatewayRegistryPlan } from './generated/update_remote_gateway_registry_plan';
@@ -599,6 +620,8 @@ export type VoiceAudioChunkParams = {
 export type VoiceAudioChunkResult = {
     sent: boolean;
 };
+
+const AUTHORIZATION_CAPABILITY_SNAPSHOT_SCHEMA_VERSION = 1;
 
 export const pioneerClient = {
     version(): string {
@@ -933,6 +956,26 @@ export const pioneerClient = {
         );
     },
 
+    async gatewayAuthorizationCapabilities(
+        input: AuthorizationCapabilitiesParams,
+    ): Promise<AuthorizationCapabilitySnapshot> {
+        const snapshot = parsePioneerClientResponse<AuthorizationCapabilitySnapshot>(
+            await getPioneerClientNitro().gatewayAuthorizationCapabilitiesJson(
+                JSON.stringify(input),
+            ),
+        );
+        if (
+            snapshot.schema_version !== AUTHORIZATION_CAPABILITY_SNAPSHOT_SCHEMA_VERSION ||
+            (snapshot.workspace && snapshot.workspace.workspace_id !== input.workspace_id) ||
+            (snapshot.thread &&
+                (snapshot.thread.workspace_id !== input.workspace_id ||
+                    snapshot.thread.thread_id !== input.thread_id))
+        ) {
+            throw new Error('incompatible_authorization_capability_snapshot');
+        }
+        return snapshot;
+    },
+
     async gatewayAuthProfileUpdate(
         input: AuthProfileUpdateParams,
     ): Promise<AuthProfileUpdateResponse> {
@@ -1135,6 +1178,24 @@ export const pioneerClient = {
         );
     },
 
+    async taskAccept(input: TaskAcceptParams): Promise<TaskAcceptResponse> {
+        return parsePioneerClientResponse<TaskAcceptResponse>(
+            await getPioneerClientNitro().taskAcceptJson(JSON.stringify(input)),
+        );
+    },
+
+    async taskRevise(input: TaskReviseParams): Promise<TaskReviseResponse> {
+        return parsePioneerClientResponse<TaskReviseResponse>(
+            await getPioneerClientNitro().taskReviseJson(JSON.stringify(input)),
+        );
+    },
+
+    async taskCancel(input: TaskCancelParams): Promise<TaskCancelResponse> {
+        return parsePioneerClientResponse<TaskCancelResponse>(
+            await getPioneerClientNitro().taskCancelJson(JSON.stringify(input)),
+        );
+    },
+
     async voiceStatus(input: VoiceStatusParams): Promise<VoiceStatusResponse> {
         return parsePioneerClientResponse<VoiceStatusResponse>(
             await getPioneerClientNitro().voiceStatusJson(JSON.stringify(input)),
@@ -1231,7 +1292,9 @@ export const pioneerClient = {
         );
     },
 
-    principalPresentationCapabilities(input: AuthMeResponse): PrincipalPresentationCapabilities {
+    principalPresentationCapabilities(
+        input: AuthorizationCapabilitySnapshot,
+    ): PrincipalPresentationCapabilities {
         return parsePioneerClientResponse<PrincipalPresentationCapabilities>(
             getPioneerClientNitro().principalPresentationCapabilitiesJson(JSON.stringify(input)),
         );

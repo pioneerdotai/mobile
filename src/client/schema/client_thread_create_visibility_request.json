@@ -3,8 +3,8 @@
   "title": "ClientThreadCreateVisibilityRequest",
   "type": "object",
   "properties": {
-    "auth": {
-      "$ref": "#/$defs/AuthMeResponse"
+    "capabilities": {
+      "$ref": "#/$defs/AuthorizationWorkspaceCapabilities"
     },
     "origin_kind": {
       "$ref": "#/$defs/ThreadOriginKind"
@@ -12,206 +12,76 @@
   },
   "additionalProperties": false,
   "required": [
-    "auth",
+    "capabilities",
     "origin_kind"
   ],
   "$defs": {
-    "AuthDeviceSnapshot": {
+    "AuthorizationWorkspaceCapabilities": {
       "type": "object",
       "properties": {
-        "client_kind": {
-          "$ref": "#/$defs/ClientKind"
+        "can_add_member": {
+          "type": "boolean"
         },
-        "display_name": {
-          "type": "string"
+        "can_create_thread": {
+          "type": "boolean"
         },
-        "id": {
-          "$ref": "#/$defs/DeviceId"
+        "can_list_members": {
+          "type": "boolean"
         },
-        "installation_id": {
-          "type": "string"
+        "can_manage": {
+          "type": "boolean"
         },
-        "status": {
-          "$ref": "#/$defs/DeviceStatus"
+        "can_read": {
+          "type": "boolean"
+        },
+        "can_remove_member": {
+          "type": "boolean"
+        },
+        "can_run_tasks": {
+          "type": "boolean"
+        },
+        "can_use_cli_runtimes": {
+          "type": "boolean"
+        },
+        "can_use_mcp": {
+          "type": "boolean"
+        },
+        "can_use_providers": {
+          "type": "boolean"
+        },
+        "can_use_skills": {
+          "type": "boolean"
+        },
+        "thread_visibility_options": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ThreadVisibility"
+          }
+        },
+        "turn_permission_modes": {
+          "description": "Permission modes this principal may select for an agent turn in this\nworkspace. The Gateway applies the same role cap again at execution.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TurnPermissionMode"
+          }
         }
       },
+      "additionalProperties": false,
       "required": [
-        "id",
-        "installation_id",
-        "display_name",
-        "client_kind",
-        "status"
+        "can_read",
+        "can_create_thread",
+        "can_manage",
+        "can_use_providers",
+        "can_use_cli_runtimes",
+        "can_use_skills",
+        "can_use_mcp",
+        "can_run_tasks",
+        "turn_permission_modes",
+        "can_list_members",
+        "can_add_member",
+        "can_remove_member",
+        "thread_visibility_options"
       ]
-    },
-    "AuthGatewaySnapshot": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "$ref": "#/$defs/GatewayId"
-        }
-      },
-      "required": [
-        "id"
-      ]
-    },
-    "AuthMeResponse": {
-      "type": "object",
-      "properties": {
-        "device": {
-          "$ref": "#/$defs/AuthDeviceSnapshot"
-        },
-        "gateway": {
-          "$ref": "#/$defs/AuthGatewaySnapshot"
-        },
-        "principal": {
-          "$ref": "#/$defs/AuthPrincipalSnapshot"
-        },
-        "role_key": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/RoleKey"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "session": {
-          "$ref": "#/$defs/AuthSessionSnapshot"
-        }
-      },
-      "required": [
-        "gateway",
-        "principal",
-        "device",
-        "session"
-      ]
-    },
-    "AuthPrincipalSnapshot": {
-      "type": "object",
-      "properties": {
-        "avatar_revision": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "display_name": {
-          "type": "string"
-        },
-        "id": {
-          "$ref": "#/$defs/PrincipalId"
-        },
-        "kind": {
-          "$ref": "#/$defs/PrincipalKind"
-        },
-        "nickname": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "id",
-        "kind",
-        "display_name",
-        "nickname"
-      ]
-    },
-    "AuthSessionId": {
-      "type": "string",
-      "maxLength": 21,
-      "minLength": 21,
-      "pattern": "^[A-Za-z0-9]{21}$"
-    },
-    "AuthSessionSnapshot": {
-      "type": "object",
-      "properties": {
-        "device_id": {
-          "$ref": "#/$defs/DeviceId"
-        },
-        "id": {
-          "$ref": "#/$defs/AuthSessionId"
-        },
-        "refresh_expires_at_unix": {
-          "type": "integer",
-          "format": "uint64",
-          "minimum": 0
-        },
-        "refresh_generation": {
-          "type": "integer",
-          "format": "uint64",
-          "minimum": 0
-        },
-        "status": {
-          "$ref": "#/$defs/AuthSessionStatus"
-        },
-        "token_family_id": {
-          "$ref": "#/$defs/TokenFamilyId"
-        }
-      },
-      "required": [
-        "id",
-        "device_id",
-        "token_family_id",
-        "status",
-        "refresh_generation",
-        "refresh_expires_at_unix"
-      ]
-    },
-    "AuthSessionStatus": {
-      "type": "string",
-      "enum": [
-        "pending",
-        "active",
-        "revoked",
-        "expired"
-      ]
-    },
-    "ClientKind": {
-      "type": "string",
-      "enum": [
-        "desktop",
-        "mobile",
-        "other"
-      ]
-    },
-    "DeviceId": {
-      "type": "string",
-      "maxLength": 21,
-      "minLength": 21,
-      "pattern": "^[A-Za-z0-9]{21}$"
-    },
-    "DeviceStatus": {
-      "type": "string",
-      "enum": [
-        "pending",
-        "active",
-        "revoked"
-      ]
-    },
-    "GatewayId": {
-      "type": "string",
-      "maxLength": 21,
-      "minLength": 21,
-      "pattern": "^[A-Za-z0-9]{21}$"
-    },
-    "PrincipalId": {
-      "type": "string",
-      "maxLength": 21,
-      "minLength": 21,
-      "pattern": "^[A-Za-z0-9]{21}$"
-    },
-    "PrincipalKind": {
-      "type": "string",
-      "enum": [
-        "superuser",
-        "user"
-      ]
-    },
-    "RoleKey": {
-      "type": "string",
-      "maxLength": 32,
-      "minLength": 1,
-      "pattern": "^[a-z][a-z0-9_-]{0,31}$"
     },
     "ThreadOriginKind": {
       "oneOf": [
@@ -239,11 +109,21 @@
         }
       ]
     },
-    "TokenFamilyId": {
+    "ThreadVisibility": {
+      "description": "User-selectable visibility for ordinary user threads.\n\nInternal task/system threads deliberately have no public selectable value.",
       "type": "string",
-      "maxLength": 21,
-      "minLength": 21,
-      "pattern": "^[A-Za-z0-9]{21}$"
+      "enum": [
+        "private",
+        "workspace"
+      ]
+    },
+    "TurnPermissionMode": {
+      "type": "string",
+      "enum": [
+        "full_access",
+        "auto_accept_edits",
+        "supervised"
+      ]
     }
   }
 }

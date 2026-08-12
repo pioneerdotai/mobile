@@ -20,6 +20,7 @@ jest.mock('@/client', () => ({
         threadParticipantAdd: jest.fn(),
         threadParticipantRemove: jest.fn(),
         threadUpdate: jest.fn(),
+        gatewayAuthorizationCapabilities: jest.fn(),
         threadScopePresentation: jest.fn(),
         threadScopeMutationPlan: jest.fn(),
     },
@@ -50,6 +51,19 @@ describe('thread scope service', () => {
     });
 
     it('projects only authoritative participant and workspace snapshots', async () => {
+        const capabilities = {
+            can_read: true,
+            can_write: true,
+            can_start_turn: true,
+            can_respond_to_agent_requests: true,
+            can_control_cli_runtime: true,
+            can_create_task: true,
+            can_read_artifacts: true,
+            can_write_artifacts: true,
+            can_manage: true,
+            can_manage_private_participants: true,
+            can_move: false,
+        };
         const participants = {
             workspace_id: 'WAAAAAAAAAAAAAAAAAAAA',
             thread_id: 'thread',
@@ -63,6 +77,18 @@ describe('thread scope service', () => {
             next_cursor: null,
         };
         jest.mocked(pioneerClient.threadParticipantsList).mockResolvedValue(participants);
+        jest.mocked(pioneerClient.gatewayAuthorizationCapabilities).mockResolvedValue({
+            schema_version: 1,
+            authorization_revision: 1,
+            principal_id: auth.principal.id,
+            role_key: 'member',
+            global: {} as never,
+            thread: {
+                workspace_id: privateThread.workspace_id,
+                thread_id: privateThread.id,
+                capabilities,
+            },
+        });
         jest.mocked(loadAllWorkspaceMembers).mockResolvedValue(members);
         jest.mocked(pioneerClient.threadScopePresentation).mockReturnValue({
             marker: true,
@@ -74,7 +100,7 @@ describe('thread scope service', () => {
         expect(pioneerClient.threadScopePresentation).toHaveBeenCalledWith({
             auth,
             thread: privateThread,
-            current_principal_is_creator: true,
+            capabilities,
             participants,
             workspace_members: members,
         });
@@ -95,7 +121,19 @@ describe('thread scope service', () => {
         expect(pioneerClient.threadScopePresentation).toHaveBeenCalledWith({
             auth,
             thread: privateThread,
-            current_principal_is_creator: false,
+            capabilities: {
+                can_read: false,
+                can_write: false,
+                can_start_turn: false,
+                can_respond_to_agent_requests: false,
+                can_control_cli_runtime: false,
+                can_create_task: false,
+                can_read_artifacts: false,
+                can_write_artifacts: false,
+                can_manage: false,
+                can_manage_private_participants: false,
+                can_move: false,
+            },
             participants: {
                 workspace_id: privateThread.workspace_id,
                 thread_id: privateThread.id,

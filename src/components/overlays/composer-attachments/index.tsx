@@ -22,11 +22,15 @@ import {
 } from '@/services/threads/composer-attachments';
 import { composerTargetThreadIsActive } from '@/services/threads/composer-target';
 import { useActiveThreadStore } from '@/stores/active-thread';
+import { useAdministrationCapabilities } from '@/hooks/use-administration-capabilities';
 
 const ComposerAttachmentMenuSheet = () => {
     const bottomSheetRef = useRef<BottomSheetModal>(null);
     const { t } = useTranslation('threads');
     const { theme, rt } = useUnistyles();
+    const capabilities = useAdministrationCapabilities();
+    const canUseSkills = capabilities.data?.can_use_skills === true;
+    const canUseMcp = capabilities.data?.can_use_mcp === true;
     const {
         showComposerAttachmentMenu,
         setComposerAttachmentMenuOpen,
@@ -186,23 +190,32 @@ const ComposerAttachmentMenuSheet = () => {
                             onPress={pickFiles}
                         />
                     </HStack>
-                    {selectedMode !== 'Message' ? (
+                    {selectedMode !== 'Message' && (canUseSkills || canUseMcp) ? (
                         <HStack style={styles.menuRow}>
-                            <MenuItem
-                                icon={<Zap size={theme.space(5)} color={theme.colors.typography} />}
-                                label={t('composerSkills')}
-                                onPress={openSkills}
-                            />
-                            <MenuItem
-                                icon={
-                                    <McpIcon
-                                        size={theme.space(5)}
-                                        color={theme.colors.typography}
-                                    />
-                                }
-                                label={t('composerMcp')}
-                                onPress={openMcp}
-                            />
+                            {canUseSkills ? (
+                                <MenuItem
+                                    icon={
+                                        <Zap
+                                            size={theme.space(5)}
+                                            color={theme.colors.typography}
+                                        />
+                                    }
+                                    label={t('composerSkills')}
+                                    onPress={openSkills}
+                                />
+                            ) : null}
+                            {canUseMcp ? (
+                                <MenuItem
+                                    icon={
+                                        <McpIcon
+                                            size={theme.space(5)}
+                                            color={theme.colors.typography}
+                                        />
+                                    }
+                                    label={t('composerMcp')}
+                                    onPress={openMcp}
+                                />
+                            ) : null}
                         </HStack>
                     ) : null}
                 </VStack>

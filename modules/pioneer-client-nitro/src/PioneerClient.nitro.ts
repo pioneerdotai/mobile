@@ -19,6 +19,7 @@ export interface PioneerClient extends HybridObject<{ ios: 'c++'; android: 'c++'
     gatewayAuthDeviceActivateJson(inputJson: string): Promise<string>;
     gatewayAuthSessionCleanupJson(inputJson: string): Promise<string>;
     gatewayAuthMeJson(inputJson: string): Promise<string>;
+    gatewayAuthorizationCapabilitiesJson(inputJson: string): Promise<string>;
     gatewayAuthProfileUpdateJson(inputJson: string): Promise<string>;
     gatewayAuthSessionListJson(inputJson: string): Promise<string>;
     gatewayAuthSessionRevokeJson(inputJson: string): Promise<string>;
@@ -72,6 +73,9 @@ export interface PioneerClient extends HybridObject<{ ios: 'c++'; android: 'c++'
     cliRuntimeReviewStartJson(inputJson: string): Promise<string>;
     cliRuntimeRequestRespondJson(inputJson: string): Promise<string>;
     turnPermissionRequestRespondJson(inputJson: string): Promise<string>;
+    taskAcceptJson(inputJson: string): Promise<string>;
+    taskReviseJson(inputJson: string): Promise<string>;
+    taskCancelJson(inputJson: string): Promise<string>;
     voiceStatusJson(inputJson: string): Promise<string>;
     voiceSessionStartJson(inputJson: string): Promise<string>;
     voiceAudioChunkJson(inputJson: string, pcmChunk: ArrayBuffer): string;

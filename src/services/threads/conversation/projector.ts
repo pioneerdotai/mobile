@@ -19,6 +19,7 @@ import type {
 } from './timeline';
 import { commandLineFromCommandExecution } from './command-display';
 import { ensureTimelineRowRenderFingerprint } from './render-fingerprint';
+import { taskWaitReviewDisplay } from '@/services/tasks/review';
 
 const FILE_CHANGE_OUTPUT_LIMIT = 4_000;
 const DYNAMIC_TOOL_RESULT_LIMIT = 4_000;
@@ -656,6 +657,10 @@ const projectItemToRow = (item: ItemView, nowMs?: number): TimelineRow => {
                 mcpServerName: toolDetails.mcpServerName,
                 mcpRawToolName: toolDetails.mcpRawToolName,
                 mcpDetails: toolDetails.mcpDetails,
+                taskReview:
+                    turnItem.type === 'dynamicToolCall'
+                        ? taskWaitReviewDisplay(turnItem.toolName, turnItem.display)
+                        : null,
             };
         }
         default:

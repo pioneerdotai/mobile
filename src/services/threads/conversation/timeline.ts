@@ -6,6 +6,7 @@ import type {
 import type { ClientTurnSecuritySummary } from '@/client/generated/client_turn_security_summary';
 import type { PendingRequest } from '@/client/generated/pending_request';
 import type { TurnWorkState } from '@/client/generated/turn_work_state';
+import type { TaskWaitReviewDisplay } from '@/client/generated/task_wait_review_display';
 import type {
     TimelineReplySummary,
     TurnAuthorSnapshot,
@@ -152,6 +153,7 @@ export type TimelineRow = TimelineRowMeta &
               mcpServerName: string | null;
               mcpRawToolName: string | null;
               mcpDetails: string | null;
+              taskReview?: TaskWaitReviewDisplay | null;
           }
         | {
               type: 'task-anchor';
