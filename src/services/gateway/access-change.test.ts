@@ -135,8 +135,8 @@ describe('mobile access-change lifecycle', () => {
                         authorization_revision: 7,
                         workspace_id: 'workspace-protected',
                         thread_id: 'thread-protected',
-                        access_lost: false,
                         change: 'thread_visibility',
+                        outcome: 'retained',
                     },
                 },
             },
@@ -197,7 +197,7 @@ describe('mobile access-change lifecycle', () => {
         );
         queryClient.setQueryData(timelineQueryKeys.thread('thread-kept'), 'unrelated timeline');
 
-        applyMobileAccessChangedLifecycle(lifecycle(), queryClient);
+        applyMobileAccessChangedLifecycle(lifecycle(), queryClient, [], 'revoked');
 
         expect(useWorkspaceStore.getState()).toMatchObject({
             activeWorkspaceId: null,
@@ -237,6 +237,8 @@ describe('mobile access-change lifecycle', () => {
                 active_thread_cleared: false,
             }),
             queryClient,
+            [],
+            'revoked',
         );
 
         expect(useWorkspaceStore.getState()).toMatchObject({
@@ -269,6 +271,8 @@ describe('mobile access-change lifecycle', () => {
                 active_thread_cleared: false,
             }),
             queryClient,
+            [],
+            'retained',
         );
 
         expect(useWorkspaceStore.getState()).toMatchObject({
@@ -327,7 +331,7 @@ describe('mobile access-change lifecycle', () => {
             }),
             queryClient,
             ['thread-protected'],
-            true,
+            'revoked',
         );
 
         expect(useWorkspaceStore.getState()).toMatchObject({
@@ -355,7 +359,7 @@ describe('mobile access-change lifecycle', () => {
         );
     });
 
-    it('legacy thread access loss without an exact eviction key fails closed', () => {
+    it('malformed revoked thread notification without an exact key fails closed', () => {
         const queryClient = createQueryClient();
         queryClient.setQueryData(
             timelineQueryKeys.thread('thread-protected'),
@@ -373,6 +377,8 @@ describe('mobile access-change lifecycle', () => {
                 active_thread_cleared: false,
             }),
             queryClient,
+            [],
+            'revoked',
         );
 
         expect(queryClient.getQueriesData({ queryKey: timelineQueryKeys.all })).toEqual([]);

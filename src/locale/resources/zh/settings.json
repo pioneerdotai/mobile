@@ -22,8 +22,7 @@
             "avatar": "请选择不超过 1024 × 1024 和 256 KB 的 PNG、JPEG 或 WebP 图片。",
             "photoPicker": "无法打开照片图库。",
             "save": "无法保存资料，请重试。"
-        },
-        "kind": { "superuser": "超级用户", "member": "成员", "unknown": "未知账户类型" }
+        }
     },
     "language": {
         "eyebrow": "语言",
@@ -74,6 +73,7 @@
         "loading": "正在加载邀请...",
         "forbidden": "你无权访问邀请。",
         "workspaces": "工作区访问权限",
+        "role": "角色",
         "create": "创建邀请",
         "empty": "暂无邀请。",
         "loadFailed": "无法加载邀请。",
@@ -136,7 +136,6 @@
         "recoveryLink": "复制恢复链接",
         "copied": "已复制恢复激活信息",
         "done": "完成",
-        "kind": { "superuser": "超级用户", "user": "成员" },
         "status": { "active": "活跃", "suspended": "已暂停", "removed": "已移除" }
     },
     "theme": {

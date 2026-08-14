@@ -21,15 +21,22 @@ export interface ThreadParticipantRow {
   principal_id: PrincipalId;
 }
 export interface ThreadPresentationCapabilities {
+  can_bind_artifacts: boolean;
+  can_cancel_agent_execution: boolean;
+  can_cancel_tasks: boolean;
   can_control_cli_runtime: boolean;
   can_create_task: boolean;
   can_manage_private_participants: boolean;
   can_manage_thread: boolean;
   can_move: boolean;
+  can_observe_agent_execution: boolean;
   can_read: boolean;
   can_read_artifacts: boolean;
   can_respond_to_agent_requests: boolean;
+  can_resume_agent_execution: boolean;
+  can_review_tasks: boolean;
   can_start_turn: boolean;
+  can_steer_agent_execution: boolean;
   can_write: boolean;
   can_write_artifacts: boolean;
 }

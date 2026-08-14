@@ -135,6 +135,7 @@
     "composerNoMcp": "No MCP servers found.",
     "composerSkillsFailed": "Failed to load skills.",
     "composerCapabilitiesRemovedForProvider": "Some capabilities are not available for this provider and were removed.",
+    "composerAuthorizationSelectionsUpdated": "Some composer selections were removed because your current permissions changed.",
     "composerExecutionStateRemoved": "AI-only options were removed for Message mode.",
     "composerReplyCancel": "Cancel reply",
     "composerMentionAdd": "Mention a participant",

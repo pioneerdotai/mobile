@@ -15,7 +15,12 @@ let mockCurrentPrincipal: {
     display_name: string;
     nickname: string;
     principal_id: string;
-    kind: 'superuser' | 'member' | 'unknown';
+    role: {
+        key: string;
+        display_name: string;
+        description: string;
+        built_in: boolean;
+    };
     avatar_revision?: string | null;
 } | null = null;
 
@@ -133,7 +138,12 @@ describe('SettingsScreen', () => {
             display_name: 'Alice',
             nickname: 'alice',
             principal_id: 'P00000000000000000001',
-            kind: 'member',
+            role: {
+                key: 'future_collaborator',
+                display_name: 'Future collaborator',
+                description: 'Test role',
+                built_in: false,
+            },
         };
         let tree: ReactTestRenderer | null = null;
         await act(async () => {
@@ -142,7 +152,7 @@ describe('SettingsScreen', () => {
         const labels = renderedLabels(tree!);
         expect(labels).toContain('Alice');
         expect(labels).not.toContain('profile.readOnly');
-        expect(JSON.stringify(labels)).toContain('profile.kind.member');
+        expect(labels).toContain('Future collaborator');
         const profileRow = tree!.root.findAllByType(mockPressable)[0];
         await act(async () => profileRow.props.onPress());
         expect(mockNavigate).toHaveBeenCalledWith({ pathname: '/settings/profile' });
@@ -177,7 +187,12 @@ describe('SettingsScreen', () => {
             display_name: 'Alice',
             nickname: 'alice',
             principal_id: 'P00000000000000000001',
-            kind: 'member',
+            role: {
+                key: 'future_collaborator',
+                display_name: 'Future collaborator',
+                description: 'Test role',
+                built_in: false,
+            },
         };
         let tree: ReactTestRenderer | null = null;
         await act(async () => {

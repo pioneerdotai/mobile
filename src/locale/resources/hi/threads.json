@@ -135,6 +135,7 @@
     "composerNoMcp": "MCP servers नहीं मिले.",
     "composerSkillsFailed": "स्किल्स लोड नहीं हो सकीं.",
     "composerCapabilitiesRemovedForProvider": "कुछ क्षमताएँ इस प्रदाता के लिए उपलब्ध नहीं हैं और हटा दी गईं।",
+    "composerAuthorizationSelectionsUpdated": "आपकी मौजूदा अनुमतियाँ बदलने के कारण कुछ composer चयन हटा दिए गए।",
     "composerExecutionStateRemoved": "संदेश मोड के लिए केवल AI वाले विकल्प हटा दिए गए।",
     "composerReplyCancel": "उत्तर रद्द करें",
     "composerMentionAdd": "प्रतिभागी का उल्लेख करें",

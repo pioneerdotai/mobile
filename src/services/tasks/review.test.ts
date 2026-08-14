@@ -40,7 +40,7 @@ describe('task review presentation', () => {
         expect(taskWaitReviewDisplay('other_tool', {})).toBeNull();
     });
 
-    it('lets a Member review owned tasks even when task_wait runs in an agent turn', () => {
+    it('uses exact task actions for every collaborator instead of task ownership', () => {
         const item = {
             task_id: 'task-1',
             owner_principal_id: 'member-a',
@@ -52,25 +52,22 @@ describe('task review presentation', () => {
         expect(
             canManageTaskReviewItem({
                 item,
-                currentPrincipalId: 'member-a',
-                canManageAllThreads: false,
-                canRespondToAgentRequests: true,
+                canReviewTasks: true,
+                canCancelTasks: false,
             }),
         ).toBe(true);
         expect(
             canManageTaskReviewItem({
                 item,
-                currentPrincipalId: 'member-b',
-                canManageAllThreads: false,
-                canRespondToAgentRequests: true,
+                canReviewTasks: false,
+                canCancelTasks: true,
             }),
         ).toBe(false);
         expect(
             canManageTaskReviewItem({
-                item,
-                currentPrincipalId: 'member-b',
-                canManageAllThreads: true,
-                canRespondToAgentRequests: false,
+                item: { ...item, allowed_actions: ['task_cancel'] },
+                canReviewTasks: false,
+                canCancelTasks: true,
             }),
         ).toBe(true);
     });

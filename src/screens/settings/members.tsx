@@ -412,7 +412,7 @@ const MembersSettingsScreen = () => {
                             </HStack>
                             <HStack style={styles.memberMetaContainer}>
                                 <Text numberOfLines={1} style={styles.memberMeta}>
-                                    {t(`members.kind.${item.kind}`)}
+                                    {item.role.display_name}
                                 </Text>
                                 <Text
                                     numberOfLines={1}

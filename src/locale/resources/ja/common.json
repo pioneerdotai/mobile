@@ -5,5 +5,8 @@
     "activate": "有効化",
     "retry": "再試行",
     "add": "追加",
-    "startupFailed": "アプリケーションを初期化できませんでした。"
+    "startupFailed": "アプリケーションを初期化できませんでした。",
+    "taskNotificationTitle": "タスク結果",
+    "taskNotificationCompleted": "タスクが完了しました",
+    "taskNotificationMarkRead": "既読にする"
 }

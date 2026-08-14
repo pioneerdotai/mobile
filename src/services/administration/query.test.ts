@@ -2,6 +2,7 @@ import { QueryClient } from '@tanstack/react-query';
 import { describe, expect, it, jest } from '@jest/globals';
 
 import { pioneerClient } from '@/client';
+import type { AuthorizationCapabilitySnapshot } from '@/client';
 
 import {
     administrationAuthorizationQueryRetry,
@@ -11,6 +12,7 @@ import {
     clearAdministrationQueries,
     invalidateAdministrationTargets,
     invalidateMaterializedThreadAuthorization,
+    reconcileAuthorizationCapabilityQueries,
 } from './query';
 
 jest.mock('@/client', () => ({
@@ -112,6 +114,51 @@ describe('administration query ownership', () => {
         expect(queryClient.getQueryState(materialized)?.isInvalidated).toBe(true);
         expect(queryClient.getQueryState(sibling)?.isInvalidated).toBe(false);
         expect(queryClient.getQueryState(otherConnection)?.isInvalidated).toBe(false);
+        queryClient.clear();
+    });
+
+    it('publishes a newer workspace revision and evicts older scoped projections atomically', () => {
+        const queryClient = new QueryClient();
+        const epoch = { gatewayId: 'gateway-a', connectionId: 7 } as const;
+        const threadA = administrationQueryKeys.capabilities(epoch, 'workspace-a', 'thread-a');
+        const threadB = administrationQueryKeys.capabilities(epoch, 'workspace-a', 'thread-b');
+        const source = administrationQueryKeys.capabilities(epoch, 'workspace-a', 'thread-c');
+        const otherEpoch = administrationQueryKeys.capabilities(
+            { gatewayId: 'gateway-a', connectionId: 8 },
+            'workspace-a',
+            'thread-a',
+        );
+        queryClient.setQueryData(threadA, { authorization_revision: 7 });
+        queryClient.setQueryData(threadB, { authorization_revision: 8 });
+        queryClient.setQueryData(source, { authorization_revision: 8 });
+        queryClient.setQueryData(otherEpoch, { authorization_revision: 1 });
+        const snapshot = {
+            schema_version: 5,
+            authorization_revision: 9,
+            principal_id: 'P00000000000000000001',
+            role_key: 'future_role',
+            role: {
+                key: 'future_role',
+                display_name: 'Future role',
+                description: 'Test role',
+                built_in: false,
+            },
+            global: {},
+            workspace: { workspace_id: 'workspace-a' },
+            thread: { workspace_id: 'workspace-a', thread_id: 'thread-c' },
+        } as AuthorizationCapabilitySnapshot;
+
+        reconcileAuthorizationCapabilityQueries(queryClient, epoch, source, snapshot);
+
+        expect(queryClient.getQueryData(threadA)).toBeUndefined();
+        expect(queryClient.getQueryData(threadB)).toBeUndefined();
+        expect(queryClient.getQueryData(source)).toEqual({ authorization_revision: 8 });
+        expect(queryClient.getQueryData(otherEpoch)).toEqual({ authorization_revision: 1 });
+        expect(
+            queryClient.getQueryData(
+                administrationQueryKeys.capabilities(epoch, 'workspace-a', null),
+            ),
+        ).toEqual({ ...snapshot, thread: null });
         queryClient.clear();
     });
 

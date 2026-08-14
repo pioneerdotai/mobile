@@ -18,6 +18,7 @@ import { CreateButton } from '@/components/buttons/create';
 import { CredentialPresentation } from '@/components/credential-presentation';
 import Spinner from '@/components/feedback/spinner';
 import { WorkspaceToggleSelector } from '@/components/forms/workspace-toggle-selector';
+import { Label } from '@/components/forms/label';
 import { ActionsSheet } from '@/components/overlays/actions';
 import { MenuItem } from '@/components/overlays/actions/menu-item';
 import { Backdrop } from '@/components/overlays/components/backdrop';
@@ -60,11 +61,16 @@ const InvitationsSettingsScreen = () => {
     const queryClient = useQueryClient();
     const capabilities = useAdministrationCapabilities();
     const principal = useAdministrationPrincipal();
+    const invitationRoleOptions = useMemo(
+        () => capabilities.capabilitySnapshot?.global.invitation_role_options ?? [],
+        [capabilities.capabilitySnapshot],
+    );
     const workspaces = useWorkspaceStore((state) => state.workspaces);
     const creationSheetRef = useRef<BottomSheetModal>(null);
     const [selectedWorkspaceIds, setSelectedWorkspaceIds] = useState<ReadonlySet<string>>(
         () => new Set(),
     );
+    const [selectedRoleKey, setSelectedRoleKey] = useState<string | null>(null);
     const [presentation, setPresentation] = useState<ClientInvitationPresentationResult | null>(
         null,
     );
@@ -105,7 +111,8 @@ const InvitationsSettingsScreen = () => {
 
     const createMutation = useMutation({
         mutationKey: administrationMutationKey,
-        mutationFn: (workspaceIds: string[]) => createInvitationPresentation(workspaceIds),
+        mutationFn: ({ workspaceIds, roleKey }: { workspaceIds: string[]; roleKey: string }) =>
+            createInvitationPresentation(workspaceIds, roleKey),
         onSuccess: (result) => {
             setPresentation(result);
             setSelectedWorkspaceIds(new Set());
@@ -146,14 +153,19 @@ const InvitationsSettingsScreen = () => {
 
     const openCreation = useCallback(() => {
         if (createPending) return;
+        const defaultRole = invitationRoleOptions.find((option) => option.is_default);
+        if (!defaultRole) return;
         resetCreate();
         setPresentation(null);
         setSelectedWorkspaceIds(new Set());
+        setSelectedRoleKey(defaultRole.role.key);
         creationSheetRef.current?.present();
-    }, [createPending, resetCreate]);
+    }, [createPending, invitationRoleOptions, resetCreate]);
 
     useLayoutEffect(() => {
-        const canCreate = capabilities.data?.can_create_invitation === true;
+        const canCreate =
+            capabilities.data?.can_create_invitation === true &&
+            invitationRoleOptions.some((option) => option.is_default);
         navigation.setOptions({
             headerRight: canCreate
                 ? () => (
@@ -164,7 +176,13 @@ const InvitationsSettingsScreen = () => {
                   )
                 : () => null,
         });
-    }, [capabilities.data?.can_create_invitation, navigation, openCreation, t]);
+    }, [
+        capabilities.data?.can_create_invitation,
+        invitationRoleOptions,
+        navigation,
+        openCreation,
+        t,
+    ]);
 
     const refreshInvitations = useCallback(async () => {
         if (manualRefreshing) return;
@@ -184,9 +202,9 @@ const InvitationsSettingsScreen = () => {
         });
     }, []);
     const createInvitation = useCallback(() => {
-        if (selectedWorkspaceIds.size === 0 || createPending) return;
-        mutateCreate([...selectedWorkspaceIds]);
-    }, [createPending, mutateCreate, selectedWorkspaceIds]);
+        if (selectedWorkspaceIds.size === 0 || !selectedRoleKey || createPending) return;
+        mutateCreate({ workspaceIds: [...selectedWorkspaceIds], roleKey: selectedRoleKey });
+    }, [createPending, mutateCreate, selectedRoleKey, selectedWorkspaceIds]);
 
     const confirmRevoke = useCallback(() => {
         if (!selectedInvitation || revokePending) return;
@@ -254,6 +272,7 @@ const InvitationsSettingsScreen = () => {
     const dismissCreation = useCallback(() => {
         setPresentation(null);
         setSelectedWorkspaceIds(new Set());
+        setSelectedRoleKey(null);
         resetCreate();
     }, [resetCreate]);
 
@@ -381,6 +400,51 @@ const InvitationsSettingsScreen = () => {
                         </VStack>
                     ) : (
                         <VStack style={styles.creation}>
+                            <VStack style={styles.roleSelector}>
+                                <Label>{t('invitations.role')}</Label>
+                                <HStack style={styles.roleOptions}>
+                                    {invitationRoleOptions.map((option) => {
+                                        const selected = selectedRoleKey === option.role.key;
+                                        return (
+                                            <Pressable
+                                                key={option.role.key}
+                                                accessibilityRole="radio"
+                                                accessibilityState={{
+                                                    selected,
+                                                    disabled: createPending,
+                                                }}
+                                                disabled={createPending}
+                                                onPress={() => setSelectedRoleKey(option.role.key)}
+                                                style={[
+                                                    styles.roleOption,
+                                                    selected
+                                                        ? styles.roleOptionSelected
+                                                        : styles.roleOptionIdle,
+                                                ]}
+                                            >
+                                                <Text
+                                                    style={
+                                                        selected
+                                                            ? styles.roleOptionTextSelected
+                                                            : styles.roleOptionText
+                                                    }
+                                                >
+                                                    {option.role.display_name}
+                                                </Text>
+                                                <Text
+                                                    style={
+                                                        selected
+                                                            ? styles.roleDescriptionSelected
+                                                            : styles.roleDescription
+                                                    }
+                                                >
+                                                    {option.role.description}
+                                                </Text>
+                                            </Pressable>
+                                        );
+                                    })}
+                                </HStack>
+                            </VStack>
                             <WorkspaceToggleSelector
                                 label={t('invitations.workspaces')}
                                 workspaces={workspaces}
@@ -395,7 +459,11 @@ const InvitationsSettingsScreen = () => {
                             ) : null}
                             <Button
                                 title={t('invitations.create')}
-                                disabled={selectedWorkspaceIds.size === 0 || createPending}
+                                disabled={
+                                    selectedWorkspaceIds.size === 0 ||
+                                    !selectedRoleKey ||
+                                    createPending
+                                }
                                 loading={createPending}
                                 onPress={createInvitation}
                             />
@@ -525,6 +593,49 @@ const styles = StyleSheet.create((theme, rt) => ({
     },
     creation: {
         gap: theme.space(1.5),
+    },
+    roleSelector: {
+        alignItems: 'center',
+        gap: theme.space(1.5),
+        paddingBottom: theme.space(3),
+    },
+    roleOptions: {
+        flexWrap: 'wrap',
+        justifyContent: 'center',
+        gap: theme.space(1.5),
+    },
+    roleOption: {
+        minWidth: theme.space(32),
+        maxWidth: '100%',
+        gap: theme.space(0.5),
+        paddingHorizontal: theme.space(4),
+        paddingVertical: theme.space(2.5),
+        borderRadius: theme.radius['2xl'],
+    },
+    roleOptionIdle: {
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: theme.colors.border,
+    },
+    roleOptionSelected: {
+        backgroundColor: theme.colors.typography,
+    },
+    roleOptionText: {
+        color: theme.colors.typography,
+        ...theme.fontSize.default,
+    },
+    roleOptionTextSelected: {
+        color: theme.colors.background,
+        ...theme.fontSize.default,
+    },
+    roleDescription: {
+        color: theme.colors.typography,
+        ...theme.fontSize.xs,
+        opacity: 0.6,
+    },
+    roleDescriptionSelected: {
+        color: theme.colors.background,
+        ...theme.fontSize.xs,
+        opacity: 0.7,
     },
     presentation: {
         gap: theme.space(5),

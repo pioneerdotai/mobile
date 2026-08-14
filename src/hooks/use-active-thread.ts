@@ -3,7 +3,12 @@ import { useTranslation } from 'react-i18next';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useShallow } from 'zustand/react/shallow';
 
-import type { ClientActiveThreadSnapshot, ComposerSkillPickerProjection, Thread } from '@/client';
+import type {
+    AuthorizationExecutionDraftPolicyProjection,
+    ClientActiveThreadSnapshot,
+    ComposerSkillPickerProjection,
+    Thread,
+} from '@/client';
 import { withGatewayTransportLease } from '@/services/gateway/transport-coordinator';
 import {
     activeThreadSnapshot,
@@ -317,12 +322,27 @@ export const useActiveThread = (
     );
 
     const sendText = useCallback(
-        async (text: string, skillPicker: ComposerSkillPickerProjection): Promise<boolean> => {
+        async (
+            text: string,
+            skillPicker: ComposerSkillPickerProjection,
+            executionDraftPolicy: AuthorizationExecutionDraftPolicyProjection | null,
+        ): Promise<boolean> => {
             const normalizedText = text.trim();
             if (!active) {
                 return false;
             }
 
+            if (!executionDraftPolicy) {
+                setComposerError(t('sendFailed'));
+                return false;
+            }
+            const reconciliation = useActiveThreadStore
+                .getState()
+                .reconcileComposerAuthorization(executionDraftPolicy);
+            if (reconciliation?.reasons?.some((reason) => reason.kind !== 'policy_generation')) {
+                setComposerError(t('composerAuthorizationSelectionsUpdated'));
+                return false;
+            }
             const storeState = useActiveThreadStore.getState();
             const currentSnapshot = cachedActiveThreadSnapshot(queryClient, threadId);
             const messageMode = storeState.composerSelectedMode === 'Message';

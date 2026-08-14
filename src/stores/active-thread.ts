@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
 import type {
+    AuthorizationExecutionDraftPolicyProjection,
     ComposerAttachment,
     ComposerCapability,
     ComposerDomainAction,
@@ -11,6 +12,7 @@ import type {
     ComposerMentionSelection,
     ComposerReplyTarget,
     ComposerSkillSelection,
+    ExecutionDraftReconciliation,
     PreparedVoiceComposerSnapshot,
     ThreadMode,
     TurnPermissionMode,
@@ -27,6 +29,8 @@ type ActiveThreadStoreState = {
     sending: boolean;
     activeComposerThreadId: string | null;
     composerDrafts: Record<string, ComposerDraftState>;
+    composerAuthorizationFingerprint: string | null;
+    composerAuthorizationFingerprints: Record<string, string>;
     composerText: string;
     composerError: string | null;
     composerAttachments: ComposerAttachment[];
@@ -90,6 +94,9 @@ type ActiveThreadStoreState = {
     ) => void;
     setComposerReasoningEffortFromUser: (effort: string | null) => void;
     setComposerPermissionMode: (mode: TurnPermissionMode) => void;
+    reconcileComposerAuthorization: (
+        policy: AuthorizationExecutionDraftPolicyProjection | null,
+    ) => ExecutionDraftReconciliation | null;
     beginDefaultComposerModelSelectionRefresh: (workspaceId: string) => void;
     completeDefaultComposerModelSelectionRefresh: (workspaceId: string) => void;
     resetDefaultComposerModelSelection: () => void;
@@ -362,6 +369,8 @@ export const useActiveThreadStore = create<ActiveThreadStoreState>((set) => ({
     sending: false,
     activeComposerThreadId: null,
     composerDrafts: {},
+    composerAuthorizationFingerprint: null,
+    composerAuthorizationFingerprints: {},
     composerText: '',
     composerError: null,
     composerAttachments: [],
@@ -392,6 +401,17 @@ export const useActiveThreadStore = create<ActiveThreadStoreState>((set) => ({
 
     activateComposerThread: (threadId) => {
         set((state) => {
+            const composerAuthorizationFingerprints = {
+                ...state.composerAuthorizationFingerprints,
+            };
+            if (state.activeComposerThreadId) {
+                if (state.composerAuthorizationFingerprint) {
+                    composerAuthorizationFingerprints[state.activeComposerThreadId] =
+                        state.composerAuthorizationFingerprint;
+                } else {
+                    delete composerAuthorizationFingerprints[state.activeComposerThreadId];
+                }
+            }
             const transition = pioneerClient.composerDraftLifecycleTransition({
                 state: composerDraftLifecycleState(state.composerDrafts),
                 action: {
@@ -416,6 +436,9 @@ export const useActiveThreadStore = create<ActiveThreadStoreState>((set) => ({
             return {
                 activeComposerThreadId: threadId,
                 composerDrafts: composerDraftsFromLifecycleState(transition.state),
+                composerAuthorizationFingerprint:
+                    composerAuthorizationFingerprints[threadId] ?? null,
+                composerAuthorizationFingerprints,
                 composerText: draft.text,
                 ...composerDomainPatch(domain),
                 composerModeThreadId: threadId,
@@ -742,6 +765,120 @@ export const useActiveThreadStore = create<ActiveThreadStoreState>((set) => ({
         });
     },
 
+    reconcileComposerAuthorization: (policy) => {
+        let outcome: ExecutionDraftReconciliation | null = null;
+        set((state) => {
+            const composerAuthorizationFingerprints = {
+                ...state.composerAuthorizationFingerprints,
+            };
+            const rememberFingerprint = (fingerprint: string | null) => {
+                if (!state.activeComposerThreadId) return;
+                if (fingerprint) {
+                    composerAuthorizationFingerprints[state.activeComposerThreadId] = fingerprint;
+                } else {
+                    delete composerAuthorizationFingerprints[state.activeComposerThreadId];
+                }
+            };
+
+            if (!policy) {
+                rememberFingerprint(null);
+                const domain: ComposerDomainState = {
+                    ...composerDomainStateFromStore(state),
+                    attachments: [],
+                    capabilities: [],
+                    skill_selections: [],
+                    selected_provider: null,
+                    capability_target: NATIVE_COMPOSER_CAPABILITY_POLICY,
+                    selected_model: null,
+                    selected_reasoning_effort: null,
+                    model_manually_selected: false,
+                };
+                return {
+                    ...composerDomainPatch(domain),
+                    composerAuthorizationFingerprint: null,
+                    composerAuthorizationFingerprints,
+                    ...updateActiveDraft(state, composerDraftDomainPatch(domain)),
+                };
+            }
+
+            const skillIds = new Set<string>();
+            const mcpServerIds = new Set<string>();
+            for (const capability of state.composerCapabilities) {
+                if ('Skill' in capability.kind) {
+                    skillIds.add(capability.kind.Skill.skill_id);
+                } else if ('McpServer' in capability.kind) {
+                    mcpServerIds.add(capability.kind.McpServer.name);
+                } else if ('McpTool' in capability.kind) {
+                    mcpServerIds.add(capability.kind.McpTool.server_name);
+                }
+            }
+            for (const selection of state.composerSkillSelections) {
+                if (selection.kind === 'skill') {
+                    skillIds.add(selection.skill_id);
+                } else {
+                    skillIds.add(selection.pack_id);
+                }
+            }
+
+            outcome = pioneerClient.reconcileExecutionDraft({
+                draft: {
+                    policy_fingerprint: state.composerAuthorizationFingerprint,
+                    provider: state.composerSelectedProvider,
+                    model: state.composerSelectedModel,
+                    permission_mode: state.composerSelectedPermissionMode,
+                    skill_ids: [...skillIds],
+                    mcp_server_ids: [...mcpServerIds],
+                    has_attachments: state.composerAttachments.length > 0,
+                },
+                policy,
+            });
+            const allowedSkills = new Set(outcome.draft.skill_ids);
+            const allowedMcpServers = new Set(outcome.draft.mcp_server_ids);
+            const capabilities = state.composerCapabilities.filter((capability) => {
+                if ('Skill' in capability.kind) {
+                    return allowedSkills.has(capability.kind.Skill.skill_id);
+                }
+                if ('McpServer' in capability.kind) {
+                    return allowedMcpServers.has(capability.kind.McpServer.name);
+                }
+                return allowedMcpServers.has(capability.kind.McpTool.server_name);
+            });
+            const skillSelections = state.composerSkillSelections.filter((selection) =>
+                allowedSkills.has(
+                    selection.kind === 'skill' ? selection.skill_id : selection.pack_id,
+                ),
+            );
+            const provider = outcome.draft.provider ?? null;
+            const model = outcome.draft.model ?? null;
+            const domain: ComposerDomainState = {
+                ...composerDomainStateFromStore(state),
+                attachments: outcome.draft.has_attachments ? state.composerAttachments : [],
+                capabilities,
+                skill_selections: skillSelections,
+                selected_provider: provider,
+                capability_target: provider
+                    ? state.composerCapabilityTarget
+                    : NATIVE_COMPOSER_CAPABILITY_POLICY,
+                selected_model: model,
+                selected_reasoning_effort:
+                    provider && model ? state.composerSelectedReasoningEffort : null,
+                selected_permission_mode:
+                    outcome.draft.permission_mode ?? state.composerSelectedPermissionMode,
+                model_manually_selected:
+                    provider !== null && model !== null && state.composerModelManuallySelected,
+            };
+            const fingerprint = outcome.draft.policy_fingerprint ?? null;
+            rememberFingerprint(fingerprint);
+            return {
+                ...composerDomainPatch(domain),
+                composerAuthorizationFingerprint: fingerprint,
+                composerAuthorizationFingerprints,
+                ...updateActiveDraft(state, composerDraftDomainPatch(domain)),
+            };
+        });
+        return outcome;
+    },
+
     beginDefaultComposerModelSelectionRefresh: (workspaceId) => {
         set((state) => {
             const workspaceChanged = state.defaultComposerWorkspaceId !== workspaceId;
@@ -912,6 +1049,8 @@ export const useActiveThreadStore = create<ActiveThreadStoreState>((set) => ({
                 sending: false,
                 activeComposerThreadId: composerModeContext?.threadId ?? null,
                 composerDrafts: composerDraftsFromLifecycleState(clearedDrafts.state),
+                composerAuthorizationFingerprint: null,
+                composerAuthorizationFingerprints: {},
                 composerText: '',
                 composerError: null,
                 ...composerDomainPatch(domain),

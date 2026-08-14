@@ -125,6 +125,8 @@ namespace margelo::nitro::pioneer::client {
       virtual std::shared_ptr<Promise<std::string>> taskAcceptJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> taskReviseJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> taskCancelJson(const std::string& inputJson) = 0;
+      virtual std::shared_ptr<Promise<std::string>> taskUserNotificationListJson(const std::string& inputJson) = 0;
+      virtual std::shared_ptr<Promise<std::string>> taskUserNotificationAcknowledgeJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> voiceStatusJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> voiceSessionStartJson(const std::string& inputJson) = 0;
       virtual std::string voiceAudioChunkJson(const std::string& inputJson, const std::shared_ptr<ArrayBuffer>& pcmChunk) = 0;
@@ -137,9 +139,11 @@ namespace margelo::nitro::pioneer::client {
       virtual std::string voiceInputSettingsPlanJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> providerModelDisplayJson(const std::string& inputJson) = 0;
       virtual std::string reasoningEffortRowsJson(const std::string& inputJson) = 0;
-      virtual std::string composerPermissionModeOptionsJson() = 0;
       virtual std::string composerTurnModeOptionsJson() = 0;
       virtual std::string principalPresentationCapabilitiesJson(const std::string& inputJson) = 0;
+      virtual std::string authorizationProjectionAcceptJson(const std::string& inputJson) = 0;
+      virtual std::string artifactPresentationPolicyJson(const std::string& inputJson) = 0;
+      virtual std::string reconcileExecutionDraftJson(const std::string& inputJson) = 0;
       virtual std::string currentPrincipalPresentationJson(const std::string& inputJson) = 0;
       virtual std::string sessionListRowPresentationJson(const std::string& inputJson) = 0;
       virtual std::string threadScopePresentationJson(const std::string& inputJson) = 0;

@@ -5,5 +5,8 @@
     "activate": "Activer",
     "retry": "Réessayer",
     "add": "Ajouter",
-    "startupFailed": "Impossible d'initialiser l'application."
+    "startupFailed": "Impossible d'initialiser l'application.",
+    "taskNotificationTitle": "Résultat de la tâche",
+    "taskNotificationCompleted": "Tâche terminée",
+    "taskNotificationMarkRead": "Marquer comme lu"
 }

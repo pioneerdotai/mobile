@@ -36,9 +36,8 @@ import { TIMELINE_TECHNICAL_ROW_VERTICAL_PADDING_UNITS } from '../timeline-group
 type ToolCallRowProps = {
     row: Extract<TimelineRow, { type: 'tool-call' }>;
     expanded: boolean;
-    currentPrincipalId?: string | null;
-    canManageAllThreads: boolean;
-    canRespondToAgentRequests: boolean;
+    canReviewTasks: boolean;
+    canCancelTasks: boolean;
     threadId: string;
     mcpServerIdByName: Readonly<Record<string, string>>;
     onOpenMcpServer?: (serverId: string) => void;
@@ -48,9 +47,8 @@ type ToolCallRowProps = {
 export const ToolCallRow = ({
     row,
     expanded,
-    currentPrincipalId,
-    canManageAllThreads,
-    canRespondToAgentRequests,
+    canReviewTasks,
+    canCancelTasks,
     threadId,
     mcpServerIdByName,
     onOpenMcpServer,
@@ -160,9 +158,8 @@ export const ToolCallRow = ({
                             review={row.taskReview}
                             threadId={threadId}
                             turnId={row.turnId}
-                            currentPrincipalId={currentPrincipalId}
-                            canManageAllThreads={canManageAllThreads}
-                            canRespondToAgentRequests={canRespondToAgentRequests}
+                            canReviewTasks={canReviewTasks}
+                            canCancelTasks={canCancelTasks}
                         />
                     ) : null}
                     {row.toolKind === 'dynamicToolCall' &&
@@ -217,16 +214,14 @@ const TaskReviewPanel = ({
     review,
     threadId,
     turnId,
-    currentPrincipalId,
-    canManageAllThreads,
-    canRespondToAgentRequests,
+    canReviewTasks,
+    canCancelTasks,
 }: {
     review: NonNullable<Extract<TimelineRow, { type: 'tool-call' }>['taskReview']>;
     threadId: string;
     turnId: string;
-    currentPrincipalId?: string | null;
-    canManageAllThreads: boolean;
-    canRespondToAgentRequests: boolean;
+    canReviewTasks: boolean;
+    canCancelTasks: boolean;
 }) => {
     const { t } = useTranslation('threads');
 
@@ -247,11 +242,12 @@ const TaskReviewPanel = ({
                         taskReviewUserControlsAllowed(item) &&
                         canManageTaskReviewItem({
                             item,
-                            currentPrincipalId,
-                            canManageAllThreads,
-                            canRespondToAgentRequests,
+                            canReviewTasks,
+                            canCancelTasks,
                         })
                     }
+                    canReview={canReviewTasks}
+                    canCancel={canCancelTasks}
                 />
             ))}
         </VStack>
@@ -263,11 +259,15 @@ const TaskReviewItem = ({
     threadId,
     turnId,
     canManage,
+    canReview,
+    canCancel,
 }: {
     item: TaskWaitReviewDisplayItem;
     threadId: string;
     turnId: string;
     canManage: boolean;
+    canReview: boolean;
+    canCancel: boolean;
 }) => {
     const { t } = useTranslation('threads');
     const queryClient = useQueryClient();
@@ -276,10 +276,14 @@ const TaskReviewItem = ({
     const [error, setError] = useState<string | null>(null);
     const runId = item.run_id?.trim() ?? '';
     const actions = new Set(item.allowed_actions);
-    const canAccept = canManage && actions.has('task_accept') && !!runId;
+    const canAccept = canManage && canReview && actions.has('task_accept') && !!runId;
     const canRevise =
-        canManage && actions.has('task_revise') && !!runId && feedback.trim().length > 0;
-    const canCancel = canManage && actions.has('task_cancel');
+        canManage &&
+        canReview &&
+        actions.has('task_revise') &&
+        !!runId &&
+        feedback.trim().length > 0;
+    const canCancelAction = canManage && canCancel && actions.has('task_cancel');
 
     const refresh = async () => {
         await Promise.all([
@@ -349,7 +353,7 @@ const TaskReviewItem = ({
                     })}
                 </Text>
             ) : null}
-            {canManage && actions.has('task_revise') ? (
+            {canManage && canReview && actions.has('task_revise') ? (
                 <Input
                     value={feedback}
                     editable={pendingAction === null}
@@ -362,7 +366,7 @@ const TaskReviewItem = ({
             {error ? <Text style={styles.taskReviewError}>{error}</Text> : null}
             {canManage ? (
                 <HStack style={styles.taskReviewActions}>
-                    {actions.has('task_accept') ? (
+                    {canReview && actions.has('task_accept') ? (
                         <TaskReviewButton
                             label={t('timelineTaskReviewAccept')}
                             disabled={!canAccept || pendingAction !== null}
@@ -370,17 +374,17 @@ const TaskReviewItem = ({
                             onPress={() => void perform('accept')}
                         />
                     ) : null}
-                    {actions.has('task_revise') ? (
+                    {canReview && actions.has('task_revise') ? (
                         <TaskReviewButton
                             label={t('timelineTaskReviewRevise')}
                             disabled={!canRevise || pendingAction !== null}
                             onPress={() => void perform('revise')}
                         />
                     ) : null}
-                    {actions.has('task_cancel') ? (
+                    {canCancel && actions.has('task_cancel') ? (
                         <TaskReviewButton
                             label={t('timelineTaskReviewCancel')}
-                            disabled={!canCancel || pendingAction !== null}
+                            disabled={!canCancelAction || pendingAction !== null}
                             danger
                             onPress={() => void perform('cancel')}
                         />

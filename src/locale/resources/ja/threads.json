@@ -135,6 +135,7 @@
     "composerNoMcp": "MCP servers が見つかりません。",
     "composerSkillsFailed": "スキルを読み込めませんでした。",
     "composerCapabilitiesRemovedForProvider": "このプロバイダーで利用できない機能が削除されました。",
+    "composerAuthorizationSelectionsUpdated": "現在の権限が変更されたため、一部の composer 選択項目が削除されました。",
     "composerExecutionStateRemoved": "メッセージモードではAI専用オプションが削除されました。",
     "composerReplyCancel": "返信をキャンセル",
     "composerMentionAdd": "参加者をメンション",

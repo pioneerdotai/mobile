@@ -22,11 +22,6 @@
             "avatar": "Wähle ein PNG-, JPEG- oder WebP-Bild bis 1024 × 1024 und 256 KB.",
             "photoPicker": "Die Fotomediathek konnte nicht geöffnet werden.",
             "save": "Das Profil konnte nicht gespeichert werden. Versuche es erneut."
-        },
-        "kind": {
-            "superuser": "Superuser",
-            "member": "Mitglied",
-            "unknown": "Unbekannter Kontotyp"
         }
     },
     "language": {
@@ -78,6 +73,7 @@
         "loading": "Einladungen werden geladen...",
         "forbidden": "Du hast keinen Zugriff auf Einladungen.",
         "workspaces": "Workspace-Zugriff",
+        "role": "Rolle",
         "create": "Einladung erstellen",
         "empty": "Noch keine Einladungen.",
         "loadFailed": "Einladungen konnten nicht geladen werden.",
@@ -140,7 +136,6 @@
         "recoveryLink": "Wiederherstellungslink kopieren",
         "copied": "Wiederherstellungsaktivierung kopiert",
         "done": "Fertig",
-        "kind": { "superuser": "Superuser", "user": "Mitglied" },
         "status": { "active": "Aktiv", "suspended": "Gesperrt", "removed": "Entfernt" }
     },
     "theme": {

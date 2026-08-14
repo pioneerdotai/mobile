@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
@@ -32,12 +32,29 @@ const useAdministrationAuthorizationEpoch = () => {
     };
 };
 
-export const useAuthorizationCapabilitySnapshot = (threadId: string | null = null) => {
+export const useAdministrationPrincipal = () => {
     const { enabled, epoch } = useAdministrationAuthorizationEpoch();
+    return useQuery({
+        ...currentAdministrationPrincipalQueryOptions(epoch),
+        enabled,
+    });
+};
+
+export const useAuthorizationCapabilitySnapshot = (threadId: string | null = null) => {
+    const queryClient = useQueryClient();
+    const { enabled, epoch } = useAdministrationAuthorizationEpoch();
+    const principal = useAdministrationPrincipal();
     const workspaceId = useWorkspaceStore((state) => state.activeWorkspaceId);
     return useQuery({
-        ...authorizationCapabilitySnapshotQueryOptions(epoch, workspaceId, threadId),
-        enabled: enabled && (threadId === null || workspaceId !== null),
+        ...authorizationCapabilitySnapshotQueryOptions(
+            queryClient,
+            epoch,
+            principal.data?.principal.id ?? '',
+            workspaceId,
+            threadId,
+        ),
+        enabled:
+            enabled && principal.data !== undefined && (threadId === null || workspaceId !== null),
     });
 };
 
@@ -55,14 +72,6 @@ export const useAdministrationCapabilities = () => {
  * lineage; the client never infers that inheritance locally. */
 export const useThreadAuthorizationCapabilities = (threadId: string | null) =>
     useAuthorizationCapabilitySnapshot(threadId);
-
-export const useAdministrationPrincipal = () => {
-    const { enabled, epoch } = useAdministrationAuthorizationEpoch();
-    return useQuery({
-        ...currentAdministrationPrincipalQueryOptions(epoch),
-        enabled,
-    });
-};
 
 export const useCurrentPrincipalPresentation = () => {
     const principal = useAdministrationPrincipal();

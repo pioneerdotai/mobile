@@ -22,8 +22,7 @@
             "avatar": "Choose a PNG, JPEG, or WebP image up to 1024 × 1024 and 256 KB.",
             "photoPicker": "Could not open the photo library.",
             "save": "Could not save your profile. Try again."
-        },
-        "kind": { "superuser": "Superuser", "member": "Member", "unknown": "Unknown account type" }
+        }
     },
     "language": {
         "eyebrow": "Language",
@@ -76,6 +75,7 @@
         "loading": "Loading invitations...",
         "forbidden": "You do not have access to invitations.",
         "workspaces": "Workspace access",
+        "role": "Role",
         "create": "Create invitation",
         "empty": "No invitations yet.",
         "loadFailed": "Could not load invitations.",
@@ -138,10 +138,6 @@
         "recoveryLink": "Copy recovery link",
         "copied": "Recovery activation copied",
         "done": "Done",
-        "kind": {
-            "superuser": "Superuser",
-            "user": "Member"
-        },
         "status": {
             "active": "Active",
             "suspended": "Suspended",

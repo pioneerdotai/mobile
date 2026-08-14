@@ -24,6 +24,17 @@
     },
     "snapshot": {
       "$ref": "#/$defs/ClientActiveThreadSnapshot"
+    },
+    "task_user_notification": {
+      "description": "A live hint that the durable exact-recipient Task inbox changed. The\nshell reconciles the inbox through the list RPC, including reconnect.",
+      "anyOf": [
+        {
+          "$ref": "#/$defs/TaskUserNotificationDeliveredNotification"
+        },
+        {
+          "type": "null"
+        }
+      ]
     }
   },
   "required": [
@@ -302,6 +313,9 @@
       "type": "string",
       "enum": [
         "pending",
+        "response_accepted",
+        "delivering",
+        "delivery_failed",
         "answered",
         "resolved",
         "cancelled",
@@ -1679,6 +1693,130 @@
         "cli_runtime"
       ]
     },
+    "PublicError": {
+      "description": "Stable, bounded failure presentation shared by RPC, voice and task\nexecution surfaces. Raw source chains are never part of this type.",
+      "type": "object",
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/PublicErrorCode"
+        },
+        "correlation_id": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "retry_after_ms": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0
+        },
+        "retryable": {
+          "type": "boolean"
+        },
+        "stage": {
+          "$ref": "#/$defs/PublicErrorStage"
+        },
+        "version": {
+          "type": "integer",
+          "format": "uint8",
+          "maximum": 255,
+          "minimum": 0
+        }
+      },
+      "required": [
+        "version",
+        "code",
+        "stage",
+        "message",
+        "retryable",
+        "correlation_id"
+      ]
+    },
+    "PublicErrorCode": {
+      "type": "string",
+      "enum": [
+        "invalid_input",
+        "policy_denied",
+        "not_found",
+        "conflict",
+        "resource_exhausted",
+        "unavailable",
+        "timeout",
+        "internal"
+      ]
+    },
+    "PublicErrorStage": {
+      "type": "string",
+      "enum": [
+        "discovery",
+        "admission",
+        "preparation",
+        "execution",
+        "persistence",
+        "delivery",
+        "observation"
+      ]
+    },
+    "PublicTaskArtifact": {
+      "type": "object",
+      "properties": {
+        "artifactId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "mimeType": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "versionId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "PublicTaskFailure": {
+      "type": "object",
+      "properties": {
+        "class": {
+          "$ref": "#/$defs/TaskErrorClass"
+        },
+        "error": {
+          "$ref": "#/$defs/PublicError"
+        }
+      },
+      "required": [
+        "class",
+        "error"
+      ]
+    },
+    "PublicTaskResult": {
+      "type": "object",
+      "properties": {
+        "artifacts": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/PublicTaskArtifact"
+          }
+        },
+        "summary": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
     "RecoveryAction": {
       "type": "string",
       "enum": [
@@ -1967,6 +2105,20 @@
         "detached"
       ]
     },
+    "TaskErrorClass": {
+      "type": "string",
+      "enum": [
+        "cancelled",
+        "timeout",
+        "provider",
+        "tool",
+        "validation",
+        "dependency",
+        "policy",
+        "internal",
+        "unknown"
+      ]
+    },
     "TaskExecutorKind": {
       "type": "string",
       "enum": [
@@ -2131,6 +2283,62 @@
         "maxDepth",
         "createdAt",
         "updatedAt"
+      ]
+    },
+    "TaskUserNotificationDeliveredNotification": {
+      "type": "object",
+      "properties": {
+        "createdAt": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "deliveryId": {
+          "type": "string"
+        },
+        "error": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PublicTaskFailure"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "notificationId": {
+          "type": "string"
+        },
+        "recipientPrincipalId": {
+          "type": "string"
+        },
+        "result": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PublicTaskResult"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "runId": {
+          "type": "string"
+        },
+        "taskId": {
+          "type": "string"
+        },
+        "workspaceId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "notificationId",
+        "workspaceId",
+        "recipientPrincipalId",
+        "taskId",
+        "runId",
+        "deliveryId",
+        "createdAt"
       ]
     },
     "TextElement": {

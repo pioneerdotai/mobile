@@ -5,5 +5,8 @@
     "activate": "启用",
     "retry": "重试",
     "add": "添加",
-    "startupFailed": "无法初始化应用。"
+    "startupFailed": "无法初始化应用。",
+    "taskNotificationTitle": "任务结果",
+    "taskNotificationCompleted": "任务已完成",
+    "taskNotificationMarkRead": "标记为已读"
 }

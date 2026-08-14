@@ -5,5 +5,8 @@
     "activate": "Activate",
     "retry": "Retry",
     "add": "Add",
-    "startupFailed": "Failed to initialize application."
+    "startupFailed": "Failed to initialize application.",
+    "taskNotificationTitle": "Task result",
+    "taskNotificationCompleted": "Task completed",
+    "taskNotificationMarkRead": "Mark as read"
 }

@@ -3,6 +3,7 @@
 export type GatewayId = string;
 export type PrincipalKind = 'superuser' | 'user';
 export type PrincipalId = string;
+export type RoleKey = string;
 export type InvitationTransportSecurity = 'secure_wss' | 'insecure_ws';
 export type WorkspaceId = string;
 
@@ -11,6 +12,7 @@ export interface InvitationPreviewResponse {
   gateway_display_name?: string | null;
   gateway_id: GatewayId;
   inviter: InvitationInviterSummary;
+  role_key: RoleKey;
   transport: InvitationTransportSecurity;
   workspaces: InvitationWorkspaceSummary[];
   [k: string]: unknown;

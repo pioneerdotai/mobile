@@ -47,6 +47,11 @@ export type GatewayNotification =
       [k: string]: unknown;
     }
   | {
+      kind: 'authorization_projection_changed';
+      params: AuthorizationProjectionChangedNotification;
+      [k: string]: unknown;
+    }
+  | {
       kind: 'auth_session_revoked';
       params: AuthSessionRevokedNotification;
       [k: string]: unknown;
@@ -442,6 +447,11 @@ export type GatewayNotification =
       [k: string]: unknown;
     }
   | {
+      kind: 'task_user_notification_delivered';
+      params: TaskUserNotificationDeliveredNotification;
+      [k: string]: unknown;
+    }
+  | {
       kind: 'task_tree_changed';
       params: TaskTreeChangedNotification;
       [k: string]: unknown;
@@ -528,11 +538,75 @@ export type AccessChangeKind =
   | 'thread_visibility'
   | 'thread_participant_added'
   | 'thread_participant_removed';
+/**
+ * Exact invalidation scope without policy contents or protected metadata.
+ */
+export type AuthorizationChangeScope =
+  | {
+      scope: 'global';
+      [k: string]: unknown;
+    }
+  | {
+      role_key: RoleKey;
+      scope: 'role';
+      [k: string]: unknown;
+    }
+  | {
+      principal_id: PrincipalId;
+      scope: 'principal';
+      [k: string]: unknown;
+    }
+  | {
+      principal_id: PrincipalId;
+      scope: 'principal_workspace';
+      workspace_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      principal_id: PrincipalId;
+      scope: 'principal_thread';
+      thread_id: string;
+      workspace_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      invitation_id: InvitationId;
+      scope: 'invitation';
+      [k: string]: unknown;
+    }
+  | {
+      scope: 'workspace';
+      workspace_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      scope: 'thread';
+      thread_id: string;
+      workspace_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      scope: 'resource_selector';
+      selector: string;
+      workspace_id: string;
+      [k: string]: unknown;
+    };
+export type RoleKey = string;
+export type PrincipalId = string;
+export type InvitationId = string;
+/**
+ * Payload-safe type of committed authorization input change.
+ */
+export type AuthorizationChangeKind =
+  'code_policy' | 'role_policy' | 'role_assignment' | 'workspace_acl' | 'thread_acl' | 'resource_selector';
+/**
+ * Durable, monotonically increasing authorization policy/ACL generation.
+ * Zero is reserved for an uninitialized process and is never persisted.
+ */
+export type PolicyGeneration = number;
 export type AuthSessionTerminationReason =
   'session_revoked' | 'session_expired' | 'session_compromised' | 'principal_suspended' | 'principal_removed';
 export type AuthSessionId = string;
-export type InvitationId = string;
-export type PrincipalId = string;
 export type WorkspaceId = string;
 export type WorkspaceChangeKind = 'created' | 'updated' | 'current_changed';
 export type ThreadMode = ('Message' | 'Agent') | 'Chat';
@@ -1558,6 +1632,17 @@ export type TaskRescheduleReason =
   | 'task_cancelled';
 export type TaskDeliveryStatus = 'pending' | 'delivering' | 'delivered' | 'failed' | 'cancelled';
 export type TaskDeliveryAttemptStatus = 'started' | 'delivered' | 'failed';
+export type PublicErrorCode =
+  | 'invalid_input'
+  | 'policy_denied'
+  | 'not_found'
+  | 'conflict'
+  | 'resource_exhausted'
+  | 'unavailable'
+  | 'timeout'
+  | 'internal';
+export type PublicErrorStage =
+  'discovery' | 'admission' | 'preparation' | 'execution' | 'persistence' | 'delivery' | 'observation';
 export type MemoryChangeKind = 'created' | 'updated' | 'superseded' | 'deleted' | 'restored';
 export type MemoryCategory =
   | 'identity'
@@ -1767,17 +1852,12 @@ export interface ClientGatewayConnectionEvent {
  * Minimal notification telling an authenticated client to re-resolve access.
  */
 export interface AccessChangedNotification {
-  /**
-   * Whether this particular connection actually lost access to the scope.
-   *
-   * `None` is retained for compatibility with older Gateways and must be
-   * handled fail-closed by clients. `Some(false)` lets an already-authorized
-   * client apply the accompanying targeted projection update without
-   * discarding unrelated workspace state.
-   */
-  access_lost?: boolean | null;
   authorization_revision: number;
   change: AccessChangeKind;
+  /**
+   * Server-resolved result for this exact recipient and affected scope.
+   */
+  outcome: 'retained' | 'revoked';
   /**
    * Exact affected thread when the committed ACL mutation is thread-scoped.
    *
@@ -1788,6 +1868,12 @@ export interface AccessChangedNotification {
    */
   thread_id?: string | null;
   workspace_id: string;
+  [k: string]: unknown;
+}
+export interface AuthorizationProjectionChangedNotification {
+  affected: AuthorizationChangeScope;
+  change: AuthorizationChangeKind;
+  policy_generation: PolicyGeneration;
   [k: string]: unknown;
 }
 export interface AuthSessionRevokedNotification {
@@ -2599,11 +2685,9 @@ export interface McpServerStatusItem {
   runtime: McpRuntimeStatus;
   scope_kind: McpScopeKind;
   status: McpServerStatus;
-  status_reason?: string | null;
   [k: string]: unknown;
 }
 export interface McpRuntimeStatus {
-  last_error?: string | null;
   last_seen_at?: number | null;
   live: boolean;
   state: McpRuntimeState;
@@ -3030,12 +3114,14 @@ export interface TaskAgentInputAttachment {
   name?: string | null;
   path?: string | null;
   url?: string | null;
+  versionId?: string | null;
   [k: string]: unknown;
 }
 export interface TaskAgentInputReference {
   id: string;
   kind: TaskAgentInputReferenceKind;
   label?: string | null;
+  versionId?: string | null;
   [k: string]: unknown;
 }
 export interface TaskAgentInputVariable {
@@ -3237,6 +3323,48 @@ export interface TaskDeliveryCancelledNotification {
   context: TaskNotificationContext;
   delivery: TaskDelivery;
   reason?: string | null;
+  [k: string]: unknown;
+}
+export interface TaskUserNotificationDeliveredNotification {
+  createdAt: number;
+  deliveryId: string;
+  error?: PublicTaskFailure | null;
+  notificationId: string;
+  recipientPrincipalId: string;
+  result?: PublicTaskResult | null;
+  runId: string;
+  taskId: string;
+  workspaceId: string;
+  [k: string]: unknown;
+}
+export interface PublicTaskFailure {
+  class: TaskErrorClass;
+  error: PublicError;
+  [k: string]: unknown;
+}
+/**
+ * Stable, bounded failure presentation shared by RPC, voice and task
+ * execution surfaces. Raw source chains are never part of this type.
+ */
+export interface PublicError {
+  code: PublicErrorCode;
+  correlation_id: string;
+  message: string;
+  retry_after_ms?: number | null;
+  retryable: boolean;
+  stage: PublicErrorStage;
+  version: number;
+  [k: string]: unknown;
+}
+export interface PublicTaskResult {
+  artifacts?: PublicTaskArtifact[];
+  summary?: string | null;
+  [k: string]: unknown;
+}
+export interface PublicTaskArtifact {
+  artifactId?: string | null;
+  mimeType?: string | null;
+  versionId?: string | null;
   [k: string]: unknown;
 }
 export interface TaskTreeChangedNotification {
@@ -3497,6 +3625,7 @@ export interface VoiceSessionResultNotification {
 export interface VoiceError {
   kind: VoiceErrorKind;
   message: string;
+  public_error?: PublicError | null;
   [k: string]: unknown;
 }
 export interface UnknownGatewayNotification {

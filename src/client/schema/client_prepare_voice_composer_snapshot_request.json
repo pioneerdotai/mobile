@@ -10,6 +10,9 @@
         "$ref": "#/$defs/ComposerAttachment"
       }
     },
+    "authorization_fingerprint": {
+      "type": "string"
+    },
     "capabilities": {
       "type": "array",
       "default": [],
@@ -90,6 +93,7 @@
   },
   "additionalProperties": false,
   "required": [
+    "authorization_fingerprint",
     "permission_mode"
   ],
   "$defs": {

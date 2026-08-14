@@ -135,6 +135,7 @@
     "composerNoMcp": "Aucun serveur MCP trouvé.",
     "composerSkillsFailed": "Impossible de charger les skills.",
     "composerCapabilitiesRemovedForProvider": "Certaines capacités ne sont pas disponibles pour ce fournisseur et ont été supprimées.",
+    "composerAuthorizationSelectionsUpdated": "Certaines sélections ont été supprimées car vos autorisations actuelles ont changé.",
     "composerExecutionStateRemoved": "Les options réservées à l’IA ont été retirées en mode Message.",
     "composerReplyCancel": "Annuler la réponse",
     "composerMentionAdd": "Mentionner un participant",

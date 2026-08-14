@@ -25,9 +25,6 @@ export type CLIRuntimeReviewTarget =
 
 export interface CLIRuntimeReviewStartResponse {
   delivery: CLIRuntimeReviewDelivery;
-  native_thread_id: string;
-  native_turn_id?: string | null;
-  raw?: unknown;
   review_thread_id: string;
   runtime_id: string;
   target: CLIRuntimeReviewTarget;

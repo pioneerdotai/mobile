@@ -1,6 +1,11 @@
-import { queryOptions, type QueryClient } from '@tanstack/react-query';
+import { queryOptions, type QueryClient, type QueryKey } from '@tanstack/react-query';
 
-import { pioneerClient, type AdministrationAction, type AdministrationRefetch } from '@/client';
+import {
+    pioneerClient,
+    type AdministrationAction,
+    type AdministrationRefetch,
+    type AuthorizationCapabilitySnapshot,
+} from '@/client';
 import {
     loadAuthorizationCapabilitySnapshot,
     loadCurrentAdministrationPrincipal,
@@ -51,6 +56,10 @@ const NON_RETRYABLE_AUTHORIZATION_ERROR_CODES = new Set([
     'session_expired',
     'session_revoked',
 ]);
+const NON_RETRYABLE_AUTHORIZATION_PROJECTION_ERRORS = new Set([
+    'conflicting_authorization_projection',
+    'incompatible_authorization_capability_snapshot',
+]);
 
 const errorCode = (error: unknown): string | null => {
     if (!error || typeof error !== 'object' || !('code' in error)) return null;
@@ -64,7 +73,7 @@ export const administrationAuthorizationQueryRetry = (
 ): boolean => {
     if (
         error instanceof Error &&
-        error.message === 'incompatible_authorization_capability_snapshot'
+        NON_RETRYABLE_AUTHORIZATION_PROJECTION_ERRORS.has(error.message)
     ) {
         return false;
     }
@@ -90,17 +99,102 @@ export const currentAdministrationPrincipalQueryOptions = (
     });
 
 export const authorizationCapabilitySnapshotQueryOptions = (
+    queryClient: QueryClient,
     epoch: AdministrationAuthorizationEpoch,
+    expectedPrincipalId: string,
     workspaceId: string | null,
     threadId: string | null = null,
-) =>
-    queryOptions({
-        queryKey: administrationQueryKeys.capabilities(epoch, workspaceId, threadId),
-        queryFn: () => loadAuthorizationCapabilitySnapshot(workspaceId, threadId),
+) => {
+    const queryKey = administrationQueryKeys.capabilities(epoch, workspaceId, threadId);
+    // The query identity is the immutable Gateway connection epoch plus exact
+    // resource scope. `expectedPrincipalId` is an integrity assertion for that
+    // epoch; `queryClient` and `queryKey` only reconcile sibling projections
+    // after the response is accepted.
+    // eslint-disable-next-line @tanstack/query/exhaustive-deps -- non-identity integrity and cache dependencies
+    return queryOptions({
+        queryKey,
+        queryFn: async () => {
+            if (epoch.gatewayId === null || epoch.connectionId === null) {
+                throw new Error('inactive_authorization_connection_epoch');
+            }
+            const raw = await loadAuthorizationCapabilitySnapshot(workspaceId, threadId);
+            const accepted = pioneerClient.authorizationProjectionAccept({
+                gateway_id: epoch.gatewayId,
+                connection_id: epoch.connectionId,
+                expected_principal_id: expectedPrincipalId,
+                workspace_id: workspaceId,
+                thread_id: threadId,
+                snapshot: raw,
+            });
+            if (accepted.acceptance === 'incompatible') {
+                throw new Error('incompatible_authorization_capability_snapshot');
+            }
+            if (accepted.acceptance === 'conflict') {
+                throw new Error('conflicting_authorization_projection');
+            }
+            if (accepted.acceptance === 'stale' || !accepted.snapshot) {
+                throw new Error('stale_authorization_projection');
+            }
+            reconcileAuthorizationCapabilityQueries(
+                queryClient,
+                epoch,
+                queryKey,
+                accepted.snapshot,
+            );
+            return accepted.snapshot;
+        },
         retry: administrationAuthorizationQueryRetry,
         retryDelay: administrationAuthorizationQueryRetryDelay,
         staleTime: 30_000,
     });
+};
+
+const sameQueryKey = (left: QueryKey, right: QueryKey): boolean =>
+    JSON.stringify(left) === JSON.stringify(right);
+
+/** Reconcile all React Query views with the native revision fence before the
+ * newly fetched scope becomes observable. A newer scoped response replaces
+ * the workspace projection and evicts every older thread projection; same-
+ * revision scopes can coexist because the native store already rejected
+ * conflicting manifests. */
+export const reconcileAuthorizationCapabilityQueries = (
+    queryClient: QueryClient,
+    epoch: AdministrationAuthorizationEpoch,
+    sourceQueryKey: QueryKey,
+    snapshot: AuthorizationCapabilitySnapshot,
+): void => {
+    const prefix = [
+        ...administrationQueryKeys.all,
+        'capabilities',
+        authorizationEpochKey(epoch),
+    ] as const;
+    const workspaceId = snapshot.workspace?.workspace_id ?? null;
+    if (workspaceId) {
+        queryClient.setQueryData(administrationQueryKeys.capabilities(epoch, workspaceId, null), {
+            ...snapshot,
+            thread: null,
+        });
+    }
+
+    for (const query of queryClient.getQueryCache().findAll({ queryKey: prefix })) {
+        if (sameQueryKey(query.queryKey, sourceQueryKey)) continue;
+        const current = query.state.data as AuthorizationCapabilitySnapshot | undefined;
+        if (!current || current.authorization_revision >= snapshot.authorization_revision) {
+            continue;
+        }
+        if (
+            workspaceId &&
+            sameQueryKey(
+                query.queryKey,
+                administrationQueryKeys.capabilities(epoch, workspaceId, null),
+            )
+        ) {
+            continue;
+        }
+        void queryClient.cancelQueries({ queryKey: query.queryKey, exact: true });
+        queryClient.removeQueries({ queryKey: query.queryKey, exact: true });
+    }
+};
 
 /** A live draft keeps its future persisted thread id, so the query key does
  * not change when the first turn materializes the thread. Invalidate that
@@ -116,6 +210,31 @@ export const invalidateMaterializedThreadAuthorization = (
         queryKey: administrationQueryKeys.capabilities(epoch, workspaceId, threadId),
         exact: true,
     });
+
+/**
+ * Applies the server-owned authorization generation fence to every scoped
+ * React Query adapter. The native projection store has already discarded the
+ * previous generation before the event reaches JavaScript; resetting all
+ * capability entries keeps the shell from exposing an independently cached
+ * workspace or thread projection from that previous generation. Active
+ * consumers refetch immediately, while inactive scopes remain unavailable
+ * until explicitly opened.
+ */
+export const resetAuthorizationCapabilityQueries = async (
+    queryClient: QueryClient,
+): Promise<void> => {
+    const capabilities = (query: { queryKey: QueryKey }) =>
+        query.queryKey[0] === administrationQueryKeys.all[0] &&
+        query.queryKey[1] === 'capabilities';
+    await queryClient.cancelQueries({
+        queryKey: administrationQueryKeys.all,
+        predicate: capabilities,
+    });
+    await queryClient.resetQueries({
+        queryKey: administrationQueryKeys.all,
+        predicate: capabilities,
+    });
+};
 
 /** One mutation lane prevents two destructive administration actions from
  * racing in different screens. Gateway preconditions remain authoritative. */

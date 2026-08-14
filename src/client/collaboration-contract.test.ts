@@ -82,7 +82,7 @@ describe('collaboration presentation Nitro contract', () => {
     });
 
     it('keeps capability and mode policy in the shared client', () => {
-        nitro.composerTurnModeOptionsJson.mockReturnValue(ok(['Message', 'Chat', 'Agent']));
+        nitro.composerTurnModeOptionsJson.mockReturnValue(ok(['Message', 'Agent', 'Chat']));
         nitro.principalPresentationCapabilitiesJson.mockReturnValue(
             ok({
                 can_create_invitation: false,
@@ -94,7 +94,7 @@ describe('collaboration presentation Nitro contract', () => {
                 can_view_member_directory: true,
             }),
         );
-        expect(pioneerClient.composerTurnModeOptions()).toEqual(['Message', 'Chat', 'Agent']);
+        expect(pioneerClient.composerTurnModeOptions()).toEqual(['Message', 'Agent', 'Chat']);
         expect(
             pioneerClient.principalPresentationCapabilities(capabilitySnapshot)
                 .can_manage_own_sessions,

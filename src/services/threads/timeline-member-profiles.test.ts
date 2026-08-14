@@ -11,6 +11,13 @@ const member = (principalId: string): MemberSummary => ({
     display_name: 'Current Name',
     nickname: 'current',
     role_key: 'member',
+    role: {
+        key: 'member',
+        display_name: 'Member',
+        description: 'Workspace collaborator',
+        built_in: true,
+    },
+    lifecycle_managed: true,
     status: 'active',
     avatar_revision: 'current-avatar',
 });

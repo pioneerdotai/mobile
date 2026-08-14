@@ -1,9 +1,12 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "PrincipalPresentationCapabilities",
-  "description": "Shell-neutral compatibility projection of the Gateway capability snapshot.\n\nThese flags are presentation hints only. The Gateway remains authoritative\nfor every operation and callers must still handle an authoritative denial.",
+  "description": "Shell-neutral projection of the Gateway capability snapshot.\n\nThese flags are presentation hints only. The Gateway remains authoritative\nfor every operation and callers must still handle an authoritative denial.",
   "type": "object",
   "properties": {
+    "can_acknowledge_own_notifications": {
+      "type": "boolean"
+    },
     "can_add_workspace_member": {
       "type": "boolean"
     },
@@ -29,6 +32,9 @@
       "type": "boolean"
     },
     "can_manage_workspace": {
+      "type": "boolean"
+    },
+    "can_read_own_notifications": {
       "type": "boolean"
     },
     "can_remove_workspace_member": {
@@ -60,6 +66,8 @@
   "required": [
     "can_create_workspace",
     "can_manage_workspace",
+    "can_read_own_notifications",
+    "can_acknowledge_own_notifications",
     "can_manage_gateway_settings",
     "can_manage_capabilities",
     "can_use_providers",

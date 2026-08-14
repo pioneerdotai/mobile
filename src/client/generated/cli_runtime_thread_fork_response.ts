@@ -46,8 +46,6 @@ export type TurnStatus = 'InProgress' | 'Completed' | 'Failed' | 'Interrupted' |
 export type ThreadVisibility = 'private' | 'workspace';
 
 export interface CLIRuntimeThreadForkResponse {
-  native_thread_id: string;
-  raw?: unknown;
   runtime_id: string;
   source_thread_id: string;
   thread: Thread;

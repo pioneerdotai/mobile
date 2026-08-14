@@ -2,9 +2,9 @@ import type { QueryClient } from '@tanstack/react-query';
 
 import type { ClientActiveThreadEventResult, ClientEvent } from '@/client';
 import {
-    administrationQueryKeys,
     clearAdministrationQueries,
     invalidateAdministrationTargets,
+    resetAuthorizationCapabilityQueries,
 } from '@/services/administration/query';
 import { applyActiveThreadEvent } from '@/services/threads/active';
 import { timelineQueryKeys } from '@/services/threads/timeline-query';
@@ -15,6 +15,11 @@ import { useThreadTreeStore } from '@/stores/thread-tree';
 import { useWorkspaceStore } from '@/stores/workspace';
 
 type AccessChangedLifecycle = NonNullable<ClientActiveThreadEventResult['access_changed']>;
+type GatewayNotificationEvent = Extract<ClientEvent, { GatewayNotification: unknown }>;
+type AccessChangedNotification = Extract<
+    GatewayNotificationEvent['GatewayNotification'],
+    { kind: 'access_changed' }
+>['params'];
 
 const clearProtectedMobileProjections = (queryClient: QueryClient) => {
     useThreadTreeStore.getState().reset();
@@ -26,46 +31,30 @@ const clearProtectedMobileProjections = (queryClient: QueryClient) => {
     void clearAdministrationQueries(queryClient);
 };
 
-export const accessChangedWorkspaceId = (event: ClientEvent): string | null => {
+const accessChangedNotification = (event: ClientEvent): AccessChangedNotification | null => {
     if (!('GatewayNotification' in event)) {
         return null;
     }
     const notification = event.GatewayNotification;
-    return notification.kind === 'access_changed' ? notification.params.workspace_id : null;
+    return notification.kind === 'access_changed' ? notification.params : null;
 };
 
-const accessChangedThreadIds = (event: ClientEvent): readonly string[] => {
-    if (!('GatewayNotification' in event)) {
-        return [];
-    }
-    const notification = event.GatewayNotification;
-    if (notification.kind !== 'access_changed') {
-        return [];
-    }
-    const threadId = notification.params.thread_id?.trim();
-    return threadId ? [threadId] : [];
-};
-
-const accessChangedAccessLost = (event: ClientEvent): boolean | null => {
-    if (!('GatewayNotification' in event)) return null;
-    const notification = event.GatewayNotification;
-    return notification.kind === 'access_changed'
-        ? (notification.params.access_lost ?? null)
-        : null;
-};
+export const accessChangedWorkspaceId = (event: ClientEvent): string | null =>
+    accessChangedNotification(event)?.workspace_id ?? null;
 
 export const applyMobileAccessChangedLifecycle = (
     lifecycle: AccessChangedLifecycle,
     queryClient: QueryClient,
-    invalidatedThreadIds: readonly string[] = [],
-    accessLost: boolean | null = null,
+    invalidatedThreadIds: readonly string[],
+    outcome: AccessChangedNotification['outcome'],
 ) => {
     if (!lifecycle.applied) {
         return;
     }
 
     const workspaceState = useWorkspaceStore.getState();
-    const workspaceAccessLost = lifecycle.change === 'workspace_membership' && accessLost !== false;
+    const accessRevoked = outcome === 'revoked';
+    const workspaceAccessLost = lifecycle.change === 'workspace_membership' && accessRevoked;
     // The native active-thread reducer cannot observe the shell-owned workspace
     // selection when no thread is open. Reconcile that selection from the
     // workspace store instead of treating the native lifecycle flag as the
@@ -93,7 +82,7 @@ export const applyMobileAccessChangedLifecycle = (
     if (activeWorkspaceLost) {
         threadTreeState.reset();
     } else if (
-        accessLost === true &&
+        accessRevoked &&
         threadTreeState.snapshot &&
         threadTreeState.workspaceId === lifecycle.workspace_id
     ) {
@@ -103,10 +92,6 @@ export const applyMobileAccessChangedLifecycle = (
                 threadTreeState.snapshot,
             ),
         );
-    } else if (accessLost === null && threadTreeState.workspaceId === lifecycle.workspace_id) {
-        // Compatibility with an older Gateway that cannot state whether this
-        // connection retained access remains fail-closed.
-        threadTreeState.reset();
     }
     if (activeWorkspaceLost || lifecycle.active_thread_cleared) {
         const activeThreadState = useActiveThreadStore.getState();
@@ -114,7 +99,7 @@ export const applyMobileAccessChangedLifecycle = (
         useActiveThreadStore.getState().resetDefaultComposerModelSelection();
     }
 
-    if (accessLost === false) {
+    if (!accessRevoked) {
         for (const threadId of invalidatedThreadIds) {
             void queryClient.invalidateQueries({
                 queryKey: threadScopeQueryKeys.detail(threadId),
@@ -124,9 +109,8 @@ export const applyMobileAccessChangedLifecycle = (
     }
 
     if (workspaceAccessLost || invalidatedThreadIds.length === 0) {
-        // Old servers did not identify a thread-scoped access change. Timeline
-        // keys carry no workspace authorization metadata, so that compatibility
-        // case must invalidate the protected family rather than guess.
+        // Workspace-wide revocation has no exact thread key, so every protected
+        // timeline projection must be cleared rather than guessed locally.
         void queryClient.cancelQueries({ queryKey: timelineQueryKeys.all });
         queryClient.removeQueries({ queryKey: timelineQueryKeys.all });
         clearThreadScopeQueries(queryClient);
@@ -160,46 +144,31 @@ export const applyMobileAccessChangedEvent = async (
     event: ClientEvent,
     queryClient: QueryClient,
 ): Promise<AccessChangedLifecycle | null> => {
-    if (accessChangedWorkspaceId(event) === null) {
+    const notification = accessChangedNotification(event);
+    if (!notification) {
         return null;
     }
 
     const expandedKeys = useActiveThreadStore.getState().expandedKeys;
-    const invalidatedThreadIds = accessChangedThreadIds(event);
+    const threadId = notification.thread_id?.trim();
+    const invalidatedThreadIds = threadId ? [threadId] : [];
     const result = await applyActiveThreadEvent({
         event,
         expanded_keys: expandedKeys,
     });
     const lifecycle = result.access_changed ?? null;
     await invalidateAdministrationTargets(queryClient, result.administration_refetch ?? []);
-    await queryClient.invalidateQueries({
-        queryKey: administrationQueryKeys.all,
-        predicate: (query) => query.queryKey[1] === 'capabilities',
-    });
+    await resetAuthorizationCapabilityQueries(queryClient);
     if (lifecycle) {
         applyMobileAccessChangedLifecycle(
             lifecycle,
             queryClient,
             invalidatedThreadIds,
-            accessChangedAccessLost(event),
+            notification.outcome,
         );
     }
     return lifecycle;
 };
 
-export const failClosedMobileAccessChange = (workspaceId: string, queryClient: QueryClient) => {
-    applyMobileAccessChangedLifecycle(
-        {
-            active_scope_cleared: useWorkspaceStore.getState().activeWorkspaceId === workspaceId,
-            active_thread_cleared: true,
-            applied: true,
-            authorization_revision: 0,
-            change: 'workspace_membership',
-            refresh_workspace_catalog: true,
-            workspace_id: workspaceId,
-        },
-        queryClient,
-        [],
-        null,
-    );
-};
+export const failClosedMobileAccessChange = (_workspaceId: string, queryClient: QueryClient) =>
+    beginMobileAuthorizationEpoch(queryClient);

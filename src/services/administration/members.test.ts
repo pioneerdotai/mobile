@@ -29,6 +29,13 @@ const member = {
     kind: 'user',
     display_name: 'Alice',
     nickname: 'alice',
+    role: {
+        key: 'member',
+        display_name: 'Member',
+        description: 'Workspace collaborator',
+        built_in: true,
+    },
+    lifecycle_managed: true,
     status: 'active',
 } satisfies MemberSummary;
 

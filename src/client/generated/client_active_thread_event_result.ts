@@ -296,7 +296,15 @@ export type MarkdownMarkKind =
       [k: string]: unknown;
     };
 export type CLIRuntimeRequestKind = 'command_approval' | 'file_change_approval' | 'user_input' | 'other';
-export type CLIRuntimePendingRequestStatus = 'pending' | 'answered' | 'resolved' | 'cancelled' | 'expired';
+export type CLIRuntimePendingRequestStatus =
+  | 'pending'
+  | 'response_accepted'
+  | 'delivering'
+  | 'delivery_failed'
+  | 'answered'
+  | 'resolved'
+  | 'cancelled'
+  | 'expired';
 export type TurnItem =
   | {
       attachments?: UserMessageAttachment[];
@@ -880,12 +888,30 @@ export type TurnStatus = 'InProgress' | 'Completed' | 'Failed' | 'Interrupted' |
  * Internal task/system threads deliberately have no public selectable value.
  */
 export type ThreadVisibility = 'private' | 'workspace';
+export type TaskErrorClass =
+  'cancelled' | 'timeout' | 'provider' | 'tool' | 'validation' | 'dependency' | 'policy' | 'internal' | 'unknown';
+export type PublicErrorCode =
+  | 'invalid_input'
+  | 'policy_denied'
+  | 'not_found'
+  | 'conflict'
+  | 'resource_exhausted'
+  | 'unavailable'
+  | 'timeout'
+  | 'internal';
+export type PublicErrorStage =
+  'discovery' | 'admission' | 'preparation' | 'execution' | 'persistence' | 'delivery' | 'observation';
 
 export interface ClientActiveThreadEventResult {
   access_changed?: ClientAccessChangedLifecycle | null;
   administration_refetch?: AdministrationRefetch[];
   semantic_timeline_patch: SemanticTimelineCachePatch;
   snapshot: ClientActiveThreadSnapshot;
+  /**
+   * A live hint that the durable exact-recipient Task inbox changed. The
+   * shell reconciles the inbox through the list RPC, including reconnect.
+   */
+  task_user_notification?: TaskUserNotificationDeliveredNotification | null;
   [k: string]: unknown;
 }
 /**
@@ -1491,5 +1517,47 @@ export interface PromptManifestHookSourceEntry {
   source: PromptManifestHookSource;
   source_count?: number | null;
   truncation: PromptManifestHookTruncation;
+  [k: string]: unknown;
+}
+export interface TaskUserNotificationDeliveredNotification {
+  createdAt: number;
+  deliveryId: string;
+  error?: PublicTaskFailure | null;
+  notificationId: string;
+  recipientPrincipalId: string;
+  result?: PublicTaskResult | null;
+  runId: string;
+  taskId: string;
+  workspaceId: string;
+  [k: string]: unknown;
+}
+export interface PublicTaskFailure {
+  class: TaskErrorClass;
+  error: PublicError;
+  [k: string]: unknown;
+}
+/**
+ * Stable, bounded failure presentation shared by RPC, voice and task
+ * execution surfaces. Raw source chains are never part of this type.
+ */
+export interface PublicError {
+  code: PublicErrorCode;
+  correlation_id: string;
+  message: string;
+  retry_after_ms?: number | null;
+  retryable: boolean;
+  stage: PublicErrorStage;
+  version: number;
+  [k: string]: unknown;
+}
+export interface PublicTaskResult {
+  artifacts?: PublicTaskArtifact[];
+  summary?: string | null;
+  [k: string]: unknown;
+}
+export interface PublicTaskArtifact {
+  artifactId?: string | null;
+  mimeType?: string | null;
+  versionId?: string | null;
   [k: string]: unknown;
 }

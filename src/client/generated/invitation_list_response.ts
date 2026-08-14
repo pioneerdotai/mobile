@@ -5,6 +5,7 @@ export type PrincipalKind = 'superuser' | 'user';
 export type PrincipalId = string;
 export type InvitationRevokeReason =
   'inviter_revoked' | 'inviter_unavailable' | 'grant_authority_lost' | 'workspace_unavailable';
+export type RoleKey = string;
 export type InvitationStatus = 'pending' | 'accepted' | 'revoked' | 'expired';
 export type WorkspaceId = string;
 
@@ -19,6 +20,7 @@ export interface InvitationSummary {
   invitation_id: InvitationId;
   inviter: InvitationInviterSummary;
   revoke_reason?: InvitationRevokeReason | null;
+  role_key: RoleKey;
   status: InvitationStatus;
   terminal_at_unix?: number | null;
   workspaces: InvitationWorkspaceSummary[];

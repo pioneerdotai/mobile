@@ -19,11 +19,17 @@
     "kind": {
       "$ref": "#/$defs/PrincipalKind"
     },
+    "lifecycle_managed": {
+      "type": "boolean"
+    },
     "nickname": {
       "type": "string"
     },
     "principal_id": {
       "$ref": "#/$defs/PrincipalId"
+    },
+    "role": {
+      "$ref": "#/$defs/AuthorizationRolePresentation"
     },
     "role_key": {
       "anyOf": [
@@ -45,10 +51,37 @@
     "kind",
     "display_name",
     "nickname",
+    "role",
+    "lifecycle_managed",
     "status",
     "actions"
   ],
   "$defs": {
+    "AuthorizationRolePresentation": {
+      "description": "Server-owned presentation metadata for the authenticated role. The key is\ndeliberately open-ended: clients display this object but never derive\nauthorization decisions from it.",
+      "type": "object",
+      "properties": {
+        "built_in": {
+          "type": "boolean"
+        },
+        "description": {
+          "type": "string"
+        },
+        "display_name": {
+          "type": "string"
+        },
+        "key": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "key",
+        "display_name",
+        "description",
+        "built_in"
+      ]
+    },
     "MemberPresentationActions": {
       "type": "object",
       "properties": {

@@ -3,10 +3,6 @@
   "title": "CLIRuntimeThreadForkResponse",
   "type": "object",
   "properties": {
-    "native_thread_id": {
-      "type": "string"
-    },
-    "raw": true,
     "runtime_id": {
       "type": "string"
     },
@@ -24,8 +20,7 @@
     "workspace_id",
     "runtime_id",
     "source_thread_id",
-    "thread",
-    "native_thread_id"
+    "thread"
   ],
   "$defs": {
     "PermissionBehavior": {

@@ -135,6 +135,7 @@
     "composerNoMcp": "Keine MCP-Server gefunden.",
     "composerSkillsFailed": "Skills konnten nicht geladen werden.",
     "composerCapabilitiesRemovedForProvider": "Einige Funktionen sind für diesen Anbieter nicht verfügbar und wurden entfernt.",
+    "composerAuthorizationSelectionsUpdated": "Einige Composer-Auswahlen wurden entfernt, weil sich Ihre aktuellen Berechtigungen geändert haben.",
     "composerExecutionStateRemoved": "KI-spezifische Optionen wurden für den Nachrichtenmodus entfernt.",
     "composerReplyCancel": "Antwort abbrechen",
     "composerMentionAdd": "Teilnehmer erwähnen",

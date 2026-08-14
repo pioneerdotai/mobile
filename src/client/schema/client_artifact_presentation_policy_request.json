@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ClientArtifactPresentationPolicyRequest",
+  "type": "object",
+  "properties": {
+    "can_attach_artifacts": {
+      "type": "boolean"
+    },
+    "can_read_artifacts": {
+      "type": "boolean"
+    },
+    "connected": {
+      "type": "boolean"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "can_read_artifacts",
+    "can_attach_artifacts",
+    "connected"
+  ]
+}

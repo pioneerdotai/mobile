@@ -24,7 +24,31 @@ describe('administration realtime invalidation', () => {
     it('recognizes only administration notifications', () => {
         expect(isAdministrationEvent(event('member_changed'))).toBe(true);
         expect(isAdministrationEvent(event('workspace_members_changed'))).toBe(true);
+        expect(isAdministrationEvent(event('authorization_projection_changed'))).toBe(true);
         expect(isAdministrationEvent(event('turn_completed'))).toBe(false);
+    });
+
+    it('fail-closes every scoped capability cache on a policy generation event', async () => {
+        const queryClient = new QueryClient();
+        const epoch = { gatewayId: 'gateway-a', connectionId: 7 };
+        const workspace = administrationQueryKeys.capabilities(epoch, 'workspace-a', null);
+        const thread = administrationQueryKeys.capabilities(epoch, 'workspace-a', 'thread-a');
+        queryClient.setQueryData(workspace, { authorization_revision: 6 });
+        queryClient.setQueryData(thread, { authorization_revision: 6 });
+
+        await applyMobileAdministrationEvent(
+            event('authorization_projection_changed', {
+                policy_generation: 7,
+                change: 'role_policy',
+                affected: { kind: 'role', role_key: 'member' },
+            }),
+            queryClient,
+        );
+
+        expect(queryClient.getQueryData(workspace)).toBeUndefined();
+        expect(queryClient.getQueryData(thread)).toBeUndefined();
+        expect(applyActiveThreadEvent).not.toHaveBeenCalled();
+        queryClient.clear();
     });
 
     it('uses native revision filtering and invalidates only returned targets', async () => {

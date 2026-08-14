@@ -101,15 +101,27 @@ export interface AuthSessionSnapshot {
   [k: string]: unknown;
 }
 export interface AuthorizationThreadCapabilities {
+  can_bind_artifacts: boolean;
+  can_cancel_agent_execution: boolean;
+  can_cancel_tasks: boolean;
   can_control_cli_runtime: boolean;
   can_create_task: boolean;
+  can_delete_own_message: boolean;
+  can_edit_own_message: boolean;
   can_manage: boolean;
+  can_manage_agents_document: boolean;
   can_manage_private_participants: boolean;
   can_move: boolean;
+  can_observe_agent_execution: boolean;
+  can_observe_agent_requests: boolean;
   can_read: boolean;
+  can_read_agents_document: boolean;
   can_read_artifacts: boolean;
   can_respond_to_agent_requests: boolean;
+  can_resume_agent_execution: boolean;
+  can_review_tasks: boolean;
   can_start_turn: boolean;
+  can_steer_agent_execution: boolean;
   can_write: boolean;
   can_write_artifacts: boolean;
 }
@@ -245,9 +257,26 @@ export interface MemberSummary {
   avatar_revision?: string | null;
   display_name: string;
   kind: PrincipalKind;
+  /**
+   * Server-owned target trait. Clients may combine it with caller
+   * capabilities for presentation, but never infer it from identity kind
+   * or a well-known role key.
+   */
+  lifecycle_managed: boolean;
   nickname: string;
   principal_id: PrincipalId;
+  role: AuthorizationRolePresentation;
   role_key?: RoleKey | null;
   status: PrincipalStatus;
   [k: string]: unknown;
+}
+/**
+ * Server-owned role label. Clients display it verbatim and never infer
+ * role semantics from `kind` or a well-known key.
+ */
+export interface AuthorizationRolePresentation {
+  built_in: boolean;
+  description: string;
+  display_name: string;
+  key: string;
 }

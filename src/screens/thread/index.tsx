@@ -65,6 +65,7 @@ import {
 } from '@/services/threads/semantic-projector';
 import { projectConversationToRows } from '@/services/threads/conversation/projector';
 import { activeThreadSnapshot } from '@/services/threads/active';
+import { projectAgentActionCapabilities } from '@/services/threads/agent-capabilities';
 import { seedEmptyThreadTimelineCache } from '@/services/threads/semantic-cache-patch';
 import { cacheActiveThreadSnapshot } from '@/services/threads/timeline-query';
 import { selectedReasoningEffortRequestFields } from '@/services/threads/reasoning-effort';
@@ -106,11 +107,7 @@ import {
     projectWorkspaceMemberProfiles,
     projectWorkspaceMentionCandidates,
 } from '@/services/threads/mentions';
-import {
-    allowedComposerPermissionModeOptions,
-    composerPermissionModeIsAllowed,
-    reconcileComposerPermissionMode,
-} from '@/services/threads/permission-modes';
+import { composerPermissionModeIsAllowed } from '@/services/threads/permission-modes';
 import { ThreadActionsSheet } from '@/components/overlays/thread-actions';
 
 type ThreadScreenProps = {
@@ -308,9 +305,10 @@ const ThreadScreen = ({
     const setComposerPermissionModeSwitcherOpen = useActiveThreadStore(
         (state) => state.setComposerPermissionModeSwitcherOpen,
     );
-    const setComposerPermissionMode = useActiveThreadStore(
-        (state) => state.setComposerPermissionMode,
+    const reconcileComposerAuthorization = useActiveThreadStore(
+        (state) => state.reconcileComposerAuthorization,
     );
+    const setComposerError = useActiveThreadStore((state) => state.setComposerError);
     const markComposerAttachmentsUploading = useActiveThreadStore(
         (state) => state.markComposerAttachmentsUploading,
     );
@@ -449,14 +447,49 @@ const ThreadScreen = ({
         }),
         [keyboardOffset],
     );
-    const allPermissionModeOptions = useMemo(
-        () => pioneerClient.composerPermissionModeOptions(),
-        [],
-    );
-
     const visibleSnapshot = snapshot?.thread_id === threadId ? snapshot : null;
     const visibleThreadId = visibleSnapshot?.thread_id ?? threadId;
     const threadAuthorization = useThreadAuthorizationCapabilities(visibleThreadId);
+    const isLiveDraftThread = Boolean(
+        visibleSnapshot?.draft_thread_id && visibleSnapshot.draft_thread_id === visibleThreadId,
+    );
+    const workspaceAgentCapabilities = threadAuthorization.data?.workspace?.capabilities;
+    const threadAgentCapabilities = threadAuthorization.data?.thread?.capabilities;
+    const executionDraftPolicy =
+        threadAuthorization.data?.workspace?.execution_draft_policy ?? null;
+    const agentActionCapabilities = projectAgentActionCapabilities({
+        isDraftThread: isLiveDraftThread,
+        workspace: workspaceAgentCapabilities,
+        thread: threadAgentCapabilities,
+    });
+    const permissionModeOptions = useMemo(
+        () =>
+            (workspaceAgentCapabilities?.agent_permission_options ?? []).map((option) => ({
+                mode: option.mode,
+                label: option.label,
+                description: option.description,
+            })),
+        [workspaceAgentCapabilities?.agent_permission_options],
+    );
+    const canReadArtifacts = isLiveDraftThread
+        ? (workspaceAgentCapabilities?.can_read_artifacts ?? false)
+        : (threadAgentCapabilities?.can_read_artifacts ?? false);
+    const canAttachArtifacts = isLiveDraftThread
+        ? (threadAuthorization.data?.workspace?.execution_draft_policy.can_attach_artifacts ??
+          false)
+        : Boolean(
+              threadAgentCapabilities?.can_write_artifacts &&
+              threadAgentCapabilities.can_bind_artifacts,
+          );
+    const artifactPresentationPolicy = useMemo(
+        () =>
+            pioneerClient.artifactPresentationPolicy({
+                can_read_artifacts: canReadArtifacts,
+                can_attach_artifacts: canAttachArtifacts,
+                connected,
+            }),
+        [canAttachArtifacts, canReadArtifacts, connected],
+    );
     useEffect(() => {
         const subscription = AppState.addEventListener('change', setAppState);
         return () => subscription.remove();
@@ -561,7 +594,7 @@ const ThreadScreen = ({
     const artifactWorkspaceId = visibleSnapshot?.workspace_id ?? activeWorkspaceId;
     const handleOpenArtifact = useCallback(
         (artifactId: string, versionId: string | null = null) => {
-            if (!artifactWorkspaceId || !connected) {
+            if (!artifactWorkspaceId || !artifactPresentationPolicy.can_open) {
                 dispatchArtifactAction(artifactWorkspaceId ?? '', artifactId, versionId, {
                     type: 'failed',
                     code: 'reconfiguration_required',
@@ -577,11 +610,16 @@ const ThreadScreen = ({
                 dispatch,
             );
         },
-        [artifactWorkspaceId, beginArtifactAction, connected, dispatchArtifactAction],
+        [
+            artifactPresentationPolicy.can_open,
+            artifactWorkspaceId,
+            beginArtifactAction,
+            dispatchArtifactAction,
+        ],
     );
     const handleShareArtifact = useCallback(
         (artifactId: string, versionId: string | null = null) => {
-            if (!artifactWorkspaceId || !connected) {
+            if (!artifactWorkspaceId || !artifactPresentationPolicy.can_share) {
                 dispatchArtifactAction(artifactWorkspaceId ?? '', artifactId, versionId, {
                     type: 'failed',
                     code: 'reconfiguration_required',
@@ -598,7 +636,12 @@ const ThreadScreen = ({
                 dispatch,
             );
         },
-        [artifactWorkspaceId, beginArtifactAction, connected, dispatchArtifactAction],
+        [
+            artifactPresentationPolicy.can_share,
+            artifactWorkspaceId,
+            beginArtifactAction,
+            dispatchArtifactAction,
+        ],
     );
     const handleCancelArtifactDownload = useCallback(
         (artifactId: string, versionId: string | null, operationId: string) => {
@@ -628,9 +671,6 @@ const ThreadScreen = ({
     } | null>(null);
     const composerMeasured =
         composerMeasurement?.threadId === visibleThreadId && composerMeasurement.measured;
-    const isLiveDraftThread = Boolean(
-        visibleSnapshot?.draft_thread_id && visibleSnapshot.draft_thread_id === visibleThreadId,
-    );
     const timelineIdentityKey = visibleThreadId;
     const visibleTurnId = visibleSnapshot?.projection.in_flight_turn_id ?? null;
     const semanticWorkRangesByTurn =
@@ -831,24 +871,12 @@ const ThreadScreen = ({
     const modelSelectionLabel = selectedModelDisplayName ?? t('modelSelectorSelectModel');
     const modelSelectionEffortLabel =
         modelSelectionLoading || reasoningEffortLabelLoading ? null : selectedReasoningEffortLabel;
-    const workspaceAgentCapabilities = threadAuthorization.data?.workspace?.capabilities;
-    const threadAgentCapabilities = threadAuthorization.data?.thread?.capabilities;
-    const permissionModeOptions = useMemo(() => {
-        return allowedComposerPermissionModeOptions(
-            allPermissionModeOptions,
-            workspaceAgentCapabilities?.turn_permission_modes,
-        );
-    }, [allPermissionModeOptions, workspaceAgentCapabilities?.turn_permission_modes]);
     useEffect(() => {
-        const reconciledMode = reconcileComposerPermissionMode(
-            composerSelectedPermissionMode,
-            permissionModeOptions,
-        );
-        if (!reconciledMode || reconciledMode === composerSelectedPermissionMode) {
-            return;
+        const reconciliation = reconcileComposerAuthorization(executionDraftPolicy);
+        if (reconciliation?.reasons?.some((reason) => reason.kind !== 'policy_generation')) {
+            setComposerError(t('composerAuthorizationSelectionsUpdated'));
         }
-        setComposerPermissionMode(reconciledMode);
-    }, [composerSelectedPermissionMode, permissionModeOptions, setComposerPermissionMode]);
+    }, [reconcileComposerAuthorization, setComposerError, t, executionDraftPolicy]);
     const selectedPermissionModeAllowed = composerPermissionModeIsAllowed(
         composerSelectedPermissionMode,
         permissionModeOptions,
@@ -859,12 +887,7 @@ const ThreadScreen = ({
             : threadAgentCapabilities?.can_write,
     );
     const canUseAgentModels = Boolean(
-        workspaceAgentCapabilities &&
-        (workspaceAgentCapabilities.can_use_providers ||
-            workspaceAgentCapabilities.can_use_cli_runtimes) &&
-        canWriteInActiveThread &&
-        (isLiveDraftThread || threadAgentCapabilities?.can_start_turn) &&
-        selectedPermissionModeAllowed,
+        agentActionCapabilities.canStart && selectedPermissionModeAllowed,
     );
     const composerDisabled = Boolean(
         !connected ||
@@ -938,7 +961,7 @@ const ThreadScreen = ({
     const activeCliRuntimeCanSteer = activeCliRuntimeSupportsSteer ?? false;
     const canSteerCliRuntimeTurn = Boolean(
         connected &&
-        threadAgentCapabilities?.can_control_cli_runtime &&
+        agentActionCapabilities.canSteer &&
         activeCliRuntimeThreadBinding &&
         activeCliRuntimeCanSteer &&
         visibleThreadId &&
@@ -1209,6 +1232,16 @@ const ThreadScreen = ({
             return;
         }
 
+        const reconciliation = reconcileComposerAuthorization(executionDraftPolicy);
+        if (!executionDraftPolicy) {
+            setComposerError(t('sendFailed'));
+            return;
+        }
+        if (reconciliation?.reasons?.some((reason) => reason.kind !== 'policy_generation')) {
+            setComposerError(t('composerAuthorizationSelectionsUpdated'));
+            return;
+        }
+
         if (
             !renderedComposerSubmissionPlan.has_composer_payload &&
             !messageMode &&
@@ -1217,16 +1250,20 @@ const ThreadScreen = ({
             return;
         }
 
-        void sendText(composerText, activeComposerSkillPicker);
+        void sendText(composerText, activeComposerSkillPicker, executionDraftPolicy);
     }, [
         composerText,
         activeComposerSkillPicker,
         composerSkillSelections.length,
+        executionDraftPolicy,
         messageEditTarget,
         messageMode,
+        reconcileComposerAuthorization,
         renderedComposerSubmissionPlan.has_composer_payload,
         sendText,
+        setComposerError,
         submitMessageEdit,
+        t,
     ]);
 
     const handleReplyToMessage = useCallback(
@@ -1332,6 +1369,13 @@ const ThreadScreen = ({
 
     const prepareVoiceContext = useCallback(
         async (scope: VoiceSessionStartContext): Promise<VoiceTurnContext> => {
+            const reconciliation = reconcileComposerAuthorization(executionDraftPolicy);
+            if (!executionDraftPolicy) {
+                throw new Error('authorization_context_unavailable');
+            }
+            if (reconciliation?.reasons?.some((reason) => reason.kind !== 'policy_generation')) {
+                throw new Error(t('composerAuthorizationSelectionsUpdated'));
+            }
             const storeState = useActiveThreadStore.getState();
             const hasCompleteComposerModelSelection = Boolean(
                 storeState.composerSelectedProvider && storeState.composerSelectedModel,
@@ -1347,6 +1391,10 @@ const ThreadScreen = ({
                 : null;
 
             const attachments = storeState.composerAttachments;
+            const authorizationFingerprint = storeState.composerAuthorizationFingerprint;
+            if (!authorizationFingerprint) {
+                throw new Error('authorization_context_unavailable');
+            }
             const submissionPlan = composerSubmissionPlanForProvider(
                 selectedProviderForVoice,
                 '',
@@ -1358,6 +1406,7 @@ const ThreadScreen = ({
 
             try {
                 const snapshot = await pioneerClient.prepareVoiceComposerSnapshot({
+                    authorization_fingerprint: authorizationFingerprint,
                     thread_id: scope.thread_id,
                     workspace_id: scope.workspace_id,
                     turn_id: scope.turn_id,
@@ -1390,8 +1439,11 @@ const ThreadScreen = ({
             activeComposerSkillPicker,
             composerSelectedMode,
             composerSelectedPermissionMode,
+            executionDraftPolicy,
             markComposerAttachmentsFailed,
             markComposerAttachmentsUploading,
+            reconcileComposerAuthorization,
+            t,
             voiceComposerErrorMessage,
         ],
     );
@@ -1951,9 +2003,8 @@ const ThreadScreen = ({
                             artifactWorkspaceId={artifactWorkspaceId}
                             artifactActionStateByKey={artifactActionStateByKey}
                             currentPrincipalId={currentPrincipal.data?.principal_id ?? null}
-                            canManageAllThreads={
-                                currentPrincipal.data?.capabilities.can_manage_all_threads ?? false
-                            }
+                            canReviewTasks={threadAgentCapabilities?.can_review_tasks ?? false}
+                            canCancelTasks={threadAgentCapabilities?.can_cancel_tasks ?? false}
                             canRespondToAgentRequests={
                                 threadAgentCapabilities?.can_respond_to_agent_requests ?? false
                             }
@@ -1963,8 +2014,14 @@ const ThreadScreen = ({
                                     ? TASK_CHILD_TIMELINE_PRESENTATION_CONTEXT
                                     : DEFAULT_TIMELINE_PRESENTATION_CONTEXT
                             }
-                            onOpenArtifact={handleOpenArtifact}
-                            onShareArtifact={handleShareArtifact}
+                            onOpenArtifact={
+                                artifactPresentationPolicy.can_open ? handleOpenArtifact : undefined
+                            }
+                            onShareArtifact={
+                                artifactPresentationPolicy.can_share
+                                    ? handleShareArtifact
+                                    : undefined
+                            }
                             onCancelArtifactDownload={handleCancelArtifactDownload}
                             onExpandedKeysChange={setExpandedKeys}
                             onViewportPrefetchPlanChange={handleViewportPrefetchPlanChange}
@@ -1999,7 +2056,7 @@ const ThreadScreen = ({
                                 canSteerTurn={canSteerCliRuntimeTurn}
                                 steering={steering}
                                 hasInFlightTurn={hasInFlightTurn}
-                                canStopTurn={canStopTurn && canWriteInActiveThread}
+                                canStopTurn={canStopTurn && agentActionCapabilities.canCancel}
                                 turnCancelling={turnCancelling}
                                 composerMode={composerSelectedMode}
                                 modeLabel={composerModeLabel}
@@ -2022,7 +2079,9 @@ const ThreadScreen = ({
                                 attachments={composerAttachments}
                                 capabilities={renderedComposerSubmissionPlan.capabilities}
                                 skillChips={composerSkillChips}
-                                attachmentsEnabled={canWriteInActiveThread}
+                                attachmentsEnabled={
+                                    canWriteInActiveThread && artifactPresentationPolicy.can_attach
+                                }
                                 attachmentMenuAccessibilityLabel={t('composerAttachmentMenuTitle')}
                                 dismissLabel={t('dismiss')}
                                 replyCancelLabel={t('composerReplyCancel')}

@@ -105,6 +105,7 @@ export type ComposerSkillSelection =
 
 export interface PrepareVoiceComposerSnapshotRequest {
   attachments: ComposerAttachment[];
+  authorization_fingerprint: string;
   capabilities: ComposerCapability[];
   cli_runtime_options?: TurnCLIRuntimeOptions | null;
   endpoint_kind?: GatewayEndpointKind | null;

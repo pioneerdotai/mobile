@@ -19,6 +19,7 @@ jest.mock('@/client', () => ({
     pioneerClient: {
         composerDomainTransition: jest.fn(),
         composerDraftLifecycleTransition: jest.fn(),
+        reconcileExecutionDraft: jest.fn(),
     },
 }));
 
@@ -26,6 +27,7 @@ const mockComposerDomainTransition = jest.mocked(pioneerClient.composerDomainTra
 const mockComposerDraftLifecycleTransition = jest.mocked(
     pioneerClient.composerDraftLifecycleTransition,
 );
+const mockReconcileExecutionDraft = jest.mocked(pioneerClient.reconcileExecutionDraft);
 
 const capabilityTargetForSelection = (
     state: ComposerDomainState,
@@ -552,6 +554,118 @@ describe('active thread permission mode state', () => {
 
         useActiveThreadStore.getState().reset();
         expect(useActiveThreadStore.getState().composerSelectedPermissionMode).toBe('full_access');
+    });
+});
+
+describe('active thread authorization reconciliation', () => {
+    beforeEach(() => {
+        resetStore();
+        useActiveThreadStore.getState().activateComposerThread('thread-a');
+    });
+
+    it('fails closed and removes protected draft selections when no confirmed policy exists', () => {
+        const attachment: ComposerAttachment = {
+            path: '/tmp/draft.txt',
+            file_name: 'draft.txt',
+            kind: 'File',
+            upload_state: 'Local',
+        };
+        useActiveThreadStore.setState({
+            composerAuthorizationFingerprint: 'policy-old',
+            composerAuthorizationFingerprints: { 'thread-a': 'policy-old' },
+            composerSelectedProvider: 'provider-a',
+            composerSelectedModel: 'model-a',
+            composerCapabilities: [mcpCapability],
+            composerAttachments: [attachment],
+        });
+
+        expect(useActiveThreadStore.getState().reconcileComposerAuthorization(null)).toBeNull();
+        const state = useActiveThreadStore.getState();
+        expect(state.composerAuthorizationFingerprint).toBeNull();
+        expect(state.composerAuthorizationFingerprints).toEqual({});
+        expect(state.composerSelectedProvider).toBeNull();
+        expect(state.composerSelectedModel).toBeNull();
+        expect(state.composerCapabilities).toEqual([]);
+        expect(state.composerAttachments).toEqual([]);
+        expect(state.composerDrafts['thread-a']).toEqual(
+            expect.objectContaining({
+                selectedProvider: null,
+                selectedModel: null,
+                capabilities: [],
+                attachments: [],
+            }),
+        );
+    });
+
+    it('applies the shared Rust reconciliation result atomically', () => {
+        const attachment: ComposerAttachment = {
+            path: '/tmp/draft.txt',
+            file_name: 'draft.txt',
+            kind: 'File',
+            upload_state: 'Local',
+        };
+        useActiveThreadStore.setState({
+            composerSelectedProvider: 'provider-a',
+            composerSelectedModel: 'model-a',
+            composerSelectedPermissionMode: 'full_access',
+            composerCapabilities: [mcpCapability],
+            composerAttachments: [attachment],
+        });
+        mockReconcileExecutionDraft.mockReturnValue({
+            changed: true,
+            draft: {
+                policy_fingerprint: 'policy-new',
+                provider: null,
+                model: null,
+                permission_mode: 'supervised',
+                skill_ids: [],
+                mcp_server_ids: [],
+                has_attachments: false,
+            },
+            reasons: [
+                { kind: 'provider', reason: 'not_allowed', resource_id: 'provider-a' },
+                { kind: 'attachment', reason: 'not_allowed', resource_id: null },
+            ],
+        });
+
+        const outcome = useActiveThreadStore.getState().reconcileComposerAuthorization({
+            fingerprint: 'policy-new',
+            permission_options: [],
+            resources: {
+                fingerprint: 'resources-new',
+                providers: { all: false, ids: [] },
+                provider_models_all: false,
+                provider_models: [],
+                cli_runtimes: { all: false, ids: [] },
+                cli_models_all: false,
+                cli_models: [],
+                skills: { all: false, ids: [] },
+                mcp_servers: { all: false, ids: [] },
+            },
+            mcp_invocation_limits: {
+                profile_version: 1,
+                max_arguments_bytes: 64 * 1024,
+                max_arguments_depth: 32,
+                max_result_wire_bytes: 2 * 1024 * 1024,
+                max_result_decoded_bytes: 4 * 1024 * 1024,
+                max_result_tokens: 64 * 1024,
+                max_result_depth: 32,
+                max_result_media: 16,
+                max_timeout_ms: 120_000,
+                max_concurrent_calls: 4,
+                max_queued_calls: 16,
+            },
+            can_attach_artifacts: false,
+        });
+
+        expect(outcome?.changed).toBe(true);
+        const state = useActiveThreadStore.getState();
+        expect(state.composerAuthorizationFingerprint).toBe('policy-new');
+        expect(state.composerSelectedProvider).toBeNull();
+        expect(state.composerSelectedModel).toBeNull();
+        expect(state.composerSelectedPermissionMode).toBe('supervised');
+        expect(state.composerCapabilities).toEqual([]);
+        expect(state.composerAttachments).toEqual([]);
     });
 });
 

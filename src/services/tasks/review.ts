@@ -33,19 +33,19 @@ export const taskReviewUserControlsAllowed = (item: TaskWaitReviewDisplayItem): 
 
 export const canManageTaskReviewItem = ({
     item,
-    currentPrincipalId,
-    canManageAllThreads,
-    canRespondToAgentRequests,
+    canReviewTasks,
+    canCancelTasks,
 }: {
     item: TaskWaitReviewDisplayItem;
-    currentPrincipalId: string | null | undefined;
-    canManageAllThreads: boolean;
-    canRespondToAgentRequests: boolean;
-}): boolean =>
-    canManageAllThreads ||
-    (canRespondToAgentRequests &&
-        !!currentPrincipalId &&
-        item.owner_principal_id === currentPrincipalId);
+    canReviewTasks: boolean;
+    canCancelTasks: boolean;
+}): boolean => {
+    const actions = new Set(item.allowed_actions);
+    return (
+        (canReviewTasks && (actions.has('task_accept') || actions.has('task_revise'))) ||
+        (canCancelTasks && actions.has('task_cancel'))
+    );
+};
 
 const taskWaitReviewDisplayItem = (value: unknown): TaskWaitReviewDisplayItem | null => {
     const item = record(value);

@@ -22,11 +22,6 @@
             "avatar": "Choisissez une image PNG, JPEG ou WebP de 1024 × 1024 et 256 Ko maximum.",
             "photoPicker": "Impossible d’ouvrir la photothèque.",
             "save": "Impossible d’enregistrer le profil. Réessayez."
-        },
-        "kind": {
-            "superuser": "Superutilisateur",
-            "member": "Membre",
-            "unknown": "Type de compte inconnu"
         }
     },
     "language": {
@@ -78,6 +73,7 @@
         "loading": "Chargement des invitations...",
         "forbidden": "Vous n’avez pas accès aux invitations.",
         "workspaces": "Accès aux espaces de travail",
+        "role": "Rôle",
         "create": "Créer une invitation",
         "empty": "Aucune invitation pour le moment.",
         "loadFailed": "Impossible de charger les invitations.",
@@ -140,7 +136,6 @@
         "recoveryLink": "Copier le lien de récupération",
         "copied": "Activation de récupération copiée",
         "done": "Terminé",
-        "kind": { "superuser": "Superutilisateur", "user": "Membre" },
         "status": { "active": "Actif", "suspended": "Suspendu", "removed": "Supprimé" }
     },
     "theme": {

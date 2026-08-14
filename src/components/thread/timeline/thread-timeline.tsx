@@ -107,7 +107,8 @@ type ThreadTimelineProps = {
     ) => void;
     artifactActionStateByKey?: Readonly<Record<string, MobileArtifactActionState>>;
     currentPrincipalId?: string | null;
-    canManageAllThreads?: boolean;
+    canReviewTasks?: boolean;
+    canCancelTasks?: boolean;
     canRespondToAgentRequests?: boolean;
     memberProfiles?: readonly MemberSummary[];
     presentationContext?: TimelinePresentationContext;
@@ -176,7 +177,8 @@ const ThreadTimelineContent = ({
     onCancelArtifactDownload,
     artifactActionStateByKey,
     currentPrincipalId,
-    canManageAllThreads = false,
+    canReviewTasks = false,
+    canCancelTasks = false,
     canRespondToAgentRequests = false,
     memberProfiles = EMPTY_MEMBER_PROFILES,
     presentationContext,
@@ -344,7 +346,8 @@ const ThreadTimelineContent = ({
             artifactWorkspaceId,
             artifactActionStateByKey,
             currentPrincipalId,
-            canManageAllThreads,
+            canReviewTasks,
+            canCancelTasks,
             canRespondToAgentRequests,
             messageActionsRowKey,
             timelineGroupingFingerprint: timelineGrouping.renderFingerprint,
@@ -353,7 +356,8 @@ const ThreadTimelineContent = ({
             artifactActionStateByKey,
             artifactWorkspaceId,
             currentPrincipalId,
-            canManageAllThreads,
+            canReviewTasks,
+            canCancelTasks,
             canRespondToAgentRequests,
             expandedRows,
             messageActionsRowKey,
@@ -389,7 +393,8 @@ const ThreadTimelineContent = ({
                 }
                 artifactActionStateByKey={artifactActionStateByKey}
                 currentPrincipalId={currentPrincipalId}
-                canManageAllThreads={canManageAllThreads}
+                canReviewTasks={canReviewTasks}
+                canCancelTasks={canCancelTasks}
                 canRespondToAgentRequests={canRespondToAgentRequests}
                 presentationContext={presentationContext}
                 messageActionsRowKey={messageActionsRowKey}
@@ -410,7 +415,8 @@ const ThreadTimelineContent = ({
             onCancelArtifactDownload,
             artifactActionStateByKey,
             currentPrincipalId,
-            canManageAllThreads,
+            canReviewTasks,
+            canCancelTasks,
             canRespondToAgentRequests,
             presentationContext,
             messageActionsRowKey,
@@ -609,7 +615,8 @@ const TimelineRowContainer = ({
     artifactActionState,
     artifactActionStateByKey,
     currentPrincipalId,
-    canManageAllThreads,
+    canReviewTasks,
+    canCancelTasks,
     canRespondToAgentRequests,
     presentationContext,
     messageActionsRowKey,
@@ -634,7 +641,8 @@ const TimelineRowContainer = ({
     artifactActionState?: MobileArtifactActionState;
     artifactActionStateByKey?: Readonly<Record<string, MobileArtifactActionState>>;
     currentPrincipalId?: string | null;
-    canManageAllThreads: boolean;
+    canReviewTasks: boolean;
+    canCancelTasks: boolean;
     canRespondToAgentRequests: boolean;
     presentationContext?: TimelinePresentationContext;
     messageActionsRowKey: string | null;
@@ -673,7 +681,8 @@ const TimelineRowContainer = ({
                 onCancelArtifactDownload={onCancelArtifactDownload}
                 artifactActionStateByKey={artifactActionStateByKey}
                 currentPrincipalId={currentPrincipalId}
-                canManageAllThreads={canManageAllThreads}
+                canReviewTasks={canReviewTasks}
+                canCancelTasks={canCancelTasks}
                 canRespondToAgentRequests={canRespondToAgentRequests}
                 presentationContext={presentationContext}
                 messageActionsRowKey={messageActionsRowKey}
@@ -700,7 +709,8 @@ const TimelineRowRenderer = ({
     artifactActionState,
     artifactActionStateByKey,
     currentPrincipalId,
-    canManageAllThreads,
+    canReviewTasks,
+    canCancelTasks,
     canRespondToAgentRequests,
     presentationContext,
     messageActionsRowKey,
@@ -725,7 +735,8 @@ const TimelineRowRenderer = ({
     artifactActionState?: MobileArtifactActionState;
     artifactActionStateByKey?: Readonly<Record<string, MobileArtifactActionState>>;
     currentPrincipalId?: string | null;
-    canManageAllThreads: boolean;
+    canReviewTasks: boolean;
+    canCancelTasks: boolean;
     canRespondToAgentRequests: boolean;
     presentationContext?: TimelinePresentationContext;
     messageActionsRowKey: string | null;
@@ -776,9 +787,8 @@ const TimelineRowRenderer = ({
                     row={row}
                     threadId={threadId}
                     expanded={expanded}
-                    currentPrincipalId={currentPrincipalId}
-                    canManageAllThreads={canManageAllThreads}
-                    canRespondToAgentRequests={canRespondToAgentRequests}
+                    canReviewTasks={canReviewTasks}
+                    canCancelTasks={canCancelTasks}
                     mcpServerIdByName={mcpServerIdByName}
                     onOpenMcpServer={onOpenMcpServer}
                     onToggle={onToggleExpanded}

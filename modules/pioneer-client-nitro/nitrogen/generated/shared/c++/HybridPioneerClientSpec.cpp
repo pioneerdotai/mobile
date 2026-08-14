@@ -89,6 +89,8 @@ namespace margelo::nitro::pioneer::client {
       prototype.registerHybridMethod("taskAcceptJson", &HybridPioneerClientSpec::taskAcceptJson);
       prototype.registerHybridMethod("taskReviseJson", &HybridPioneerClientSpec::taskReviseJson);
       prototype.registerHybridMethod("taskCancelJson", &HybridPioneerClientSpec::taskCancelJson);
+      prototype.registerHybridMethod("taskUserNotificationListJson", &HybridPioneerClientSpec::taskUserNotificationListJson);
+      prototype.registerHybridMethod("taskUserNotificationAcknowledgeJson", &HybridPioneerClientSpec::taskUserNotificationAcknowledgeJson);
       prototype.registerHybridMethod("voiceStatusJson", &HybridPioneerClientSpec::voiceStatusJson);
       prototype.registerHybridMethod("voiceSessionStartJson", &HybridPioneerClientSpec::voiceSessionStartJson);
       prototype.registerHybridMethod("voiceAudioChunkJson", &HybridPioneerClientSpec::voiceAudioChunkJson);
@@ -101,9 +103,11 @@ namespace margelo::nitro::pioneer::client {
       prototype.registerHybridMethod("voiceInputSettingsPlanJson", &HybridPioneerClientSpec::voiceInputSettingsPlanJson);
       prototype.registerHybridMethod("providerModelDisplayJson", &HybridPioneerClientSpec::providerModelDisplayJson);
       prototype.registerHybridMethod("reasoningEffortRowsJson", &HybridPioneerClientSpec::reasoningEffortRowsJson);
-      prototype.registerHybridMethod("composerPermissionModeOptionsJson", &HybridPioneerClientSpec::composerPermissionModeOptionsJson);
       prototype.registerHybridMethod("composerTurnModeOptionsJson", &HybridPioneerClientSpec::composerTurnModeOptionsJson);
       prototype.registerHybridMethod("principalPresentationCapabilitiesJson", &HybridPioneerClientSpec::principalPresentationCapabilitiesJson);
+      prototype.registerHybridMethod("authorizationProjectionAcceptJson", &HybridPioneerClientSpec::authorizationProjectionAcceptJson);
+      prototype.registerHybridMethod("artifactPresentationPolicyJson", &HybridPioneerClientSpec::artifactPresentationPolicyJson);
+      prototype.registerHybridMethod("reconcileExecutionDraftJson", &HybridPioneerClientSpec::reconcileExecutionDraftJson);
       prototype.registerHybridMethod("currentPrincipalPresentationJson", &HybridPioneerClientSpec::currentPrincipalPresentationJson);
       prototype.registerHybridMethod("sessionListRowPresentationJson", &HybridPioneerClientSpec::sessionListRowPresentationJson);
       prototype.registerHybridMethod("threadScopePresentationJson", &HybridPioneerClientSpec::threadScopePresentationJson);

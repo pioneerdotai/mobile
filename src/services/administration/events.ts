@@ -4,15 +4,19 @@ import type { AuthMeResponse, ClientEvent } from '@/client';
 import {
     administrationQueryKeys,
     invalidateAdministrationTargets,
+    resetAuthorizationCapabilityQueries,
 } from '@/services/administration/query';
 import { applyActiveThreadEvent } from '@/services/threads/active';
 import { useActiveThreadStore } from '@/stores/active-thread';
 
 export const isAdministrationEvent = (event: ClientEvent): boolean => {
     if (!('GatewayNotification' in event)) return false;
-    return ['invitation_changed', 'member_changed', 'workspace_members_changed'].includes(
-        event.GatewayNotification.kind,
-    );
+    return [
+        'authorization_projection_changed',
+        'invitation_changed',
+        'member_changed',
+        'workspace_members_changed',
+    ].includes(event.GatewayNotification.kind);
 };
 
 export const applyMobileAdministrationEvent = async (
@@ -20,6 +24,18 @@ export const applyMobileAdministrationEvent = async (
     queryClient: QueryClient,
 ): Promise<void> => {
     if (!isAdministrationEvent(event)) return;
+    if (
+        'GatewayNotification' in event &&
+        event.GatewayNotification.kind === 'authorization_projection_changed'
+    ) {
+        // The native connection-epoch store has already advanced its durable
+        // revision fence while draining this event. Do not ask JavaScript to
+        // interpret role names or affected policy bits: make every old scoped
+        // adapter unavailable and let active consumers obtain one coherent
+        // server projection for the new generation.
+        await resetAuthorizationCapabilityQueries(queryClient);
+        return;
+    }
     const result = await applyActiveThreadEvent({
         event,
         expanded_keys: useActiveThreadStore.getState().expandedKeys,

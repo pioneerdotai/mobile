@@ -13,6 +13,13 @@ const member = (
     kind,
     display_name: nickname,
     nickname,
+    role: {
+        key: kind === 'superuser' ? 'superuser' : 'member',
+        display_name: kind === 'superuser' ? 'Superuser' : 'Member',
+        description: kind === 'superuser' ? 'Gateway administrator' : 'Workspace collaborator',
+        built_in: true,
+    },
+    lifecycle_managed: kind !== 'superuser',
     status: 'active',
 });
 

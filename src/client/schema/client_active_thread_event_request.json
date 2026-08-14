@@ -30,17 +30,18 @@
         "thread_participant_removed"
       ]
     },
+    "AccessChangeOutcome": {
+      "description": "Authoritative access result for the recipient of an access-change event.\nThis is required: omission is a protocol incompatibility, never a legacy\nsecurity mode.",
+      "type": "string",
+      "enum": [
+        "retained",
+        "revoked"
+      ]
+    },
     "AccessChangedNotification": {
       "description": "Minimal notification telling an authenticated client to re-resolve access.",
       "type": "object",
       "properties": {
-        "access_lost": {
-          "description": "Whether this particular connection actually lost access to the scope.\n\n`None` is retained for compatibility with older Gateways and must be\nhandled fail-closed by clients. `Some(false)` lets an already-authorized\nclient apply the accompanying targeted projection update without\ndiscarding unrelated workspace state.",
-          "type": [
-            "boolean",
-            "null"
-          ]
-        },
         "authorization_revision": {
           "type": "integer",
           "format": "uint64",
@@ -48,6 +49,10 @@
         },
         "change": {
           "$ref": "#/$defs/AccessChangeKind"
+        },
+        "outcome": {
+          "description": "Server-resolved result for this exact recipient and affected scope.",
+          "$ref": "#/$defs/AccessChangeOutcome"
         },
         "thread_id": {
           "description": "Exact affected thread when the committed ACL mutation is thread-scoped.\n\nThis is an opaque server-owned identifier, not protected thread\ncontent. It is omitted for workspace-wide changes and lets clients\nevict only the affected thread instead of discarding unrelated\nworkspace state.",
@@ -63,6 +68,7 @@
       "required": [
         "authorization_revision",
         "workspace_id",
+        "outcome",
         "change"
       ]
     },
@@ -731,6 +737,202 @@
         "session_compromised",
         "principal_suspended",
         "principal_removed"
+      ]
+    },
+    "AuthorizationChangeKind": {
+      "description": "Payload-safe type of committed authorization input change.",
+      "type": "string",
+      "enum": [
+        "code_policy",
+        "role_policy",
+        "role_assignment",
+        "workspace_acl",
+        "thread_acl",
+        "resource_selector"
+      ]
+    },
+    "AuthorizationChangeScope": {
+      "description": "Exact invalidation scope without policy contents or protected metadata.",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "scope": {
+              "type": "string",
+              "const": "global"
+            }
+          },
+          "required": [
+            "scope"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "role_key": {
+              "$ref": "#/$defs/RoleKey"
+            },
+            "scope": {
+              "type": "string",
+              "const": "role"
+            }
+          },
+          "required": [
+            "scope",
+            "role_key"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "principal_id": {
+              "$ref": "#/$defs/PrincipalId"
+            },
+            "scope": {
+              "type": "string",
+              "const": "principal"
+            }
+          },
+          "required": [
+            "scope",
+            "principal_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "principal_id": {
+              "$ref": "#/$defs/PrincipalId"
+            },
+            "scope": {
+              "type": "string",
+              "const": "principal_workspace"
+            },
+            "workspace_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "scope",
+            "principal_id",
+            "workspace_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "principal_id": {
+              "$ref": "#/$defs/PrincipalId"
+            },
+            "scope": {
+              "type": "string",
+              "const": "principal_thread"
+            },
+            "thread_id": {
+              "type": "string"
+            },
+            "workspace_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "scope",
+            "principal_id",
+            "workspace_id",
+            "thread_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "invitation_id": {
+              "$ref": "#/$defs/InvitationId"
+            },
+            "scope": {
+              "type": "string",
+              "const": "invitation"
+            }
+          },
+          "required": [
+            "scope",
+            "invitation_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "scope": {
+              "type": "string",
+              "const": "workspace"
+            },
+            "workspace_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "scope",
+            "workspace_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "scope": {
+              "type": "string",
+              "const": "thread"
+            },
+            "thread_id": {
+              "type": "string"
+            },
+            "workspace_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "scope",
+            "workspace_id",
+            "thread_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "scope": {
+              "type": "string",
+              "const": "resource_selector"
+            },
+            "selector": {
+              "type": "string"
+            },
+            "workspace_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "scope",
+            "workspace_id",
+            "selector"
+          ]
+        }
+      ]
+    },
+    "AuthorizationProjectionChangedNotification": {
+      "type": "object",
+      "properties": {
+        "affected": {
+          "$ref": "#/$defs/AuthorizationChangeScope"
+        },
+        "change": {
+          "$ref": "#/$defs/AuthorizationChangeKind"
+        },
+        "policy_generation": {
+          "$ref": "#/$defs/PolicyGeneration"
+        }
+      },
+      "required": [
+        "policy_generation",
+        "change",
+        "affected"
       ]
     },
     "ByteRange": {
@@ -1416,6 +1618,22 @@
             },
             "params": {
               "$ref": "#/$defs/AccessChangedNotification"
+            }
+          },
+          "required": [
+            "kind",
+            "params"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "authorization_projection_changed"
+            },
+            "params": {
+              "$ref": "#/$defs/AuthorizationProjectionChangedNotification"
             }
           },
           "required": [
@@ -2680,6 +2898,22 @@
             },
             "params": {
               "$ref": "#/$defs/TaskDeliveryCancelledNotification"
+            }
+          },
+          "required": [
+            "kind",
+            "params"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "task_user_notification_delivered"
+            },
+            "params": {
+              "$ref": "#/$defs/TaskUserNotificationDeliveredNotification"
             }
           },
           "required": [
@@ -4247,12 +4481,6 @@
     "McpRuntimeStatus": {
       "type": "object",
       "properties": {
-        "last_error": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
         "last_seen_at": {
           "type": [
             "integer",
@@ -4385,12 +4613,6 @@
         },
         "status": {
           "$ref": "#/$defs/McpServerStatus"
-        },
-        "status_reason": {
-          "type": [
-            "string",
-            "null"
-          ]
         }
       },
       "required": [
@@ -4882,6 +5104,12 @@
         }
       ]
     },
+    "PolicyGeneration": {
+      "description": "Durable, monotonically increasing authorization policy/ACL generation.\nZero is reserved for an uninitialized process and is never persisted.",
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0
+    },
     "PrincipalId": {
       "type": "string",
       "maxLength": 21,
@@ -5097,6 +5325,130 @@
         "cli_runtime"
       ]
     },
+    "PublicError": {
+      "description": "Stable, bounded failure presentation shared by RPC, voice and task\nexecution surfaces. Raw source chains are never part of this type.",
+      "type": "object",
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/PublicErrorCode"
+        },
+        "correlation_id": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "retry_after_ms": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0
+        },
+        "retryable": {
+          "type": "boolean"
+        },
+        "stage": {
+          "$ref": "#/$defs/PublicErrorStage"
+        },
+        "version": {
+          "type": "integer",
+          "format": "uint8",
+          "maximum": 255,
+          "minimum": 0
+        }
+      },
+      "required": [
+        "version",
+        "code",
+        "stage",
+        "message",
+        "retryable",
+        "correlation_id"
+      ]
+    },
+    "PublicErrorCode": {
+      "type": "string",
+      "enum": [
+        "invalid_input",
+        "policy_denied",
+        "not_found",
+        "conflict",
+        "resource_exhausted",
+        "unavailable",
+        "timeout",
+        "internal"
+      ]
+    },
+    "PublicErrorStage": {
+      "type": "string",
+      "enum": [
+        "discovery",
+        "admission",
+        "preparation",
+        "execution",
+        "persistence",
+        "delivery",
+        "observation"
+      ]
+    },
+    "PublicTaskArtifact": {
+      "type": "object",
+      "properties": {
+        "artifactId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "mimeType": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "versionId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "PublicTaskFailure": {
+      "type": "object",
+      "properties": {
+        "class": {
+          "$ref": "#/$defs/TaskErrorClass"
+        },
+        "error": {
+          "$ref": "#/$defs/PublicError"
+        }
+      },
+      "required": [
+        "class",
+        "error"
+      ]
+    },
+    "PublicTaskResult": {
+      "type": "object",
+      "properties": {
+        "artifacts": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/PublicTaskArtifact"
+          }
+        },
+        "summary": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
     "RecoveryAction": {
       "type": "string",
       "enum": [
@@ -5243,6 +5595,12 @@
           "const": "unknown"
         }
       ]
+    },
+    "RoleKey": {
+      "type": "string",
+      "maxLength": 32,
+      "minLength": 1,
+      "pattern": "^[a-z][a-z0-9_-]{0,31}$"
     },
     "RuntimeAccountSnapshot": {
       "type": "object",
@@ -6238,6 +6596,12 @@
             "string",
             "null"
           ]
+        },
+        "versionId": {
+          "type": [
+            "string",
+            "null"
+          ]
         }
       },
       "required": [
@@ -6262,6 +6626,12 @@
           "$ref": "#/$defs/TaskAgentInputReferenceKind"
         },
         "label": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "versionId": {
           "type": [
             "string",
             "null"
@@ -8326,6 +8696,62 @@
       "required": [
         "context",
         "task"
+      ]
+    },
+    "TaskUserNotificationDeliveredNotification": {
+      "type": "object",
+      "properties": {
+        "createdAt": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "deliveryId": {
+          "type": "string"
+        },
+        "error": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PublicTaskFailure"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "notificationId": {
+          "type": "string"
+        },
+        "recipientPrincipalId": {
+          "type": "string"
+        },
+        "result": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PublicTaskResult"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "runId": {
+          "type": "string"
+        },
+        "taskId": {
+          "type": "string"
+        },
+        "workspaceId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "notificationId",
+        "workspaceId",
+        "recipientPrincipalId",
+        "taskId",
+        "runId",
+        "deliveryId",
+        "createdAt"
       ]
     },
     "TaskValue": {
@@ -13118,6 +13544,16 @@
         },
         "message": {
           "type": "string"
+        },
+        "public_error": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PublicError"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       },
       "required": [

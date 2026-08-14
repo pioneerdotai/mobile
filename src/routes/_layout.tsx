@@ -31,6 +31,7 @@ import { initializeSentry, isSentryEnabled, Sentry } from '@/services/sentry';
 import { pioneerQueryClient } from '@/services/query/client';
 import { hideAppSplash, preventAppSplashAutoHide } from '@/services/app-splash';
 import { useVoiceInputGatewayQueryLifecycle } from '@/services/voice-input/data-source';
+import { TaskUserNotificationController } from '@/services/tasks/user-notifications';
 
 export const unstable_settings = {
     initialRouteName: '(tabs)',
@@ -163,6 +164,7 @@ const RootContent = () => {
             ) : null}
             <ThreadTreeController />
             <RootStack />
+            <TaskUserNotificationController />
             <TerminalGatewaySessionNavigation />
         </>
     );

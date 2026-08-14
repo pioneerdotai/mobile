@@ -135,6 +135,7 @@
     "composerNoMcp": "未找到 MCP 服务器。",
     "composerSkillsFailed": "无法加载 skills。",
     "composerCapabilitiesRemovedForProvider": "部分功能不适用于此提供商，已被移除。",
+    "composerAuthorizationSelectionsUpdated": "由于你当前的权限已更改，部分编辑器选项已被移除。",
     "composerExecutionStateRemoved": "消息模式已移除仅供 AI 使用的选项。",
     "composerReplyCancel": "取消回复",
     "composerMentionAdd": "提及参与者",

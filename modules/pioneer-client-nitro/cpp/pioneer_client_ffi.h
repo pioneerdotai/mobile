@@ -86,6 +86,8 @@ char* pioneer_client_ffi_turn_permission_request_respond(PioneerClientFfi* clien
 char* pioneer_client_ffi_task_accept(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_task_revise(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_task_cancel(PioneerClientFfi* client, const char* input_json);
+char* pioneer_client_ffi_task_user_notification_list(PioneerClientFfi* client, const char* input_json);
+char* pioneer_client_ffi_task_user_notification_acknowledge(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_voice_status(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_voice_session_start(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_voice_audio_chunk(PioneerClientFfi* client, const char* input_json, const uint8_t* pcm_ptr, size_t pcm_len);
@@ -98,9 +100,11 @@ char* pioneer_client_ffi_provider_list_transcription_models(PioneerClientFfi* cl
 char* pioneer_client_ffi_voice_input_settings_plan(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_provider_model_display(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_reasoning_effort_rows(PioneerClientFfi* client, const char* input_json);
-char* pioneer_client_ffi_composer_permission_mode_options(PioneerClientFfi* client);
 char* pioneer_client_ffi_composer_turn_mode_options(PioneerClientFfi* client);
 char* pioneer_client_ffi_principal_presentation_capabilities(PioneerClientFfi* client, const char* input_json);
+char* pioneer_client_ffi_authorization_projection_accept(PioneerClientFfi* client, const char* input_json);
+char* pioneer_client_ffi_artifact_presentation_policy(PioneerClientFfi* client, const char* input_json);
+char* pioneer_client_ffi_reconcile_execution_draft(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_current_principal_presentation(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_session_list_row_presentation(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_thread_scope_presentation(PioneerClientFfi* client, const char* input_json);

@@ -50,29 +50,15 @@ export interface McpListState {
   [k: string]: unknown;
 }
 export interface McpServerDetailsResponse {
-  audit?: McpAuditEventSummary[];
   catalog: McpServerCatalogDetails;
   generated_at: number;
-  health: McpServerHealthDetails;
-  recent_bindings?: McpTurnBindingSummary[];
+  /**
+   * Management-only configuration and diagnostics. Omitted unless the
+   * caller may manage the selected MCP installation.
+   */
+  management?: McpManagementDetails | null;
   server: McpListItem;
   snapshot_version: number;
-  [k: string]: unknown;
-}
-export interface McpAuditEventSummary {
-  action: string;
-  callable_name?: string | null;
-  catalog_version?: string | null;
-  created_at: number;
-  decision: string;
-  details?: {
-    [k: string]: unknown;
-  };
-  raw_tool_name?: string | null;
-  reason_code?: string | null;
-  server_installation_id?: string | null;
-  server_name: string;
-  turn_id?: string | null;
   [k: string]: unknown;
 }
 export interface McpServerCatalogDetails {
@@ -127,6 +113,36 @@ export interface McpToolAnnotationSummary {
   title?: string | null;
   [k: string]: unknown;
 }
+/**
+ * Configuration and diagnostics intentionally excluded from the operational
+ * MCP capability returned by discovery endpoints.
+ */
+export interface McpManagementDetails {
+  audit?: McpAuditEventSummary[];
+  fingerprint: string;
+  health: McpServerHealthDetails;
+  recent_bindings?: McpTurnBindingSummary[];
+  scope: McpScopeKind;
+  source_kind: McpSourceKind;
+  transport: McpTransportSummary;
+  [k: string]: unknown;
+}
+export interface McpAuditEventSummary {
+  action: string;
+  callable_name?: string | null;
+  catalog_version?: string | null;
+  created_at: number;
+  decision: string;
+  details?: {
+    [k: string]: unknown;
+  };
+  raw_tool_name?: string | null;
+  reason_code?: string | null;
+  server_installation_id?: string | null;
+  server_name: string;
+  turn_id?: string | null;
+  [k: string]: unknown;
+}
 export interface McpServerHealthDetails {
   catalog_version?: string | null;
   last_error?: string | null;
@@ -139,7 +155,6 @@ export interface McpServerHealthDetails {
   [k: string]: unknown;
 }
 export interface McpRuntimeStatus {
-  last_error?: string | null;
   last_seen_at?: number | null;
   live: boolean;
   state: McpRuntimeState;
@@ -158,7 +173,6 @@ export interface McpTurnBindingSummary {
 }
 export interface McpListItem {
   display_name?: string | null;
-  fingerprint: string;
   id: string;
   name: string;
   policy: McpPolicyState;
@@ -168,11 +182,8 @@ export interface McpListItem {
   resources_count: number;
   runtime: McpRuntimeStatus;
   scope: McpScopeKind;
-  source_kind: McpSourceKind;
   status: McpServerStatus;
-  status_reason?: string | null;
   tools_count: number;
-  transport: McpTransportSummary;
   [k: string]: unknown;
 }
 export interface McpPolicyState {

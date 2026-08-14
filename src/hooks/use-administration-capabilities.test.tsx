@@ -10,6 +10,12 @@ const mockGatewayAuthorizationCapabilities =
     jest.fn<(workspaceId: string | null) => Promise<AuthorizationCapabilitySnapshot>>();
 const mockPrincipalPresentationCapabilities = jest.fn();
 const mockCurrentPrincipalPresentation = jest.fn();
+const mockAuthorizationProjectionAccept = jest.fn<
+    (request: { snapshot: AuthorizationCapabilitySnapshot }) => {
+        acceptance: 'accepted';
+        snapshot: AuthorizationCapabilitySnapshot;
+    }
+>();
 const mockGatewayState = {
     connectionGatewayId: 'gateway-a',
     connectionId: 7,
@@ -24,6 +30,7 @@ jest.mock('@/client', () => ({
             mockGatewayAuthorizationCapabilities(workspace_id),
         principalPresentationCapabilities: mockPrincipalPresentationCapabilities,
         currentPrincipalPresentation: mockCurrentPrincipalPresentation,
+        authorizationProjectionAccept: mockAuthorizationProjectionAccept,
     },
 }));
 jest.mock('@/stores/gateway', () => ({
@@ -44,8 +51,12 @@ const { administrationQueryKeys } =
 
 const flushQueryNotifications = async () => {
     await act(async () => {
-        await new Promise((resolve) => setTimeout(resolve, 0));
-        await new Promise((resolve) => setTimeout(resolve, 0));
+        // The capability query is intentionally dependent on auth/me. Give
+        // both React Query notification batches time to settle even when the
+        // full suite is sharing the scheduler.
+        for (let index = 0; index < 5; index += 1) {
+            await new Promise((resolve) => setTimeout(resolve, 0));
+        }
     });
 };
 
@@ -56,10 +67,16 @@ const auth = {
     },
 } as AuthMeResponse;
 const capabilitySnapshot = {
-    schema_version: 1,
+    schema_version: 5,
     authorization_revision: 9,
     principal_id: 'P00000000000000000001',
     role_key: 'member',
+    role: {
+        key: 'member',
+        display_name: 'Member',
+        description: 'Workspace collaborator',
+        built_in: true,
+    },
     global: {},
     workspace: null,
     thread: null,
@@ -82,6 +99,12 @@ describe('mobile administration capability lifecycle', () => {
         mockGatewayAuthorizationCapabilities.mockResolvedValue(capabilitySnapshot);
         mockPrincipalPresentationCapabilities.mockReturnValue(capabilityPresentation);
         mockCurrentPrincipalPresentation.mockReturnValue(principalPresentation);
+        mockAuthorizationProjectionAccept.mockImplementation(
+            ({ snapshot }: { snapshot: AuthorizationCapabilitySnapshot }) => ({
+                acceptance: 'accepted',
+                snapshot,
+            }),
+        );
     });
 
     it('shares one capability request between capability and principal presentation consumers', async () => {
@@ -112,6 +135,14 @@ describe('mobile administration capability lifecycle', () => {
 
         expect(mockGatewayAuthorizationCapabilities).toHaveBeenCalledTimes(1);
         expect(mockGatewayAuthMe).toHaveBeenCalledTimes(1);
+        expect(mockAuthorizationProjectionAccept).toHaveBeenCalledWith(
+            expect.objectContaining({
+                gateway_id: 'gateway-a',
+                connection_id: 7,
+                expected_principal_id: auth.principal.id,
+                workspace_id: 'workspace-a',
+            }),
+        );
         expect(renders.at(-1)).toEqual({
             capabilityData: capabilityPresentation,
             principalData: principalPresentation,

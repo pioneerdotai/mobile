@@ -5,5 +5,8 @@
     "activate": "सक्रिय करें",
     "retry": "फिर कोशिश करें",
     "add": "जोड़ें",
-    "startupFailed": "ऐप शुरू नहीं हो सका."
+    "startupFailed": "ऐप शुरू नहीं हो सका.",
+    "taskNotificationTitle": "कार्य परिणाम",
+    "taskNotificationCompleted": "कार्य पूरा हुआ",
+    "taskNotificationMarkRead": "पढ़ा हुआ चिह्नित करें"
 }

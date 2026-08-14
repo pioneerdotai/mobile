@@ -156,7 +156,7 @@ const SettingsScreen = () => {
                 <VStack>
                     <Pressable
                         accessibilityRole="button"
-                        accessibilityLabel={`${principal.data.display_name}, ${t(`profile.kind.${principal.data.kind}`)}`}
+                        accessibilityLabel={`${principal.data.display_name}, ${principal.data.role.display_name}`}
                         onPress={() => router.navigate({ pathname: '/settings/profile' })}
                     >
                         <HStack style={styles.profileCard}>
@@ -169,6 +169,9 @@ const SettingsScreen = () => {
                             <VStack style={styles.profileText}>
                                 <Text fontWeight="semibold">{principal.data.display_name}</Text>
                                 <Text style={styles.secondary}>@{principal.data.nickname}</Text>
+                                <Text style={styles.secondary}>
+                                    {principal.data.role.display_name}
+                                </Text>
                             </VStack>
                             <ChevronRight
                                 size={theme.space(5)}

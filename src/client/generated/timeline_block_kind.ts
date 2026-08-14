@@ -269,7 +269,15 @@ export type MarkdownMarkKind =
       [k: string]: unknown;
     };
 export type CLIRuntimeRequestKind = 'command_approval' | 'file_change_approval' | 'user_input' | 'other';
-export type CLIRuntimePendingRequestStatus = 'pending' | 'answered' | 'resolved' | 'cancelled' | 'expired';
+export type CLIRuntimePendingRequestStatus =
+  | 'pending'
+  | 'response_accepted'
+  | 'delivering'
+  | 'delivery_failed'
+  | 'answered'
+  | 'resolved'
+  | 'cancelled'
+  | 'expired';
 
 export interface ArtifactRef {
   artifact_id: string;

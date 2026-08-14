@@ -22,11 +22,6 @@
             "avatar": "1024 × 1024、256 KB以下のPNG、JPEG、WebP画像を選択してください。",
             "photoPicker": "フォトライブラリを開けませんでした。",
             "save": "プロフィールを保存できませんでした。もう一度お試しください。"
-        },
-        "kind": {
-            "superuser": "スーパーユーザー",
-            "member": "メンバー",
-            "unknown": "不明なアカウント種別"
         }
     },
     "language": {
@@ -78,6 +73,7 @@
         "loading": "招待を読み込んでいます...",
         "forbidden": "招待へのアクセス権がありません。",
         "workspaces": "ワークスペースへのアクセス",
+        "role": "ロール",
         "create": "招待を作成",
         "empty": "招待はまだありません。",
         "loadFailed": "招待を読み込めませんでした。",
@@ -140,7 +136,6 @@
         "recoveryLink": "復旧リンクをコピー",
         "copied": "復旧用の有効化情報をコピーしました",
         "done": "完了",
-        "kind": { "superuser": "スーパーユーザー", "user": "メンバー" },
         "status": { "active": "有効", "suspended": "停止中", "removed": "削除済み" }
     },
     "theme": {

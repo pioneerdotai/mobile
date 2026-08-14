@@ -1,15 +1,5 @@
 import type { ComposerPermissionModeOption, TurnPermissionMode } from '@/client';
 
-export const allowedComposerPermissionModeOptions = (
-    options: readonly ComposerPermissionModeOption[],
-    allowedModes: readonly TurnPermissionMode[] | null | undefined,
-): ComposerPermissionModeOption[] => {
-    if (!allowedModes) {
-        return [];
-    }
-    return options.filter((option) => allowedModes.includes(option.mode));
-};
-
 export const reconcileComposerPermissionMode = (
     selectedMode: TurnPermissionMode,
     options: readonly ComposerPermissionModeOption[],

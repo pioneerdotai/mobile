@@ -9,6 +9,9 @@
         "$ref": "#/$defs/ComposerAttachment"
       }
     },
+    "authorization_fingerprint": {
+      "type": "string"
+    },
     "capabilities": {
       "type": "array",
       "items": {
@@ -107,6 +110,7 @@
     }
   },
   "required": [
+    "authorization_fingerprint",
     "workspace_id",
     "thread_id",
     "turn_id",

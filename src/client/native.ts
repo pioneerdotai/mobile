@@ -25,8 +25,12 @@ import type { ClientArtifactDownloadOperationRequest } from './generated/client_
 import type { ClientArtifactDownloadProgressResult } from './generated/client_artifact_download_progress_result';
 import type { ClientArtifactDownloadRequest } from './generated/client_artifact_download_request';
 import type { ClientArtifactDownloadResult } from './generated/client_artifact_download_result';
+import type { ClientArtifactPresentationPolicyRequest } from './generated/client_artifact_presentation_policy_request';
 import type { ClientArtifactTargetRequest } from './generated/client_artifact_target_request';
 import type { ClientArtifactViewOpenResult } from './generated/client_artifact_view_open_result';
+import type { ArtifactPresentationPolicy } from './generated/artifact_presentation_policy';
+import type { ClientAuthorizationProjectionAcceptRequest } from './generated/client_authorization_projection_accept_request';
+import type { ClientAuthorizationProjectionAcceptResult } from './generated/client_authorization_projection_accept_result';
 import type { ClientActiveThreadCancelTurnRequest } from './generated/client_active_thread_cancel_turn_request';
 import type { ClientActiveThreadCancelTurnResult } from './generated/client_active_thread_cancel_turn_result';
 import type { ClientActiveThreadClearResult } from './generated/client_active_thread_clear_result';
@@ -100,6 +104,7 @@ import type { ClientGatewaySettingsUpdateRequest } from './generated/client_gate
 import type { ClientVoiceInputPlanRequest } from './generated/client_voice_input_plan_request';
 import type { ClientVoiceInputPlanResult } from './generated/client_voice_input_plan_result';
 import type { ClientEnsureWorkspaceDraftRequest } from './generated/client_ensure_workspace_draft_request';
+import type { ClientExecutionDraftReconcileRequest } from './generated/client_execution_draft_reconcile_request';
 import type { CLIRuntimeListModelsParams } from './generated/cli_runtime_list_models_params';
 import type { CLIRuntimeListModelsResponse } from './generated/cli_runtime_list_models_response';
 import type { CLIRuntimeListParams } from './generated/cli_runtime_list_params';
@@ -122,12 +127,12 @@ import type { ComposerCapabilityMenuVisibility } from './generated/composer_capa
 import type { ComposerCapabilityTarget } from './generated/composer_capability_target';
 import type { ComposerDomainTransition } from './generated/composer_domain_transition';
 import type { ComposerDraftLifecycleTransition } from './generated/composer_draft_lifecycle_transition';
-import type { ComposerPermissionModeOption } from './generated/composer_permission_mode_option';
 import type { ComposerSkillChip } from './generated/composer_skill_chip';
 import type { ComposerSkillPickerProjection } from './generated/composer_skill_picker_projection';
 import type { ComposerSkillSelectionReduction } from './generated/composer_skill_selection_reduction';
 import type { ComposerSubmissionPlan } from './generated/composer_submission_plan';
 import type { DeleteRemoteGatewayRegistryPlan } from './generated/delete_remote_gateway_registry_plan';
+import type { ExecutionDraftReconciliation } from './generated/execution_draft_reconciliation';
 import type { LoadGatewayRegistryRequest } from './generated/load_gateway_registry_request';
 import type { LoadGatewayRegistryResult } from './generated/load_gateway_registry_result';
 import type { GatewaySettingsGetResponse } from './generated/gateway_settings_get_response';
@@ -179,6 +184,10 @@ import type { TaskCancelParams } from './generated/task_cancel_params';
 import type { TaskCancelResponse } from './generated/task_cancel_response';
 import type { TaskReviseParams } from './generated/task_revise_params';
 import type { TaskReviseResponse } from './generated/task_revise_response';
+import type { TaskUserNotificationAcknowledgeParams } from './generated/task_user_notification_acknowledge_params';
+import type { TaskUserNotificationAcknowledgeResponse } from './generated/task_user_notification_acknowledge_response';
+import type { TaskUserNotificationListParams } from './generated/task_user_notification_list_params';
+import type { TaskUserNotificationListResponse } from './generated/task_user_notification_list_response';
 import type { SelectableSkillCapability } from './generated/selectable_skill_capability';
 import type { SetGatewayWorkspaceRegistryPlan } from './generated/set_gateway_workspace_registry_plan';
 import type { ClientThreadTreeLevel } from './generated/thread_tree_level';
@@ -270,8 +279,12 @@ export type { ClientArtifactDownloadProgressResult } from './generated/client_ar
 export type { ClientArtifactDownloadRequest } from './generated/client_artifact_download_request';
 export type { ClientArtifactDownloadResult } from './generated/client_artifact_download_result';
 export type { ClientArtifactDownloadState } from './generated/client_artifact_download_state';
+export type { ClientArtifactPresentationPolicyRequest } from './generated/client_artifact_presentation_policy_request';
+export type { ArtifactPresentationPolicy } from './generated/artifact_presentation_policy';
 export type { ClientArtifactTargetRequest } from './generated/client_artifact_target_request';
 export type { ClientArtifactViewOpenResult } from './generated/client_artifact_view_open_result';
+export type { ClientAuthorizationProjectionAcceptRequest } from './generated/client_authorization_projection_accept_request';
+export type { ClientAuthorizationProjectionAcceptResult } from './generated/client_authorization_projection_accept_result';
 export type { ClientActiveThreadCancelTurnRequest } from './generated/client_active_thread_cancel_turn_request';
 export type { ClientActiveThreadCancelTurnResult } from './generated/client_active_thread_cancel_turn_result';
 export type { ClientActiveThreadClearResult } from './generated/client_active_thread_clear_result';
@@ -327,6 +340,8 @@ export type { ClientGatewaySettingsUpdateRequest } from './generated/client_gate
 export type { ClientVoiceInputPlanRequest } from './generated/client_voice_input_plan_request';
 export type { ClientVoiceInputPlanResult } from './generated/client_voice_input_plan_result';
 export type { ClientEnsureWorkspaceDraftRequest } from './generated/client_ensure_workspace_draft_request';
+export type { ClientExecutionDraftReconcileRequest } from './generated/client_execution_draft_reconcile_request';
+export type { ExecutionDraftReconciliation } from './generated/execution_draft_reconciliation';
 export type { CLIRuntimeListModelsParams } from './generated/cli_runtime_list_models_params';
 export type {
     CLIRuntimeListModelsResponse,
@@ -456,10 +471,7 @@ export type { ClientAgentAvatarCacheRequest } from './generated/client_agent_ava
 export type { ClientAgentAvatarCacheResult } from './generated/client_agent_avatar_cache_result';
 export type { ClientMemberPresentationRequest } from './generated/client_member_presentation_request';
 export type { ClientCurrentPrincipalPresentationRequest } from './generated/client_current_principal_presentation_request';
-export type {
-    CurrentPrincipalKindPresentation,
-    CurrentPrincipalPresentation,
-} from './generated/current_principal_presentation';
+export type { CurrentPrincipalPresentation } from './generated/current_principal_presentation';
 export type { MemberDeviceCreateParams } from './generated/member_device_create_params';
 export type { MemberDeviceCreateResponse } from './generated/member_device_create_response';
 export type { MemberListParams } from './generated/member_list_params';
@@ -487,6 +499,7 @@ export type { PrincipalPresentationCapabilities } from './generated/principal_pr
 export type { AuthorizationCapabilitiesParams } from './generated/authorization_capabilities_params';
 export type {
     AuthorizationCapabilitySnapshot,
+    AuthorizationExecutionDraftPolicyProjection,
     AuthorizationGlobalCapabilities,
     AuthorizationThreadCapabilities,
     AuthorizationWorkspaceCapabilities,
@@ -559,6 +572,11 @@ export type { TaskCancelParams } from './generated/task_cancel_params';
 export type { TaskCancelResponse } from './generated/task_cancel_response';
 export type { TaskReviseParams } from './generated/task_revise_params';
 export type { TaskReviseResponse } from './generated/task_revise_response';
+export type { TaskUserNotification } from './generated/task_user_notification';
+export type { TaskUserNotificationAcknowledgeParams } from './generated/task_user_notification_acknowledge_params';
+export type { TaskUserNotificationAcknowledgeResponse } from './generated/task_user_notification_acknowledge_response';
+export type { TaskUserNotificationListParams } from './generated/task_user_notification_list_params';
+export type { TaskUserNotificationListResponse } from './generated/task_user_notification_list_response';
 export type { TurnWorkPresentation } from './generated/turn_work_presentation';
 export type { TurnWorkState } from './generated/turn_work_state';
 export type { UpdateRemoteGatewayRegistryPlan } from './generated/update_remote_gateway_registry_plan';
@@ -1196,6 +1214,24 @@ export const pioneerClient = {
         );
     },
 
+    async taskUserNotificationList(
+        input: TaskUserNotificationListParams,
+    ): Promise<TaskUserNotificationListResponse> {
+        return parsePioneerClientResponse<TaskUserNotificationListResponse>(
+            await getPioneerClientNitro().taskUserNotificationListJson(JSON.stringify(input)),
+        );
+    },
+
+    async taskUserNotificationAcknowledge(
+        input: TaskUserNotificationAcknowledgeParams,
+    ): Promise<TaskUserNotificationAcknowledgeResponse> {
+        return parsePioneerClientResponse<TaskUserNotificationAcknowledgeResponse>(
+            await getPioneerClientNitro().taskUserNotificationAcknowledgeJson(
+                JSON.stringify(input),
+            ),
+        );
+    },
+
     async voiceStatus(input: VoiceStatusParams): Promise<VoiceStatusResponse> {
         return parsePioneerClientResponse<VoiceStatusResponse>(
             await getPioneerClientNitro().voiceStatusJson(JSON.stringify(input)),
@@ -1280,12 +1316,6 @@ export const pioneerClient = {
         );
     },
 
-    composerPermissionModeOptions(): ComposerPermissionModeOption[] {
-        return parsePioneerClientResponse<ComposerPermissionModeOption[]>(
-            getPioneerClientNitro().composerPermissionModeOptionsJson(),
-        );
-    },
-
     composerTurnModeOptions(): ThreadMode[] {
         return parsePioneerClientResponse<ThreadMode[]>(
             getPioneerClientNitro().composerTurnModeOptionsJson(),
@@ -1297,6 +1327,30 @@ export const pioneerClient = {
     ): PrincipalPresentationCapabilities {
         return parsePioneerClientResponse<PrincipalPresentationCapabilities>(
             getPioneerClientNitro().principalPresentationCapabilitiesJson(JSON.stringify(input)),
+        );
+    },
+
+    authorizationProjectionAccept(
+        input: ClientAuthorizationProjectionAcceptRequest,
+    ): ClientAuthorizationProjectionAcceptResult {
+        return parsePioneerClientResponse<ClientAuthorizationProjectionAcceptResult>(
+            getPioneerClientNitro().authorizationProjectionAcceptJson(JSON.stringify(input)),
+        );
+    },
+
+    artifactPresentationPolicy(
+        input: ClientArtifactPresentationPolicyRequest,
+    ): ArtifactPresentationPolicy {
+        return parsePioneerClientResponse<ArtifactPresentationPolicy>(
+            getPioneerClientNitro().artifactPresentationPolicyJson(JSON.stringify(input)),
+        );
+    },
+
+    reconcileExecutionDraft(
+        input: ClientExecutionDraftReconcileRequest,
+    ): ExecutionDraftReconciliation {
+        return parsePioneerClientResponse<ExecutionDraftReconciliation>(
+            getPioneerClientNitro().reconcileExecutionDraftJson(JSON.stringify(input)),
         );
     },
 

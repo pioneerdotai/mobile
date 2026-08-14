@@ -448,6 +448,16 @@ HybridPioneerClient::taskCancelJson(const std::string& inputJson) {
 }
 
 std::shared_ptr<margelo::nitro::Promise<std::string>>
+HybridPioneerClient::taskUserNotificationListJson(const std::string& inputJson) {
+  return callWithClientAsync(pioneer_client_ffi_task_user_notification_list, inputJson);
+}
+
+std::shared_ptr<margelo::nitro::Promise<std::string>>
+HybridPioneerClient::taskUserNotificationAcknowledgeJson(const std::string& inputJson) {
+  return callWithClientAsync(pioneer_client_ffi_task_user_notification_acknowledge, inputJson);
+}
+
+std::shared_ptr<margelo::nitro::Promise<std::string>>
 HybridPioneerClient::voiceStatusJson(const std::string& inputJson) {
   return callWithClientAsync(pioneer_client_ffi_voice_status, inputJson);
 }
@@ -518,10 +528,6 @@ std::string HybridPioneerClient::reasoningEffortRowsJson(const std::string& inpu
   return callWithClient(pioneer_client_ffi_reasoning_effort_rows, inputJson);
 }
 
-std::string HybridPioneerClient::composerPermissionModeOptionsJson() {
-  return callWithClient(pioneer_client_ffi_composer_permission_mode_options);
-}
-
 std::string HybridPioneerClient::composerTurnModeOptionsJson() {
   return callWithClient(pioneer_client_ffi_composer_turn_mode_options);
 }
@@ -529,6 +535,21 @@ std::string HybridPioneerClient::composerTurnModeOptionsJson() {
 std::string HybridPioneerClient::principalPresentationCapabilitiesJson(
     const std::string& inputJson) {
   return callWithClient(pioneer_client_ffi_principal_presentation_capabilities, inputJson);
+}
+
+std::string HybridPioneerClient::authorizationProjectionAcceptJson(
+    const std::string& inputJson) {
+  return callWithClient(pioneer_client_ffi_authorization_projection_accept, inputJson);
+}
+
+std::string HybridPioneerClient::artifactPresentationPolicyJson(
+    const std::string& inputJson) {
+  return callWithClient(pioneer_client_ffi_artifact_presentation_policy, inputJson);
+}
+
+std::string HybridPioneerClient::reconcileExecutionDraftJson(
+    const std::string& inputJson) {
+  return callWithClient(pioneer_client_ffi_reconcile_execution_draft, inputJson);
 }
 
 std::string HybridPioneerClient::currentPrincipalPresentationJson(

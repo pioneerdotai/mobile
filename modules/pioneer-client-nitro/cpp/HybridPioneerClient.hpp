@@ -181,6 +181,10 @@ public:
       const std::string& inputJson) override;
   std::shared_ptr<margelo::nitro::Promise<std::string>> taskCancelJson(
       const std::string& inputJson) override;
+  std::shared_ptr<margelo::nitro::Promise<std::string>> taskUserNotificationListJson(
+      const std::string& inputJson) override;
+  std::shared_ptr<margelo::nitro::Promise<std::string>> taskUserNotificationAcknowledgeJson(
+      const std::string& inputJson) override;
   std::shared_ptr<margelo::nitro::Promise<std::string>> voiceStatusJson(
       const std::string& inputJson) override;
   std::shared_ptr<margelo::nitro::Promise<std::string>> voiceSessionStartJson(
@@ -202,9 +206,11 @@ public:
   std::shared_ptr<margelo::nitro::Promise<std::string>> providerModelDisplayJson(
       const std::string& inputJson) override;
   std::string reasoningEffortRowsJson(const std::string& inputJson) override;
-  std::string composerPermissionModeOptionsJson() override;
   std::string composerTurnModeOptionsJson() override;
   std::string principalPresentationCapabilitiesJson(const std::string& inputJson) override;
+  std::string authorizationProjectionAcceptJson(const std::string& inputJson) override;
+  std::string artifactPresentationPolicyJson(const std::string& inputJson) override;
+  std::string reconcileExecutionDraftJson(const std::string& inputJson) override;
   std::string currentPrincipalPresentationJson(const std::string& inputJson) override;
   std::string sessionListRowPresentationJson(const std::string& inputJson) override;
   std::string threadScopePresentationJson(const std::string& inputJson) override;

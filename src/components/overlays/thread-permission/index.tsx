@@ -4,7 +4,7 @@ import { ShieldAlert, ShieldCheck, ShieldX } from 'lucide-react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useShallow } from 'zustand/react/shallow';
 
-import { pioneerClient, type TurnPermissionMode } from '@/client';
+import type { TurnPermissionMode } from '@/client';
 import { Backdrop } from '@/components/overlays/components/backdrop';
 import { Handle } from '@/components/overlays/components/handle';
 import { Box } from '@/components/primitives/box';
@@ -15,10 +15,7 @@ import { VStack } from '@/components/primitives/vstack';
 import { stableOutlineWidth } from '@/helpers/styles';
 import { useAuthorizationCapabilitySnapshot } from '@/hooks/use-administration-capabilities';
 import { useActiveThreadStore } from '@/stores/active-thread';
-import {
-    allowedComposerPermissionModeOptions,
-    reconcileComposerPermissionMode,
-} from '@/services/threads/permission-modes';
+import { reconcileComposerPermissionMode } from '@/services/threads/permission-modes';
 
 const permissionModeIcon = (mode: TurnPermissionMode) => {
     switch (mode) {
@@ -35,14 +32,16 @@ const ThreadPermissionModeSwitcherSheet = () => {
     const bottomSheetRef = useRef<BottomSheetModal>(null);
     const { theme, rt } = useUnistyles();
     const capabilitySnapshot = useAuthorizationCapabilitySnapshot();
-    const allowedModes = capabilitySnapshot.data?.workspace?.capabilities.turn_permission_modes;
     const options = useMemo(
         () =>
-            allowedComposerPermissionModeOptions(
-                pioneerClient.composerPermissionModeOptions(),
-                allowedModes,
+            (capabilitySnapshot.data?.workspace?.capabilities.agent_permission_options ?? []).map(
+                (option) => ({
+                    mode: option.mode,
+                    label: option.label,
+                    description: option.description,
+                }),
             ),
-        [allowedModes],
+        [capabilitySnapshot.data?.workspace?.capabilities.agent_permission_options],
     );
 
     const { selectedMode, showPermissionModeSwitcher, setMode, setPermissionModeSwitcherOpen } =

@@ -42,8 +42,12 @@ describe('mobile invitation administration', () => {
             qr_modules: [true],
             transport_security: 'secure_wss',
         });
-        await createInvitationPresentation(['workspace-b', 'workspace-a', 'workspace-b']);
+        await createInvitationPresentation(
+            ['workspace-b', 'workspace-a', 'workspace-b'],
+            'test-role',
+        );
         expect(pioneerClient.invitationCreate).toHaveBeenCalledWith({
+            role_key: 'test-role',
             workspace_ids: ['workspace-a', 'workspace-b'],
         });
         expect(pioneerClient.invitationPresentation).toHaveBeenCalledWith({

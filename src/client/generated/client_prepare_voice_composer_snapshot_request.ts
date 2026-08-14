@@ -86,6 +86,7 @@ export type ComposerSkillSelection =
 
 export interface ClientPrepareVoiceComposerSnapshotRequest {
   attachments?: ComposerAttachment[];
+  authorization_fingerprint: string;
   capabilities?: ComposerCapability[];
   permission_mode: TurnPermissionMode;
   selected_mode?: ThreadMode | null;

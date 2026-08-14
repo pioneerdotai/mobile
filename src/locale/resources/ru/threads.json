@@ -135,6 +135,7 @@
     "composerNoMcp": "MCP-серверы не найдены.",
     "composerSkillsFailed": "Не удалось загрузить skills.",
     "composerCapabilitiesRemovedForProvider": "Некоторые возможности недоступны для этого провайдера и были удалены.",
+    "composerAuthorizationSelectionsUpdated": "Некоторые параметры были удалены, потому что ваши текущие права изменились.",
     "composerExecutionStateRemoved": "Параметры только для ИИ удалены в режиме сообщения.",
     "composerReplyCancel": "Отменить ответ",
     "composerMentionAdd": "Упомянуть участника",
