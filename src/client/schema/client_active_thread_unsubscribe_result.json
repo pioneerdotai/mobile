@@ -4276,7 +4276,8 @@
         "user",
         "scheduled_task",
         "detached_task",
-        "attached_task"
+        "attached_task",
+        "task_delivery"
       ]
     },
     "TurnPermissionActionKind": {
@@ -4647,6 +4648,17 @@
         },
         "is_open": {
           "type": "boolean"
+        },
+        "state": {
+          "description": "Server-owned lifecycle state; clients must not infer it from row order.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TurnWorkState"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "toggle_key": {
           "type": "string"

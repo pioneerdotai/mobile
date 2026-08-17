@@ -77,7 +77,7 @@ export interface Turn {
   message_deleted?: boolean;
   message_revision?: number;
   mode?: ('Message' | 'Agent') | 'Chat';
-  origin?: 'user' | 'scheduled_task' | 'detached_task' | 'attached_task';
+  origin?: 'user' | 'scheduled_task' | 'detached_task' | 'attached_task' | 'task_delivery';
   permission_profile: TurnPermissionProfileSnapshot;
   prompt_manifest?: PromptManifest | null;
   reply_to_turn_id?: string | null;

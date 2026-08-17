@@ -123,6 +123,8 @@ export type PersistedActorRef =
 export type PrincipalId = string;
 export type ThreadMode = ('Message' | 'Agent') | 'Chat';
 export type TimelineReplyState = 'available' | 'deleted' | 'unavailable';
+export type TurnWorkState =
+  'starting' | 'running' | 'waiting_for_approval' | 'stalled' | 'completed' | 'blocked' | 'failed' | 'interrupted';
 export type TimelineCoalescedToolsKind = 'CompletedTaskTools' | 'RepeatedTaskWait';
 export type PermissionBehavior = 'allow' | 'ask' | 'deny';
 export type TurnPermissionMode = 'full_access' | 'auto_accept_edits' | 'supervised';
@@ -135,8 +137,6 @@ export type ClientSecurityFilesystemAccess = 'unrestricted' | 'read_only' | 'wor
 export type TurnNetworkMode = 'disabled' | 'restricted' | 'enabled';
 export type SandboxBackendKind = 'nono' | 'windows_restricted_token' | 'provider_native';
 export type TurnSandboxMode = 'unrestricted' | 'read_only' | 'workspace_write';
-export type TurnWorkState =
-  'starting' | 'running' | 'waiting_for_approval' | 'stalled' | 'completed' | 'blocked' | 'failed' | 'interrupted';
 
 export interface TimelineRow {
   key: string;
@@ -244,6 +244,10 @@ export interface TurnWorkGroupRow {
   anchor_entry_id: string;
   elapsed_ms?: number | null;
   is_open: boolean;
+  /**
+   * Server-owned lifecycle state; clients must not infer it from row order.
+   */
+  state?: TurnWorkState | null;
   toggle_key: string;
   [k: string]: unknown;
 }

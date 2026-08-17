@@ -234,15 +234,9 @@ export interface AuthorizationExecutionDraftPolicyProjection {
  */
 export interface McpInvocationResourceLimits {
   max_arguments_bytes: number;
-  max_arguments_depth: number;
   max_concurrent_calls: number;
+  max_queue_wait_ms: number;
   max_queued_calls: number;
-  max_result_decoded_bytes: number;
-  max_result_depth: number;
-  max_result_media: number;
-  max_result_tokens: number;
-  max_result_wire_bytes: number;
-  max_timeout_ms: number;
   profile_version: number;
 }
 export interface AuthorizationOperationalResourceProjection {

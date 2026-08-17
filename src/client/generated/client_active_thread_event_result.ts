@@ -1428,6 +1428,10 @@ export interface TurnWorkGroupRow {
   anchor_entry_id: string;
   elapsed_ms?: number | null;
   is_open: boolean;
+  /**
+   * Server-owned lifecycle state; clients must not infer it from row order.
+   */
+  state?: TurnWorkState | null;
   toggle_key: string;
   [k: string]: unknown;
 }
@@ -1475,7 +1479,7 @@ export interface Turn {
   message_deleted?: boolean;
   message_revision?: number;
   mode?: ('Message' | 'Agent') | 'Chat';
-  origin?: 'user' | 'scheduled_task' | 'detached_task' | 'attached_task';
+  origin?: 'user' | 'scheduled_task' | 'detached_task' | 'attached_task' | 'task_delivery';
   permission_profile: TurnPermissionProfileSnapshot;
   prompt_manifest?: PromptManifest | null;
   reply_to_turn_id?: string | null;

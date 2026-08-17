@@ -69,7 +69,11 @@ export type TaskStatus =
   | 'cancelled';
 export type TaskConcurrencyConflictPolicy = 'queue' | 'reject' | 'cancel_existing' | 'allow';
 export type TaskDeliveryFormat = 'summary' | 'full_result';
-export type TaskDeliveryMode = 'none' | 'owner_thread' | 'thread' | 'user_notification' | 'webhook';
+export type TaskDeliveryMode = 'none' | 'thread' | 'user_notification' | 'webhook';
+/**
+ * Semantic thread target resolved and persisted by Gateway.
+ */
+export type TaskDeliveryThreadTarget = 'origin_thread' | 'current_thread' | 'collaboration_root' | 'exact_thread';
 export type TaskAttachmentMode = 'attached' | 'detached';
 export type TaskCompletionBehavior = 'complete_on_terminal_run' | 'keep_active_for_recurring' | 'manual';
 export type TaskParentTerminalAction = 'cancel' | 'detach' | 'keep_running';
@@ -329,7 +333,16 @@ export interface TaskDeliveryPolicy {
   format: TaskDeliveryFormat;
   includeResult: boolean;
   mode: TaskDeliveryMode;
+  /**
+   * Canonical target persisted by Gateway. Callers provide this only for
+   * `ExactThread`; for semantic targets it is server-owned output.
+   */
   threadId?: string | null;
+  /**
+   * Required for `Thread` delivery. Gateway resolves semantic targets to a
+   * canonical `thread_id` before persisting the Task.
+   */
+  threadTarget?: TaskDeliveryThreadTarget | null;
   webhookUrl?: string | null;
   [k: string]: unknown;
 }

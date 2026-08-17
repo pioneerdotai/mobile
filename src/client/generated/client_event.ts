@@ -1363,7 +1363,11 @@ export type ArtifactRole = 'user' | 'assistant' | 'tool' | 'system' | 'task';
 export type ArtifactCreatedByKind = 'user' | 'agent' | 'tool' | 'task' | 'system' | 'import' | 'external_agent';
 export type TaskConcurrencyConflictPolicy = 'queue' | 'reject' | 'cancel_existing' | 'allow';
 export type TaskDeliveryFormat = 'summary' | 'full_result';
-export type TaskDeliveryMode = 'none' | 'owner_thread' | 'thread' | 'user_notification' | 'webhook';
+export type TaskDeliveryMode = 'none' | 'thread' | 'user_notification' | 'webhook';
+/**
+ * Semantic thread target resolved and persisted by Gateway.
+ */
+export type TaskDeliveryThreadTarget = 'origin_thread' | 'current_thread' | 'collaboration_root' | 'exact_thread';
 export type TaskErrorClass =
   'cancelled' | 'timeout' | 'provider' | 'tool' | 'validation' | 'dependency' | 'policy' | 'internal' | 'unknown';
 export type TaskValue =
@@ -1947,7 +1951,7 @@ export interface Turn {
   message_deleted?: boolean;
   message_revision?: number;
   mode?: ('Message' | 'Agent') | 'Chat';
-  origin?: 'user' | 'scheduled_task' | 'detached_task' | 'attached_task';
+  origin?: 'user' | 'scheduled_task' | 'detached_task' | 'attached_task' | 'task_delivery';
   permission_profile: TurnPermissionProfileSnapshot;
   prompt_manifest?: PromptManifest | null;
   reply_to_turn_id?: string | null;
@@ -2833,7 +2837,16 @@ export interface TaskDeliveryPolicy {
   format: TaskDeliveryFormat;
   includeResult: boolean;
   mode: TaskDeliveryMode;
+  /**
+   * Canonical target persisted by Gateway. Callers provide this only for
+   * `ExactThread`; for semantic targets it is server-owned output.
+   */
   threadId?: string | null;
+  /**
+   * Required for `Thread` delivery. Gateway resolves semantic targets to a
+   * canonical `thread_id` before persisting the Task.
+   */
+  threadTarget?: TaskDeliveryThreadTarget | null;
   webhookUrl?: string | null;
   [k: string]: unknown;
 }
@@ -3283,6 +3296,10 @@ export interface TaskDelivery {
   targetThreadId?: string | null;
   targetUserId?: string | null;
   taskId: string;
+  /**
+   * Immutable semantic target captured when a thread delivery is created.
+   */
+  threadTarget?: TaskDeliveryThreadTarget | null;
   updatedAt: number;
   webhookUrl?: string | null;
   webhookUrlFingerprint?: string | null;
