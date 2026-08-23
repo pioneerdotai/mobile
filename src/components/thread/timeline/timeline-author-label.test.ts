@@ -84,6 +84,17 @@ describe('timelineAuthorLabel', () => {
                 },
             }),
         ).toBe('claude');
+        expect(
+            timelineAgentDefaultAvatar({
+                ...author,
+                agent: {
+                    ...author.agent,
+                    identity_source_kind: 'cli_runtime_instance',
+                    nickname: 'opencode',
+                    role_label: 'OpenCode CLI',
+                },
+            }),
+        ).toBe('opencode');
     });
 
     it('does not invent a generic agent label or accept a different execution snapshot', () => {

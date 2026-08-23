@@ -30,7 +30,7 @@ export type VoiceInputSettingsPlan =
       reason: VoiceInputSettingsPlanRejection;
       [k: string]: unknown;
     };
-export type CLIAgentRuntimeKind = 'codex' | 'claude';
+export type CLIAgentRuntimeKind = 'codex' | 'claude' | 'opencode';
 export type GatewayThreadEpisodicVectorProvider = 'openai' | 'openrouter' | 'local';
 export type GatewayVoiceInputProvider = 'local';
 export type VoiceInputSettingsPlanRejection = 'invalid_provider' | 'missing_model' | 'retry_unavailable';
@@ -74,6 +74,7 @@ export interface GatewayCliRuntimeInstanceSettings {
 export interface GatewayGeneralSettingsUpdate {
   keepawake?: boolean | null;
   preflight_model?: GatewayMemoryModelSelection | null;
+  telemetry_enabled?: boolean | null;
   [k: string]: unknown;
 }
 export interface GatewayMemoryModelSelection {

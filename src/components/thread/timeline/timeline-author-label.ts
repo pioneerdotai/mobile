@@ -37,8 +37,12 @@ export const timelineAgentDefaultAvatar = (
     if (agent?.identity_source_kind === 'native_agent') return 'pioneer';
     if (agent?.identity_source_kind !== 'cli_runtime_instance') return null;
 
-    const runtimeKind = (agent.role_label ?? agent.nickname).trim().toLowerCase();
+    const runtimeKind = (agent.role_label ?? agent.nickname)
+        .trim()
+        .toLowerCase()
+        .replace(/\s+cli$/u, '');
     if (runtimeKind === 'codex') return 'codex';
     if (runtimeKind === 'claude') return 'claude';
+    if (runtimeKind === 'opencode') return 'opencode';
     return null;
 };

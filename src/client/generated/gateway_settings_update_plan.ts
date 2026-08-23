@@ -1,6 +1,6 @@
 /* eslint-disable */
 
-export type CLIAgentRuntimeKind = 'codex' | 'claude';
+export type CLIAgentRuntimeKind = 'codex' | 'claude' | 'opencode';
 export type GatewayRemoteAccessErrorKind =
   | 'invalid_settings'
   | 'missing_key'
@@ -55,6 +55,7 @@ export interface GatewayCliRuntimeInstanceSettings {
 export interface GatewayGeneralSettings {
   keepawake?: boolean;
   preflight_model?: GatewayMemoryModelSelection;
+  telemetry_enabled?: boolean;
   [k: string]: unknown;
 }
 export interface GatewayMemoryModelSelection {
@@ -186,6 +187,7 @@ export interface GatewayCliRuntimeSettings1 {
 export interface GatewayGeneralSettingsUpdate {
   keepawake?: boolean | null;
   preflight_model?: GatewayMemoryModelSelection2 | null;
+  telemetry_enabled?: boolean | null;
   [k: string]: unknown;
 }
 export interface GatewayMemoryModelSelection2 {

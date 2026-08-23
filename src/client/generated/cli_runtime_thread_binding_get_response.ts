@@ -1,6 +1,6 @@
 /* eslint-disable */
 
-export type CLIAgentRuntimeKind = 'codex' | 'claude';
+export type CLIAgentRuntimeKind = 'codex' | 'claude' | 'opencode';
 
 export interface CLIRuntimeThreadBindingGetResponse {
   binding?: CLIRuntimeThreadBinding | null;

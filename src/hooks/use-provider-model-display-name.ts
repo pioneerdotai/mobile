@@ -250,6 +250,8 @@ const cliRuntimeProviderFallbackLabel = (provider: string): string | null => {
             return 'Codex CLI';
         case 'claude':
             return 'Claude CLI';
+        case 'opencode':
+            return 'OpenCode CLI';
         default:
             return runtimeId;
     }

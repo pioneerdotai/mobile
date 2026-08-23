@@ -64,7 +64,8 @@
       "type": "string",
       "enum": [
         "codex",
-        "claude"
+        "claude",
+        "opencode"
       ]
     },
     "GatewayCliRuntimeInstanceSettings": {
@@ -138,6 +139,12 @@
             {
               "type": "null"
             }
+          ]
+        },
+        "telemetry_enabled": {
+          "type": [
+            "boolean",
+            "null"
           ]
         }
       }

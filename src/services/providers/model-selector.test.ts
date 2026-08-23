@@ -122,9 +122,9 @@ describe('model selector reasoning helpers', () => {
 
     it('loads CLI capability policy from live runtime readiness', async () => {
         const runtime = {
-            runtime_id: 'codex',
-            kind: 'codex',
-            display_name: 'Codex CLI',
+            runtime_id: 'opencode',
+            kind: 'opencode',
+            display_name: 'OpenCode CLI',
             enabled: true,
             status: { state: 'ready' },
             capabilities: {
@@ -145,8 +145,8 @@ describe('model selector reasoning helpers', () => {
 
         await expect(listProviders('workspace-1')).resolves.toEqual([
             {
-                id: 'cli_runtime:codex',
-                label: 'Codex CLI',
+                id: 'cli_runtime:opencode',
+                label: 'OpenCode CLI',
                 kind: 'cliRuntime',
                 capabilityTarget: {
                     kind: 'cli',
