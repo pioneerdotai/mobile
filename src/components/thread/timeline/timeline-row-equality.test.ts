@@ -76,6 +76,7 @@ describe('timelineRowsAreEqual', () => {
                 elapsedLabel: '1 sec',
                 state: 'running',
                 message: null,
+                author: null,
                 securitySummary: null,
             },
             'abc',

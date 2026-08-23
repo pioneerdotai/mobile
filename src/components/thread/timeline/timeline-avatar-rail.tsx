@@ -17,9 +17,15 @@ import Reanimated, {
     type SharedValue,
 } from 'react-native-reanimated';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
+import { useTranslation } from 'react-i18next';
 
 import { MemberAvatar } from '@/components/member-avatar';
-import { resolveAgentAvatar } from '@/services/members/resolve-agent-avatar';
+import { Box } from '@/components/primitives/box';
+import {
+    AGENT_AVATAR_REVISIONS,
+    resolveAgentAvatarRepresentation,
+    type ResolvedAgentAvatar,
+} from '@/services/members/resolve-agent-avatar';
 
 import {
     TIMELINE_AVATAR_BOTTOM_STOP_OFFSET_UNITS,
@@ -29,6 +35,7 @@ import {
     type TimelineAvatarGroup,
     type TimelineGroupingIndex,
 } from './timeline-grouping';
+import { timelineAgentDefaultAvatar } from './timeline-author-label';
 import { calculateTimelineEndAlignmentPadding } from './timeline-avatar-rail-layout';
 
 const DINO_DARK = require('../../../../assets/images/dino-dark.webp');
@@ -43,6 +50,7 @@ const EMPTY_VISIBLE_GROUPS: VisibleAvatarGroupsSnapshot = {
     timelineIdentityKey: '',
     keys: [],
 };
+const EMPTY_AGENT_AVATARS: Readonly<Record<string, ResolvedAgentAvatar>> = {};
 
 export class TimelineAvatarRailController {
     private readonly synchronizers = new Map<string, () => void>();
@@ -133,7 +141,9 @@ export const TimelineAvatarRail = ({
     const contentOriginOffset = contentTopInset - viewportTopInset;
     const endAlignmentPadding = useSharedValue(0);
     const viewportHeight = useSharedValue(0);
-    const [agentAvatarUri, setAgentAvatarUri] = useState<string | null>(null);
+    const [agentAvatars, setAgentAvatars] = useState<Readonly<Record<string, ResolvedAgentAvatar>>>(
+        {},
+    );
     const handleViewportLayout = useCallback(
         (event: LayoutChangeEvent) => {
             viewportHeight.set(event.nativeEvent.layout.height);
@@ -142,18 +152,23 @@ export const TimelineAvatarRail = ({
     );
 
     useEffect(() => {
-        let cancelled = false;
         if (!connected) {
-            return;
+            return undefined;
         }
 
-        void resolveAgentAvatar()
-            .then((uri) => {
-                if (!cancelled) setAgentAvatarUri(uri);
-            })
-            .catch(() => {
-                if (!cancelled) setAgentAvatarUri(null);
-            });
+        let cancelled = false;
+        for (const revision of Object.values(AGENT_AVATAR_REVISIONS)) {
+            void resolveAgentAvatarRepresentation(revision)
+                .then((avatar) => {
+                    if (!cancelled && avatar) {
+                        setAgentAvatars((current) => ({
+                            ...current,
+                            [avatar.avatarRevision]: avatar,
+                        }));
+                    }
+                })
+                .catch(() => undefined);
+        }
         return () => {
             cancelled = true;
         };
@@ -225,7 +240,7 @@ export const TimelineAvatarRail = ({
                 <TimelineAvatarRailItem
                     key={group.key}
                     controller={controller}
-                    agentAvatarUri={agentAvatarUri}
+                    agentAvatars={connected ? agentAvatars : EMPTY_AGENT_AVATARS}
                     contentInsetEndAdjustment={contentInsetEndAdjustment}
                     contentOriginOffset={contentOriginOffset}
                     endAlignmentPadding={endAlignmentPadding}
@@ -242,7 +257,7 @@ export const TimelineAvatarRail = ({
 const TimelineAvatarRailItem = memo(
     ({
         controller,
-        agentAvatarUri,
+        agentAvatars,
         contentInsetEndAdjustment,
         contentOriginOffset,
         endAlignmentPadding,
@@ -252,7 +267,7 @@ const TimelineAvatarRailItem = memo(
         viewportHeight,
     }: {
         controller: TimelineAvatarRailController;
-        agentAvatarUri: string | null;
+        agentAvatars: Readonly<Record<string, ResolvedAgentAvatar>>;
         contentInsetEndAdjustment: SharedValue<number>;
         contentOriginOffset: number;
         endAlignmentPadding: SharedValue<number>;
@@ -262,6 +277,7 @@ const TimelineAvatarRailItem = memo(
         viewportHeight: SharedValue<number>;
     }) => {
         const { rt, theme } = useUnistyles();
+        const { t } = useTranslation('threads');
         const avatarSize = theme.space(TIMELINE_AVATAR_SIZE_UNITS);
         const dinoSource = rt.themeName === 'dark' ? DINO_DARK : DINO_LIGHT;
         const stickyBottomGap = theme.space(TIMELINE_AVATAR_STICKY_BOTTOM_GAP_UNITS);
@@ -271,6 +287,12 @@ const TimelineAvatarRailItem = memo(
         const groupStart = useSharedValue(0);
         const groupEnd = useSharedValue(0);
         const geometryReady = useSharedValue(0);
+        const agentAuthor = timelineAvatarSourceAgentAuthor(group.source);
+        const agentPresentation = agentAuthor ? agentAvatarPresentation(group.source) : null;
+        const agentDisplayName =
+            agentPresentation && agentAuthor ? agentAuthor.display_name.trim() : '';
+        const defaultAvatar = timelineAgentDefaultAvatar(agentAuthor);
+        const defaultAvatarRevision = defaultAvatar ? AGENT_AVATAR_REVISIONS[defaultAvatar] : null;
 
         const synchronizeGeometry = useCallback(() => {
             const state = listRef.current?.getState();
@@ -359,7 +381,7 @@ const TimelineAvatarRailItem = memo(
 
         return (
             <Reanimated.View pointerEvents="none" style={[styles.avatarPosition, animatedStyle]}>
-                {group.source.kind === 'historical-user' ? (
+                {group.source.kind === 'historical-user' && !agentAuthor ? (
                     <MemberAvatar
                         displayName={group.source.author?.display_name ?? ''}
                         principalId={
@@ -371,7 +393,7 @@ const TimelineAvatarRailItem = memo(
                         size={avatarSize}
                         borderColor={theme.colors.border}
                     />
-                ) : group.source.showsRunningDino ? (
+                ) : group.source.kind === 'agent' && group.source.showsRunningDino ? (
                     <Image
                         accessible={false}
                         autoplay
@@ -379,13 +401,26 @@ const TimelineAvatarRailItem = memo(
                         source={dinoSource}
                         style={styles.runningDino(avatarSize)}
                     />
-                ) : (
+                ) : agentAuthor && agentDisplayName ? (
                     <MemberAvatar
-                        displayName="Agent"
+                        displayName={agentDisplayName}
                         size={avatarSize}
-                        imageUri={agentAvatarUri}
+                        imageUri={
+                            defaultAvatarRevision
+                                ? (agentAvatars[defaultAvatarRevision]?.uri ?? null)
+                                : null
+                        }
                         borderColor={theme.colors.border}
                     />
+                ) : agentAuthor || group.source.kind === 'agent' ? (
+                    <MemberAvatar
+                        displayName={t('modeAgentLabel')}
+                        size={avatarSize}
+                        imageUri={agentAvatars[AGENT_AVATAR_REVISIONS.pioneer]?.uri ?? null}
+                        borderColor={theme.colors.border}
+                    />
+                ) : (
+                    <Box style={styles.absentAvatar(avatarSize)} />
                 )}
             </Reanimated.View>
         );
@@ -393,6 +428,19 @@ const TimelineAvatarRailItem = memo(
 );
 
 TimelineAvatarRailItem.displayName = 'TimelineAvatarRailItem';
+
+const timelineAvatarSourceAgentAuthor = (
+    source: TimelineAvatarGroup['source'],
+): Extract<TimelineAvatarGroup['source'], { kind: 'agent' }>['author'] => {
+    const author = source.author;
+    return author?.actor.kind === 'agent_execution' ? author : null;
+};
+
+const agentAvatarPresentation = (source: TimelineAvatarGroup['source']) => {
+    const author = timelineAvatarSourceAgentAuthor(source);
+    if (!author || author.agent?.agent_execution_id !== author.actor.id) return null;
+    return author.agent;
+};
 
 const stringArraysEqual = (left: readonly string[], right: readonly string[]): boolean =>
     left.length === right.length && left.every((value, index) => value === right[index]);
@@ -411,6 +459,10 @@ const styles = StyleSheet.create((theme) => ({
         top: 0,
         left: theme.space(2),
     },
+    absentAvatar: (size: number) => ({
+        width: size,
+        height: size,
+    }),
     runningDino: (size: number) => ({
         width: size,
         height: size,

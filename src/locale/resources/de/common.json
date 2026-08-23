@@ -7,6 +7,9 @@
     "add": "Hinzufügen",
     "startupFailed": "Die Anwendung konnte nicht initialisiert werden.",
     "taskNotificationTitle": "Aufgabenergebnis",
+    "taskNotificationAgent": "Agent",
+    "taskNotificationSystem": "System",
+    "taskNotificationUnknownHistoricalActor": "Unbekannter historischer Akteur",
     "taskNotificationCompleted": "Aufgabe abgeschlossen",
     "taskNotificationMarkRead": "Als gelesen markieren"
 }

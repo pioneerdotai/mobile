@@ -10,7 +10,11 @@ jest.mock('@/client', () => ({
 
 import { pioneerClient } from '@/client';
 
-import { resolveAgentAvatar } from './resolve-agent-avatar';
+import {
+    AGENT_AVATAR_REVISIONS,
+    resolveAgentAvatar,
+    resolveAgentAvatarRepresentation,
+} from './resolve-agent-avatar';
 
 const agentAvatarCache = jest.mocked(pioneerClient.agentAvatarCache);
 
@@ -22,13 +26,34 @@ describe('resolveAgentAvatar', () => {
     test('returns only a local file URI from the authenticated native cache', async () => {
         agentAvatarCache.mockResolvedValue({
             cached_image_path: '/owned/cache/agent avatar.jpeg',
-            avatar_revision: 'a'.repeat(64),
+            avatar_revision: AGENT_AVATAR_REVISIONS.pioneer,
             media_type: 'image/jpeg',
             source: 'downloaded',
         });
 
         await expect(resolveAgentAvatar()).resolves.toBe('file:///owned/cache/agent%20avatar.jpeg');
-        expect(agentAvatarCache).toHaveBeenCalledWith({});
+        expect(agentAvatarCache).toHaveBeenCalledWith({
+            avatar_revision: AGENT_AVATAR_REVISIONS.pioneer,
+        });
+    });
+
+    test('returns the immutable revision together with the owned cache URI', async () => {
+        agentAvatarCache.mockResolvedValue({
+            cached_image_path: '/owned/cache/agent avatar.jpeg',
+            avatar_revision: AGENT_AVATAR_REVISIONS.codex,
+            media_type: 'image/jpeg',
+            source: 'downloaded',
+        });
+
+        await expect(
+            resolveAgentAvatarRepresentation(AGENT_AVATAR_REVISIONS.codex),
+        ).resolves.toEqual({
+            avatarRevision: AGENT_AVATAR_REVISIONS.codex,
+            uri: 'file:///owned/cache/agent%20avatar.jpeg',
+        });
+        expect(agentAvatarCache).toHaveBeenCalledWith({
+            avatar_revision: AGENT_AVATAR_REVISIONS.codex,
+        });
     });
 
     test('rejects malformed native metadata and unsafe paths', async () => {

@@ -1,3 +1,5 @@
 /* eslint-disable */
 
-export interface ClientAgentAvatarCacheRequest {}
+export interface ClientAgentAvatarCacheRequest {
+  avatar_revision: string;
+}

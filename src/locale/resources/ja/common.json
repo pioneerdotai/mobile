@@ -7,6 +7,9 @@
     "add": "追加",
     "startupFailed": "アプリケーションを初期化できませんでした。",
     "taskNotificationTitle": "タスク結果",
+    "taskNotificationAgent": "エージェント",
+    "taskNotificationSystem": "システム",
+    "taskNotificationUnknownHistoricalActor": "不明な過去の実行者",
     "taskNotificationCompleted": "タスクが完了しました",
     "taskNotificationMarkRead": "既読にする"
 }

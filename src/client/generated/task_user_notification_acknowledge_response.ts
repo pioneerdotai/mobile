@@ -1,5 +1,8 @@
 /* eslint-disable */
 
+export type AgentExecutionId = string;
+export type AgentIdentityId = string;
+export type AgentIdentitySourceKind = 'native_agent' | 'cli_runtime_instance' | 'ephemeral';
 export type TaskErrorClass =
   'cancelled' | 'timeout' | 'provider' | 'tool' | 'validation' | 'dependency' | 'policy' | 'internal' | 'unknown';
 export type PublicErrorCode =
@@ -27,7 +30,9 @@ export interface TaskUserNotificationAcknowledgeResponse {
  */
 export interface TaskUserNotification {
   acknowledgedAt?: number | null;
+  author?: AgentPresentationSnapshot | null;
   createdAt: number;
+  deliveryActionReceiptId?: string | null;
   deliveryId: string;
   error?: PublicTaskFailure | null;
   notificationId: string;
@@ -35,6 +40,17 @@ export interface TaskUserNotification {
   runId: string;
   taskId: string;
   workspaceId: string;
+  [k: string]: unknown;
+}
+export interface AgentPresentationSnapshot {
+  agent_execution_id: AgentExecutionId;
+  agent_identity_id: AgentIdentityId;
+  avatar_revision?: string | null;
+  display_name: string;
+  identity_source_kind: AgentIdentitySourceKind;
+  identity_source_revision: number;
+  nickname: string;
+  role_label?: string | null;
   [k: string]: unknown;
 }
 export interface PublicTaskFailure {

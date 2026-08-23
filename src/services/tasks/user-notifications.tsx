@@ -17,6 +17,7 @@ import {
 } from '@/hooks/use-administration-capabilities';
 import { useGatewayStore } from '@/stores/gateway';
 import { useWorkspaceStore } from '@/stores/workspace';
+import { taskUserNotificationAuthorLabel } from './task-notification-presentation';
 import { taskUserNotificationTargetsInbox } from './user-notification-targeting';
 
 const taskUserNotificationKeys = {
@@ -112,6 +113,13 @@ export const TaskUserNotificationController = () => {
         <VStack pointerEvents="box-none" style={styles.overlay}>
             <VStack style={styles.card}>
                 <Text style={styles.eyebrow}>{t('taskNotificationTitle')}</Text>
+                <Text numberOfLines={1} style={styles.author}>
+                    {taskUserNotificationAuthorLabel(notification, {
+                        agent: t('taskNotificationAgent'),
+                        system: t('taskNotificationSystem'),
+                        unknown: t('taskNotificationUnknownHistoricalActor'),
+                    })}
+                </Text>
                 <Text numberOfLines={3} style={styles.message}>
                     {taskUserNotificationSummary(notification, t('taskNotificationCompleted'))}
                 </Text>
@@ -163,6 +171,12 @@ const styles = StyleSheet.create((theme) => ({
         lineHeight: theme.fontSize.xs.lineHeight,
         fontWeight: theme.fontWeight.semibold.fontWeight,
         textTransform: 'uppercase',
+    },
+    author: {
+        color: theme.colors.textMuted,
+        fontSize: theme.fontSize.xs.fontSize,
+        lineHeight: theme.fontSize.xs.lineHeight,
+        fontWeight: theme.fontWeight.medium.fontWeight,
     },
     message: {
         color: theme.colors.typography,

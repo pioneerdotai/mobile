@@ -7,6 +7,9 @@
     "add": "जोड़ें",
     "startupFailed": "ऐप शुरू नहीं हो सका.",
     "taskNotificationTitle": "कार्य परिणाम",
+    "taskNotificationAgent": "एजेंट",
+    "taskNotificationSystem": "सिस्टम",
+    "taskNotificationUnknownHistoricalActor": "अज्ञात ऐतिहासिक कर्ता",
     "taskNotificationCompleted": "कार्य पूरा हुआ",
     "taskNotificationMarkRead": "पढ़ा हुआ चिह्नित करें"
 }

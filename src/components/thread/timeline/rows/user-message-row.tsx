@@ -24,14 +24,16 @@ import { Text } from '@/components/primitives/text';
 import { MarkdownContent } from './markdown-content';
 import { stableOutlineWidth } from '@/helpers/styles';
 import {
-    DEFAULT_TIMELINE_PRESENTATION_CONTEXT,
     TIMELINE_AVATAR_RAIL_WIDTH_UNITS,
     TIMELINE_AVATAR_SIZE_UNITS,
     TIMELINE_GROUP_VERTICAL_PADDING_UNITS,
     isCurrentPrincipalUserMessage,
-    type TimelinePresentationContext,
 } from '../timeline-grouping';
 import { timelineTextBottomMargin } from '../timeline-text-layout';
+import {
+    timelineAgentAuthorLabel,
+    timelineAgentAuthorPresentation,
+} from '../timeline-author-label';
 
 type UserMessageRowProps = {
     row: Extract<TimelineRow, { type: 'user-message' }>;
@@ -45,7 +47,6 @@ type UserMessageRowProps = {
     ) => void;
     artifactActionStateByKey?: Readonly<Record<string, MobileArtifactActionState>>;
     currentPrincipalId?: string | null;
-    presentationContext?: TimelinePresentationContext;
     onLongPress?: (row: Extract<TimelineRow, { type: 'user-message' }>) => void;
     textSelectionEnabled?: boolean;
     compactTopSpacing?: boolean;
@@ -59,7 +60,6 @@ export const UserMessageRow = ({
     onCancelArtifactDownload,
     artifactActionStateByKey,
     currentPrincipalId,
-    presentationContext = DEFAULT_TIMELINE_PRESENTATION_CONTEXT,
     onLongPress,
     textSelectionEnabled = true,
     compactTopSpacing = false,
@@ -69,17 +69,19 @@ export const UserMessageRow = ({
 
     const attachmentIconSize = theme.space(3.5);
     const attachmentIconColor = theme.colors.textMuted;
-    const isCurrentPrincipal = isCurrentPrincipalUserMessage(
-        row,
-        currentPrincipalId,
-        presentationContext,
-    );
+    const isCurrentPrincipal = isCurrentPrincipalUserMessage(row, currentPrincipalId);
     const showAuthor = !isCurrentPrincipal && !compactTopSpacing;
 
-    const authorLabel = row.author
-        ? `${row.author.display_name} · @${row.author.nickname}`
-        : t('timelineMessageUnknownAuthor');
-
+    const agentAuthor = timelineAgentAuthorPresentation(row.author);
+    const agentAuthorLabel = timelineAgentAuthorLabel(row.author);
+    const isUnknownAgent = row.author?.actor.kind === 'agent_execution' && !agentAuthor;
+    const authorLabel =
+        agentAuthorLabel ??
+        (isUnknownAgent
+            ? t('modeAgentLabel')
+            : row.author
+              ? `${row.author.display_name} · @${row.author.nickname}`
+              : t('timelineMessageUnknownAuthor'));
     const replyLabel = row.reply
         ? row.replyState === 'deleted'
             ? t('timelineMessageReplyDeleted')
@@ -100,7 +102,22 @@ export const UserMessageRow = ({
         >
             {showAuthor ? (
                 <HStack accessible accessibilityLabel={authorLabel} style={styles.author}>
-                    {row.author ? (
+                    {agentAuthor ? (
+                        <>
+                            <Text numberOfLines={1} style={styles.authorName}>
+                                {agentAuthor.displayName}
+                            </Text>
+                            {agentAuthor.nickname ? (
+                                <Text numberOfLines={1} style={styles.authorNickname}>
+                                    @{agentAuthor.nickname}
+                                </Text>
+                            ) : null}
+                        </>
+                    ) : isUnknownAgent ? (
+                        <Text numberOfLines={1} style={styles.authorName}>
+                            {t('modeAgentLabel')}
+                        </Text>
+                    ) : row.author ? (
                         <>
                             <Text numberOfLines={1} style={styles.authorName}>
                                 {row.author.display_name}

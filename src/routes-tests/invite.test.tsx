@@ -91,9 +91,7 @@ const settleLatestPreview = async (): Promise<void> => {
 const joinScreen = (tree: ReactTestRenderer) =>
     tree.root.find(
         (node) =>
-            typeof node.props.onSubmit === 'function' &&
-            typeof node.props.onCancel === 'function' &&
-            node.props.presentation,
+            typeof node.props.onSubmit === 'function' && typeof node.props.onCancel === 'function',
     );
 
 describe('InviteRoute', () => {
@@ -135,11 +133,7 @@ describe('InviteRoute', () => {
         expect(mockClearInitialUrl).toHaveBeenCalledTimes(1);
         expect(mockPresentation).toHaveBeenCalledWith({ uri: invitationUri });
         expect(mockPreview).toHaveBeenCalledWith({ uri: invitationUri });
-        expect(joinScreen(tree!).props.presentation).toEqual({
-            gateway_base_url: 'https://gateway.example/',
-            gateway_id: 'G00000000000000000001',
-            transport_security: 'secure_wss',
-        });
+        expect(joinScreen(tree!).props).not.toHaveProperty('presentation');
     });
 
     it('deduplicates warm delivery and one submit produces one accept', async () => {

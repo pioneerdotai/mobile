@@ -126,7 +126,7 @@ describe('TimelineGroupingIndex', () => {
         });
     });
 
-    it('renders a system-authored task-child input as the right-side user message', () => {
+    it('keeps a system-authored task-child input attributed to system', () => {
         const childInput = timelineRow({
             type: 'user-message',
             key: 'turn:child-turn:user',
@@ -150,12 +150,68 @@ describe('TimelineGroupingIndex', () => {
 
         expect(standard.rowLayout(0).groupKind).toBe('historical-user');
         expect(child.rowLayout(0)).toEqual({
-            groupKind: 'current-user',
+            groupKind: 'historical-user',
             compactTopSpacing: false,
-            startsAvatarGroup: false,
+            startsAvatarGroup: true,
         });
-        expect(child.avatarGroups).toHaveLength(1);
-        expect(child.avatarGroups[0].startIndex).toBe(1);
+        expect(child.avatarGroups).toHaveLength(2);
+        expect(child.avatarGroups[0].source).toEqual({
+            kind: 'historical-user',
+            author: childInput.author,
+        });
+    });
+
+    it('keeps an agent-authored task-child input attributed to the exact agent', () => {
+        const author = {
+            actor: { kind: 'agent_execution' as const, id: 'E12345678901234567890' },
+            display_name: 'Planner',
+            nickname: 'planner',
+            avatar_revision: 'avatar-2',
+            agent: {
+                agent_identity_id: 'A12345678901234567890',
+                agent_execution_id: 'E12345678901234567890',
+                identity_source_kind: 'cli_runtime_instance' as const,
+                identity_source_revision: 2,
+                display_name: 'Planner',
+                nickname: 'planner',
+                avatar_revision: 'avatar-2',
+                role_label: 'Coordinator',
+            },
+        };
+        const row = timelineRow({
+            type: 'user-message',
+            key: 'agent-input',
+            itemId: 'user_child-turn',
+            turnId: 'child-turn',
+            author,
+        });
+
+        const rootGrouping = TimelineGroupingIndex.build([row], 'current-principal');
+        const childGrouping = TimelineGroupingIndex.build(
+            [row],
+            'current-principal',
+            TASK_CHILD_TIMELINE_PRESENTATION_CONTEXT,
+        );
+
+        expect(rootGrouping.rowLayout(0)).toEqual({
+            groupKind: 'historical-user',
+            compactTopSpacing: false,
+            startsAvatarGroup: true,
+        });
+        expect(rootGrouping.avatarGroups[0].source).toEqual({
+            kind: 'historical-user',
+            author,
+        });
+        expect(childGrouping.rowLayout(0)).toEqual({
+            groupKind: 'historical-user',
+            compactTopSpacing: false,
+            startsAvatarGroup: true,
+        });
+        expect(childGrouping.avatarGroups).toHaveLength(1);
+        expect(childGrouping.avatarGroups[0].source).toEqual({
+            kind: 'historical-user',
+            author,
+        });
     });
 
     it('keeps agent output and technical rows from one turn in one group', () => {
@@ -202,13 +258,96 @@ describe('TimelineGroupingIndex', () => {
         );
 
         expect(rootGrouping.avatarGroups.map(({ source }) => source)).toEqual([
-            { kind: 'agent', showsRunningDino: false },
-            { kind: 'agent', showsRunningDino: false },
+            { kind: 'agent', author: null, showsRunningDino: false },
+            { kind: 'agent', author: null, showsRunningDino: false },
         ]);
         expect(childGrouping.avatarGroups.map(({ source }) => source)).toEqual([
-            { kind: 'agent', showsRunningDino: false },
-            { kind: 'agent', showsRunningDino: true },
+            { kind: 'agent', author: null, showsRunningDino: false },
+            { kind: 'agent', author: null, showsRunningDino: true },
         ]);
+    });
+
+    it('uses the live responding agent snapshot for the running avatar group', () => {
+        const author = {
+            actor: { kind: 'agent_execution' as const, id: 'execution-responding' },
+            display_name: 'Researcher',
+            nickname: 'researcher',
+            agent: {
+                agent_execution_id: 'execution-responding',
+                agent_identity_id: 'identity-responding',
+                identity_source_kind: 'cli_runtime_instance' as const,
+                identity_source_revision: 7,
+                display_name: 'Researcher',
+                nickname: 'researcher',
+                role_label: 'Researcher',
+            },
+        };
+        const grouping = TimelineGroupingIndex.build(
+            [
+                timelineRow({
+                    type: 'running',
+                    key: 'running',
+                    turnId: 'turn-b',
+                    author: author,
+                }),
+            ],
+            'current-principal',
+            TASK_CHILD_TIMELINE_PRESENTATION_CONTEXT,
+        );
+
+        expect(grouping.avatarGroups[0].source).toEqual({
+            kind: 'agent',
+            author,
+            showsRunningDino: true,
+        });
+    });
+
+    it('keeps ready authored rows in one stable turn group', () => {
+        const author = {
+            actor: { kind: 'agent_execution' as const, id: 'execution-responding' },
+            display_name: 'Researcher',
+            nickname: 'researcher',
+            agent: {
+                agent_execution_id: 'execution-responding',
+                agent_identity_id: 'identity-responding',
+                identity_source_kind: 'cli_runtime_instance' as const,
+                identity_source_revision: 7,
+                display_name: 'Researcher',
+                nickname: 'researcher',
+                role_label: 'Researcher',
+            },
+        };
+        const rows = [
+            timelineRow({
+                type: 'work-group',
+                key: 'work',
+                turnId: 'turn-a',
+                author: author,
+            }),
+            timelineRow({
+                type: 'running',
+                key: 'running',
+                turnId: 'turn-a',
+                author: author,
+            }),
+            timelineRow({
+                type: 'assistant-message',
+                key: 'answer',
+                turnId: 'turn-a',
+                author: author,
+            }),
+        ];
+
+        const grouping = TimelineGroupingIndex.build(rows, 'current-principal');
+
+        expect(grouping.avatarGroups).toHaveLength(1);
+        expect(grouping.avatarGroups[0]).toMatchObject({
+            startIndex: 0,
+            endIndex: 2,
+            source: { kind: 'agent', author, showsRunningDino: false },
+        });
+        expect(grouping.rowLayout(1).compactTopSpacing).toBe(true);
+        expect(grouping.rowLayout(2).compactTopSpacing).toBe(true);
     });
 
     it('uses the rendered footer and bottom padding as the group bottom inset', () => {

@@ -21,7 +21,7 @@ import { KeyboardAwareLegendList } from '@legendapp/list/keyboard';
 import type { LegendListRef, OnViewableItemsChanged } from '@legendapp/list/react-native';
 import { useTranslation } from 'react-i18next';
 
-import type { ClientActiveThreadSnapshot, MemberSummary } from '@/client';
+import type { ClientActiveThreadSnapshot } from '@/client';
 import {
     formatElapsedMs,
     projectConversationToRows,
@@ -55,7 +55,6 @@ import { defaultTimelineRowExpanded } from './row-expansion';
 import { timelineRowsAreEqual } from './timeline-row-equality';
 import { viewedThroughLatestUserTurn } from './read-viewability';
 import { ensureTimelineRowRenderFingerprint } from '@/services/threads/conversation/render-fingerprint';
-import { applyCurrentMemberProfilesToTimelineRows } from '@/services/threads/timeline-member-profiles';
 import { VStack } from '@/components/primitives/vstack';
 import {
     mobileArtifactActionKey,
@@ -67,9 +66,11 @@ import {
     TIMELINE_AVATAR_SIZE_UNITS,
     TIMELINE_GROUP_VERTICAL_PADDING_UNITS,
     TimelineGroupingIndex,
+    type TimelineAvatarSource,
     type TimelinePresentationContext,
     type TimelineRowLayout,
 } from './timeline-grouping';
+import { timelineAgentAuthorLabel, timelineAgentAuthorPresentation } from './timeline-author-label';
 
 export type {
     TimelineTurnWorkBoundaryHint,
@@ -110,7 +111,6 @@ type ThreadTimelineProps = {
     canReviewTasks?: boolean;
     canCancelTasks?: boolean;
     canRespondToAgentRequests?: boolean;
-    memberProfiles?: readonly MemberSummary[];
     presentationContext?: TimelinePresentationContext;
     onOpenMessageRevisions?: (turnId: string) => void;
     onReplyToMessage?: (row: Extract<TimelineRow, { type: 'user-message' }>) => void;
@@ -124,7 +124,6 @@ type ThreadTimelineProps = {
     onRefresh: () => Promise<void>;
 };
 
-const EMPTY_MEMBER_PROFILES: readonly MemberSummary[] = [];
 const BOTTOM_FOLLOW_THRESHOLD_RATIO = 0.12;
 const TIMELINE_DRAW_DISTANCE = 640;
 const TIMELINE_ESTIMATED_ITEM_SIZE = 64;
@@ -180,7 +179,6 @@ const ThreadTimelineContent = ({
     canReviewTasks = false,
     canCancelTasks = false,
     canRespondToAgentRequests = false,
-    memberProfiles = EMPTY_MEMBER_PROFILES,
     presentationContext,
     onOpenMessageRevisions,
     onReplyToMessage,
@@ -269,10 +267,7 @@ const ThreadTimelineContent = ({
             timelineNowMs,
         ],
     );
-    const rows = useMemo(
-        () => applyCurrentMemberProfilesToTimelineRows(projectedRows, memberProfiles),
-        [memberProfiles, projectedRows],
-    );
+    const rows = projectedRows;
     const timelineGrouping = useMemo(
         () => TimelineGroupingIndex.build(rows, currentPrincipalId, presentationContext),
         [currentPrincipalId, presentationContext, rows],
@@ -374,6 +369,7 @@ const ThreadTimelineContent = ({
                 row={item}
                 threadId={conversation.thread_id ?? ''}
                 rowLayout={timelineGrouping.rowLayout(index)}
+                avatarSource={timelineGrouping.avatarGroupAt(index)?.source ?? null}
                 expanded={expandedRows[item.key] ?? defaultTimelineRowExpanded(item)}
                 mcpServerIdByName={mcpServerIdByName}
                 artifactWorkspaceId={artifactWorkspaceId}
@@ -606,6 +602,7 @@ const TimelineRowContainer = ({
     row,
     threadId,
     rowLayout,
+    avatarSource,
     expanded,
     mcpServerIdByName,
     artifactWorkspaceId,
@@ -628,6 +625,7 @@ const TimelineRowContainer = ({
     row: TimelineRow;
     threadId: string;
     rowLayout: TimelineRowLayout;
+    avatarSource: TimelineAvatarSource | null;
     expanded: boolean;
     mcpServerIdByName: Readonly<Record<string, string>>;
     artifactWorkspaceId?: string | null;
@@ -653,6 +651,10 @@ const TimelineRowContainer = ({
 }) => {
     const { t } = useTranslation('threads');
     const isAgentGroup = rowLayout.groupKind === 'agent';
+    const agentAuthor = avatarSource?.kind === 'agent' ? avatarSource.author : null;
+    const agentAuthorPresentation = timelineAgentAuthorPresentation(agentAuthor);
+    const agentAuthorLabel = timelineAgentAuthorLabel(agentAuthor);
+    const displayedAgentLabel = agentAuthorLabel ?? t('modeAgentLabel');
 
     return (
         <Box
@@ -663,10 +665,21 @@ const TimelineRowContainer = ({
             ]}
         >
             {isAgentGroup && rowLayout.startsAvatarGroup ? (
-                <HStack accessible style={styles.agentAuthor}>
+                <HStack
+                    accessible
+                    accessibilityLabel={displayedAgentLabel}
+                    style={styles.agentAuthor}
+                >
                     <Text numberOfLines={1} style={styles.agentName}>
-                        {t('modeAgentLabel')}
+                        {agentAuthorPresentation
+                            ? agentAuthorPresentation.displayName || '\u00a0'
+                            : t('modeAgentLabel')}
                     </Text>
+                    {agentAuthorPresentation?.nickname ? (
+                        <Text numberOfLines={1} style={styles.agentNickname}>
+                            @{agentAuthorPresentation.nickname}
+                        </Text>
+                    ) : null}
                 </HStack>
             ) : null}
             <TimelineRowRenderer
@@ -757,7 +770,6 @@ const TimelineRowRenderer = ({
                     onCancelArtifactDownload={onCancelArtifactDownload}
                     artifactActionStateByKey={artifactActionStateByKey}
                     currentPrincipalId={currentPrincipalId}
-                    presentationContext={presentationContext}
                     onLongPress={(messageRow) => onOpenMessageActions(messageRow)}
                     textSelectionEnabled={messageActionsRowKey !== row.key}
                 />
@@ -876,6 +888,7 @@ const insertPendingRequestRows = (
                 type: 'pending-request',
                 key,
                 turnId: entry.turn_id,
+                author: entry.author ?? null,
                 entry,
             }),
         ];
@@ -925,8 +938,10 @@ const styles = StyleSheet.create((theme) => ({
         paddingTop: theme.space(TIMELINE_GROUP_VERTICAL_PADDING_UNITS),
     },
     agentAuthor: {
+        maxWidth: '82%',
         minHeight: theme.space(TIMELINE_AVATAR_SIZE_UNITS),
         alignItems: 'center',
+        gap: theme.space(2),
         marginBottom: theme.space(1.5),
     },
     agentName: {
@@ -936,6 +951,14 @@ const styles = StyleSheet.create((theme) => ({
         fontSize: theme.fontSize.sm.fontSize,
         lineHeight: theme.fontSize.sm.lineHeight,
         fontWeight: theme.fontWeight.semibold.fontWeight,
+    },
+    agentNickname: {
+        minWidth: 0,
+        flexShrink: 1,
+        color: theme.colors.typography,
+        fontSize: theme.fontSize.sm.fontSize,
+        lineHeight: theme.fontSize.sm.lineHeight,
+        opacity: 0.6,
     },
     content: {
         paddingHorizontal: theme.space(2),

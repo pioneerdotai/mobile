@@ -8,10 +8,16 @@ export type PersistedActorRef =
       [k: string]: unknown;
     }
   | {
+      id: AgentExecutionId;
+      kind: 'agent_execution';
+      [k: string]: unknown;
+    }
+  | {
       kind: 'system';
       [k: string]: unknown;
     };
 export type PrincipalId = string;
+export type AgentExecutionId = string;
 
 export interface MessageRevisionPresentation {
   change_kind: TurnMessageRevisionChangeKind;

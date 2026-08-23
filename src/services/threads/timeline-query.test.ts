@@ -33,6 +33,11 @@ jest.mock('@/client', () => ({
 
 const query = (queryKey: QueryKey): Query => ({ queryKey }) as Query;
 
+const testQueryClient = (): QueryClient =>
+    new QueryClient({
+        defaultOptions: { queries: { gcTime: Infinity } },
+    });
+
 const activeThreadSnapshot = (threadId: string, revision: number): ClientActiveThreadSnapshot =>
     ({
         thread_id: threadId,
@@ -41,7 +46,7 @@ const activeThreadSnapshot = (threadId: string, revision: number): ClientActiveT
 
 describe('mobile timeline query orchestration', () => {
     it('keeps independent parent and child snapshots in the React Query cache', () => {
-        const queryClient = new QueryClient();
+        const queryClient = testQueryClient();
         const parent = activeThreadSnapshot('parent', 2);
         const updatedParent = activeThreadSnapshot('parent', 3);
         const child = activeThreadSnapshot('child', 1);
@@ -55,7 +60,7 @@ describe('mobile timeline query orchestration', () => {
     });
 
     it('does not replace a live snapshot with an older background refresh', () => {
-        const queryClient = new QueryClient();
+        const queryClient = testQueryClient();
         const live = activeThreadSnapshot('parent', 4);
         const staleRefresh = activeThreadSnapshot('parent', 3);
         const freshRefresh = activeThreadSnapshot('parent', 5);
@@ -69,7 +74,7 @@ describe('mobile timeline query orchestration', () => {
     });
 
     it('clears all thread snapshots together with semantic pages on session cleanup', async () => {
-        const queryClient = new QueryClient();
+        const queryClient = testQueryClient();
         cacheActiveThreadSnapshot(queryClient, activeThreadSnapshot('parent', 1));
         queryClient.setQueryData(timelineQueryKeys.threadPages('parent'), ['page']);
 
@@ -97,7 +102,7 @@ describe('mobile timeline query orchestration', () => {
     });
 
     it('cancels stale timeline requests on thread switch by predicate', async () => {
-        const queryClient = new QueryClient();
+        const queryClient = testQueryClient();
         const cancelSpy = jest.spyOn(queryClient, 'cancelQueries').mockResolvedValue(undefined);
 
         await cancelTimelineQueriesExceptThread(queryClient, 'thread_a');
@@ -121,7 +126,7 @@ describe('mobile timeline query orchestration', () => {
     });
 
     it('invalidates active semantic query slices without touching unrelated threads', async () => {
-        const queryClient = new QueryClient();
+        const queryClient = testQueryClient();
         const invalidateSpy = jest
             .spyOn(queryClient, 'invalidateQueries')
             .mockResolvedValue(undefined);
@@ -158,7 +163,7 @@ describe('mobile timeline query orchestration', () => {
     });
 
     it('removes all cached semantic pages for a closed thread viewport', () => {
-        const queryClient = new QueryClient();
+        const queryClient = testQueryClient();
         const removeSpy = jest.spyOn(queryClient, 'removeQueries').mockImplementation(() => {});
 
         removeTimelineQueriesForThread(queryClient, 'thread_a');

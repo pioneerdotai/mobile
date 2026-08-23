@@ -14,35 +14,41 @@ jest.mock('expo-image', () => ({ Image: 'Image' }));
 jest.mock('react-i18next', () => ({
     useTranslation: () => ({ t: (key: string) => key }),
 }));
-jest.mock('react-native-unistyles', () => ({
-    StyleSheet: { create: (styles: unknown) => styles },
-    useUnistyles: () => ({
-        theme: {
-            colors: {
-                background: '#fff',
-                border: '#ddd',
-                surfaceMuted: '#eee',
-                text: '#111',
-                textMuted: '#777',
-            },
-            fontSize: {
-                sm: { fontSize: 14, lineHeight: 18 },
-                xs: { fontSize: 12, lineHeight: 16 },
-            },
-            fontWeight: {
-                medium: { fontWeight: '500' },
-                semibold: { fontWeight: '600' },
-            },
-            radius: {
-                '2xl': 16,
-                full: 999,
-                md: 8,
-            },
-            space: (value: number) => value * 4,
+jest.mock('react-native-unistyles', () => {
+    const theme = {
+        colors: {
+            background: '#fff',
+            border: '#ddd',
+            surfaceMuted: '#eee',
+            text: '#111',
+            textMuted: '#777',
         },
-        rt: { themeName: 'light' },
-    }),
-}));
+        fontSize: {
+            sm: { fontSize: 14, lineHeight: 18 },
+            xs: { fontSize: 12, lineHeight: 16 },
+        },
+        fontWeight: {
+            medium: { fontWeight: '500' },
+            semibold: { fontWeight: '600' },
+        },
+        radius: {
+            '2xl': 16,
+            full: 999,
+            md: 8,
+        },
+        space: (value: number) => value * 4,
+    };
+
+    return {
+        StyleSheet: {
+            create: (styles: unknown) => (typeof styles === 'function' ? styles(theme) : styles),
+        },
+        useUnistyles: () => ({
+            theme,
+            rt: { themeName: 'light' },
+        }),
+    };
+});
 jest.mock('lucide-react-native', () => ({
     ChevronRight: () => 'ChevronRight',
     Info: () => null,

@@ -1,9 +1,19 @@
 import React from 'react';
 import renderer, { act, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
-import { describe, expect, it, jest } from '@jest/globals';
+import { afterEach, describe, expect, it, jest } from '@jest/globals';
 
 import type { ComposerSkillChip } from '@/client';
 import { ThreadComposer } from './thread-composer';
+
+const mountedTrees: ReactTestRenderer[] = [];
+
+afterEach(() => {
+    act(() => {
+        for (const tree of mountedTrees.splice(0)) {
+            tree.unmount();
+        }
+    });
+});
 
 const theme = {
     colors: {
@@ -201,6 +211,7 @@ describe('mobile Composer interactions', () => {
                     })}
                 />,
             );
+            mountedTrees.push(tree);
         });
 
         const buttons = tree!.root.findAll((node) => (node.type as unknown) === 'Pressable');
@@ -218,6 +229,7 @@ describe('mobile Composer interactions', () => {
                     onRemoveSkillChip={onRemoveSkillChip}
                 />,
             );
+            mountedTrees.push(tree);
         });
 
         expect(chipForLabel(tree!.root, 'Research Pack')).toBeDefined();
@@ -244,6 +256,7 @@ describe('mobile Composer interactions', () => {
                     })}
                 />,
             );
+            mountedTrees.push(tree);
         });
 
         const buttons = tree!.root.findAll((node) => (node.type as unknown) === 'Pressable');
@@ -281,6 +294,7 @@ describe('mobile Composer interactions', () => {
                     })}
                 />,
             );
+            mountedTrees.push(tree);
         });
 
         expect(tree!.root.findAll((node) => node.props.accessibilityLabel === 'Chat')).toHaveLength(

@@ -7,6 +7,9 @@
     "add": "Ajouter",
     "startupFailed": "Impossible d'initialiser l'application.",
     "taskNotificationTitle": "Résultat de la tâche",
+    "taskNotificationAgent": "Agent",
+    "taskNotificationSystem": "Système",
+    "taskNotificationUnknownHistoricalActor": "Acteur historique inconnu",
     "taskNotificationCompleted": "Tâche terminée",
     "taskNotificationMarkRead": "Marquer comme lu"
 }

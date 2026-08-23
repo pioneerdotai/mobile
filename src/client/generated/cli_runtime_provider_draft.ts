@@ -24,6 +24,11 @@ export interface CLIRuntimeProviderDraft {
   id: string;
   kind: CLIAgentRuntimeKind;
   mode: CLIRuntimeProviderDraftMode;
+  /**
+   * Stable agent presentation nickname.  The UI does not expose this
+   * field yet, but edits must preserve the gateway-owned value.
+   */
+  nickname?: string;
   shadow_home_path: string;
   [k: string]: unknown;
 }

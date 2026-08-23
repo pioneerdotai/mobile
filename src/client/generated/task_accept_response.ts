@@ -43,6 +43,8 @@ export type TaskResultCandidateStatus =
   'pending_review' | 'accepted' | 'rejected' | 'superseded' | 'extraction_failed' | 'cancelled';
 export type TaskResultReviewDecision = 'accept' | 'request_changes' | 'reject' | 'abstain' | 'cancel';
 export type TaskResultReviewEventKind = 'advisory' | 'decision' | 'override' | 'system_auto';
+export type PrincipalId = string;
+export type AgentExecutionId = string;
 export type TaskResultReviewerKind = 'runtime_auto' | 'parent_agent' | 'review_agent' | 'user' | 'system';
 export type TaskExecutorKind = 'agent' | 'tool' | 'workflow' | 'webhook' | 'system';
 export type TaskRunStatus =
@@ -77,6 +79,33 @@ export type TaskDeliveryThreadTarget = 'origin_thread' | 'current_thread' | 'col
 export type TaskAttachmentMode = 'attached' | 'detached';
 export type TaskCompletionBehavior = 'complete_on_terminal_run' | 'keep_active_for_recurring' | 'manual';
 export type TaskParentTerminalAction = 'cancel' | 'detach' | 'keep_running';
+export type AgentRouteAction =
+  'send_message' | 'start_agent' | 'create_task' | 'schedule_task' | 'review_task_result' | 'deliver_result';
+export type AgentIdentityId = string;
+export type AgentExecutionProfileId = string;
+export type AgentDelegationRouteId = string;
+export type AgentIdentitySelection =
+  | ('inherit_parent' | 'default_pioneer')
+  | {
+      exact: {
+        agent_identity_id: AgentIdentityId;
+      };
+    }
+  | {
+      server_derived_ephemeral: {
+        display_name_hint?: string | null;
+        role_label?: string | null;
+      };
+    };
+export type TurnPermissionMode = 'full_access' | 'auto_accept_edits' | 'supervised';
+export type AgentExecutionProfileSelection =
+  | 'inherit_parent'
+  | {
+      exact: {
+        profile_id: AgentExecutionProfileId;
+      };
+    };
+export type SkillId = string;
 export type TurnCapabilityKind =
   | {
       packId?: SkillPackId | null;
@@ -103,7 +132,6 @@ export type TurnCapabilityKind =
       [k: string]: unknown;
     };
 export type SkillPackId = string;
-export type SkillId = string;
 export type McpScopeKind = 'workspace' | 'user';
 export type AgentExecutionBackend =
   | {
@@ -182,9 +210,7 @@ export type UserInput =
       type: 'mention';
       [k: string]: unknown;
     };
-export type PrincipalId = string;
 export type ThreadMode = ('Message' | 'Agent') | 'Chat';
-export type TurnPermissionMode = 'full_access' | 'auto_accept_edits' | 'supervised';
 export type SandboxMode = 'FullAccess';
 export type TaskOwnerKind = 'user' | 'thread' | 'workspace' | 'system';
 export type TaskRetryBackoffKind = 'none' | 'fixed' | 'exponential';
@@ -255,6 +281,24 @@ export interface TaskResultReviewEvent {
   feedbackText?: string | null;
   id: string;
   nextTaskRunTurnId?: string | null;
+  /**
+   * Exact durable reviewer used for authorization and audit.
+   */
+  reviewer:
+    | {
+        id: PrincipalId;
+        kind: 'principal';
+        [k: string]: unknown;
+      }
+    | {
+        id: AgentExecutionId;
+        kind: 'agent_execution';
+        [k: string]: unknown;
+      }
+    | {
+        kind: 'runtime_policy';
+        [k: string]: unknown;
+      };
   reviewerAgentSpecId?: string | null;
   reviewerKind: TaskResultReviewerKind;
   reviewerThreadId?: string | null;
@@ -359,6 +403,17 @@ export interface TaskComposerWork {
   [k: string]: unknown;
 }
 export interface TurnStartParams {
+  /**
+   * Explicit, bounded cross-capsule delegations requested for this root
+   * Agent execution. These are authorization inputs, never prompt content.
+   */
+  agent_delegation_routes?: AgentRootDelegationRequest[];
+  /**
+   * Typed identity/profile intent for a root Agent Turn. When omitted, the
+   * protected Pioneer identity is selected, or the exact CLI identity named
+   * by `execution_backend` is used.
+   */
+  agent_launch?: AgentLaunchSelection | null;
   capabilities?: TurnCapability[];
   cli_runtime_options?: TurnCLIRuntimeOptions | null;
   execution_backend?: AgentExecutionBackend | null;
@@ -373,6 +428,69 @@ export interface TurnStartParams {
   sandbox_policy?: SandboxPolicy | null;
   thread_id: string;
   turn_id: string;
+  [k: string]: unknown;
+}
+/**
+ * Optional typed extension accepted by `turn/start` for automatic,
+ * short-lived root-execution delegation. It is deliberately separate from
+ * the prompt and has no participant/role/ACL fields.
+ */
+export interface AgentRootDelegationRequest {
+  allowedActions: AgentRouteAction[];
+  destinationAgentIdentityId?: AgentIdentityId | null;
+  destinationProfileId?: AgentExecutionProfileId | null;
+  destinationThreadId: string;
+  disclosure: AgentRouteDisclosurePolicy;
+  expiresAt: number;
+  idempotencyKey: string;
+  returnRouteId?: AgentDelegationRouteId | null;
+}
+export interface AgentRouteDisclosurePolicy {
+  /**
+   * Exact, already-authorized artifact handles. Raw files and paths are
+   * never represented by this flag.
+   */
+  artifacts?: boolean;
+  /**
+   * Bounded conversation excerpts or summaries selected by server policy.
+   */
+  context?: boolean;
+  /**
+   * Result return is a separate disclosure class: allowing ordinary text
+   * must never imply that a full Task result can cross a capsule boundary.
+   */
+  resultReturn?: 'none' | 'summary_only' | 'full_result';
+  /**
+   * Explicit text authored for the routed operation.
+   */
+  text?: boolean;
+  /**
+   * Explicit user-provided Task inputs. This is deliberately independent
+   * from Agent-authored text and inherited conversation context.
+   */
+  userInput?: boolean;
+}
+export interface AgentLaunchSelection {
+  agent: AgentIdentitySelection;
+  execution: AgentExecutionSelection;
+}
+export interface AgentExecutionSelection {
+  mcpServerIds?: string[];
+  permissionProfile?: TurnPermissionProfileSelection | null;
+  profile: AgentExecutionProfileSelection;
+  reasoning?: TurnReasoningSelection | null;
+  skillIds?: SkillId[];
+}
+export interface TurnPermissionProfileSelection {
+  mode: TurnPermissionMode;
+  [k: string]: unknown;
+}
+export interface TurnReasoningSelection {
+  /**
+   * String-valued because CLI runtimes may advertise efforts newer than
+   * Pioneer API-provider adapters understand.
+   */
+  effort: string;
   [k: string]: unknown;
 }
 export interface TurnCapability {
@@ -397,18 +515,6 @@ export interface TextElement {
 export interface ByteRange {
   end: number;
   start: number;
-  [k: string]: unknown;
-}
-export interface TurnPermissionProfileSelection {
-  mode: TurnPermissionMode;
-  [k: string]: unknown;
-}
-export interface TurnReasoningSelection {
-  /**
-   * String-valued because CLI runtimes may advertise efforts newer than
-   * Pioneer API-provider adapters understand.
-   */
-  effort: string;
   [k: string]: unknown;
 }
 export interface SandboxPolicy {

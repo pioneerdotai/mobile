@@ -13,6 +13,7 @@ export type TimelineBlockKind =
       mode?: ('Message' | 'Agent') | 'Chat';
       reply?: TimelineReplySummary | null;
       revision?: number;
+      route?: SafeRouteProvenance | null;
       text?: string;
       [k: string]: unknown;
     }
@@ -22,25 +23,34 @@ export type TimelineBlockKind =
       [k: string]: unknown;
     }
   | {
+      author?: TurnAuthorSnapshot | null;
       kind: 'detached_task_run';
       task: TaskTurnItem;
       [k: string]: unknown;
     }
   | {
+      author?: TurnAuthorSnapshot | null;
       itemId: string;
       kind: 'assistant_message';
       markdown?: MarkdownDocument | null;
+      route?: SafeRouteProvenance | null;
       status?: 'running' | 'completed' | 'blocked' | 'failed' | 'cancelled';
       text: string;
       [k: string]: unknown;
     }
   | {
+      /**
+       * Exact responding execution whose work this lifecycle row describes.
+       */
+      author?: TurnAuthorSnapshot | null;
       kind: 'turn_state';
       message?: string | null;
+      route?: SafeRouteProvenance | null;
       state: TurnWorkState;
       [k: string]: unknown;
     }
   | {
+      author?: TurnAuthorSnapshot | null;
       itemId?: string | null;
       kind: 'pending_request';
       request: CLIRuntimePendingRequest;
@@ -143,10 +153,18 @@ export type PersistedActorRef =
       [k: string]: unknown;
     }
   | {
+      id: AgentExecutionId;
+      kind: 'agent_execution';
+      [k: string]: unknown;
+    }
+  | {
       kind: 'system';
       [k: string]: unknown;
     };
 export type PrincipalId = string;
+export type AgentExecutionId = string;
+export type AgentIdentityId = string;
+export type AgentIdentitySourceKind = 'native_agent' | 'cli_runtime_instance' | 'ephemeral';
 export type UserInput =
   | {
       text: string;
@@ -206,6 +224,10 @@ export type UserInput =
       type: 'mention';
       [k: string]: unknown;
     };
+export type AgentRouteAction =
+  'send_message' | 'start_agent' | 'create_task' | 'schedule_task' | 'review_task_result' | 'deliver_result';
+export type CrossThreadSourceVisibility = 'accessible' | 'inaccessible';
+export type AgentWorkNodeState = 'queued' | 'running' | 'completed' | 'failed' | 'cancelled' | 'blocked';
 export type TurnWorkPresentation = 'expanded_live' | 'collapsed_after_final' | 'expanded_terminal_no_final';
 export type TurnWorkState =
   'starting' | 'running' | 'waiting_for_approval' | 'stalled' | 'completed' | 'blocked' | 'failed' | 'interrupted';
@@ -453,6 +475,11 @@ export type TurnItem =
   | {
       arguments: unknown;
       display: ToolDisplayPayload;
+      /**
+       * Operational supervision semantics declared by the tool contract.
+       * This is independent from the presentation-level item type.
+       */
+      executionClass?: ('standard' | 'context_compaction') | 'durable_wait';
       id: string;
       observation?: ToolObservation | null;
       outcome?: ToolOutcome | null;
@@ -949,9 +976,26 @@ export interface TurnMcpToolCapabilitySummary {
 }
 export interface TurnAuthorSnapshot {
   actor: PersistedActorRef;
+  /**
+   * Full immutable identity presentation for an agent-authored Turn.  This
+   * is carried with the Turn instead of being reconstructed from mutable
+   * identity/runtime state. Non-agent actors leave it absent.
+   */
+  agent?: AgentPresentationSnapshot | null;
   avatar_revision?: string | null;
   display_name: string;
   nickname: string;
+  [k: string]: unknown;
+}
+export interface AgentPresentationSnapshot {
+  agent_execution_id: AgentExecutionId;
+  agent_identity_id: AgentIdentityId;
+  avatar_revision?: string | null;
+  display_name: string;
+  identity_source_kind: AgentIdentitySourceKind;
+  identity_source_revision: number;
+  nickname: string;
+  role_label?: string | null;
   [k: string]: unknown;
 }
 export interface TextElement {
@@ -976,8 +1020,53 @@ export interface TimelineReplySummary {
   turnId: string;
   [k: string]: unknown;
 }
+export interface SafeRouteProvenance {
+  action: AgentRouteAction;
+  disclosure: AgentRouteDisclosurePolicy;
+  /**
+   * Present only when the viewer has source read authority.  Source title,
+   * participants, prompts, and raw identifiers are never sent otherwise.
+   */
+  sourceThreadLabel?: string | null;
+  visibility: CrossThreadSourceVisibility;
+}
+export interface AgentRouteDisclosurePolicy {
+  /**
+   * Exact, already-authorized artifact handles. Raw files and paths are
+   * never represented by this flag.
+   */
+  artifacts?: boolean;
+  /**
+   * Bounded conversation excerpts or summaries selected by server policy.
+   */
+  context?: boolean;
+  /**
+   * Result return is a separate disclosure class: allowing ordinary text
+   * must never imply that a full Task result can cross a capsule boundary.
+   */
+  resultReturn?: 'none' | 'summary_only' | 'full_result';
+  /**
+   * Explicit text authored for the routed operation.
+   */
+  text?: boolean;
+  /**
+   * Explicit user-provided Task inputs. This is deliberately independent
+   * from Agent-authored text and inherited conversation context.
+   */
+  userInput?: boolean;
+}
 export interface TurnWorkBlock {
   afterCursor?: TimelineCursor | null;
+  /**
+   * Server-owned aggregate state for the root Agent work graph bound to
+   * this Turn. Descendant Turns do not repeat the graph projection.
+   */
+  agentWorkGraph?: AgentWorkGraphProjection | null;
+  /**
+   * Exact execution whose work this row presents. This is separate from
+   * the Turn input author and is required for stable Agent attribution.
+   */
+  author?: TurnAuthorSnapshot | null;
   beforeCursor?: TimelineCursor | null;
   completedAtUnixMs?: number | null;
   elapsedMs?: number | null;
@@ -997,6 +1086,34 @@ export interface TurnWorkBlock {
 export interface TimelineCursor {
   value: string;
   [k: string]: unknown;
+}
+export interface AgentWorkGraphProjection {
+  /**
+   * Stable, bounded nodes in the exact root graph. No prompt, provider,
+   * model, thread title, runtime path, or other private payload is exposed.
+   */
+  nodes: AgentWorkNodeProjection[];
+  queuedCount: number;
+  rootExecutionId: AgentExecutionId;
+  runningCount: number;
+  /**
+   * True while one or more authorized nodes are durably queued for
+   * server-owned capacity. This is resource state, not an authorization
+   * failure and never implies that the whole graph is blocked.
+   */
+  saturated: boolean;
+  terminalCount: number;
+  /**
+   * Monotonic persisted resource-state timestamp used only to reject stale
+   * graph projections racing with live queue/promotion/finalization events.
+   */
+  updatedAtUnixMicros: number;
+}
+export interface AgentWorkNodeProjection {
+  executionId: AgentExecutionId;
+  progressLabel?: string | null;
+  progressRevision: number;
+  state: AgentWorkNodeState;
 }
 export interface TaskTurnItem {
   agentRole?: string | null;
@@ -1249,6 +1366,7 @@ export interface ItemView {
   opaque_meta?: unknown;
   partial_markdown?: MarkdownDocument | null;
   partial_text: string;
+  route?: SafeRouteProvenance | null;
   started_at_unix_ms?: number | null;
   status: TimelineEntryStatus;
   timeline_origin?: TimelineOrigin | null;
@@ -1338,6 +1456,7 @@ export interface TurnBlockedResumeMetadata {
   [k: string]: unknown;
 }
 export interface TimelineRow {
+  author?: TurnAuthorSnapshot | null;
   key: string;
   kind: TimelineRowKind;
   [k: string]: unknown;
@@ -1359,6 +1478,7 @@ export interface UserMessagePresentation {
   reply?: TimelineReplySummary | null;
   reply_state?: TimelineReplyState | null;
   revision: number;
+  route?: SafeRouteProvenance | null;
   thread_id: string;
   turn_id: string;
   workspace_id: string;
@@ -1382,8 +1502,10 @@ export interface TimelineCoalescedToolsRow {
   [k: string]: unknown;
 }
 export interface RunningTurnDisplay {
+  agent_work_graph?: AgentWorkGraphProjection | null;
   message?: string | null;
   permission_profile?: TurnPermissionProfileSnapshot | null;
+  route?: SafeRouteProvenance | null;
   security_summary?: ClientTurnSecuritySummary | null;
   started_at_unix_ms?: number | null;
   state?: TurnWorkState | null;
@@ -1401,6 +1523,12 @@ export interface Thread {
   name?: string | null;
   origin_kind?: ('task_run' | 'system') | 'collaborative' | 'direct_message' | 'user';
   preview: string;
+  /**
+   * Immutable author of the Turn that owns `preview`. Thread trees and
+   * notifications must not pair preview text with the latest responding
+   * execution or reconstruct this value from mutable agent settings.
+   */
+  preview_author?: TurnAuthorSnapshot | null;
   reasoning_effort?: string | null;
   sidebar_visibility?: 'visible' | 'hidden';
   status: ThreadStatus;

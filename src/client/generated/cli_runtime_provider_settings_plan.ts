@@ -96,6 +96,12 @@ export interface GatewayCliRuntimeInstanceSettings {
   home_path: string;
   id: string;
   kind: CLIAgentRuntimeKind;
+  /**
+   * Stable workspace nickname used by the direct AgentIdentity projection.
+   * The default keeps old settings files readable; gateway validation owns
+   * uniqueness and rejects an empty/duplicate value before activation.
+   */
+  nickname?: string;
   shadow_home_path?: string | null;
   [k: string]: unknown;
 }

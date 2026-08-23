@@ -7,6 +7,9 @@
     "add": "添加",
     "startupFailed": "无法初始化应用。",
     "taskNotificationTitle": "任务结果",
+    "taskNotificationAgent": "智能体",
+    "taskNotificationSystem": "系统",
+    "taskNotificationUnknownHistoricalActor": "未知历史执行者",
     "taskNotificationCompleted": "任务已完成",
     "taskNotificationMarkRead": "标记为已读"
 }

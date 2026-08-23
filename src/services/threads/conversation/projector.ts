@@ -89,6 +89,7 @@ const projectPendingRequestToRow = (entry: TimelinePendingRequest): TimelineRow 
     type: 'pending-request',
     key: `timeline-pending-request::${entry.request.request_id}`,
     turnId: entry.turn_id,
+    author: entry.author ?? null,
     entry,
 });
 
@@ -132,6 +133,7 @@ const projectClientConversationRowContent = (
         return {
             ...projected,
             key: row.key,
+            author: row.author ?? null,
             startedAtUnixMs: item.started_at_unix_ms ?? null,
             ...(options.semanticWorkItemKeys?.has(row.key) ? { semanticWorkItem: true } : {}),
         };
@@ -165,7 +167,7 @@ const projectClientConversationRowContent = (
                 ? []
                 : projectUserMessageAttachments(presentation.attachments ?? []),
             mode: presentation.mode,
-            author: presentation.author ?? null,
+            author: row.author ?? null,
             reply: presentation.reply ?? null,
             replyState,
             mentions: presentation.deleted ? [] : (presentation.mentions ?? []),
@@ -181,17 +183,19 @@ const projectClientConversationRowContent = (
         const anchorItem = anchorEntry ? itemsById.get(anchorEntry.item_id) : null;
         const toggleKey = group.toggle_key || row.key;
         const semanticTurnId = semanticTurnWorkTurnIdFromKey(toggleKey);
+        const turnId = anchorEntry?.turn_id ?? anchorItem?.turn_id ?? semanticTurnId ?? '';
 
         return {
             type: 'work-group',
             key: toggleKey,
-            turnId: anchorEntry?.turn_id ?? anchorItem?.turn_id ?? semanticTurnId ?? '',
+            turnId,
             anchorItemId: anchorItem?.id ?? anchorEntry?.item_id ?? '',
             anchorEntryId: group.anchor_entry_id,
             title: tt('timelineWorked'),
             elapsedMs: group.elapsed_ms ?? null,
             elapsedLabel: group.elapsed_ms == null ? null : formatElapsedMs(group.elapsed_ms),
             expanded: expandedContains(options.expandedKeys, toggleKey),
+            author: row.author ?? null,
         };
     }
 
@@ -210,6 +214,7 @@ const projectClientConversationRowContent = (
             status: 'completed',
             expanded: expandedContains(options.expandedKeys, toggleKey),
             items: [],
+            author: row.author ?? null,
         };
     }
 
@@ -227,6 +232,7 @@ const projectClientConversationRowContent = (
             elapsedLabel: elapsedMs >= 1_000 ? formatElapsedMs(elapsedMs) : null,
             state: runningTurn.state ?? null,
             message: runningTurn.message ?? null,
+            author: row.author ?? null,
             securitySummary: runningTurn.security_summary ?? null,
         };
     }

@@ -7,6 +7,9 @@
     "add": "Добавить",
     "startupFailed": "Не удалось инициализировать приложение.",
     "taskNotificationTitle": "Результат задачи",
+    "taskNotificationAgent": "Агент",
+    "taskNotificationSystem": "Система",
+    "taskNotificationUnknownHistoricalActor": "Неизвестный исторический автор",
     "taskNotificationCompleted": "Задача завершена",
     "taskNotificationMarkRead": "Отметить прочитанным"
 }

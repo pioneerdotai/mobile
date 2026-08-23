@@ -412,12 +412,14 @@ export const ThreadComposer = ({
             return;
         }
 
-        if (voiceMode) {
-            closeVoiceMode();
-            return;
-        }
+        const focusFrame = requestAnimationFrame(() => {
+            if (voiceMode) {
+                closeVoiceMode();
+                return;
+            }
 
-        const focusFrame = requestAnimationFrame(() => inputRef.current?.focus?.());
+            inputRef.current?.focus?.();
+        });
         return () => cancelAnimationFrame(focusFrame);
     }, [closeVoiceMode, composerContextFocusKey, voiceMode]);
 

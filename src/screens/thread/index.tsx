@@ -22,6 +22,7 @@ import {
     type Thread,
     type TimelineBlock,
     type TurnWorkBlock,
+    type TurnWorkItem,
     type UserInput,
     type VoiceSessionResultReduction,
     type VoiceStatusResponse,
@@ -59,10 +60,6 @@ import {
     isCliRuntimeProvider,
 } from '@/services/providers/cli-runtime';
 import { refreshCliRuntimeSummaries } from '@/services/providers/cli-runtime-live';
-import {
-    projectSemanticTimelineToRows,
-    type SemanticTurnWorkRange,
-} from '@/services/threads/semantic-projector';
 import { projectConversationToRows } from '@/services/threads/conversation/projector';
 import { activeThreadSnapshot } from '@/services/threads/active';
 import { projectAgentActionCapabilities } from '@/services/threads/agent-capabilities';
@@ -103,10 +100,7 @@ import {
 } from '@/components/thread/timeline/message-mutation-modal';
 import { administrationQueryKeys } from '@/services/administration/query';
 import { loadAllMembers, loadAllWorkspaceMembers } from '@/services/administration/members';
-import {
-    projectWorkspaceMemberProfiles,
-    projectWorkspaceMentionCandidates,
-} from '@/services/threads/mentions';
+import { projectWorkspaceMentionCandidates } from '@/services/threads/mentions';
 import { composerPermissionModeIsAllowed } from '@/services/threads/permission-modes';
 import { ThreadActionsSheet } from '@/components/overlays/thread-actions';
 
@@ -122,6 +116,12 @@ type ThreadScreenProps = {
 type MessageEditTarget = {
     threadId: string;
     row: Extract<TimelineRow, { type: 'user-message' }>;
+};
+
+type SemanticTurnWorkRange = {
+    work: TurnWorkBlock | null;
+    items: TurnWorkItem[];
+    hasLoadedPage: boolean;
 };
 
 const THREAD_COMPOSER_INPUT_NATIVE_ID = 'thread-composer-input';
@@ -290,15 +290,6 @@ const ThreadScreen = ({
             mentionDirectoryQuery.data?.members,
         ],
     );
-    const timelineMemberProfiles = useMemo(
-        () =>
-            projectWorkspaceMemberProfiles(
-                mentionDirectoryQuery.data?.members ?? [],
-                gatewayMemberDirectoryQuery.data?.members ?? [],
-            ),
-        [gatewayMemberDirectoryQuery.data?.members, mentionDirectoryQuery.data?.members],
-    );
-
     const syncComposerModelSelection = useActiveThreadStore(
         (state) => state.syncComposerModelSelection,
     );
@@ -746,45 +737,14 @@ const ThreadScreen = ({
             ),
         [expandedKeys, threadTimelineBlocksQuery.blocks, visibleSnapshot, visibleTurnId],
     );
-    const semanticTimelineRows = useMemo(
-        () =>
-            visibleSnapshot && threadTimelineBlocksQuery.hasLoadedPage
-                ? projectSemanticTimelineToRows({
-                      snapshot: visibleSnapshot,
-                      blocks: threadTimelineBlocksQuery.blocks,
-                      expandedKeys,
-                      workRangesByTurn: semanticWorkRangesByTurn,
-                  })
-                : null,
-        [
-            expandedKeys,
-            semanticWorkRangesByTurn,
-            threadTimelineBlocksQuery.blocks,
-            threadTimelineBlocksQuery.hasLoadedPage,
-            visibleSnapshot,
-        ],
-    );
     const hasNativeTimelineRows = Boolean((visibleSnapshot?.rows.length ?? 0) > 0);
-    const timelineRowsOverride = useMemo(
-        () => (hasNativeTimelineRows ? null : (semanticTimelineRows ?? [])),
-        [hasNativeTimelineRows, semanticTimelineRows],
-    );
-    const semanticPendingRequests = useMemo<TimelinePendingRequest[]>(
-        () =>
-            (semanticTimelineRows ?? []).flatMap((row) =>
-                'type' in row && row.type === 'pending-request' ? [row.entry] : [],
-            ),
-        [semanticTimelineRows],
-    );
     const renderedTimelineRowsForVoice = useMemo<TimelineRow[]>(() => {
         if (!visibleSnapshot) {
             return [];
         }
 
-        return hasNativeTimelineRows
-            ? projectConversationToRows(visibleSnapshot)
-            : (timelineRowsOverride ?? []);
-    }, [hasNativeTimelineRows, timelineRowsOverride, visibleSnapshot]);
+        return projectConversationToRows(visibleSnapshot);
+    }, [visibleSnapshot]);
     const voiceCommitPendingTurnId =
         voiceCommitPendingTurn?.threadId === visibleThreadId ? voiceCommitPendingTurn.turnId : null;
     const voiceCommitUserMessageVisible = useMemo(() => {
@@ -939,14 +899,8 @@ const ThreadScreen = ({
             });
         }
 
-        for (const request of semanticPendingRequests) {
-            if (!byRequestId.has(request.request.request_id)) {
-                byRequestId.set(request.request.request_id, request);
-            }
-        }
-
         return Array.from(byRequestId.values());
-    }, [semanticPendingRequests, visibleSnapshot?.pending_requests]);
+    }, [visibleSnapshot?.pending_requests]);
     const activeCliRuntimeThreadBinding =
         cliRuntimeThreadBinding?.workspace_id === activeWorkspaceId &&
         cliRuntimeThreadBinding.thread_id === visibleThreadId
@@ -1974,7 +1928,6 @@ const ThreadScreen = ({
                             ref={timelineRef}
                             conversation={visibleSnapshot}
                             timelineIdentityKey={timelineIdentityKey}
-                            rowsOverride={timelineRowsOverride}
                             loading={false}
                             closed={closed}
                             connected={connected}
@@ -2008,7 +1961,6 @@ const ThreadScreen = ({
                             canRespondToAgentRequests={
                                 threadAgentCapabilities?.can_respond_to_agent_requests ?? false
                             }
-                            memberProfiles={timelineMemberProfiles}
                             presentationContext={
                                 taskChildThread
                                     ? TASK_CHILD_TIMELINE_PRESENTATION_CONTEXT

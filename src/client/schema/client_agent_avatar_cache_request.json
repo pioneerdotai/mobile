@@ -2,5 +2,13 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "ClientAgentAvatarCacheRequest",
   "type": "object",
-  "additionalProperties": false
+  "properties": {
+    "avatar_revision": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "avatar_revision"
+  ]
 }

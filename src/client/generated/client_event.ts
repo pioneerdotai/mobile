@@ -610,7 +610,6 @@ export type AuthSessionId = string;
 export type WorkspaceId = string;
 export type WorkspaceChangeKind = 'created' | 'updated' | 'current_changed';
 export type ThreadMode = ('Message' | 'Agent') | 'Chat';
-export type ThreadStatus = 'Active' | 'Idle' | 'Closed';
 export type PersistedActorRef =
   | {
       id: PrincipalId;
@@ -618,9 +617,18 @@ export type PersistedActorRef =
       [k: string]: unknown;
     }
   | {
+      id: AgentExecutionId;
+      kind: 'agent_execution';
+      [k: string]: unknown;
+    }
+  | {
       kind: 'system';
       [k: string]: unknown;
     };
+export type AgentExecutionId = string;
+export type AgentIdentityId = string;
+export type AgentIdentitySourceKind = 'native_agent' | 'cli_runtime_instance' | 'ephemeral';
+export type ThreadStatus = 'Active' | 'Idle' | 'Closed';
 export type PermissionBehavior = 'allow' | 'ask' | 'deny';
 export type TurnPermissionMode = 'full_access' | 'auto_accept_edits' | 'supervised';
 export type TurnPermissionProfileSource =
@@ -655,6 +663,7 @@ export type ThreadVisibility = 'private' | 'workspace';
 export type ThreadParticipantChangeKind = 'added' | 'removed';
 export type ThreadAgentsDocStatus = 'draft' | 'active' | 'archived';
 export type TimelineChangeReason = 'backfill' | 'live_event' | 'state_changed' | 'page_invalidated';
+export type AgentWorkNodeState = 'queued' | 'running' | 'completed' | 'failed' | 'cancelled' | 'blocked';
 export type TurnWorkPresentation = 'expanded_live' | 'collapsed_after_final' | 'expanded_terminal_no_final';
 export type TurnWorkState =
   'starting' | 'running' | 'waiting_for_approval' | 'stalled' | 'completed' | 'blocked' | 'failed' | 'interrupted';
@@ -867,6 +876,11 @@ export type TurnItem =
   | {
       arguments: unknown;
       display: ToolDisplayPayload;
+      /**
+       * Operational supervision semantics declared by the tool contract.
+       * This is independent from the presentation-level item type.
+       */
+      executionClass?: ('standard' | 'context_compaction') | 'durable_wait';
       id: string;
       observation?: ToolObservation | null;
       outcome?: ToolOutcome | null;
@@ -1410,6 +1424,30 @@ export type TaskValue =
 export type TaskAttachmentMode = 'attached' | 'detached';
 export type TaskCompletionBehavior = 'complete_on_terminal_run' | 'keep_active_for_recurring' | 'manual';
 export type TaskParentTerminalAction = 'cancel' | 'detach' | 'keep_running';
+export type AgentRouteAction =
+  'send_message' | 'start_agent' | 'create_task' | 'schedule_task' | 'review_task_result' | 'deliver_result';
+export type AgentExecutionProfileId = string;
+export type AgentDelegationRouteId = string;
+export type AgentIdentitySelection =
+  | ('inherit_parent' | 'default_pioneer')
+  | {
+      exact: {
+        agent_identity_id: AgentIdentityId;
+      };
+    }
+  | {
+      server_derived_ephemeral: {
+        display_name_hint?: string | null;
+        role_label?: string | null;
+      };
+    };
+export type AgentExecutionProfileSelection =
+  | 'inherit_parent'
+  | {
+      exact: {
+        profile_id: AgentExecutionProfileId;
+      };
+    };
 export type TurnCapabilityKind =
   | {
       packId?: SkillPackId | null;
@@ -1934,6 +1972,12 @@ export interface Thread {
   name?: string | null;
   origin_kind?: ('task_run' | 'system') | 'collaborative' | 'direct_message' | 'user';
   preview: string;
+  /**
+   * Immutable author of the Turn that owns `preview`. Thread trees and
+   * notifications must not pair preview text with the latest responding
+   * execution or reconstruct this value from mutable agent settings.
+   */
+  preview_author?: TurnAuthorSnapshot | null;
   reasoning_effort?: string | null;
   sidebar_visibility?: 'visible' | 'hidden';
   status: ThreadStatus;
@@ -1941,6 +1985,30 @@ export interface Thread {
   updated_at: number;
   visibility?: ThreadVisibility | null;
   workspace_id: string;
+  [k: string]: unknown;
+}
+export interface TurnAuthorSnapshot {
+  actor: PersistedActorRef;
+  /**
+   * Full immutable identity presentation for an agent-authored Turn.  This
+   * is carried with the Turn instead of being reconstructed from mutable
+   * identity/runtime state. Non-agent actors leave it absent.
+   */
+  agent?: AgentPresentationSnapshot | null;
+  avatar_revision?: string | null;
+  display_name: string;
+  nickname: string;
+  [k: string]: unknown;
+}
+export interface AgentPresentationSnapshot {
+  agent_execution_id: AgentExecutionId;
+  agent_identity_id: AgentIdentityId;
+  avatar_revision?: string | null;
+  display_name: string;
+  identity_source_kind: AgentIdentitySourceKind;
+  identity_source_revision: number;
+  nickname: string;
+  role_label?: string | null;
   [k: string]: unknown;
 }
 export interface Turn {
@@ -1957,13 +2025,6 @@ export interface Turn {
   reply_to_turn_id?: string | null;
   status: TurnStatus;
   turn_kind?: 'conversation' | 'task_run';
-  [k: string]: unknown;
-}
-export interface TurnAuthorSnapshot {
-  actor: PersistedActorRef;
-  avatar_revision?: string | null;
-  display_name: string;
-  nickname: string;
   [k: string]: unknown;
 }
 export interface TurnMention {
@@ -2170,6 +2231,16 @@ export interface TurnWorkStateChangedNotification {
 }
 export interface TurnWorkBlock {
   afterCursor?: TimelineCursor | null;
+  /**
+   * Server-owned aggregate state for the root Agent work graph bound to
+   * this Turn. Descendant Turns do not repeat the graph projection.
+   */
+  agentWorkGraph?: AgentWorkGraphProjection | null;
+  /**
+   * Exact execution whose work this row presents. This is separate from
+   * the Turn input author and is required for stable Agent attribution.
+   */
+  author?: TurnAuthorSnapshot | null;
   beforeCursor?: TimelineCursor | null;
   completedAtUnixMs?: number | null;
   elapsedMs?: number | null;
@@ -2185,6 +2256,34 @@ export interface TurnWorkBlock {
   visibleWorkCount: number;
   workCount: number;
   [k: string]: unknown;
+}
+export interface AgentWorkGraphProjection {
+  /**
+   * Stable, bounded nodes in the exact root graph. No prompt, provider,
+   * model, thread title, runtime path, or other private payload is exposed.
+   */
+  nodes: AgentWorkNodeProjection[];
+  queuedCount: number;
+  rootExecutionId: AgentExecutionId;
+  runningCount: number;
+  /**
+   * True while one or more authorized nodes are durably queued for
+   * server-owned capacity. This is resource state, not an authorization
+   * failure and never implies that the whole graph is blocked.
+   */
+  saturated: boolean;
+  terminalCount: number;
+  /**
+   * Monotonic persisted resource-state timestamp used only to reject stale
+   * graph projections racing with live queue/promotion/finalization events.
+   */
+  updatedAtUnixMicros: number;
+}
+export interface AgentWorkNodeProjection {
+  executionId: AgentExecutionId;
+  progressLabel?: string | null;
+  progressRevision: number;
+  state: AgentWorkNodeState;
 }
 export interface TurnPermissionRequestOpenedNotification {
   request: TurnPermissionApprovalRequest;
@@ -2877,6 +2976,17 @@ export interface TaskComposerWork {
   [k: string]: unknown;
 }
 export interface TurnStartParams {
+  /**
+   * Explicit, bounded cross-capsule delegations requested for this root
+   * Agent execution. These are authorization inputs, never prompt content.
+   */
+  agent_delegation_routes?: AgentRootDelegationRequest[];
+  /**
+   * Typed identity/profile intent for a root Agent Turn. When omitted, the
+   * protected Pioneer identity is selected, or the exact CLI identity named
+   * by `execution_backend` is used.
+   */
+  agent_launch?: AgentLaunchSelection | null;
   capabilities?: TurnCapability[];
   cli_runtime_options?: TurnCLIRuntimeOptions | null;
   execution_backend?: AgentExecutionBackend | null;
@@ -2891,6 +3001,69 @@ export interface TurnStartParams {
   sandbox_policy?: SandboxPolicy | null;
   thread_id: string;
   turn_id: string;
+  [k: string]: unknown;
+}
+/**
+ * Optional typed extension accepted by `turn/start` for automatic,
+ * short-lived root-execution delegation. It is deliberately separate from
+ * the prompt and has no participant/role/ACL fields.
+ */
+export interface AgentRootDelegationRequest {
+  allowedActions: AgentRouteAction[];
+  destinationAgentIdentityId?: AgentIdentityId | null;
+  destinationProfileId?: AgentExecutionProfileId | null;
+  destinationThreadId: string;
+  disclosure: AgentRouteDisclosurePolicy;
+  expiresAt: number;
+  idempotencyKey: string;
+  returnRouteId?: AgentDelegationRouteId | null;
+}
+export interface AgentRouteDisclosurePolicy {
+  /**
+   * Exact, already-authorized artifact handles. Raw files and paths are
+   * never represented by this flag.
+   */
+  artifacts?: boolean;
+  /**
+   * Bounded conversation excerpts or summaries selected by server policy.
+   */
+  context?: boolean;
+  /**
+   * Result return is a separate disclosure class: allowing ordinary text
+   * must never imply that a full Task result can cross a capsule boundary.
+   */
+  resultReturn?: 'none' | 'summary_only' | 'full_result';
+  /**
+   * Explicit text authored for the routed operation.
+   */
+  text?: boolean;
+  /**
+   * Explicit user-provided Task inputs. This is deliberately independent
+   * from Agent-authored text and inherited conversation context.
+   */
+  userInput?: boolean;
+}
+export interface AgentLaunchSelection {
+  agent: AgentIdentitySelection;
+  execution: AgentExecutionSelection;
+}
+export interface AgentExecutionSelection {
+  mcpServerIds?: string[];
+  permissionProfile?: TurnPermissionProfileSelection | null;
+  profile: AgentExecutionProfileSelection;
+  reasoning?: TurnReasoningSelection | null;
+  skillIds?: SkillId[];
+}
+export interface TurnPermissionProfileSelection {
+  mode: TurnPermissionMode;
+  [k: string]: unknown;
+}
+export interface TurnReasoningSelection {
+  /**
+   * String-valued because CLI runtimes may advertise efforts newer than
+   * Pioneer API-provider adapters understand.
+   */
+  effort: string;
   [k: string]: unknown;
 }
 export interface TurnCapability {
@@ -2915,18 +3088,6 @@ export interface TextElement {
 export interface ByteRange {
   end: number;
   start: number;
-  [k: string]: unknown;
-}
-export interface TurnPermissionProfileSelection {
-  mode: TurnPermissionMode;
-  [k: string]: unknown;
-}
-export interface TurnReasoningSelection {
-  /**
-   * String-valued because CLI runtimes may advertise efforts newer than
-   * Pioneer API-provider adapters understand.
-   */
-  effort: string;
   [k: string]: unknown;
 }
 export interface SandboxPolicy {
@@ -3343,7 +3504,17 @@ export interface TaskDeliveryCancelledNotification {
   [k: string]: unknown;
 }
 export interface TaskUserNotificationDeliveredNotification {
+  /**
+   * Exact immutable author of an agent-produced result. Scheduler/system
+   * diagnostics leave this absent.
+   */
+  author?: AgentPresentationSnapshot | null;
   createdAt: number;
+  /**
+   * Canonical delivery receipt committed with the exact-recipient inbox
+   * row. It is opaque to clients but preserves reconnect-safe provenance.
+   */
+  deliveryActionReceiptId?: string | null;
   deliveryId: string;
   error?: PublicTaskFailure | null;
   notificationId: string;

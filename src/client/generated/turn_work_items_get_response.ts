@@ -175,6 +175,11 @@ export type TurnItem =
   | {
       arguments: unknown;
       display: ToolDisplayPayload;
+      /**
+       * Operational supervision semantics declared by the tool contract.
+       * This is independent from the presentation-level item type.
+       */
+      executionClass?: ('standard' | 'context_compaction') | 'durable_wait';
       id: string;
       observation?: ToolObservation | null;
       outcome?: ToolOutcome | null;

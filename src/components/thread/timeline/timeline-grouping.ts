@@ -1,4 +1,5 @@
 import type { TimelineRow } from '@/services/threads/conversation/timeline';
+import type { TurnAuthorSnapshot } from '@/client/generated/timeline_row';
 
 export const TIMELINE_AVATAR_SIZE_UNITS = 8;
 export const TIMELINE_AVATAR_RAIL_WIDTH_UNITS = 10;
@@ -30,7 +31,11 @@ export type TimelineAvatarSource =
           kind: 'historical-user';
           author: UserMessageTimelineRow['author'];
       }
-    | { kind: 'agent'; showsRunningDino: boolean };
+    | {
+          kind: 'agent';
+          author: TurnAuthorSnapshot | null;
+          showsRunningDino: boolean;
+      };
 
 export type TimelineAvatarGroup = {
     key: string;
@@ -95,9 +100,7 @@ export class TimelineGroupingIndex {
         currentPrincipalId?: string | null,
         presentationContext: TimelinePresentationContext = DEFAULT_TIMELINE_PRESENTATION_CONTEXT,
     ): TimelineGroupingIndex {
-        const descriptors = rows.map((row) =>
-            timelineClusterDescriptor(row, currentPrincipalId, presentationContext),
-        );
+        const descriptors = rows.map((row) => timelineClusterDescriptor(row, currentPrincipalId));
         const rowLayouts = Array<TimelineRowLayout>(rows.length);
         const avatarGroupsByRow = Array<TimelineAvatarGroup | null>(rows.length).fill(null);
         const avatarGroupsByKey = new Map<string, TimelineAvatarGroup>();
@@ -117,6 +120,7 @@ export class TimelineGroupingIndex {
                 descriptor.avatarSource?.kind === 'agent'
                     ? {
                           kind: 'agent' as const,
+                          author: descriptor.avatarSource.author,
                           showsRunningDino:
                               presentationContext.taskChildThread &&
                               rows
@@ -134,8 +138,10 @@ export class TimelineGroupingIndex {
             }
 
             const groupKey = `${descriptor.kind}:${rows[startIndex].key}`;
+            const authorFingerprint =
+                avatarSource?.kind === 'agent' ? JSON.stringify(avatarSource.author) : '';
             fingerprintParts.push(
-                `${groupKey}:${rows[endIndex].key}:${avatarSource?.kind === 'agent' && avatarSource.showsRunningDino ? 'running-dino' : 'avatar'}`,
+                `${groupKey}:${rows[endIndex].key}:${avatarSource?.kind === 'agent' && avatarSource.showsRunningDino ? 'running-dino' : 'avatar'}:${authorFingerprint}`,
             );
             if (avatarSource !== null) {
                 const group: TimelineAvatarGroup = {
@@ -196,19 +202,15 @@ export class TimelineGroupingIndex {
 export const isCurrentPrincipalUserMessage = (
     row: TimelineRow,
     currentPrincipalId?: string | null,
-    presentationContext: TimelinePresentationContext = DEFAULT_TIMELINE_PRESENTATION_CONTEXT,
 ): boolean => {
     if (row.type !== 'user-message') return false;
 
     if (row.author?.actor.kind === 'principal') {
         return row.author.actor.id === currentPrincipalId;
     }
-    if (row.author?.actor.kind === 'system') {
-        return presentationContext.taskChildThread;
-    }
+    if (row.author) return false;
 
     return (
-        presentationContext.taskChildThread ||
         row.itemId === `user_${row.turnId}` ||
         row.itemId === `turn:${row.turnId}:user` ||
         row.itemId === row.key
@@ -218,10 +220,9 @@ export const isCurrentPrincipalUserMessage = (
 const timelineClusterDescriptor = (
     row: TimelineRow,
     currentPrincipalId?: string | null,
-    presentationContext: TimelinePresentationContext = DEFAULT_TIMELINE_PRESENTATION_CONTEXT,
 ): TimelineClusterDescriptor => {
     if (row.type === 'user-message') {
-        if (isCurrentPrincipalUserMessage(row, currentPrincipalId, presentationContext)) {
+        if (isCurrentPrincipalUserMessage(row, currentPrincipalId)) {
             return {
                 key: 'current-user',
                 kind: 'current-user',
@@ -233,7 +234,7 @@ const timelineClusterDescriptor = (
         const actorKey = actor
             ? actor.kind === 'system'
                 ? 'system'
-                : `principal:${actor.id}`
+                : `${actor.kind}:${actor.id}`
             : `unknown:${row.key}`;
         return {
             key: `historical-user:${actorKey}`,
@@ -246,9 +247,20 @@ const timelineClusterDescriptor = (
     return {
         key: turnId ? `agent:${turnId}` : `agent:standalone:${row.key}`,
         kind: 'agent',
-        avatarSource: { kind: 'agent', showsRunningDino: false },
+        avatarSource: {
+            kind: 'agent',
+            author: timelineRowAgentAuthor(row),
+            showsRunningDino: false,
+        },
     };
 };
+
+const exactAgentAuthor = (
+    author: TurnAuthorSnapshot | null | undefined,
+): TurnAuthorSnapshot | null => (author?.actor.kind === 'agent_execution' ? author : null);
+
+const timelineRowAgentAuthor = (row: TimelineRow): TurnAuthorSnapshot | null =>
+    row.type === 'user-message' ? null : exactAgentAuthor(row.author);
 
 const timelineRowTurnId = (row: Exclude<TimelineRow, { type: 'user-message' }>): string | null => {
     if (!('turnId' in row)) return null;

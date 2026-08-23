@@ -30,10 +30,13 @@ export type TimelineCapabilityRejection = {
 export type TimelinePendingRequest = {
     thread_id: string | null;
     turn_id: string | null;
+    author?: TurnAuthorSnapshot | null;
     request: PendingRequest;
 };
 
 export type TimelineRowMeta = {
+    /** Ready-to-render immutable author supplied by the shared timeline row. */
+    author?: TurnAuthorSnapshot | null;
     semanticWorkItem?: boolean;
     startedAtUnixMs?: number | null;
     renderFingerprint?: string;

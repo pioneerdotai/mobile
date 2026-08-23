@@ -7,6 +7,9 @@
     "add": "Add",
     "startupFailed": "Failed to initialize application.",
     "taskNotificationTitle": "Task result",
+    "taskNotificationAgent": "Agent",
+    "taskNotificationSystem": "System",
+    "taskNotificationUnknownHistoricalActor": "Unknown historical actor",
     "taskNotificationCompleted": "Task completed",
     "taskNotificationMarkRead": "Mark as read"
 }
