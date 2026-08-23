@@ -84,6 +84,10 @@ std::string HybridPioneerClient::initializeJson(const std::string& configJson) {
   return callWithClient(pioneer_client_ffi_client_initialize, configJson);
 }
 
+std::string HybridPioneerClient::mobileStartupRecordJson(const std::string& inputJson) {
+  return callWithClient(pioneer_client_ffi_mobile_startup_record, inputJson);
+}
+
 std::string HybridPioneerClient::diagnosticsDrainJson() {
   return callWithClient(pioneer_client_ffi_diagnostics_drain);
 }

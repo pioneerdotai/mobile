@@ -37,6 +37,7 @@ import { openActiveThreadById } from '@/services/threads/active';
 import { cacheActiveThreadSnapshot } from '@/services/threads/timeline-query';
 import { useActiveThreadStore } from '@/stores/active-thread';
 import { useGatewayStore } from '@/stores/gateway';
+import { mobileStartup } from '@/services/telemetry/mobile-startup';
 
 const errorMessage = (error: unknown, fallback: string): string => {
     if (error instanceof Error) {
@@ -188,6 +189,8 @@ export const useGatewaySession = (
             }
             if (!replacingSilently) {
                 setConnectionState('Connecting');
+                mobileStartup.begin('authorization.load');
+                mobileStartup.begin('gateway_session.connect');
             }
             try {
                 const connection = await runGatewayTransportTransition(async () => {
@@ -215,6 +218,10 @@ export const useGatewaySession = (
                 setConnectionState('Connected');
                 setSessionError(null);
                 setSessionProjection(connection.projection);
+                if (!replacingSilently) {
+                    mobileStartup.succeed('authorization.load');
+                    mobileStartup.succeed('gateway_session.connect');
+                }
                 reconnectAttempt = 0;
                 reconnectPending = false;
                 clearReconnectTimer();
@@ -252,6 +259,10 @@ export const useGatewaySession = (
                     }
                     reconnectPending = true;
                     scheduleReconnect(connect);
+                }
+                if (!replacingSilently) {
+                    mobileStartup.fail('authorization.load');
+                    mobileStartup.fail('gateway_session.connect');
                 }
             } finally {
                 silentReplacementInFlight = false;

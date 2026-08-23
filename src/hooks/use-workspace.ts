@@ -15,6 +15,7 @@ import type {
 } from '@/services/workspace/management';
 import { useGatewayStore } from '@/stores/gateway';
 import { useWorkspaceStore } from '@/stores/workspace';
+import { mobileStartup } from '@/services/telemetry/mobile-startup';
 
 type WorkspaceConnectionContext = {
     gateway: GatewayEndpoint;
@@ -128,6 +129,7 @@ export const useWorkspace = () => {
 
     const bootstrapGatewayWorkspace = useCallback(
         async (activeGateway: GatewayEndpoint, connectionId: number): Promise<void> => {
+            mobileStartup.begin('workspace.load');
             setLoading(true);
             setError(null);
 
@@ -145,12 +147,14 @@ export const useWorkspace = () => {
                 setActiveWorkspaceId(selected.workspace_id);
                 setPreferredWorkspaceId(selected.set_preferred_workspace_id);
                 setError(null);
+                mobileStartup.succeed('workspace.load');
             } catch (caught) {
                 if (!bootstrapResultIsCurrent(activeGateway.id, connectionId)) {
                     return;
                 }
 
                 setError(normalizeErrorCode(caught, 'bootstrapFailed'));
+                mobileStartup.fail('workspace.load');
                 throw caught;
             } finally {
                 if (bootstrapResultIsCurrent(activeGateway.id, connectionId)) {

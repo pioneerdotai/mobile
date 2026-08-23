@@ -16,6 +16,7 @@ namespace margelo::nitro::pioneer::client {
     registerHybrids(this, [](Prototype& prototype) {
       prototype.registerHybridMethod("versionJson", &HybridPioneerClientSpec::versionJson);
       prototype.registerHybridMethod("initializeJson", &HybridPioneerClientSpec::initializeJson);
+      prototype.registerHybridMethod("mobileStartupRecordJson", &HybridPioneerClientSpec::mobileStartupRecordJson);
       prototype.registerHybridMethod("diagnosticsDrainJson", &HybridPioneerClientSpec::diagnosticsDrainJson);
       prototype.registerHybridMethod("gatewayLoadRegistryV3Json", &HybridPioneerClientSpec::gatewayLoadRegistryV3Json);
       prototype.registerHybridMethod("gatewayValidateRemoteJson", &HybridPioneerClientSpec::gatewayValidateRemoteJson);

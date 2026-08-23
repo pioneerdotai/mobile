@@ -1,10 +1,15 @@
 import { ThreadTree } from './components/thread-tree';
-import { useHideAppSplash } from '@/services/app-splash';
+import { useEffect } from 'react';
+import { mobileStartup } from '@/services/telemetry/mobile-startup';
 
 const HomeScreen = () => {
-    useHideAppSplash();
+    useEffect(() => {
+        mobileStartup.succeed('navigation.mount');
+    }, []);
 
     return <ThreadTree />;
 };
+
+mobileStartup.begin('navigation.mount');
 
 export default HomeScreen;

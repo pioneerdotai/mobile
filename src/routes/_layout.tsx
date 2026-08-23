@@ -10,6 +10,7 @@ import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { Stack } from 'expo-router/js-stack';
 import { SystemBars } from 'react-native-edge-to-edge';
+import { useShallow } from 'zustand/react/shallow';
 
 import i18n from '@/locale/i18n';
 
@@ -32,12 +33,19 @@ import { pioneerQueryClient } from '@/services/query/client';
 import { hideAppSplash, preventAppSplashAutoHide } from '@/services/app-splash';
 import { useVoiceInputGatewayQueryLifecycle } from '@/services/voice-input/data-source';
 import { TaskUserNotificationController } from '@/services/tasks/user-notifications';
+import { mobileStartup } from '@/services/telemetry/mobile-startup';
+import { mobileStartupReadinessOutcome } from '@/services/telemetry/mobile-startup-readiness';
+import { useActiveThreadStore } from '@/stores/active-thread';
+import { useGatewayStore } from '@/stores/gateway';
+import { useThreadTreeStore } from '@/stores/thread-tree';
+import { useWorkspaceStore } from '@/stores/workspace';
 
 export const unstable_settings = {
     initialRouteName: '(tabs)',
 };
 
 preventAppSplashAutoHide();
+mobileStartup.begin('fonts.load');
 
 initializeSentry();
 
@@ -73,10 +81,25 @@ const RootLayout = () => {
         bootstrapStartedRef.current = true;
 
         const bootstrap = async () => {
-            pioneerClient.initialize({
-                appDataDir: decodeURIComponent(Paths.cache.uri.replace(/^file:\/\//, '')),
-            });
-            await hydrateGateway();
+            mobileStartup.begin('client.initialize');
+            try {
+                pioneerClient.initialize({
+                    appDataDir: decodeURIComponent(Paths.cache.uri.replace(/^file:\/\//, '')),
+                });
+                mobileStartup.succeed('client.initialize');
+            } catch (error) {
+                mobileStartup.fail('client.initialize');
+                throw error;
+            }
+
+            mobileStartup.begin('gateway_registry.hydrate');
+            try {
+                await hydrateGateway();
+                mobileStartup.succeed('gateway_registry.hydrate');
+            } catch (error) {
+                mobileStartup.fail('gateway_registry.hydrate');
+                throw error;
+            }
         };
 
         void bootstrap()
@@ -89,16 +112,20 @@ const RootLayout = () => {
     }, [hydrateGateway]);
 
     useEffect(() => {
+        if (fontsLoaded) {
+            mobileStartup.succeed('fonts.load');
+        }
         if (fontsError) {
-            hideAppSplash();
+            mobileStartup.fail('fonts.load');
+            mobileStartup.completeWithFailure('degraded', hideAppSplash);
             throw fontsError;
         }
 
         if (startupError) {
-            hideAppSplash();
+            mobileStartup.completeWithFailure('degraded', hideAppSplash);
             throw startupError;
         }
-    }, [fontsError, startupError]);
+    }, [fontsError, fontsLoaded, startupError]);
 
     if (!fontsLoaded || !startupReady || fontsError || startupError) {
         return null;
@@ -164,10 +191,75 @@ const RootContent = () => {
             ) : null}
             <ThreadTreeController />
             <RootStack />
+            <MobileStartupReadinessController />
             <TaskUserNotificationController />
             <TerminalGatewaySessionNavigation />
         </>
     );
+};
+
+const MobileStartupReadinessController = () => {
+    const gateway = useGatewayStore(
+        useShallow((state) => ({
+            registry: state.registry,
+            bootstrapped: state.bootstrapped,
+            connectionId: state.connectionId,
+            connectionState: state.connectionState,
+            sessionError: state.sessionError,
+            sessionTerminalReason: state.sessionTerminalReason,
+        })),
+    );
+    const workspace = useWorkspaceStore(
+        useShallow((state) => ({
+            bootstrappedConnectionId: state.bootstrappedConnectionId,
+            activeWorkspaceId: state.activeWorkspaceId,
+            loading: state.loading,
+            error: state.error,
+        })),
+    );
+    const threadTree = useThreadTreeStore(
+        useShallow((state) => ({
+            snapshot: state.snapshot,
+            workspaceId: state.workspaceId,
+            loading: state.loading,
+            error: state.error,
+        })),
+    );
+    const composer = useActiveThreadStore(
+        useShallow((state) => ({
+            loading: state.defaultComposerSelectionLoading,
+        })),
+    );
+    // Mobile can establish sessions only to remote endpoints. A desktop-local
+    // registry entry must lead to setup UI instead of an endless startup wait.
+    const hasActiveGateway = (gateway.registry.remotes ?? []).some(
+        (remote) => remote.id === gateway.registry.active_gateway_id,
+    );
+    const outcome = mobileStartupReadinessOutcome({
+        registryBootstrapped: gateway.bootstrapped,
+        hasActiveGateway,
+        connectionId: gateway.connectionId,
+        connectionState: gateway.connectionState,
+        sessionError: gateway.sessionError,
+        sessionTerminalReason: gateway.sessionTerminalReason,
+        workspaceBootstrappedConnectionId: workspace.bootstrappedConnectionId,
+        activeWorkspaceId: workspace.activeWorkspaceId,
+        workspaceLoading: workspace.loading,
+        workspaceError: workspace.error,
+        threadTreeWorkspaceId: threadTree.workspaceId,
+        threadTreeLoaded: threadTree.snapshot !== null,
+        threadTreeLoading: threadTree.loading,
+        threadTreeError: threadTree.error,
+        composerSelectionLoading: composer.loading,
+    });
+
+    useEffect(() => {
+        if (outcome) {
+            mobileStartup.completeAfterOperationalFrame(outcome, hideAppSplash);
+        }
+    }, [outcome]);
+
+    return null;
 };
 
 const GatewaySessionController = ({

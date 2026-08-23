@@ -3,6 +3,7 @@ import type { HybridObject } from 'react-native-nitro-modules';
 export interface PioneerClient extends HybridObject<{ ios: 'c++'; android: 'c++' }> {
     versionJson(): string;
     initializeJson(configJson: string): string;
+    mobileStartupRecordJson(inputJson: string): string;
     diagnosticsDrainJson(): string;
     gatewayLoadRegistryV3Json(inputJson: string): string;
     gatewayValidateRemoteJson(inputJson: string): Promise<string>;

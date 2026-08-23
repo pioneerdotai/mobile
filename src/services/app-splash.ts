@@ -7,17 +7,17 @@ export const preventAppSplashAutoHide = () => {
     void SplashScreen.preventAutoHideAsync().catch(() => {});
 };
 
-export const hideAppSplash = () => {
+export const hideAppSplash = async (): Promise<void> => {
     if (splashHidden) {
         return;
     }
 
     splashHidden = true;
-    void SplashScreen.hideAsync().catch(() => {});
+    await SplashScreen.hideAsync();
 };
 
 export const useHideAppSplash = () => {
     useEffect(() => {
-        hideAppSplash();
+        void hideAppSplash().catch(() => {});
     }, []);
 };

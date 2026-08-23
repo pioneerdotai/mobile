@@ -627,6 +627,30 @@ export type PioneerClientInitializeResult = {
     initialized: boolean;
 };
 
+export type MobileStartupStageTiming = {
+    name: string;
+    start_offset_ms: number;
+    duration_ms: number;
+    failed?: boolean;
+};
+
+export type MobileStartupRecordRequest = {
+    enabled: boolean;
+    metrics_endpoint: string;
+    traces_endpoint: string;
+    export_interval_ms: number;
+    export_timeout_ms: number;
+    deployment_environment: 'development' | 'production';
+    started_at_unix_ms: number;
+    duration_ms: number;
+    outcome: 'ready' | 'setup_required' | 'authentication_required' | 'degraded';
+    stages: MobileStartupStageTiming[];
+};
+
+export type MobileStartupRecordResult = {
+    recorded: boolean;
+};
+
 export type VoiceAudioChunkParams = {
     session_id: string;
     sequence: number;
@@ -655,6 +679,12 @@ export const pioneerClient = {
                     platform: config.platform ?? Platform.OS,
                 }),
             ),
+        );
+    },
+
+    mobileStartupRecord(input: MobileStartupRecordRequest): MobileStartupRecordResult {
+        return parsePioneerClientResponse<MobileStartupRecordResult>(
+            getPioneerClientNitro().mobileStartupRecordJson(JSON.stringify(input)),
         );
     },
 

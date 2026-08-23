@@ -25,6 +25,14 @@ const sentryRelease =
     (appBundleIdentifier ? `${appBundleIdentifier}@${appVersion}+${appBuildNumber}` : undefined);
 const sentryOrg = cleanEnv(process.env.SENTRY_ORG);
 const sentryProject = cleanEnv(process.env.SENTRY_PROJECT);
+const telemetryEnabled = cleanEnv(process.env.TELEMETRY_ENABLED) !== 'false';
+const telemetryEnvironment =
+    appVariant === 'development' || appVariant === 'preview' ? 'development' : 'production';
+const telemetryMetricsEndpoint =
+    cleanEnv(process.env.TELEMETRY_METRICS_ENDPOINT) ||
+    'https://telemetry.getpioneer.dev/v1/metrics';
+const telemetryTracesEndpoint =
+    cleanEnv(process.env.TELEMETRY_TRACES_ENDPOINT) || 'https://telemetry.getpioneer.dev/v1/traces';
 
 const sentryOptions = sentryDsn
     ? {
@@ -198,6 +206,12 @@ module.exports = {
     extra: {
         appUrlScheme,
         sentry: sentryExtra,
+        telemetry: {
+            enabled: telemetryEnabled,
+            environment: telemetryEnvironment,
+            metricsEndpoint: telemetryMetricsEndpoint,
+            tracesEndpoint: telemetryTracesEndpoint,
+        },
         eas: {
             projectId: appEasProjectId,
         },
