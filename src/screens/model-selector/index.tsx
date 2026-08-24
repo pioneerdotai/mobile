@@ -27,6 +27,7 @@ import {
     listProviders,
     modelRowDisplayName,
     modelRowSecondaryText,
+    providerReadyForModelSelector,
     reasoningEffortRowsForModel,
     resolveSelectedProviderModel,
     type ModelSelectorProvider,
@@ -35,6 +36,7 @@ import { useActiveThreadStore } from '@/stores/active-thread';
 import { useWorkspaceStore } from '@/stores/workspace';
 import { stableOutlineWidth } from '@/helpers/styles';
 import { cliRuntimeMcpReadinessTranslationKey } from '@/services/providers/cli-runtime';
+import { useCliRuntimeSummaries } from '@/hooks/use-cli-runtime-summaries';
 
 type LoadState = {
     loading: boolean;
@@ -151,6 +153,7 @@ export const ModelSelectorHomeScreen = () => {
     const { t } = useTranslation('threads');
 
     const activeWorkspaceId = useWorkspaceStore((state) => state.activeWorkspaceId);
+    const cliRuntimes = useCliRuntimeSummaries(activeWorkspaceId);
 
     const {
         composerSelectedProvider,
@@ -165,19 +168,21 @@ export const ModelSelectorHomeScreen = () => {
             defaultComposerSelectionLoading: state.defaultComposerSelectionLoading,
         })),
     );
+    const selectedProviderReady = providerReadyForModelSelector(
+        composerSelectedProvider,
+        cliRuntimes,
+    );
+    const presentedProvider = selectedProviderReady ? composerSelectedProvider : null;
+    const presentedModel = selectedProviderReady ? composerSelectedModel : null;
     const { label: selectedModelDisplayName, loading: selectedModelDisplayNameLoading } =
-        useProviderModelDisplayName(
-            activeWorkspaceId,
-            composerSelectedProvider,
-            composerSelectedModel,
-        );
+        useProviderModelDisplayName(activeWorkspaceId, presentedProvider, presentedModel);
     const { label: selectedProviderDisplayName, loading: selectedProviderDisplayNameLoading } =
-        useProviderDisplayName(activeWorkspaceId, composerSelectedProvider);
+        useProviderDisplayName(activeWorkspaceId, presentedProvider);
 
     const { selectedModel } = useSelectedProviderModel(
         activeWorkspaceId,
-        composerSelectedProvider,
-        composerSelectedModel,
+        presentedProvider,
+        presentedModel,
     );
     const reasoningRows = useMemo(
         () => reasoningEffortRowsForModel(selectedModel, composerSelectedReasoningEffort),
@@ -198,7 +203,7 @@ export const ModelSelectorHomeScreen = () => {
                         t('modelSelectorSelectProvider'),
                     )}
                     loading={selectedProviderDisplayNameLoading}
-                    selected={Boolean(composerSelectedProvider)}
+                    selected={Boolean(presentedProvider)}
                     onPress={() => router.push({ pathname: '/model-selector/provider' })}
                 />
                 <Box style={styles.separator} />
@@ -207,9 +212,9 @@ export const ModelSelectorHomeScreen = () => {
                     value={selectedLabel(selectedModelDisplayName, t('modelSelectorSelectModel'))}
                     loading={
                         selectedModelDisplayNameLoading ||
-                        (!composerSelectedModel && defaultComposerSelectionLoading)
+                        (!presentedModel && defaultComposerSelectionLoading)
                     }
-                    selected={Boolean(composerSelectedModel)}
+                    selected={Boolean(presentedModel)}
                     onPress={() => router.push({ pathname: '/model-selector/model' })}
                 />
                 {showReasoningEffortRow ? (
@@ -232,6 +237,7 @@ export const ModelSelectorProviderScreen = () => {
     const { t } = useTranslation('threads');
 
     const activeWorkspaceId = useWorkspaceStore((state) => state.activeWorkspaceId);
+    const cliRuntimes = useCliRuntimeSummaries(activeWorkspaceId);
 
     const { composerSelectedProvider, setComposerModelSelectionFromUser } = useActiveThreadStore(
         useShallow((state) => ({
@@ -256,7 +262,7 @@ export const ModelSelectorProviderScreen = () => {
 
             setState({ loading: true, error: null });
 
-            void listProviders(activeWorkspaceId)
+            void listProviders(activeWorkspaceId, cliRuntimes)
                 .then((response) => {
                     if (!cancelled) {
                         setProviders(response);
@@ -279,7 +285,7 @@ export const ModelSelectorProviderScreen = () => {
             cancelled = true;
             clearTimeout(timeout);
         };
-    }, [activeWorkspaceId, t]);
+    }, [activeWorkspaceId, cliRuntimes, t]);
 
     const rows = useMemo(() => filterProviderRows(providers, query), [providers, query]);
 
@@ -354,6 +360,7 @@ export const ModelSelectorProviderScreen = () => {
 export const ModelSelectorModelScreen = () => {
     const { t } = useTranslation('threads');
     const activeWorkspaceId = useWorkspaceStore((state) => state.activeWorkspaceId);
+    const cliRuntimes = useCliRuntimeSummaries(activeWorkspaceId);
     const { composerSelectedProvider, composerSelectedModel, setComposerModelSelectionFromUser } =
         useActiveThreadStore(
             useShallow((state) => ({
@@ -365,6 +372,10 @@ export const ModelSelectorModelScreen = () => {
     const [query, setQuery] = useState('');
     const [models, setModels] = useState<ProviderModelInfo[]>([]);
     const [state, setState] = useState<LoadState>({ loading: false, error: null });
+    const selectedProviderReady = providerReadyForModelSelector(
+        composerSelectedProvider,
+        cliRuntimes,
+    );
 
     useEffect(() => {
         let cancelled = false;
@@ -377,6 +388,12 @@ export const ModelSelectorModelScreen = () => {
             }
 
             if (!composerSelectedProvider) {
+                setModels([]);
+                setState({ loading: false, error: null });
+                return;
+            }
+
+            if (!selectedProviderReady) {
                 setModels([]);
                 setState({ loading: false, error: null });
                 return;
@@ -407,7 +424,7 @@ export const ModelSelectorModelScreen = () => {
             cancelled = true;
             clearTimeout(timeout);
         };
-    }, [activeWorkspaceId, composerSelectedProvider, t]);
+    }, [activeWorkspaceId, composerSelectedProvider, selectedProviderReady, t]);
 
     const rows = useMemo(() => filterModelRows(models, query), [models, query]);
     const selectModel = useCallback(

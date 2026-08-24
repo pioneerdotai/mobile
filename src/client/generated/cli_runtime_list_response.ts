@@ -47,6 +47,12 @@ export type RuntimeStatus =
     };
 
 export interface CLIRuntimeListResponse {
+  /**
+   * Monotonic revision of the authoritative Gateway snapshot for this
+   * workspace. Clients use it to reject late list responses that would
+   * otherwise overwrite newer status notifications.
+   */
+  revision?: number;
   runtimes: RuntimeSummary[];
   [k: string]: unknown;
 }

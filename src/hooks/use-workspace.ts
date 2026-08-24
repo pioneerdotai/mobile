@@ -16,6 +16,7 @@ import type {
 import { useGatewayStore } from '@/stores/gateway';
 import { useWorkspaceStore } from '@/stores/workspace';
 import { mobileStartup } from '@/services/telemetry/mobile-startup';
+import { loadCliRuntimeSummariesInBackground } from '@/services/providers/cli-runtime-snapshot';
 
 type WorkspaceConnectionContext = {
     gateway: GatewayEndpoint;
@@ -148,6 +149,7 @@ export const useWorkspace = () => {
                 setPreferredWorkspaceId(selected.set_preferred_workspace_id);
                 setError(null);
                 mobileStartup.succeed('workspace.load');
+                loadCliRuntimeSummariesInBackground(selected.workspace_id);
             } catch (caught) {
                 if (!bootstrapResultIsCurrent(activeGateway.id, connectionId)) {
                     return;
@@ -186,6 +188,7 @@ export const useWorkspace = () => {
                     setActiveWorkspaceId(selected.workspace_id);
                     setPreferredWorkspaceId(selected.set_preferred_workspace_id);
                     setError(null);
+                    loadCliRuntimeSummariesInBackground(selected.workspace_id);
                     return;
                 }
                 case 'noop':

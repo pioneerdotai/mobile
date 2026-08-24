@@ -28,10 +28,17 @@ const mockResetActiveThread = jest.fn(() => {
     mockActiveThreadSnapshot = null;
 });
 const mockResetDefaultComposerModelSelection = jest.fn();
+const mockClearCliRuntimeSummaries = jest.fn();
+const mockLoadCliRuntimeSummariesInBackground = jest.fn();
+const mockApplyCliRuntimeSummaryUpdate = jest.fn();
+const mockMobileStartupBegin = jest.fn();
+const mockMobileStartupSucceed = jest.fn();
+const mockMobileStartupFail = jest.fn();
 const mockTranslate = (key: string) => key;
 let mockNetworkListener: ((state: { isConnected?: boolean }) => void) | null = null;
 let mockGatewayEventListener: ((event: Record<string, unknown>) => Promise<void>) | null = null;
 let mockAppStateListener: ((state: 'active' | 'background' | 'inactive') => void) | null = null;
+let mockSessionProjectionListener: ((projection: MobileSessionProjection) => void) | null = null;
 let mockActiveThreadSnapshot: { thread_id: string } | null = null;
 let mockConnectionState = 'Idle';
 
@@ -65,7 +72,13 @@ jest.mock('@/services/gateway/session', () => ({
         mockGatewayEventListener = listener;
         return jest.fn();
     },
-    subscribeMobileSessionProjection: () => jest.fn(),
+    subscribeMobileSessionProjection: (
+        _endpointId: string,
+        listener: (projection: MobileSessionProjection) => void,
+    ) => {
+        mockSessionProjectionListener = listener;
+        return jest.fn();
+    },
 }));
 
 jest.mock('@/services/gateway/session-coordinator', () => ({
@@ -89,6 +102,7 @@ jest.mock('@/services/gateway/access-change', () => ({
     applyMobileAccessChangedEvent: jest.fn(),
     beginMobileAuthorizationEpoch: jest.fn(),
     failClosedMobileAccessChange: jest.fn(),
+    providerAccessChangedWorkspaceId: () => null,
 }));
 
 jest.mock('@/services/threads/active', () => ({
@@ -128,6 +142,26 @@ jest.mock('@/stores/gateway', () => {
     useGatewayStore.getState = () => ({ connectionState: mockConnectionState });
     return { useGatewayStore };
 });
+
+jest.mock('@/stores/workspace', () => ({
+    useWorkspaceStore: {
+        getState: () => ({ activeWorkspaceId: 'workspace-1' }),
+    },
+}));
+
+jest.mock('@/services/providers/cli-runtime-snapshot', () => ({
+    applyCliRuntimeSummaryUpdate: mockApplyCliRuntimeSummaryUpdate,
+    clearCliRuntimeSummaries: mockClearCliRuntimeSummaries,
+    loadCliRuntimeSummariesInBackground: mockLoadCliRuntimeSummariesInBackground,
+}));
+
+jest.mock('@/services/telemetry/mobile-startup', () => ({
+    mobileStartup: {
+        begin: mockMobileStartupBegin,
+        succeed: mockMobileStartupSucceed,
+        fail: mockMobileStartupFail,
+    },
+}));
 
 const { useGatewaySession } =
     // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -181,6 +215,7 @@ describe('useGatewaySession', () => {
         mockNetworkListener = null;
         mockGatewayEventListener = null;
         mockAppStateListener = null;
+        mockSessionProjectionListener = null;
         mockActiveThreadSnapshot = null;
         mockConnectionState = 'Idle';
         mockSetConnectionState.mockImplementation((state) => {
@@ -191,6 +226,28 @@ describe('useGatewaySession', () => {
             projection,
         });
         mockDisconnectGateway.mockResolvedValue(true);
+    });
+
+    it('measures authorization and transport as separate startup phases', async () => {
+        mockConnectGatewayEndpoint.mockImplementationOnce(async () => {
+            mockSessionProjectionListener?.({ ...projection, phase: 'refreshing' });
+            mockSessionProjectionListener?.({ ...projection, phase: 'connecting' });
+            mockSessionProjectionListener?.(projection);
+            return { connection_id: 1, projection };
+        });
+
+        await act(async () => {
+            renderer.create(<Harness endpoint={gateway()} />);
+        });
+
+        expect(mockMobileStartupBegin).toHaveBeenCalledWith('authorization.load');
+        expect(mockMobileStartupSucceed).toHaveBeenCalledWith('authorization.load');
+        expect(mockMobileStartupBegin).toHaveBeenCalledWith('gateway_session.connect');
+        expect(mockMobileStartupSucceed).toHaveBeenCalledWith('gateway_session.connect');
+        expect(mockMobileStartupSucceed.mock.invocationCallOrder[0]).toBeLessThan(
+            mockMobileStartupBegin.mock.invocationCallOrder[1],
+        );
+        expect(mockMobileStartupFail).not.toHaveBeenCalled();
     });
 
     it('keeps one connection when registry updates only workspace metadata', async () => {
@@ -274,6 +331,8 @@ describe('useGatewaySession', () => {
         expect(mockSetConnectionId).not.toHaveBeenCalledWith(2);
         expect(mockSetConnectionState).not.toHaveBeenCalledWith('Connecting');
         expect(mockSetConnectionState).toHaveBeenLastCalledWith('Connected');
+        expect(mockClearCliRuntimeSummaries).toHaveBeenCalled();
+        expect(mockLoadCliRuntimeSummariesInBackground).toHaveBeenCalledWith('workspace-1');
     });
 
     it('does not reconnect or clear visible state for a short inactive interruption', async () => {

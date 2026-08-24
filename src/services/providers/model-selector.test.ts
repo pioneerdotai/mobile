@@ -5,11 +5,11 @@ import { pioneerClient } from '@/client';
 import {
     listProviders,
     listProviderModels,
+    providerReadyForModelSelector,
     reasoningEffortDisplayLabelForModel,
     reasoningEffortRowsForModel,
     resolveSelectedProviderModel,
 } from './model-selector';
-import { refreshCliRuntimeSummaries } from './cli-runtime-live';
 
 jest.mock('@/client', () => ({
     pioneerClient: {
@@ -37,10 +37,6 @@ jest.mock('@/client', () => ({
             };
         }),
     },
-}));
-
-jest.mock('./cli-runtime-live', () => ({
-    refreshCliRuntimeSummaries: jest.fn(),
 }));
 
 const providerModel = (
@@ -120,7 +116,7 @@ describe('model selector reasoning helpers', () => {
         expect(reasoningEffortDisplayLabelForModel(providerModel(null), 'high')).toBeNull();
     });
 
-    it('loads CLI capability policy from live runtime readiness', async () => {
+    it('loads CLI capability policy from the Gateway readiness snapshot', async () => {
         const runtime = {
             runtime_id: 'codex',
             kind: 'codex',
@@ -136,14 +132,13 @@ describe('model selector reasoning helpers', () => {
             diagnostics: [{ code: 'cli_runtime.mcp.ready', level: 'info', message: 'ready' }],
         } as RuntimeSummary;
         jest.mocked(pioneerClient.providerList).mockResolvedValue({ providers: [] });
-        jest.mocked(refreshCliRuntimeSummaries).mockResolvedValue([runtime]);
         jest.mocked(pioneerClient.composerCapabilityTarget).mockReturnValue({
             kind: 'cli',
             supports_skills: true,
             supports_mcp_tools: true,
         });
 
-        await expect(listProviders('workspace-1')).resolves.toEqual([
+        await expect(listProviders('workspace-1', [runtime])).resolves.toEqual([
             {
                 id: 'cli_runtime:codex',
                 label: 'Codex CLI',
@@ -156,7 +151,6 @@ describe('model selector reasoning helpers', () => {
                 mcpReadinessReason: null,
             },
         ]);
-        expect(refreshCliRuntimeSummaries).toHaveBeenCalledWith('workspace-1');
     });
 
     it('hides the local API provider from the chat composer without hiding CLI runtimes', async () => {
@@ -177,16 +171,54 @@ describe('model selector reasoning helpers', () => {
         jest.mocked(pioneerClient.providerList).mockResolvedValue({
             providers: [{ name: 'local' }, { name: 'openai' }],
         });
-        jest.mocked(refreshCliRuntimeSummaries).mockResolvedValue([runtime]);
         jest.mocked(pioneerClient.composerCapabilityTarget).mockReturnValue({
             kind: 'cli',
             supports_skills: true,
             supports_mcp_tools: false,
         });
 
-        const providers = await listProviders('workspace-1');
+        const providers = await listProviders('workspace-1', [runtime]);
 
         expect(providers.map((provider) => provider.id)).toEqual(['openai', 'cli_runtime:codex']);
+    });
+
+    it('hides CLI runtimes until the Gateway snapshot reports ready', async () => {
+        const runtime = (runtimeId: string, state: 'ready' | 'degraded' | 'initializing') =>
+            ({
+                runtime_id: runtimeId,
+                kind: runtimeId,
+                display_name: runtimeId,
+                enabled: true,
+                status: state === 'degraded' ? { state, message: 'not ready' } : { state },
+                capabilities: {
+                    supports_threads: true,
+                    supports_model_list: true,
+                    supports_skills: false,
+                    supports_mcp_tools: false,
+                },
+                diagnostics: [],
+            }) as unknown as RuntimeSummary;
+        jest.mocked(pioneerClient.providerList).mockResolvedValue({ providers: [] });
+        jest.mocked(pioneerClient.composerCapabilityTarget).mockReturnValue({
+            kind: 'cli',
+            supports_skills: false,
+            supports_mcp_tools: false,
+        });
+
+        const providers = await listProviders('workspace-1', [
+            runtime('codex', 'ready'),
+            runtime('claude', 'degraded'),
+            runtime('other', 'initializing'),
+        ]);
+
+        expect(providers.map((provider) => provider.id)).toEqual(['cli_runtime:codex']);
+        expect(
+            providerReadyForModelSelector('cli_runtime:codex', [runtime('codex', 'ready')]),
+        ).toBe(true);
+        expect(
+            providerReadyForModelSelector('cli_runtime:claude', [runtime('claude', 'degraded')]),
+        ).toBe(false);
+        expect(providerReadyForModelSelector('openai', [])).toBe(true);
     });
 
     it('delegates CLI runtime provider model conversion to the native client helper', async () => {

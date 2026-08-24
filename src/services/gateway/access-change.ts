@@ -42,6 +42,15 @@ const accessChangedNotification = (event: ClientEvent): AccessChangedNotificatio
 export const accessChangedWorkspaceId = (event: ClientEvent): string | null =>
     accessChangedNotification(event)?.workspace_id ?? null;
 
+/**
+ * Provider catalogs are workspace-authorized projections. Thread-only access
+ * changes do not invalidate them; workspace membership changes do.
+ */
+export const providerAccessChangedWorkspaceId = (event: ClientEvent): string | null => {
+    const notification = accessChangedNotification(event);
+    return notification?.change === 'workspace_membership' ? notification.workspace_id : null;
+};
+
 export const applyMobileAccessChangedLifecycle = (
     lifecycle: AccessChangedLifecycle,
     queryClient: QueryClient,

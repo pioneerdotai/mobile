@@ -44,6 +44,7 @@ import {
     applyMobileAccessChangedLifecycle,
     beginMobileAuthorizationEpoch,
     failClosedMobileAccessChange,
+    providerAccessChangedWorkspaceId,
 } from '@/services/gateway/access-change';
 import { applyActiveThreadEvent } from '@/services/threads/active';
 import { timelineQueryKeys } from '@/services/threads/timeline-query';
@@ -93,6 +94,26 @@ describe('mobile access-change lifecycle', () => {
         useActiveThreadStore.getState().resetDefaultComposerModelSelection();
         useThreadTreeStore.getState().reset();
         useWorkspaceStore.getState().resetConnectionBootstrap();
+    });
+
+    it('invalidates provider snapshots only for workspace membership changes', () => {
+        const event = (change: 'workspace_membership' | 'thread_visibility') => ({
+            GatewayNotification: {
+                kind: 'access_changed' as const,
+                params: {
+                    authorization_revision: 7,
+                    workspace_id: 'workspace-protected',
+                    thread_id: change === 'thread_visibility' ? 'thread-protected' : null,
+                    change,
+                    outcome: 'retained' as const,
+                },
+            },
+        });
+
+        expect(providerAccessChangedWorkspaceId(event('workspace_membership'))).toBe(
+            'workspace-protected',
+        );
+        expect(providerAccessChangedWorkspaceId(event('thread_visibility'))).toBeNull();
     });
 
     it('preserves an open thread and tree when visibility changes without access loss', async () => {

@@ -12,6 +12,7 @@ import {
     applyMobileAccessChangedEvent,
     beginMobileAuthorizationEpoch,
     failClosedMobileAccessChange,
+    providerAccessChangedWorkspaceId,
 } from '@/services/gateway/access-change';
 import {
     applyMobileAdministrationEvent,
@@ -31,13 +32,20 @@ import {
     markMobileGatewaySessionTerminal,
     terminalReasonFromMachineCode,
 } from '@/services/gateway/session-coordinator';
+import type { MobileSessionProjection } from '@/services/gateway/session-coordinator';
 import { runGatewayTransportTransition } from '@/services/gateway/transport-coordinator';
 import { pioneerQueryClient } from '@/services/query/client';
 import { openActiveThreadById } from '@/services/threads/active';
 import { cacheActiveThreadSnapshot } from '@/services/threads/timeline-query';
 import { useActiveThreadStore } from '@/stores/active-thread';
 import { useGatewayStore } from '@/stores/gateway';
+import { useWorkspaceStore } from '@/stores/workspace';
 import { mobileStartup } from '@/services/telemetry/mobile-startup';
+import {
+    applyCliRuntimeSummaryUpdate,
+    clearCliRuntimeSummaries,
+    loadCliRuntimeSummariesInBackground,
+} from '@/services/providers/cli-runtime-snapshot';
 
 const errorMessage = (error: unknown, fallback: string): string => {
     if (error instanceof Error) {
@@ -101,6 +109,13 @@ export const useGatewaySession = (
         let connectInFlight: Promise<void> | null = null;
         let silentReplacementInFlight = false;
         let backgroundTransitionInFlight = false;
+        let startupSessionInstrumentationActive = false;
+        let startupTransportStageStarted = false;
+
+        const beginAuthorizationEpoch = (): void => {
+            beginMobileAuthorizationEpoch(queryClient);
+            clearCliRuntimeSummaries();
+        };
 
         const clearRefreshTimer = () => {
             if (refreshTimer !== null) {
@@ -117,7 +132,7 @@ export const useGatewaySession = (
         };
 
         if (!sessionGateway) {
-            beginMobileAuthorizationEpoch(queryClient);
+            beginAuthorizationEpoch();
             setConnectionId(null);
             setConnectionGatewayId(null);
             setConnectionState('Idle');
@@ -128,6 +143,35 @@ export const useGatewaySession = (
 
         const applyCurrentProjection = () => {
             setSessionProjection(gatewaySessionProjection(sessionGateway.id));
+        };
+
+        const observeStartupSessionProjection = (projection: MobileSessionProjection): void => {
+            if (!startupSessionInstrumentationActive) {
+                return;
+            }
+            if (projection.phase === 'connecting' || projection.phase === 'connected') {
+                mobileStartup.succeed('authorization.load');
+                if (!startupTransportStageStarted) {
+                    startupTransportStageStarted = true;
+                    mobileStartup.begin('gateway_session.connect');
+                }
+            }
+            if (projection.phase === 'connected') {
+                mobileStartup.succeed('gateway_session.connect');
+                startupSessionInstrumentationActive = false;
+            }
+        };
+
+        const failStartupSessionInstrumentation = (): void => {
+            if (!startupSessionInstrumentationActive) {
+                return;
+            }
+            if (startupTransportStageStarted) {
+                mobileStartup.fail('gateway_session.connect');
+            } else {
+                mobileStartup.fail('authorization.load');
+            }
+            startupSessionInstrumentationActive = false;
         };
 
         const scheduleRefresh = (connect: (silent?: boolean) => Promise<void>) => {
@@ -185,12 +229,13 @@ export const useGatewaySession = (
                 // projections before any reconnect result can be rendered;
                 // endpoint registry and refresh credentials remain owned by
                 // the session coordinator.
-                beginMobileAuthorizationEpoch(queryClient);
+                beginAuthorizationEpoch();
             }
             if (!replacingSilently) {
                 setConnectionState('Connecting');
+                startupSessionInstrumentationActive = true;
+                startupTransportStageStarted = false;
                 mobileStartup.begin('authorization.load');
-                mobileStartup.begin('gateway_session.connect');
             }
             try {
                 const connection = await runGatewayTransportTransition(async () => {
@@ -218,9 +263,25 @@ export const useGatewaySession = (
                 setConnectionState('Connected');
                 setSessionError(null);
                 setSessionProjection(connection.projection);
+                if (replacingSilently) {
+                    // Snapshot revisions are monotonic only within one
+                    // Gateway process. A transparent reconnect may land on a
+                    // restarted process with a lower revision, so begin a new
+                    // cache epoch and immediately rehydrate the active scope.
+                    const workspaceId =
+                        useWorkspaceStore.getState().activeWorkspaceId ??
+                        sessionGateway.workspace_id;
+                    clearCliRuntimeSummaries();
+                    if (workspaceId) {
+                        loadCliRuntimeSummariesInBackground(workspaceId);
+                    }
+                }
                 if (!replacingSilently) {
-                    mobileStartup.succeed('authorization.load');
-                    mobileStartup.succeed('gateway_session.connect');
+                    // Projection updates normally split credential/session
+                    // preparation from the native transport handshake. This
+                    // final observation also handles a coordinator that was
+                    // already connected and therefore had no phase change.
+                    observeStartupSessionProjection(connection.projection);
                 }
                 reconnectAttempt = 0;
                 reconnectPending = false;
@@ -236,7 +297,7 @@ export const useGatewaySession = (
                     activeConnectionId !== null &&
                     gatewaySessionProjection(sessionGateway.id).phase === 'connected';
                 if (terminal) {
-                    beginMobileAuthorizationEpoch(queryClient);
+                    beginAuthorizationEpoch();
                 }
                 if (!preserveVisibleConnection) {
                     activeConnectionId = null;
@@ -261,8 +322,7 @@ export const useGatewaySession = (
                     scheduleReconnect(connect);
                 }
                 if (!replacingSilently) {
-                    mobileStartup.fail('authorization.load');
-                    mobileStartup.fail('gateway_session.connect');
+                    failStartupSessionInstrumentation();
                 }
             } finally {
                 silentReplacementInFlight = false;
@@ -352,7 +412,10 @@ export const useGatewaySession = (
         });
         const unsubscribeProjection = subscribeMobileSessionProjection(
             sessionGateway.id,
-            setSessionProjection,
+            (projection) => {
+                setSessionProjection(projection);
+                observeStartupSessionProjection(projection);
+            },
         );
 
         const handleGatewayEvent = async (event: ClientEvent): Promise<void> => {
@@ -382,9 +445,28 @@ export const useGatewaySession = (
                 }
             }
             const accessChangedWorkspace = accessChangedWorkspaceId(event);
+            const providerAccessChangedWorkspace = providerAccessChangedWorkspaceId(event);
             if (accessChangedWorkspace !== null) {
+                if (providerAccessChangedWorkspace !== null) {
+                    // Fence workspace-authorized runtime metadata before the
+                    // current-ACL lifecycle is applied. Thread-only access
+                    // changes leave this independent projection intact.
+                    clearCliRuntimeSummaries(providerAccessChangedWorkspace);
+                }
                 try {
-                    await applyMobileAccessChangedEvent(event, queryClient);
+                    const lifecycle = await applyMobileAccessChangedEvent(event, queryClient);
+                    if (
+                        providerAccessChangedWorkspace !== null &&
+                        lifecycle?.applied &&
+                        useWorkspaceStore.getState().activeWorkspaceId ===
+                            providerAccessChangedWorkspace
+                    ) {
+                        // A retained membership/role change keeps the active
+                        // workspace but starts a new authorization generation.
+                        // Rehydrate the cache without initiating a provider
+                        // probe; cliRuntimeList only reads Gateway state.
+                        loadCliRuntimeSummariesInBackground(providerAccessChangedWorkspace);
+                    }
                 } catch {
                     // Cache eviction is fail-closed even if the native
                     // projection cannot be reduced. Registry and session
@@ -414,7 +496,7 @@ export const useGatewaySession = (
                     notification.params.session_id === currentSessionId
                 ) {
                     clearRefreshTimer();
-                    beginMobileAuthorizationEpoch(queryClient);
+                    beginAuthorizationEpoch();
                     activeConnectionId = null;
                     setConnectionId(null);
                     await markMobileGatewaySessionTerminal(
@@ -424,6 +506,18 @@ export const useGatewaySession = (
                     applyCurrentProjection();
                     setConnectionState('Disconnected');
                     setSessionError(notification.params.reason);
+                } else if (notification.kind === 'cli_runtime_status_changed') {
+                    applyCliRuntimeSummaryUpdate(
+                        notification.params.workspace_id,
+                        notification.params.revision ?? 0,
+                        notification.params.runtime,
+                        notification.params.removed ?? false,
+                    );
+                } else if (
+                    notification.kind === 'cli_runtime_account_updated' ||
+                    notification.kind === 'cli_runtime_apps_changed'
+                ) {
+                    loadCliRuntimeSummariesInBackground(notification.params.workspace_id);
                 }
             }
             if ('GatewayConnectionChanged' in event) {
@@ -434,7 +528,7 @@ export const useGatewaySession = (
                     const terminalReason = terminalReasonFromMachineCode(connection.gateway_error);
                     if (terminalReason) {
                         clearRefreshTimer();
-                        beginMobileAuthorizationEpoch(queryClient);
+                        beginAuthorizationEpoch();
                         activeConnectionId = null;
                         setConnectionId(null);
                         await markMobileGatewaySessionTerminal(sessionGateway.id, terminalReason);
@@ -459,7 +553,7 @@ export const useGatewaySession = (
         };
         const unsubscribeGatewayEvents = subscribeGatewayEvents(handleGatewayEvent, (caught) => {
             if (!cancelled && appActive) {
-                beginMobileAuthorizationEpoch(queryClient);
+                beginAuthorizationEpoch();
                 setConnectionState('Disconnected');
                 setSessionError(errorMessage(caught, t('sessionFailed')));
             }
@@ -486,7 +580,7 @@ export const useGatewaySession = (
             cancelled = true;
             clearRefreshTimer();
             clearReconnectTimer();
-            beginMobileAuthorizationEpoch(queryClient);
+            beginAuthorizationEpoch();
             appStateSubscription.remove();
             networkSubscription.remove();
             unsubscribeProjection();

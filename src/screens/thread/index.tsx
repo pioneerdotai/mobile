@@ -52,6 +52,7 @@ import {
     useProviderModelDisplayName,
     useProviderModelReasoningEffortLabel,
 } from '@/hooks/use-provider-model-display-name';
+import { useCliRuntimeSummaries } from '@/hooks/use-cli-runtime-summaries';
 import {
     NATIVE_COMPOSER_CAPABILITY_POLICY,
     UNSUPPORTED_CLI_COMPOSER_CAPABILITY_POLICY,
@@ -59,7 +60,7 @@ import {
     composerCapabilityTargetForProvider,
     isCliRuntimeProvider,
 } from '@/services/providers/cli-runtime';
-import { refreshCliRuntimeSummaries } from '@/services/providers/cli-runtime-live';
+import { providerReadyForModelSelector } from '@/services/providers/model-selector';
 import { projectConversationToRows } from '@/services/threads/conversation/projector';
 import { activeThreadSnapshot } from '@/services/threads/active';
 import { projectAgentActionCapabilities } from '@/services/threads/agent-capabilities';
@@ -147,12 +148,6 @@ type SemanticWorkRangesState = {
     ranges: Record<string, SemanticTurnWorkRange>;
 };
 
-type CliRuntimeSupportsSteerState = {
-    workspaceId: string | null;
-    runtimeId: string;
-    supportsSteer: boolean | null;
-};
-
 type VoiceCommitPendingTurn = {
     threadId: string;
     turnId: string;
@@ -205,6 +200,7 @@ const ThreadScreen = ({
     const currentPrincipal = useCurrentPrincipalPresentation();
 
     const activeWorkspaceId = useWorkspaceStore((state) => state.activeWorkspaceId);
+    const cliRuntimes = useCliRuntimeSummaries(activeWorkspaceId);
     const expandedKeys = useActiveThreadStore((state) => state.expandedKeys);
 
     const thread = treeSnapshot?.threads_by_id[threadId] ?? null;
@@ -397,8 +393,6 @@ const ThreadScreen = ({
     const [steering, setSteering] = useState(false);
     const [cliRuntimeThreadBinding, setCliRuntimeThreadBinding] =
         useState<CLIRuntimeThreadBinding | null>(null);
-    const [activeCliRuntimeSupportsSteerLookup, setActiveCliRuntimeSupportsSteerLookup] =
-        useState<CliRuntimeSupportsSteerState | null>(null);
     const [viewportPrefetchPlan, setViewportPrefetchPlan] =
         useState<TimelineViewportPrefetchPlan | null>(null);
     const [semanticWorkRangesState, setSemanticWorkRangesState] = useState<SemanticWorkRangesState>(
@@ -798,22 +792,29 @@ const ThreadScreen = ({
     const shouldUseThreadModelSelection =
         Boolean(activeThreadModelSelection) && !composerModelManuallySelected && !isLiveDraftThread;
     const shouldUseDraftComposerSelection = isLiveDraftThread && !composerModelManuallySelected;
-    const selectedProvider = shouldUseThreadModelSelection
+    const selectedProviderCandidate = shouldUseThreadModelSelection
         ? activeThreadModelProvider
         : composerModelManuallySelected || shouldUseDraftComposerSelection
           ? composerSelectedProvider
           : null;
-    const selectedModel = shouldUseThreadModelSelection
+    const selectedModelCandidate = shouldUseThreadModelSelection
         ? activeThreadModel
         : composerModelManuallySelected || shouldUseDraftComposerSelection
           ? composerSelectedModel
           : null;
-    const modelSelectionComplete = messageMode || Boolean(selectedProvider && selectedModel);
-    const selectedReasoningEffort = shouldUseThreadModelSelection
+    const selectedProviderReady = providerReadyForModelSelector(
+        selectedProviderCandidate,
+        cliRuntimes,
+    );
+    const selectedProvider = selectedProviderReady ? selectedProviderCandidate : null;
+    const selectedModel = selectedProviderReady ? selectedModelCandidate : null;
+    const selectedReasoningEffortCandidate = shouldUseThreadModelSelection
         ? activeThreadReasoningEffort
         : composerModelManuallySelected || shouldUseDraftComposerSelection
           ? composerSelectedReasoningEffort
           : null;
+    const selectedReasoningEffort = selectedProviderReady ? selectedReasoningEffortCandidate : null;
+    const modelSelectionComplete = messageMode || Boolean(selectedProvider && selectedModel);
     const { label: selectedModelDisplayName, loading: modelDisplayNameLoading } =
         useProviderModelDisplayName(activeWorkspaceId, selectedProvider, selectedModel);
     const { label: selectedReasoningEffortLabel, loading: reasoningEffortLabelLoading } =
@@ -908,9 +909,9 @@ const ThreadScreen = ({
             : null;
     const activeCliRuntimeId = activeCliRuntimeThreadBinding?.runtime_id ?? null;
     const activeCliRuntimeSupportsSteer =
-        activeCliRuntimeSupportsSteerLookup?.workspaceId === activeWorkspaceId &&
-        activeCliRuntimeSupportsSteerLookup.runtimeId === activeCliRuntimeId
-            ? activeCliRuntimeSupportsSteerLookup.supportsSteer
+        connected && activeWorkspaceId && activeCliRuntimeId
+            ? (cliRuntimes.find((runtime) => runtime.runtime_id === activeCliRuntimeId)
+                  ?.capabilities.supports_steer ?? null)
             : null;
     const activeCliRuntimeCanSteer = activeCliRuntimeSupportsSteer ?? false;
     const canSteerCliRuntimeTurn = Boolean(
@@ -1746,18 +1747,12 @@ const ThreadScreen = ({
 
     useFocusEffect(
         useCallback(() => {
-            let cancelled = false;
-
             if (isLiveDraftThread) {
-                return () => {
-                    cancelled = true;
-                };
+                return;
             }
 
             if (!activeThreadModelProvider || !activeThreadModel) {
-                return () => {
-                    cancelled = true;
-                };
+                return;
             }
 
             if (!isCliRuntimeProvider(activeThreadModelProvider)) {
@@ -1768,30 +1763,12 @@ const ThreadScreen = ({
                     NATIVE_COMPOSER_CAPABILITY_POLICY,
                 );
             } else if (activeWorkspaceId) {
-                void refreshCliRuntimeSummaries(activeWorkspaceId)
-                    .then((runtimes) => {
-                        if (!cancelled) {
-                            syncComposerModelSelection(
-                                activeThreadModelProvider,
-                                activeThreadModel,
-                                activeThreadReasoningEffort,
-                                composerCapabilityTargetForProvider(
-                                    activeThreadModelProvider,
-                                    runtimes,
-                                ),
-                            );
-                        }
-                    })
-                    .catch(() => {
-                        if (!cancelled) {
-                            syncComposerModelSelection(
-                                activeThreadModelProvider,
-                                activeThreadModel,
-                                activeThreadReasoningEffort,
-                                UNSUPPORTED_CLI_COMPOSER_CAPABILITY_POLICY,
-                            );
-                        }
-                    });
+                syncComposerModelSelection(
+                    activeThreadModelProvider,
+                    activeThreadModel,
+                    activeThreadReasoningEffort,
+                    composerCapabilityTargetForProvider(activeThreadModelProvider, cliRuntimes),
+                );
             } else {
                 syncComposerModelSelection(
                     activeThreadModelProvider,
@@ -1800,15 +1777,12 @@ const ThreadScreen = ({
                     UNSUPPORTED_CLI_COMPOSER_CAPABILITY_POLICY,
                 );
             }
-
-            return () => {
-                cancelled = true;
-            };
         }, [
             activeThreadModel,
             activeThreadModelProvider,
             activeThreadReasoningEffort,
             activeWorkspaceId,
+            cliRuntimes,
             isLiveDraftThread,
             syncComposerModelSelection,
         ]),
@@ -1846,46 +1820,6 @@ const ThreadScreen = ({
             cancelled = true;
         };
     }, [activeWorkspaceId, connected, visibleThreadId, visibleTurnId]);
-
-    useEffect(() => {
-        let cancelled = false;
-
-        if (!connected || !activeWorkspaceId || !activeCliRuntimeId) {
-            return () => {
-                cancelled = true;
-            };
-        }
-
-        void pioneerClient
-            .cliRuntimeList({ workspace_id: activeWorkspaceId })
-            .then((response) => {
-                if (cancelled) {
-                    return;
-                }
-
-                const runtime = response.runtimes.find(
-                    (item) => item.runtime_id === activeCliRuntimeId,
-                );
-                setActiveCliRuntimeSupportsSteerLookup({
-                    workspaceId: activeWorkspaceId,
-                    runtimeId: activeCliRuntimeId,
-                    supportsSteer: runtime?.capabilities.supports_steer ?? null,
-                });
-            })
-            .catch(() => {
-                if (!cancelled) {
-                    setActiveCliRuntimeSupportsSteerLookup({
-                        workspaceId: activeWorkspaceId,
-                        runtimeId: activeCliRuntimeId,
-                        supportsSteer: null,
-                    });
-                }
-            });
-
-        return () => {
-            cancelled = true;
-        };
-    }, [activeCliRuntimeId, activeWorkspaceId, connected, connectionId]);
 
     if (!activeThread && !visibleSnapshot && !treeSnapshot) {
         return <ThreadState loading label={t('loadingThread')} />;

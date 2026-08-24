@@ -4,11 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { useShallow } from 'zustand/react/shallow';
 
 import type { ClientThreadTreeLevel } from '@/client';
-import {
-    composerCapabilityTargetForProvider,
-    isCliRuntimeProvider,
-} from '@/services/providers/cli-runtime';
-import { refreshCliRuntimeSummaries } from '@/services/providers/cli-runtime-live';
+import { composerCapabilityTargetForProvider } from '@/services/providers/cli-runtime';
+import { cliRuntimeSummariesSnapshot } from '@/services/providers/cli-runtime-snapshot';
 import { cachedActiveThreadSnapshot } from '@/services/threads/timeline-query';
 import {
     refreshThreadTree,
@@ -109,16 +106,6 @@ const useThreadTreeRefresh = () => {
                 has_known_threads_for_workspace:
                     useThreadTreeStore.getState().workspaceId === requestWorkspaceId,
             });
-            mobileStartup.succeed('thread_tree.load');
-            mobileStartup.begin('composer.prepare');
-            const defaultProvider = result.composer_model_selection?.provider ?? null;
-            const cliRuntimes = isCliRuntimeProvider(defaultProvider)
-                ? await refreshCliRuntimeSummaries(requestWorkspaceId).catch(() => [])
-                : [];
-            const capabilityTarget = composerCapabilityTargetForProvider(
-                defaultProvider,
-                cliRuntimes,
-            );
             const latestGatewayState = useGatewayStore.getState();
             const latestWorkspaceState = useWorkspaceStore.getState();
 
@@ -131,6 +118,13 @@ const useThreadTreeRefresh = () => {
                 return;
             }
 
+            mobileStartup.succeed('thread_tree.load');
+            mobileStartup.begin('composer.prepare');
+            const defaultProvider = result.composer_model_selection?.provider ?? null;
+            const capabilityTarget = composerCapabilityTargetForProvider(
+                defaultProvider,
+                cliRuntimeSummariesSnapshot(requestWorkspaceId),
+            );
             setSnapshot(result.snapshot);
             useActiveThreadStore
                 .getState()

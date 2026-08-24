@@ -54,6 +54,7 @@ export interface GatewayCliRuntimeInstanceSettings {
 export interface GatewayGeneralSettings {
   keepawake?: boolean;
   preflight_model?: GatewayMemoryModelSelection;
+  telemetry_enabled?: boolean;
   [k: string]: unknown;
 }
 export interface GatewayMemoryModelSelection {

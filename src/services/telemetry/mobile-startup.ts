@@ -1,4 +1,5 @@
 import Constants from 'expo-constants';
+import * as Application from 'expo-application';
 
 import { pioneerClient } from '@/client';
 import type { MobileStartupRecordRequest, MobileStartupStageTiming } from '@/client';
@@ -80,11 +81,15 @@ class MobileStartupTimeline {
     }
 
     succeed(name: MobileStartupStageName): void {
-        this.finishStage(name, false);
+        this.finishStage(name, 'ok');
     }
 
     fail(name: MobileStartupStageName): void {
-        this.finishStage(name, true);
+        this.finishStage(name, 'error');
+    }
+
+    cancel(name: MobileStartupStageName): void {
+        this.finishStage(name, 'cancelled');
     }
 
     completeAfterOperationalFrame(
@@ -126,7 +131,7 @@ class MobileStartupTimeline {
         }
     }
 
-    private finishStage(name: MobileStartupStageName, failed: boolean): void {
+    private finishStage(name: MobileStartupStageName, outcome: 'ok' | 'error' | 'cancelled'): void {
         if (this.finalized || this.completed.has(name)) {
             return;
         }
@@ -140,7 +145,8 @@ class MobileStartupTimeline {
             name,
             start_offset_ms: Math.max(0, active.startedAt - startupMonotonicOrigin),
             duration_ms: Math.max(0, finishedAt - active.startedAt),
-            failed,
+            failed: outcome === 'error',
+            cancelled: outcome === 'cancelled',
         });
     }
 
@@ -150,6 +156,7 @@ class MobileStartupTimeline {
             start_offset_ms: Math.max(0, startedAt - startupMonotonicOrigin),
             duration_ms: Math.max(0, finishedAt - startedAt),
             failed: false,
+            cancelled: false,
         });
     }
 
@@ -157,9 +164,17 @@ class MobileStartupTimeline {
         if (this.finalized) {
             return;
         }
+        // Preserve every stage that was in flight when a valid terminal
+        // startup branch was reached. These stages did not fail; setup/auth
+        // UI simply made them unnecessary for this launch.
+        for (const name of [...this.active.keys()]) {
+            this.cancel(name);
+        }
         this.finalized = true;
         const finishedAt = now();
         const extra = (Constants.expoConfig?.extra?.telemetry ?? {}) as TelemetryExtra;
+        const appVersion = Application.nativeApplicationVersion ?? Constants.expoConfig?.version;
+        const buildVersion = Application.nativeBuildVersion;
         const request: MobileStartupRecordRequest = {
             enabled: extra.enabled !== false,
             metrics_endpoint:
@@ -168,6 +183,9 @@ class MobileStartupTimeline {
             export_interval_ms: 30_000,
             export_timeout_ms: 3_000,
             deployment_environment: extra.environment ?? 'production',
+            ...(appVersion
+                ? { service_version: buildVersion ? `${appVersion}+${buildVersion}` : appVersion }
+                : {}),
             started_at_unix_ms: startupWallClockOrigin,
             duration_ms: Math.max(0, finishedAt - startupMonotonicOrigin),
             outcome,

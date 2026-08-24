@@ -35,6 +35,11 @@ import { useVoiceInputGatewayQueryLifecycle } from '@/services/voice-input/data-
 import { TaskUserNotificationController } from '@/services/tasks/user-notifications';
 import { mobileStartup } from '@/services/telemetry/mobile-startup';
 import { mobileStartupReadinessOutcome } from '@/services/telemetry/mobile-startup-readiness';
+import {
+    composerCapabilityTargetForProvider,
+    isCliRuntimeProvider,
+} from '@/services/providers/cli-runtime';
+import { useCliRuntimeSummaries } from '@/hooks/use-cli-runtime-summaries';
 import { useActiveThreadStore } from '@/stores/active-thread';
 import { useGatewayStore } from '@/stores/gateway';
 import { useThreadTreeStore } from '@/stores/thread-tree';
@@ -192,6 +197,7 @@ const RootContent = () => {
             <ThreadTreeController />
             <RootStack />
             <MobileStartupReadinessController />
+            <CliRuntimeComposerCapabilityController />
             <TaskUserNotificationController />
             <TerminalGatewaySessionNavigation />
         </>
@@ -258,6 +264,54 @@ const MobileStartupReadinessController = () => {
             mobileStartup.completeAfterOperationalFrame(outcome, hideAppSplash);
         }
     }, [outcome]);
+
+    return null;
+};
+
+const CliRuntimeComposerCapabilityController = () => {
+    const activeWorkspaceId = useWorkspaceStore((state) => state.activeWorkspaceId);
+    const cliRuntimes = useCliRuntimeSummaries(activeWorkspaceId);
+    const selection = useActiveThreadStore(
+        useShallow((state) => ({
+            defaultWorkspaceId: state.defaultComposerWorkspaceId,
+            defaultProvider: state.defaultComposerProvider,
+            defaultModel: state.defaultComposerModel,
+            defaultReasoningEffort: state.defaultComposerReasoningEffort,
+            selectedProvider: state.composerSelectedProvider,
+            selectedModel: state.composerSelectedModel,
+            selectedReasoningEffort: state.composerSelectedReasoningEffort,
+            syncDefault: state.syncDefaultComposerModelSelection,
+            syncSelected: state.syncComposerModelSelection,
+        })),
+    );
+
+    useEffect(() => {
+        if (!activeWorkspaceId) {
+            return;
+        }
+
+        if (
+            selection.defaultWorkspaceId === activeWorkspaceId &&
+            isCliRuntimeProvider(selection.defaultProvider)
+        ) {
+            selection.syncDefault(
+                activeWorkspaceId,
+                selection.defaultProvider,
+                selection.defaultModel,
+                selection.defaultReasoningEffort,
+                composerCapabilityTargetForProvider(selection.defaultProvider, cliRuntimes),
+            );
+        }
+
+        if (isCliRuntimeProvider(selection.selectedProvider)) {
+            selection.syncSelected(
+                selection.selectedProvider,
+                selection.selectedModel,
+                selection.selectedReasoningEffort,
+                composerCapabilityTargetForProvider(selection.selectedProvider, cliRuntimes),
+            );
+        }
+    }, [activeWorkspaceId, cliRuntimes, selection]);
 
     return null;
 };

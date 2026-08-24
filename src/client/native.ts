@@ -632,6 +632,7 @@ export type MobileStartupStageTiming = {
     start_offset_ms: number;
     duration_ms: number;
     failed?: boolean;
+    cancelled?: boolean;
 };
 
 export type MobileStartupRecordRequest = {
@@ -641,6 +642,7 @@ export type MobileStartupRecordRequest = {
     export_interval_ms: number;
     export_timeout_ms: number;
     deployment_environment: 'development' | 'production';
+    service_version?: string;
     started_at_unix_ms: number;
     duration_ms: number;
     outcome: 'ready' | 'setup_required' | 'authentication_required' | 'degraded';

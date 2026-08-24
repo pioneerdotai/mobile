@@ -15,7 +15,7 @@ import {
     type ComposerCapabilityPolicy,
     type CliRuntimeMcpReadinessReason,
 } from './cli-runtime';
-import { refreshCliRuntimeSummaries } from './cli-runtime-live';
+import { cliRuntimeSummariesSnapshot } from './cli-runtime-snapshot';
 
 export type ModelSelectorProvider = {
     id: string;
@@ -25,42 +25,42 @@ export type ModelSelectorProvider = {
     mcpReadinessReason: CliRuntimeMcpReadinessReason | null;
 };
 
-export const listProviders = async (workspaceId: string): Promise<ModelSelectorProvider[]> => {
-    const [apiProviders, cliRuntimes] = await Promise.allSettled([
-        pioneerClient.providerList({ workspace_id: workspaceId }),
-        refreshCliRuntimeSummaries(workspaceId),
-    ]);
+export const listProviders = async (
+    workspaceId: string,
+    cliRuntimes: readonly RuntimeSummary[] = cliRuntimeSummariesSnapshot(workspaceId),
+): Promise<ModelSelectorProvider[]> => {
+    let apiProviderError: unknown = null;
+    let rows: ModelSelectorProvider[] = [];
 
-    const rows: ModelSelectorProvider[] =
-        apiProviders.status === 'fulfilled'
-            ? apiProviders.value.providers
-                  .filter((provider) => provider.name !== 'local')
-                  .map((provider) => ({
-                      id: provider.name,
-                      label: provider.name,
-                      kind: 'api',
-                      capabilityTarget: NATIVE_COMPOSER_CAPABILITY_POLICY,
-                      mcpReadinessReason: null,
-                  }))
-            : [];
-
-    if (cliRuntimes.status === 'fulfilled') {
-        rows.push(
-            ...cliRuntimes.value.filter(cliRuntimeVisibleInModelSelector).map((runtime) => ({
-                id: cliRuntimeProviderKey(runtime.runtime_id),
-                label: runtime.display_name,
-                kind: 'cliRuntime' as const,
-                capabilityTarget: composerCapabilityTargetForProvider(
-                    cliRuntimeProviderKey(runtime.runtime_id),
-                    cliRuntimes.value,
-                ),
-                mcpReadinessReason: cliRuntimeMcpReadinessReason(runtime),
-            })),
-        );
+    try {
+        const response = await pioneerClient.providerList({ workspace_id: workspaceId });
+        rows = response.providers
+            .filter((provider) => provider.name !== 'local')
+            .map((provider) => ({
+                id: provider.name,
+                label: provider.name,
+                kind: 'api',
+                capabilityTarget: NATIVE_COMPOSER_CAPABILITY_POLICY,
+                mcpReadinessReason: null,
+            }));
+    } catch (error) {
+        apiProviderError = error;
     }
 
-    if (apiProviders.status === 'rejected' && cliRuntimes.status === 'rejected') {
-        throw apiProviders.reason;
+    const cliRows = cliRuntimes.filter(cliRuntimeVisibleInModelSelector).map((runtime) => ({
+        id: cliRuntimeProviderKey(runtime.runtime_id),
+        label: runtime.display_name,
+        kind: 'cliRuntime' as const,
+        capabilityTarget: composerCapabilityTargetForProvider(
+            cliRuntimeProviderKey(runtime.runtime_id),
+            cliRuntimes,
+        ),
+        mcpReadinessReason: cliRuntimeMcpReadinessReason(runtime),
+    }));
+    rows.push(...cliRows);
+
+    if (apiProviderError && cliRows.length === 0) {
+        throw apiProviderError;
     }
 
     return rows;
@@ -72,6 +72,21 @@ export const providerDisplayName = async (
 ): Promise<string | null> => {
     const rows = await listProviders(workspaceId);
     return rows.find((provider) => provider.id === providerId)?.label ?? null;
+};
+
+export const providerReadyForModelSelector = (
+    providerId: string | null | undefined,
+    cliRuntimes: readonly RuntimeSummary[],
+): boolean => {
+    if (!isCliRuntimeProvider(providerId)) {
+        return true;
+    }
+
+    return cliRuntimes.some(
+        (runtime) =>
+            cliRuntimeProviderKey(runtime.runtime_id) === providerId &&
+            cliRuntimeVisibleInModelSelector(runtime),
+    );
 };
 
 export const listProviderModels = async (
@@ -195,7 +210,7 @@ const cliRuntimeVisibleInModelSelector = (runtime: RuntimeSummary): boolean => {
 };
 
 const runtimeReadyForModelSelector = (status: RuntimeStatus): boolean => {
-    return status.state === 'ready' || status.state === 'degraded';
+    return status.state === 'ready';
 };
 
 export { isCliRuntimeProvider };
