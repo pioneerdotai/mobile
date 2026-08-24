@@ -12,12 +12,12 @@
         "lint": "bunx expo lint",
         "prebuild:ios": "expo prebuild -p ios --clean",
         "prebuild:android": "expo prebuild -p android --clean",
-        "build:ios": "eas build --platform ios --profile development",
-        "build:android": "eas build --platform android --profile development",
-        "release:ios": "eas build --platform ios --profile production --auto-submit",
-        "release:android": "eas build --platform android --profile production",
+        "build:ios": "eas build --platform ios --profile development --clear-cache",
+        "build:android": "eas build --platform android --profile development --clear-cache",
+        "release:ios": "eas build --platform ios --profile production --clear-cache --auto-submit",
+        "release:android": "eas build --platform android --profile production --clear-cache",
         "eas-build-pre-install": "bash modules/pioneer-client-nitro/scripts/eas-prepare-rust.sh",
-        "update:all": "eas update --channel production --environment production && npx sentry-expo-upload-sourcemaps dist",
+        "update:all": "eas update --channel production --environment production --clear-cache && npx sentry-expo-upload-sourcemaps dist",
         "client": "bun run client:schema && bun run client:types",
         "client:schema": "tsx ./scripts/export-client-schema.ts",
         "client:types": "tsx ./scripts/generate-client-types.ts",
@@ -169,7 +169,7 @@
         "@sentry/cli"
     ],
     "patchedDependencies": {
-        "metro@0.84.4": "patches/metro@0.84.4.patch",
-        "metro-runtime@0.84.4": "patches/metro-runtime@0.84.4.patch"
+        "metro@0.84.5": "patches/metro@0.84.5.patch",
+        "metro-runtime@0.84.5": "patches/metro-runtime@0.84.5.patch"
     }
 }
