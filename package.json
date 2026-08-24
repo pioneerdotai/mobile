@@ -60,8 +60,7 @@
         "install": {
             "exclude": [
                 "@sentry/react-native",
-                "react-native-keyboard-controller",
-                "react-native-reanimated"
+                "react-native-keyboard-controller"
             ]
         }
     },
@@ -127,7 +126,7 @@
         "react-native-nitro-modules": "^0.37.0",
         "react-native-otp-entry": "^1.8.6",
         "react-native-permissions": "^5.6.1",
-        "react-native-reanimated": "^4.6.0",
+        "react-native-reanimated": "4.5.1",
         "react-native-safe-area-context": "~5.7.0",
         "react-native-screens": "~4.26.0",
         "react-native-streamdown": "0.2.0",
