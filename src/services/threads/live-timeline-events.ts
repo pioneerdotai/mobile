@@ -47,6 +47,10 @@ export const isActiveThreadTimelineEvent = (
         case 'item_tool_retry_resolved':
         case 'item_tool_retry_exhausted':
         case 'turn_tool_loop_budget_exceeded':
+        case 'cli_runtime_request_opened':
+        case 'cli_runtime_request_resolved':
+        case 'turn_permission_request_opened':
+        case 'turn_permission_request_resolved':
             return true;
         default:
             return false;
@@ -84,6 +88,13 @@ export const activeThreadTimelineEventThreadId = (
         case 'turn_work_items_changed':
         case 'turn_work_state_changed':
             return notification.params.threadId;
+        case 'cli_runtime_request_opened':
+        case 'cli_runtime_request_resolved':
+            return notification.params.thread_id ?? null;
+        case 'turn_permission_request_opened':
+            return notification.params.request.thread_id;
+        case 'turn_permission_request_resolved':
+            return notification.params.thread_id;
         case 'turn_started':
         case 'turn_completed':
         case 'turn_failed':

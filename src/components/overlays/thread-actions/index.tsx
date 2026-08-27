@@ -36,18 +36,30 @@ const ThreadActionsSheet = ({ open, thread, onClose, onOpenMembers }: ThreadActi
     const { t } = useTranslation('threads');
     const queryClient = useQueryClient();
     const auth = useAdministrationPrincipal();
+    const connectionGatewayId = useGatewayStore((state) => state.connectionGatewayId);
     const connectionId = useGatewayStore((state) => state.connectionId);
     const connectionState = useGatewayStore((state) => state.connectionState);
     // connectionId is the authorization epoch and thread ID is the scoped
     // resource. Capability mutations explicitly invalidate this prefix.
     // eslint-disable-next-line @tanstack/query/exhaustive-deps
     const scopeQuery = useQuery({
-        queryKey: [...threadScopeQueryKeys.detail(thread?.id ?? ''), connectionId] as const,
+        queryKey: [
+            ...threadScopeQueryKeys.detail(thread?.id ?? ''),
+            { gatewayId: connectionGatewayId, connectionId },
+        ] as const,
         queryFn: async () => {
             if (!auth.data || !thread) throw new Error('thread_scope_unavailable');
-            return loadThreadScopePresentation(auth.data, thread);
+            return loadThreadScopePresentation(auth.data, thread, {
+                gatewayId: connectionGatewayId,
+                connectionId,
+            });
         },
-        enabled: open && connectionState === 'Connected' && Boolean(auth.data && thread),
+        enabled:
+            open &&
+            connectionState === 'Connected' &&
+            connectionGatewayId !== null &&
+            connectionId !== null &&
+            Boolean(auth.data && thread),
         refetchOnMount: 'always',
         refetchOnReconnect: true,
     });

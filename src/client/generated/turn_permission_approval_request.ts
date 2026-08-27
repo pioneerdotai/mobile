@@ -10,6 +10,8 @@ export type TurnPermissionActionKind =
   | 'dynamic_skill_tool'
   | 'computer_use'
   | 'task_subagent'
+  | 'memory_write'
+  | 'agent_action'
   | 'internal'
   | 'unknown';
 export type TurnPermissionDecisionReason =

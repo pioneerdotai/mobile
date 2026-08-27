@@ -1,6 +1,7 @@
 /* eslint-disable */
 
-export type PendingRequestKind = 'command_approval' | 'file_change_approval' | 'user_input' | 'other';
+export type PendingRequestKind =
+  'command_approval' | 'file_change_approval' | 'permission_approval' | 'user_input' | 'other';
 export type PendingRequestOrigin =
   | {
       origin: 'cli_runtime';
@@ -27,7 +28,8 @@ export type PendingRequestPayload =
       source: 'other';
       [k: string]: unknown;
     };
-export type CLIRuntimeRequestKind = 'command_approval' | 'file_change_approval' | 'user_input' | 'other';
+export type CLIRuntimeRequestKind =
+  'command_approval' | 'file_change_approval' | 'permission_approval' | 'user_input' | 'other';
 export type TurnPermissionActionKind =
   | 'file_read'
   | 'file_write'
@@ -38,6 +40,8 @@ export type TurnPermissionActionKind =
   | 'dynamic_skill_tool'
   | 'computer_use'
   | 'task_subagent'
+  | 'memory_write'
+  | 'agent_action'
   | 'internal'
   | 'unknown';
 export type TurnPermissionDecisionReason =
@@ -67,6 +71,7 @@ export interface PendingRequest {
   thread_id?: string | null;
   title?: string | null;
   turn_id?: string | null;
+  visible_thread_ids?: string[];
   workspace_id: string;
   [k: string]: unknown;
 }

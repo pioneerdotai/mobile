@@ -290,7 +290,8 @@ export type MarkdownMarkKind =
       url: string;
       [k: string]: unknown;
     };
-export type CLIRuntimeRequestKind = 'command_approval' | 'file_change_approval' | 'user_input' | 'other';
+export type CLIRuntimeRequestKind =
+  'command_approval' | 'file_change_approval' | 'permission_approval' | 'user_input' | 'other';
 export type CLIRuntimePendingRequestStatus =
   | 'pending'
   | 'response_accepted'

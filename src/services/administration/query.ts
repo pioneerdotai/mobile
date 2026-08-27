@@ -98,6 +98,36 @@ export const currentAdministrationPrincipalQueryOptions = (
         staleTime: 30_000,
     });
 
+export const acceptAuthorizationCapabilitySnapshot = (
+    epoch: AdministrationAuthorizationEpoch,
+    expectedPrincipalId: string,
+    workspaceId: string | null,
+    threadId: string | null,
+    snapshot: AuthorizationCapabilitySnapshot,
+): AuthorizationCapabilitySnapshot => {
+    if (epoch.gatewayId === null || epoch.connectionId === null) {
+        throw new Error('inactive_authorization_connection_epoch');
+    }
+    const accepted = pioneerClient.authorizationProjectionAccept({
+        gateway_id: epoch.gatewayId,
+        connection_id: epoch.connectionId,
+        expected_principal_id: expectedPrincipalId,
+        workspace_id: workspaceId,
+        thread_id: threadId,
+        snapshot,
+    });
+    if (accepted.acceptance === 'incompatible') {
+        throw new Error('incompatible_authorization_capability_snapshot');
+    }
+    if (accepted.acceptance === 'conflict') {
+        throw new Error('conflicting_authorization_projection');
+    }
+    if (accepted.acceptance === 'stale' || !accepted.snapshot) {
+        throw new Error('stale_authorization_projection');
+    }
+    return accepted.snapshot;
+};
+
 export const authorizationCapabilitySnapshotQueryOptions = (
     queryClient: QueryClient,
     epoch: AdministrationAuthorizationEpoch,
@@ -118,30 +148,15 @@ export const authorizationCapabilitySnapshotQueryOptions = (
                 throw new Error('inactive_authorization_connection_epoch');
             }
             const raw = await loadAuthorizationCapabilitySnapshot(workspaceId, threadId);
-            const accepted = pioneerClient.authorizationProjectionAccept({
-                gateway_id: epoch.gatewayId,
-                connection_id: epoch.connectionId,
-                expected_principal_id: expectedPrincipalId,
-                workspace_id: workspaceId,
-                thread_id: threadId,
-                snapshot: raw,
-            });
-            if (accepted.acceptance === 'incompatible') {
-                throw new Error('incompatible_authorization_capability_snapshot');
-            }
-            if (accepted.acceptance === 'conflict') {
-                throw new Error('conflicting_authorization_projection');
-            }
-            if (accepted.acceptance === 'stale' || !accepted.snapshot) {
-                throw new Error('stale_authorization_projection');
-            }
-            reconcileAuthorizationCapabilityQueries(
-                queryClient,
+            const snapshot = acceptAuthorizationCapabilitySnapshot(
                 epoch,
-                queryKey,
-                accepted.snapshot,
+                expectedPrincipalId,
+                workspaceId,
+                threadId,
+                raw,
             );
-            return accepted.snapshot;
+            reconcileAuthorizationCapabilityQueries(queryClient, epoch, queryKey, snapshot);
+            return snapshot;
         },
         retry: administrationAuthorizationQueryRetry,
         retryDelay: administrationAuthorizationQueryRetryDelay,

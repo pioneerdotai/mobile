@@ -19,6 +19,10 @@ export type CLIRuntimeRequestResolution =
       [k: string]: unknown;
     }
   | {
+      status: 'approved_for_session';
+      [k: string]: unknown;
+    }
+  | {
       reason?: string | null;
       status: 'denied';
       [k: string]: unknown;

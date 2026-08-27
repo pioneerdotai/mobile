@@ -1,7 +1,9 @@
 import { QueryClient } from '@tanstack/react-query';
-import { describe, expect, it, jest } from '@jest/globals';
+import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import type { ClientEvent } from '@/client';
-import { applyActiveThreadEvent } from '@/services/threads/active';
+import { applyActiveThreadEvent, openActiveThreadById } from '@/services/threads/active';
+import { threadScopeQueryKeys } from '@/services/threads/scope';
+import { timelineQueryKeys } from '@/services/threads/timeline-query';
 import { administrationQueryKeys } from './query';
 import { applyMobileAdministrationEvent, isAdministrationEvent } from './events';
 
@@ -10,9 +12,20 @@ jest.mock('@/client', () => ({
         administrationConflictRefetch: jest.fn(),
     },
 }));
-jest.mock('@/services/threads/active', () => ({ applyActiveThreadEvent: jest.fn() }));
+jest.mock('@/services/threads/active', () => ({
+    applyActiveThreadEvent: jest.fn(),
+    openActiveThreadById: jest.fn(),
+}));
+const mockActiveThreadState = {
+    activeComposerThreadId: null as string | null,
+    expandedKeys: [] as string[],
+    reset: jest.fn(),
+    resetDefaultComposerModelSelection: jest.fn(),
+};
 jest.mock('@/stores/active-thread', () => ({
-    useActiveThreadStore: { getState: () => ({ expandedKeys: [] }) },
+    useActiveThreadStore: {
+        getState: () => mockActiveThreadState,
+    },
 }));
 
 const event = (kind: string, params: Record<string, unknown> = {}): ClientEvent =>
@@ -21,6 +34,15 @@ const event = (kind: string, params: Record<string, unknown> = {}): ClientEvent 
     }) as ClientEvent;
 
 describe('administration realtime invalidation', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+        jest.mocked(applyActiveThreadEvent).mockResolvedValue({
+            snapshot: { thread_id: null },
+        } as never);
+        mockActiveThreadState.activeComposerThreadId = null;
+        mockActiveThreadState.expandedKeys = [];
+    });
+
     it('recognizes only administration notifications', () => {
         expect(isAdministrationEvent(event('member_changed'))).toBe(true);
         expect(isAdministrationEvent(event('workspace_members_changed'))).toBe(true);
@@ -33,8 +55,12 @@ describe('administration realtime invalidation', () => {
         const epoch = { gatewayId: 'gateway-a', connectionId: 7 };
         const workspace = administrationQueryKeys.capabilities(epoch, 'workspace-a', null);
         const thread = administrationQueryKeys.capabilities(epoch, 'workspace-a', 'thread-a');
+        const threadScope = [...threadScopeQueryKeys.detail('thread-a'), epoch] as const;
+        const timeline = timelineQueryKeys.threadSnapshot('thread-a');
         queryClient.setQueryData(workspace, { authorization_revision: 6 });
         queryClient.setQueryData(thread, { authorization_revision: 6 });
+        queryClient.setQueryData(threadScope, { canManage: true });
+        queryClient.setQueryData(timeline, { secret: 'old prompt' });
 
         await applyMobileAdministrationEvent(
             event('authorization_projection_changed', {
@@ -47,7 +73,69 @@ describe('administration realtime invalidation', () => {
 
         expect(queryClient.getQueryData(workspace)).toBeUndefined();
         expect(queryClient.getQueryData(thread)).toBeUndefined();
-        expect(applyActiveThreadEvent).not.toHaveBeenCalled();
+        expect(queryClient.getQueryData(threadScope)).toBeUndefined();
+        expect(queryClient.getQueryData(timeline)).toBeUndefined();
+        expect(applyActiveThreadEvent).toHaveBeenCalledTimes(1);
+        queryClient.clear();
+    });
+
+    it('keeps thread projections intact for invitation-only authorization changes', async () => {
+        const queryClient = new QueryClient();
+        const timeline = timelineQueryKeys.threadSnapshot('thread-a');
+        queryClient.setQueryData(timeline, { current: true });
+
+        await applyMobileAdministrationEvent(
+            event('authorization_projection_changed', {
+                policy_generation: 8,
+                change: 'resource_selector',
+                affected: { scope: 'invitation', invitation_id: 'invite-a' },
+            }),
+            queryClient,
+        );
+
+        expect(queryClient.getQueryData(timeline)).toEqual({ current: true });
+        expect(applyActiveThreadEvent).toHaveBeenCalledTimes(1);
+        queryClient.clear();
+    });
+
+    it('reopens an active thread through current ACL after clearing the old generation', async () => {
+        const queryClient = new QueryClient();
+        const timeline = timelineQueryKeys.threadSnapshot('thread-a');
+        queryClient.setQueryData(timeline, {
+            thread_id: 'thread-a',
+            projection: { revision: 6 },
+            secret: 'old prompt',
+        });
+        mockActiveThreadState.activeComposerThreadId = 'thread-a';
+        mockActiveThreadState.expandedKeys = ['turn:expanded'];
+        jest.mocked(openActiveThreadById).mockResolvedValue({
+            thread_id: 'thread-a',
+            projection: { revision: 8 },
+            pending_requests: [],
+        } as never);
+
+        await applyMobileAdministrationEvent(
+            event('authorization_projection_changed', {
+                policy_generation: 8,
+                change: 'role_assignment',
+                affected: {
+                    scope: 'principal',
+                    principal_id: 'P00000000000000000001',
+                },
+            }),
+            queryClient,
+        );
+
+        expect(openActiveThreadById).toHaveBeenCalledWith({
+            thread_id: 'thread-a',
+            expanded_keys: ['turn:expanded'],
+        });
+        expect(queryClient.getQueryData(timeline)).toEqual({
+            thread_id: 'thread-a',
+            projection: { revision: 8 },
+            pending_requests: [],
+        });
+        expect(mockActiveThreadState.reset).not.toHaveBeenCalled();
         queryClient.clear();
     });
 

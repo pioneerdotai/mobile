@@ -16,7 +16,8 @@ export type PendingRequestPayload =
       source: 'other';
       [k: string]: unknown;
     };
-export type CLIRuntimeRequestKind = 'command_approval' | 'file_change_approval' | 'user_input' | 'other';
+export type CLIRuntimeRequestKind =
+  'command_approval' | 'file_change_approval' | 'permission_approval' | 'user_input' | 'other';
 export type TurnPermissionActionKind =
   | 'file_read'
   | 'file_write'
@@ -27,6 +28,8 @@ export type TurnPermissionActionKind =
   | 'dynamic_skill_tool'
   | 'computer_use'
   | 'task_subagent'
+  | 'memory_write'
+  | 'agent_action'
   | 'internal'
   | 'unknown';
 export type TurnPermissionDecisionReason =

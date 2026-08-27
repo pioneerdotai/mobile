@@ -11,7 +11,11 @@ import {
     type WorkspaceMemberListResponse,
 } from '@/client';
 import { loadAllWorkspaceMembers } from '@/services/administration/members';
-import { administrationQueryKeys } from '@/services/administration/query';
+import {
+    acceptAuthorizationCapabilitySnapshot,
+    administrationQueryKeys,
+    type AdministrationAuthorizationEpoch,
+} from '@/services/administration/query';
 import { timelineQueryKeys } from '@/services/threads/timeline-query';
 
 export const threadScopeQueryKeys = {
@@ -44,6 +48,7 @@ export const planThreadScopeMutation = (
 export const loadThreadScopePresentation = async (
     auth: AuthMeResponse,
     thread: Thread,
+    authorizationEpoch: AdministrationAuthorizationEpoch,
 ): Promise<ThreadScopePresentation> => {
     const emptyCapabilities: AuthorizationThreadCapabilities = {
         can_bind_artifacts: false,
@@ -79,7 +84,7 @@ export const loadThreadScopePresentation = async (
     };
     let capabilities = emptyCapabilities;
     try {
-        const [participantsResponse, capabilitySnapshot] = await Promise.all([
+        const [participantsResponse, rawCapabilitySnapshot] = await Promise.all([
             pioneerClient.threadParticipantsList({
                 workspace_id: thread.workspace_id,
                 thread_id: thread.id,
@@ -89,6 +94,13 @@ export const loadThreadScopePresentation = async (
                 thread_id: thread.id,
             }),
         ]);
+        const capabilitySnapshot = acceptAuthorizationCapabilitySnapshot(
+            authorizationEpoch,
+            auth.principal.id,
+            thread.workspace_id,
+            thread.id,
+            rawCapabilitySnapshot,
+        );
         participants = participantsResponse;
         capabilities = capabilitySnapshot.thread?.capabilities ?? emptyCapabilities;
     } catch {

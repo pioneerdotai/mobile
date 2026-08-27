@@ -17,6 +17,11 @@ import { Text } from '@/components/primitives/text';
 import { VStack } from '@/components/primitives/vstack';
 import type { TimelinePendingRequest } from '@/services/threads/conversation/timeline';
 import {
+    pendingRequestActionLabel,
+    pendingRequestActionVariant,
+    pendingRequestQuestionInputSecurity,
+} from '@/components/thread/pending-request-actions';
+import {
     invalidateTimelineQueriesForThread,
     invalidateTurnWorkQueries,
 } from '@/services/threads/timeline-query';
@@ -207,6 +212,7 @@ const UserInputFields = ({
                         placeholder="Answer"
                         onChangeText={(value) => onAnswer(question.id, value)}
                         style={styles.answerInput}
+                        {...pendingRequestQuestionInputSecurity(question)}
                     />
                     {question.is_secret ? (
                         <Text style={styles.secretNote}>
@@ -236,7 +242,7 @@ const RequestActions = ({
         {actions.map((action) => (
             <ActionButton
                 key={action.kind}
-                label={actionLabel(action)}
+                label={pendingRequestActionLabel(action)}
                 disabled={
                     action.kind === 'answer'
                         ? !canSubmitAnswer
@@ -251,41 +257,11 @@ const RequestActions = ({
                         onRespond(action.resolution);
                     }
                 }}
-                variant={actionVariant(action)}
+                variant={pendingRequestActionVariant(action)}
             />
         ))}
     </HStack>
 );
-
-const actionLabel = (action: PendingRequestAvailableAction) => {
-    switch (action.kind) {
-        case 'cancel_turn':
-            return 'Cancel turn';
-        case 'deny':
-            return 'Deny';
-        case 'allow':
-            return 'Allow';
-        case 'allow_for_turn':
-            return 'Allow for turn';
-        case 'answer':
-            return 'Answer';
-    }
-};
-
-const actionVariant = (
-    action: PendingRequestAvailableAction,
-): 'danger' | 'primary' | 'secondary' => {
-    switch (action.kind) {
-        case 'cancel_turn':
-            return 'danger';
-        case 'allow':
-        case 'answer':
-            return 'primary';
-        case 'deny':
-        case 'allow_for_turn':
-            return 'secondary';
-    }
-};
 
 const ActionButton = ({
     disabled,

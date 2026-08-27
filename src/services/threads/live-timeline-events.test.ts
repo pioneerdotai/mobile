@@ -47,6 +47,62 @@ const turnWorkStateChangedEvent = (threadId: string): ClientEvent =>
         },
     }) as unknown as ClientEvent;
 
+const cliPermissionEvent = (
+    kind: 'cli_runtime_request_opened' | 'cli_runtime_request_resolved',
+    threadId: string,
+): ClientEvent =>
+    ({
+        GatewayNotification: {
+            kind,
+            params: {
+                workspace_id: 'workspace_a',
+                runtime_id: 'codex',
+                request_id: 'request_a',
+                thread_id: threadId,
+                turn_id: 'turn_a',
+                ...(kind === 'cli_runtime_request_opened'
+                    ? {
+                          request: {
+                              kind: 'command_approval',
+                              title: 'Approve command',
+                          },
+                      }
+                    : { resolution: 'approved' }),
+            },
+        },
+    }) as unknown as ClientEvent;
+
+const nativePermissionEvent = (
+    kind: 'turn_permission_request_opened' | 'turn_permission_request_resolved',
+    threadId: string,
+): ClientEvent =>
+    ({
+        GatewayNotification: {
+            kind,
+            params:
+                kind === 'turn_permission_request_opened'
+                    ? {
+                          request: {
+                              request_id: 'request_a',
+                              workspace_id: 'workspace_a',
+                              thread_id: threadId,
+                              turn_id: 'turn_a',
+                              tool_name: 'exec_command',
+                              action: 'shell_command',
+                              scope_hash: 'scope_a',
+                              reason: 'policy_requires_approval',
+                          },
+                      }
+                    : {
+                          request_id: 'request_a',
+                          workspace_id: 'workspace_a',
+                          thread_id: threadId,
+                          turn_id: 'turn_a',
+                          resolution: 'allow_once',
+                      },
+        },
+    }) as unknown as ClientEvent;
+
 describe('active thread live timeline events', () => {
     it('handles persisted timeline block change notifications in the active stream', () => {
         const event = threadTimelineBlocksChangedEvent('thread_a');
@@ -114,5 +170,21 @@ describe('active thread live timeline events', () => {
             queryKey: timelineQueryKeys.threadPages('thread_a'),
             refetchType: 'active',
         });
+    });
+
+    it.each([
+        cliPermissionEvent('cli_runtime_request_opened', 'thread_cli'),
+        cliPermissionEvent('cli_runtime_request_resolved', 'thread_cli'),
+        nativePermissionEvent('turn_permission_request_opened', 'thread_native'),
+        nativePermissionEvent('turn_permission_request_resolved', 'thread_native'),
+    ])('routes live permission lifecycle events into the active-thread reducer', (event) => {
+        expect(isActiveThreadTimelineEvent(event)).toBe(true);
+        if (!isActiveThreadTimelineEvent(event)) {
+            throw new Error('expected live permission event');
+        }
+
+        expect(activeThreadTimelineEventThreadId(event)).toBe(
+            event.GatewayNotification.kind.startsWith('cli_') ? 'thread_cli' : 'thread_native',
+        );
     });
 });

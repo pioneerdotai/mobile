@@ -6,6 +6,10 @@ export type CLIRuntimeRequestResolution =
       [k: string]: unknown;
     }
   | {
+      status: 'approved_for_session';
+      [k: string]: unknown;
+    }
+  | {
       reason?: string | null;
       status: 'denied';
       [k: string]: unknown;
@@ -36,6 +40,11 @@ export interface CLIRuntimeRequestResolvedNotification {
   runtime_id: string;
   thread_id?: string | null;
   turn_id?: string | null;
+  /**
+   * Mirrors the opened notification so clients can remove an ancestor-
+   * projected request without waiting for a separate timeline refresh.
+   */
+  visible_thread_ids?: string[];
   workspace_id: string;
   [k: string]: unknown;
 }

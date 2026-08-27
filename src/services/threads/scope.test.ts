@@ -21,6 +21,7 @@ jest.mock('@/client', () => ({
         threadParticipantRemove: jest.fn(),
         threadUpdate: jest.fn(),
         gatewayAuthorizationCapabilities: jest.fn(),
+        authorizationProjectionAccept: jest.fn(),
         threadScopePresentation: jest.fn(),
         threadScopeMutationPlan: jest.fn(),
     },
@@ -37,10 +38,14 @@ const privateThread = {
     id: 'thread',
     visibility: 'private',
 } as unknown as Thread;
+const authorizationEpoch = { gatewayId: 'gateway-a', connectionId: 7 } as const;
 
 describe('thread scope service', () => {
     beforeEach(() => {
         jest.clearAllMocks();
+        jest.mocked(pioneerClient.authorizationProjectionAccept).mockImplementation(
+            ({ snapshot }) => ({ acceptance: 'accepted', snapshot }),
+        );
     });
 
     it('toggles only user-selectable thread visibility values', () => {
@@ -112,8 +117,16 @@ describe('thread scope service', () => {
             marker: true,
         } as never);
 
-        await expect(loadThreadScopePresentation(auth, privateThread)).resolves.toEqual({
-            marker: true,
+        await expect(
+            loadThreadScopePresentation(auth, privateThread, authorizationEpoch),
+        ).resolves.toEqual({ marker: true });
+        expect(pioneerClient.authorizationProjectionAccept).toHaveBeenCalledWith({
+            gateway_id: 'gateway-a',
+            connection_id: 7,
+            expected_principal_id: auth.principal.id,
+            workspace_id: privateThread.workspace_id,
+            thread_id: privateThread.id,
+            snapshot: expect.objectContaining({ authorization_revision: 1 }),
         });
         expect(pioneerClient.threadScopePresentation).toHaveBeenCalledWith({
             auth,
@@ -134,7 +147,7 @@ describe('thread scope service', () => {
         jest.mocked(loadAllWorkspaceMembers).mockResolvedValue(members);
         jest.mocked(pioneerClient.threadScopePresentation).mockReturnValue({} as never);
 
-        await loadThreadScopePresentation(auth, privateThread);
+        await loadThreadScopePresentation(auth, privateThread, authorizationEpoch);
 
         expect(pioneerClient.threadScopePresentation).toHaveBeenCalledWith({
             auth,
@@ -173,6 +186,48 @@ describe('thread scope service', () => {
             },
             workspace_members: members,
         });
+    });
+
+    it('fails a stale capability response closed instead of reviving cached management rights', async () => {
+        const members = {
+            workspace_id: privateThread.workspace_id,
+            members: [],
+            next_cursor: null,
+        };
+        jest.mocked(pioneerClient.threadParticipantsList).mockResolvedValue({
+            workspace_id: privateThread.workspace_id,
+            thread_id: privateThread.id,
+            participant_ids: [auth.principal.id],
+            participants: [],
+            changed: false,
+        });
+        jest.mocked(pioneerClient.gatewayAuthorizationCapabilities).mockResolvedValue({
+            schema_version: 1,
+            authorization_revision: 6,
+            principal_id: auth.principal.id,
+            role_key: 'member',
+            role: {} as never,
+            global: {} as never,
+        });
+        jest.mocked(pioneerClient.authorizationProjectionAccept).mockReturnValue({
+            acceptance: 'stale',
+            snapshot: null,
+        });
+        jest.mocked(loadAllWorkspaceMembers).mockResolvedValue(members);
+        jest.mocked(pioneerClient.threadScopePresentation).mockReturnValue({} as never);
+
+        await loadThreadScopePresentation(auth, privateThread, authorizationEpoch);
+
+        expect(pioneerClient.threadScopePresentation).toHaveBeenCalledWith(
+            expect.objectContaining({
+                capabilities: expect.objectContaining({
+                    can_manage: false,
+                    can_manage_private_participants: false,
+                    can_respond_to_agent_requests: false,
+                }),
+                participants: expect.objectContaining({ participant_ids: [] }),
+            }),
+        );
     });
 
     it('mutations reuse existing RPC without a local ACL', async () => {

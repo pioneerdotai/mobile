@@ -697,6 +697,8 @@ export type TurnPermissionActionKind =
   | 'dynamic_skill_tool'
   | 'computer_use'
   | 'task_subagent'
+  | 'memory_write'
+  | 'agent_action'
   | 'internal'
   | 'unknown';
 export type TurnPermissionDecisionReason =
@@ -1682,6 +1684,7 @@ export type TurnFilesystemSandboxPath =
     };
 export type TurnSecurityRuleProvenance =
   'composer_selection' | 'workspace' | 'project' | 'runtime' | 'task_cap' | 'system';
+export type TurnFilesystemSandboxKind = 'restricted' | 'unrestricted';
 export type TurnNetworkMode = 'disabled' | 'restricted' | 'enabled';
 export type TurnSandboxMode = 'unrestricted' | 'read_only' | 'workspace_write';
 export type TaskAgentWriteMode = 'read_only' | 'workspace_write' | 'scoped_write' | 'full_access';
@@ -1791,10 +1794,15 @@ export type RuntimeStatus =
       state: 'error';
       [k: string]: unknown;
     };
-export type CLIRuntimeRequestKind = 'command_approval' | 'file_change_approval' | 'user_input' | 'other';
+export type CLIRuntimeRequestKind =
+  'command_approval' | 'file_change_approval' | 'permission_approval' | 'user_input' | 'other';
 export type CLIRuntimeRequestResolution =
   | {
       status: 'approved';
+      [k: string]: unknown;
+    }
+  | {
+      status: 'approved_for_session';
       [k: string]: unknown;
     }
   | {
@@ -2002,8 +2010,22 @@ export interface TurnPermissionProfileSnapshot {
   [k: string]: unknown;
 }
 export interface ToolPermissionPolicySnapshot {
+  agent_action: PermissionBehavior;
   allowed_paths?: string[];
+  /**
+   * See `allowed_tools_restricted`.  A restricted empty path set is a
+   * durable deny-all result, while an unrestricted empty set is the legacy
+   * wildcard.
+   */
+  allowed_paths_restricted?: boolean;
   allowed_tools?: string[];
+  /**
+   * `allowed_tools = []` historically means "no allow-list".  This bit
+   * preserves the distinct result of intersecting two disjoint allow-lists:
+   * a restricted empty set must deny every tool rather than reopen all of
+   * them.
+   */
+  allowed_tools_restricted?: boolean;
   computer_use: PermissionBehavior;
   default_behavior: PermissionBehavior;
   denied_tools?: string[];
@@ -2012,6 +2034,7 @@ export interface ToolPermissionPolicySnapshot {
   file_write: PermissionBehavior;
   mcp_read: PermissionBehavior;
   mcp_write_or_unknown: PermissionBehavior;
+  memory_write: PermissionBehavior;
   network: PermissionBehavior;
   shell_command: PermissionBehavior;
   task_subagent: PermissionBehavior;
@@ -3315,6 +3338,12 @@ export interface TaskResultReviewerSpec {
 }
 export interface TaskAgentSecurityCap {
   maxFilesystemEntries?: TurnFilesystemSandboxEntry[];
+  /**
+   * Distinguishes a restricted cap with zero roots from an unrestricted
+   * cap, whose bounded-root list is also empty. Legacy records omit this
+   * field and are interpreted conservatively by the Gateway.
+   */
+  maxFilesystemKind?: TurnFilesystemSandboxKind | null;
   maxNetworkPolicy: TurnNetworkPolicySnapshot;
   maxPermissionProfile: TurnPermissionProfileCap;
   maxProcessPolicy: TurnProcessPolicySnapshot;
@@ -3695,6 +3724,11 @@ export interface CLIRuntimeRequestOpenedNotification {
   runtime_id: string;
   thread_id?: string | null;
   turn_id?: string | null;
+  /**
+   * Additional ancestor Thread capsules in which this child execution
+   * request is intentionally visible and actionable.
+   */
+  visible_thread_ids?: string[];
   workspace_id: string;
   [k: string]: unknown;
 }
@@ -3713,6 +3747,11 @@ export interface CLIRuntimeRequestResolvedNotification {
   runtime_id: string;
   thread_id?: string | null;
   turn_id?: string | null;
+  /**
+   * Mirrors the opened notification so clients can remove an ancestor-
+   * projected request without waiting for a separate timeline refresh.
+   */
+  visible_thread_ids?: string[];
   workspace_id: string;
   [k: string]: unknown;
 }

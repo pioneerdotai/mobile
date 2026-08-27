@@ -62,6 +62,7 @@ const ThreadMembersScreen = ({
     const queryClient = useQueryClient();
     const auth = useAdministrationPrincipal();
     const treeSnapshot = useThreadTreeStore((state) => state.snapshot);
+    const connectionGatewayId = useGatewayStore((state) => state.connectionGatewayId);
     const connectionId = useGatewayStore((state) => state.connectionId);
     const connected = useGatewayStore((state) => state.connectionState === 'Connected');
     const cachedSnapshot = queryClient.getQueryData<ClientActiveThreadSnapshot>(
@@ -71,8 +72,12 @@ const ThreadMembersScreen = ({
     const [selectedMember, setSelectedMember] = useState<ThreadParticipantRow | null>(null);
     const [manualRefreshing, setManualRefreshing] = useState(false);
     const queryKey = useMemo(
-        () => [...threadScopeQueryKeys.detail(threadId), connectionId] as const,
-        [connectionId, threadId],
+        () =>
+            [
+                ...threadScopeQueryKeys.detail(threadId),
+                { gatewayId: connectionGatewayId, connectionId },
+            ] as const,
+        [connectionGatewayId, connectionId, threadId],
     );
     // connectionId is the authorization epoch; the thread-scoped prefix is
     // intentionally stable so participant events can invalidate it exactly.
@@ -81,9 +86,16 @@ const ThreadMembersScreen = ({
         queryKey,
         queryFn: async () => {
             if (!auth.data || !thread) throw new Error('thread_members_unavailable');
-            return loadThreadScopePresentation(auth.data, thread);
+            return loadThreadScopePresentation(auth.data, thread, {
+                gatewayId: connectionGatewayId,
+                connectionId,
+            });
         },
-        enabled: connected && Boolean(auth.data && thread),
+        enabled:
+            connected &&
+            connectionGatewayId !== null &&
+            connectionId !== null &&
+            Boolean(auth.data && thread),
         refetchOnMount: 'always',
         refetchOnReconnect: true,
     });

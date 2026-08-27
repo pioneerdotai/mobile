@@ -6,7 +6,12 @@ import {
     invalidateAdministrationTargets,
     resetAuthorizationCapabilityQueries,
 } from '@/services/administration/query';
-import { applyActiveThreadEvent } from '@/services/threads/active';
+import { applyActiveThreadEvent, openActiveThreadById } from '@/services/threads/active';
+import {
+    cacheActiveThreadSnapshot,
+    clearThreadQueryCache,
+} from '@/services/threads/timeline-query';
+import { clearThreadScopeQueries } from '@/services/threads/scope';
 import { useActiveThreadStore } from '@/stores/active-thread';
 
 export const isAdministrationEvent = (event: ClientEvent): boolean => {
@@ -28,12 +33,39 @@ export const applyMobileAdministrationEvent = async (
         'GatewayNotification' in event &&
         event.GatewayNotification.kind === 'authorization_projection_changed'
     ) {
-        // The native connection-epoch store has already advanced its durable
-        // revision fence while draining this event. Do not ask JavaScript to
-        // interpret role names or affected policy bits: make every old scoped
-        // adapter unavailable and let active consumers obtain one coherent
-        // server projection for the new generation.
+        const activeThreadState = useActiveThreadStore.getState();
+        const activeThreadId = activeThreadState.activeComposerThreadId;
+        const expandedKeys = activeThreadState.expandedKeys;
+        // Apply the event to the native active-thread store as well as its
+        // connection-epoch authorization fence. Otherwise old pending
+        // requests and conversation snapshots survive a role/ACL generation
+        // change even after the capability query has been reset.
+        await applyActiveThreadEvent({ event, expanded_keys: expandedKeys });
         await resetAuthorizationCapabilityQueries(queryClient);
+
+        if (event.GatewayNotification.params.affected.scope === 'invitation') {
+            return;
+        }
+
+        // A policy generation can invalidate an exact thread, a workspace, or
+        // every loaded thread. Clear rather than merely mark stale so no old
+        // permission prompt or protected timeline remains visible while the
+        // current-ACL reload runs.
+        clearThreadScopeQueries(queryClient);
+        await clearThreadQueryCache(queryClient);
+
+        if (activeThreadId) {
+            try {
+                const snapshot = await openActiveThreadById({
+                    thread_id: activeThreadId,
+                    expanded_keys: expandedKeys,
+                });
+                cacheActiveThreadSnapshot(queryClient, snapshot);
+            } catch {
+                activeThreadState.reset();
+                useActiveThreadStore.getState().resetDefaultComposerModelSelection();
+            }
+        }
         return;
     }
     const result = await applyActiveThreadEvent({

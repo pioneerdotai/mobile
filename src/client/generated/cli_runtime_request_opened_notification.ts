@@ -1,6 +1,7 @@
 /* eslint-disable */
 
-export type CLIRuntimeRequestKind = 'command_approval' | 'file_change_approval' | 'user_input' | 'other';
+export type CLIRuntimeRequestKind =
+  'command_approval' | 'file_change_approval' | 'permission_approval' | 'user_input' | 'other';
 
 export interface CLIRuntimeRequestOpenedNotification {
   item_id?: string | null;
@@ -9,6 +10,11 @@ export interface CLIRuntimeRequestOpenedNotification {
   runtime_id: string;
   thread_id?: string | null;
   turn_id?: string | null;
+  /**
+   * Additional ancestor Thread capsules in which this child execution
+   * request is intentionally visible and actionable.
+   */
+  visible_thread_ids?: string[];
   workspace_id: string;
   [k: string]: unknown;
 }
