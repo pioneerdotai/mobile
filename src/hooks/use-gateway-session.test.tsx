@@ -7,6 +7,7 @@ import { AppState } from 'react-native';
 import type { GatewayEndpoint } from '@/client';
 import type {
     MobileGatewayConnection,
+    MobileSessionDiagnosticEvent,
     MobileSessionProjection,
 } from '@/services/gateway/session-coordinator';
 
@@ -39,6 +40,7 @@ let mockNetworkListener: ((state: { isConnected?: boolean }) => void) | null = n
 let mockGatewayEventListener: ((event: Record<string, unknown>) => Promise<void>) | null = null;
 let mockAppStateListener: ((state: 'active' | 'background' | 'inactive') => void) | null = null;
 let mockSessionProjectionListener: ((projection: MobileSessionProjection) => void) | null = null;
+let mockSessionDiagnosticListener: ((event: MobileSessionDiagnosticEvent) => void) | null = null;
 let mockActiveThreadSnapshot: { thread_id: string } | null = null;
 let mockConnectionState = 'Idle';
 
@@ -77,6 +79,13 @@ jest.mock('@/services/gateway/session', () => ({
         listener: (projection: MobileSessionProjection) => void,
     ) => {
         mockSessionProjectionListener = listener;
+        return jest.fn();
+    },
+    subscribeGatewaySessionDiagnostics: (
+        _endpointId: string,
+        listener: (event: MobileSessionDiagnosticEvent) => void,
+    ) => {
+        mockSessionDiagnosticListener = listener;
         return jest.fn();
     },
 }));
@@ -216,6 +225,7 @@ describe('useGatewaySession', () => {
         mockGatewayEventListener = null;
         mockAppStateListener = null;
         mockSessionProjectionListener = null;
+        mockSessionDiagnosticListener = null;
         mockActiveThreadSnapshot = null;
         mockConnectionState = 'Idle';
         mockSetConnectionState.mockImplementation((state) => {
@@ -230,8 +240,24 @@ describe('useGatewaySession', () => {
 
     it('measures authorization and transport as separate startup phases', async () => {
         mockConnectGatewayEndpoint.mockImplementationOnce(async () => {
+            mockSessionDiagnosticListener?.({
+                stage: 'authorization.credentials.load',
+                outcome: 'started',
+            });
+            mockSessionDiagnosticListener?.({
+                stage: 'authorization.credentials.load',
+                outcome: 'succeeded',
+            });
             mockSessionProjectionListener?.({ ...projection, phase: 'refreshing' });
             mockSessionProjectionListener?.({ ...projection, phase: 'connecting' });
+            mockSessionDiagnosticListener?.({
+                stage: 'gateway_session.connect_attempt',
+                outcome: 'started',
+            });
+            mockSessionDiagnosticListener?.({
+                stage: 'gateway_session.connect_attempt',
+                outcome: 'succeeded',
+            });
             mockSessionProjectionListener?.(projection);
             return { connection_id: 1, projection };
         });
@@ -241,12 +267,22 @@ describe('useGatewaySession', () => {
         });
 
         expect(mockMobileStartupBegin).toHaveBeenCalledWith('authorization.load');
+        expect(mockMobileStartupBegin).toHaveBeenCalledWith('authorization.credentials.load');
+        expect(mockMobileStartupSucceed).toHaveBeenCalledWith('authorization.credentials.load');
         expect(mockMobileStartupSucceed).toHaveBeenCalledWith('authorization.load');
         expect(mockMobileStartupBegin).toHaveBeenCalledWith('gateway_session.connect');
+        expect(mockMobileStartupBegin).toHaveBeenCalledWith('gateway_session.connect_attempt');
+        expect(mockMobileStartupSucceed).toHaveBeenCalledWith('gateway_session.connect_attempt');
         expect(mockMobileStartupSucceed).toHaveBeenCalledWith('gateway_session.connect');
-        expect(mockMobileStartupSucceed.mock.invocationCallOrder[0]).toBeLessThan(
-            mockMobileStartupBegin.mock.invocationCallOrder[1],
+        const authorizationSucceeded = mockMobileStartupSucceed.mock.calls.findIndex(
+            ([stage]) => stage === 'authorization.load',
         );
+        const transportStarted = mockMobileStartupBegin.mock.calls.findIndex(
+            ([stage]) => stage === 'gateway_session.connect',
+        );
+        expect(
+            mockMobileStartupSucceed.mock.invocationCallOrder[authorizationSucceeded],
+        ).toBeLessThan(mockMobileStartupBegin.mock.invocationCallOrder[transportStarted]);
         expect(mockMobileStartupFail).not.toHaveBeenCalled();
     });
 

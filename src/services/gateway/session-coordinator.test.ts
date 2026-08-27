@@ -65,9 +65,11 @@ import {
     mobileSessionProjection,
     resetMobileSessionCoordinatorForTests,
     refreshMobileGatewaySessionAfterUnauthorized,
+    subscribeMobileSessionDiagnostics,
     suspendMobileGatewaySession,
     terminalReasonFromMachineCode,
 } from './session-coordinator';
+import type { MobileSessionDiagnosticEvent } from './session-coordinator';
 import type { MobileGatewaySessionEnvelope } from './session-storage';
 import {
     MobileGatewaySessionStorageError,
@@ -305,6 +307,31 @@ describe('mobile Gateway session coordinator', () => {
         await expect(Promise.all([first, second])).resolves.toHaveLength(2);
         expect(mockGatewayAuthRefresh).toHaveBeenCalledTimes(1);
         expect(mockGatewaySessionReplaceAccess).toHaveBeenCalledTimes(1);
+    });
+
+    it('publishes bounded diagnostics for authorization and transport work', async () => {
+        const events: MobileSessionDiagnosticEvent[] = [];
+        const unsubscribe = subscribeMobileSessionDiagnostics(endpoint.id, (event) => {
+            events.push(event);
+        });
+
+        await ensureMobileGatewaySession(endpoint, timings);
+        unsubscribe();
+
+        expect(events).toEqual(
+            [
+                'authorization.registry.load',
+                'authorization.credentials.load',
+                'authorization.refresh_intent.persist',
+                'authorization.refresh.request',
+                'authorization.credentials.persist',
+                'gateway_session.connect_attempt',
+                'gateway_session.identity_verify',
+            ].flatMap((stage) => [
+                { stage, outcome: 'started' },
+                { stage, outcome: 'succeeded' },
+            ]),
+        );
     });
 
     it('connects an invited member after rotating the initial refresh credential', async () => {

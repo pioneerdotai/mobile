@@ -86,6 +86,7 @@ const useThreadTreeRefresh = () => {
 
         activeThreadState.beginDefaultComposerModelSelectionRefresh(requestWorkspaceId);
         mobileStartup.begin('thread_tree.load');
+        mobileStartup.begin('thread_tree.request');
         setLoading(true);
         setError(null);
 
@@ -106,6 +107,7 @@ const useThreadTreeRefresh = () => {
                 has_known_threads_for_workspace:
                     useThreadTreeStore.getState().workspaceId === requestWorkspaceId,
             });
+            mobileStartup.succeed('thread_tree.request');
             const latestGatewayState = useGatewayStore.getState();
             const latestWorkspaceState = useWorkspaceStore.getState();
 
@@ -118,6 +120,9 @@ const useThreadTreeRefresh = () => {
                 return;
             }
 
+            mobileStartup.begin('thread_tree.response.apply');
+            setSnapshot(result.snapshot);
+            mobileStartup.succeed('thread_tree.response.apply');
             mobileStartup.succeed('thread_tree.load');
             mobileStartup.begin('composer.prepare');
             const defaultProvider = result.composer_model_selection?.provider ?? null;
@@ -125,7 +130,6 @@ const useThreadTreeRefresh = () => {
                 defaultProvider,
                 cliRuntimeSummariesSnapshot(requestWorkspaceId),
             );
-            setSnapshot(result.snapshot);
             useActiveThreadStore
                 .getState()
                 .syncDefaultComposerModelSelection(
@@ -149,6 +153,8 @@ const useThreadTreeRefresh = () => {
             }
 
             setError(errorMessage(caught, t('loadFailed')));
+            mobileStartup.fail('thread_tree.request');
+            mobileStartup.fail('thread_tree.response.apply');
             mobileStartup.fail('thread_tree.load');
             mobileStartup.fail('composer.prepare');
             useActiveThreadStore

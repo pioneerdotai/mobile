@@ -7,10 +7,12 @@ import {
     mobileSessionRefreshDelayMs,
     refreshMobileGatewaySessionAfterUnauthorized,
     suspendMobileGatewaySession,
+    subscribeMobileSessionDiagnostics,
     subscribeMobileSessionProjection,
 } from '@/services/gateway/session-coordinator';
 import type {
     MobileGatewayConnection,
+    MobileSessionDiagnosticEvent,
     MobileSessionProjection,
 } from '@/services/gateway/session-coordinator';
 import { useGatewayStore } from '@/stores/gateway';
@@ -29,6 +31,11 @@ export const connectGatewayEndpoint = async (
 ): Promise<MobileGatewayConnection> => {
     return ensureMobileGatewaySession(endpoint, DEFAULT_GATEWAY_WS_TIMINGS);
 };
+
+export const subscribeGatewaySessionDiagnostics = (
+    endpointId: string,
+    listener: (event: MobileSessionDiagnosticEvent) => void,
+): (() => void) => subscribeMobileSessionDiagnostics(endpointId, listener);
 
 export const activeGatewayConnectionGeneration = (): number | null => {
     const state = useGatewayStore.getState();

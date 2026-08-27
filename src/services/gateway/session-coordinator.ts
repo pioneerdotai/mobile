@@ -52,6 +52,20 @@ export type MobileGatewayConnection = {
     projection: MobileSessionProjection;
 };
 
+export type MobileSessionDiagnosticStage =
+    | 'authorization.registry.load'
+    | 'authorization.credentials.load'
+    | 'authorization.refresh_intent.persist'
+    | 'authorization.refresh.request'
+    | 'authorization.credentials.persist'
+    | 'gateway_session.connect_attempt'
+    | 'gateway_session.identity_verify';
+
+export type MobileSessionDiagnosticEvent = {
+    stage: MobileSessionDiagnosticStage;
+    outcome: 'started' | 'succeeded' | 'failed';
+};
+
 export class MobileSessionTerminalError extends Error {
     readonly reason: SessionTerminalReason;
 
@@ -84,6 +98,7 @@ type RuntimeSession = {
 const runtimes = new Map<string, RuntimeSession>();
 const inFlight = new Map<string, { epoch: number; promise: Promise<MobileGatewayConnection> }>();
 const listeners = new Map<string, Set<(projection: MobileSessionProjection) => void>>();
+const diagnosticListeners = new Map<string, Set<(event: MobileSessionDiagnosticEvent) => void>>();
 let transportBarrier: Promise<void> = Promise.resolve();
 let activeTransportEndpointId: string | null = null;
 
@@ -105,6 +120,37 @@ const runtimeFor = (endpointId: string): RuntimeSession => {
     };
     runtimes.set(endpointId, created);
     return created;
+};
+
+const publishDiagnostic = (
+    endpointId: string,
+    stage: MobileSessionDiagnosticStage,
+    outcome: MobileSessionDiagnosticEvent['outcome'],
+): void => {
+    const event = { stage, outcome } satisfies MobileSessionDiagnosticEvent;
+    for (const listener of diagnosticListeners.get(endpointId) ?? []) {
+        try {
+            listener(event);
+        } catch {
+            // Diagnostics must never affect the session lifecycle.
+        }
+    }
+};
+
+const observeDiagnosticStage = async <T>(
+    endpointId: string,
+    stage: MobileSessionDiagnosticStage,
+    operation: () => Promise<T>,
+): Promise<T> => {
+    publishDiagnostic(endpointId, stage, 'started');
+    try {
+        const result = await operation();
+        publishDiagnostic(endpointId, stage, 'succeeded');
+        return result;
+    } catch (error) {
+        publishDiagnostic(endpointId, stage, 'failed');
+        throw error;
+    }
 };
 
 export const ensureMobileGatewaySession = (
@@ -208,7 +254,11 @@ const ensureSerialized = async (
     if (runtime.terminalReason) {
         throw new MobileSessionTerminalError(runtime.terminalReason);
     }
-    const installationId = await loadInstallationIdOrStop(requestedEndpoint.id, runtime);
+    const installationId = await observeDiagnosticStage(
+        requestedEndpoint.id,
+        'authorization.registry.load',
+        () => loadInstallationIdOrStop(requestedEndpoint.id, runtime),
+    );
     const now = nowUnix();
     if (
         runtime.connectionId !== null &&
@@ -236,7 +286,9 @@ const ensureSerialized = async (
         // SecureStore can be temporarily unavailable during an iOS lifecycle
         // transition. If that happens, a later reconnect must be able to retry
         // from the planner's previous connected state.
-        envelope = await loadSessionEnvelopeOrStop(endpoint, installationId, runtime);
+        envelope = await observeDiagnosticStage(endpoint.id, 'authorization.credentials.load', () =>
+            loadSessionEnvelopeOrStop(endpoint, installationId, runtime),
+        );
         setRuntimeEnvelope(runtime, envelope);
         begin = await reduceLifecycle(endpoint.id, {
             kind: 'clock_advanced',
@@ -247,7 +299,9 @@ const ensureSerialized = async (
         });
     } else {
         setPhase(requestedEndpoint.id, runtime, 'loading_session');
-        envelope = await loadSessionEnvelopeOrStop(endpoint, installationId, runtime);
+        envelope = await observeDiagnosticStage(endpoint.id, 'authorization.credentials.load', () =>
+            loadSessionEnvelopeOrStop(endpoint, installationId, runtime),
+        );
         setRuntimeEnvelope(runtime, envelope);
         begin = await reduceLifecycle(endpoint.id, {
             kind: 'stored_session_loaded',
@@ -381,7 +435,9 @@ const refreshSession = async (
     if (current.pending_refresh_request_id === undefined) {
         current.pending_refresh_request_id = refreshRequestId;
         try {
-            await writeMobileGatewaySession(endpoint.session_ref ?? endpoint.id, current);
+            await observeDiagnosticStage(endpoint.id, 'authorization.refresh_intent.persist', () =>
+                writeMobileGatewaySession(endpoint.session_ref ?? endpoint.id, current),
+            );
             setRuntimeEnvelope(runtime, current);
         } catch (error) {
             // This write only makes the idempotency key durable. The refresh
@@ -396,13 +452,15 @@ const refreshSession = async (
         }
     }
     try {
-        grant = await pioneerClient.gatewayAuthRefresh({
-            gateway_base_url: endpoint.gateway_base_url,
-            credential: current.refresh_token,
-            params: {
-                refresh_request_id: refreshRequestId,
-            },
-        });
+        grant = await observeDiagnosticStage(endpoint.id, 'authorization.refresh.request', () =>
+            pioneerClient.gatewayAuthRefresh({
+                gateway_base_url: endpoint.gateway_base_url,
+                credential: current.refresh_token,
+                params: {
+                    refresh_request_id: refreshRequestId,
+                },
+            }),
+        );
     } catch (error) {
         const reason = terminalReasonFromCode(error);
         if (reason) {
@@ -456,15 +514,17 @@ const refreshSession = async (
             accessToken: issuedGrant.access_token,
             accessExpiresAtUnix: issuedGrant.access_expires_at_unix,
         };
-        await prepareAccessAfterDurableEnvelope(
-            endpoint.id,
-            endpoint.gateway_base_url,
-            endpoint.session_ref ?? endpoint.id,
-            next,
-            access,
-            intentId,
-            runtime,
-            false,
+        await observeDiagnosticStage(endpoint.id, 'authorization.credentials.persist', () =>
+            prepareAccessAfterDurableEnvelope(
+                endpoint.id,
+                endpoint.gateway_base_url,
+                endpoint.session_ref ?? endpoint.id,
+                next,
+                access,
+                intentId,
+                runtime,
+                false,
+            ),
         );
         return access;
     } finally {
@@ -645,7 +705,11 @@ const refreshAfterExpiredConnection = async (
         throw source;
     }
 
-    const envelope = await loadSessionEnvelopeOrStop(endpoint, installationId, runtime);
+    const envelope = await observeDiagnosticStage(
+        endpoint.id,
+        'authorization.credentials.load',
+        () => loadSessionEnvelopeOrStop(endpoint, installationId, runtime),
+    );
     setRuntimeEnvelope(runtime, envelope);
     setPhase(endpoint.id, runtime, 'refreshing');
     const access = await refreshSession(endpoint, envelope, installationId, intentId, runtime);
@@ -685,16 +749,21 @@ const connectWithAccess = async (
     try {
         const handshake = await withMobileGatewayTransport(async () => {
             const supersededEndpointId = activeTransportEndpointId;
-            const connected = await pioneerClient.gatewaySessionReplaceAccess({
-                endpoint,
-                server_gateway_id: runtime.envelope!.gateway_id,
-                session_id: runtime.envelope!.session_id,
-                device_id: runtime.envelope!.device_id,
-                access_token: runtime.access!.accessToken,
-                access_expires_at_unix: runtime.access!.accessExpiresAtUnix,
-                refresh_leeway_seconds: MOBILE_ACCESS_REFRESH_LEEWAY_SECONDS,
-                timings,
-            });
+            const connected = await observeDiagnosticStage(
+                endpoint.id,
+                'gateway_session.connect_attempt',
+                () =>
+                    pioneerClient.gatewaySessionReplaceAccess({
+                        endpoint,
+                        server_gateway_id: runtime.envelope!.gateway_id,
+                        session_id: runtime.envelope!.session_id,
+                        device_id: runtime.envelope!.device_id,
+                        access_token: runtime.access!.accessToken,
+                        access_expires_at_unix: runtime.access!.accessExpiresAtUnix,
+                        refresh_leeway_seconds: MOBILE_ACCESS_REFRESH_LEEWAY_SECONDS,
+                        timings,
+                    }),
+            );
             activeTransportEndpointId = endpoint.id;
             if (supersededEndpointId && supersededEndpointId !== endpoint.id) {
                 markTransportSuperseded(supersededEndpointId);
@@ -705,8 +774,16 @@ const connectWithAccess = async (
                 activeTransportEndpointId = null;
                 throw new MobileSessionSuspendedError();
             }
-            const me = await pioneerClient.gatewayAuthMe();
+            publishDiagnostic(endpoint.id, 'gateway_session.identity_verify', 'started');
+            let me: Awaited<ReturnType<typeof pioneerClient.gatewayAuthMe>>;
+            try {
+                me = await pioneerClient.gatewayAuthMe();
+            } catch (error) {
+                publishDiagnostic(endpoint.id, 'gateway_session.identity_verify', 'failed');
+                throw error;
+            }
             if (runtime.lifecycleEpoch !== lifecycleEpoch) {
+                publishDiagnostic(endpoint.id, 'gateway_session.identity_verify', 'failed');
                 await pioneerClient.gatewayDisconnect().catch(() => false);
                 activeTransportEndpointId = null;
                 throw new MobileSessionSuspendedError();
@@ -730,10 +807,12 @@ const connectWithAccess = async (
                       ? 'session_compromised'
                       : null;
             if (identityFailureReason) {
+                publishDiagnostic(endpoint.id, 'gateway_session.identity_verify', 'failed');
                 await pioneerClient.gatewayDisconnect().catch(() => false);
                 activeTransportEndpointId = null;
                 return { connected, identityFailureReason };
             }
+            publishDiagnostic(endpoint.id, 'gateway_session.identity_verify', 'succeeded');
             return { connected, identityFailureReason: null };
         });
         if (handshake.identityFailureReason) {
@@ -897,6 +976,21 @@ export const subscribeMobileSessionProjection = (
         endpointListeners.delete(listener);
         if (endpointListeners.size === 0) {
             listeners.delete(endpointId);
+        }
+    };
+};
+
+export const subscribeMobileSessionDiagnostics = (
+    endpointId: string,
+    listener: (event: MobileSessionDiagnosticEvent) => void,
+): (() => void) => {
+    const endpointListeners = diagnosticListeners.get(endpointId) ?? new Set();
+    endpointListeners.add(listener);
+    diagnosticListeners.set(endpointId, endpointListeners);
+    return () => {
+        endpointListeners.delete(listener);
+        if (endpointListeners.size === 0) {
+            diagnosticListeners.delete(endpointId);
         }
     };
 };
@@ -1111,6 +1205,7 @@ export const resetMobileSessionCoordinatorForTests = (): void => {
     runtimes.clear();
     inFlight.clear();
     listeners.clear();
+    diagnosticListeners.clear();
     transportBarrier = Promise.resolve();
     activeTransportEndpointId = null;
 };

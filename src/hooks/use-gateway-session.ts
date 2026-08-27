@@ -24,6 +24,7 @@ import {
     gatewaySessionProjection,
     gatewaySessionRefreshDelayMs,
     markMobileGatewayConnectionDisconnected,
+    subscribeGatewaySessionDiagnostics,
     subscribeGatewayEvents,
     subscribeMobileSessionProjection,
 } from '@/services/gateway/session';
@@ -32,7 +33,10 @@ import {
     markMobileGatewaySessionTerminal,
     terminalReasonFromMachineCode,
 } from '@/services/gateway/session-coordinator';
-import type { MobileSessionProjection } from '@/services/gateway/session-coordinator';
+import type {
+    MobileSessionDiagnosticEvent,
+    MobileSessionProjection,
+} from '@/services/gateway/session-coordinator';
 import { runGatewayTransportTransition } from '@/services/gateway/transport-coordinator';
 import { pioneerQueryClient } from '@/services/query/client';
 import { openActiveThreadById } from '@/services/threads/active';
@@ -172,6 +176,19 @@ export const useGatewaySession = (
                 mobileStartup.fail('authorization.load');
             }
             startupSessionInstrumentationActive = false;
+        };
+
+        const observeStartupSessionDiagnostic = (event: MobileSessionDiagnosticEvent): void => {
+            if (!startupSessionInstrumentationActive) {
+                return;
+            }
+            if (event.outcome === 'started') {
+                mobileStartup.begin(event.stage);
+            } else if (event.outcome === 'succeeded') {
+                mobileStartup.succeed(event.stage);
+            } else {
+                mobileStartup.fail(event.stage);
+            }
         };
 
         const scheduleRefresh = (connect: (silent?: boolean) => Promise<void>) => {
@@ -417,6 +434,10 @@ export const useGatewaySession = (
                 observeStartupSessionProjection(projection);
             },
         );
+        const unsubscribeDiagnostics = subscribeGatewaySessionDiagnostics(
+            sessionGateway.id,
+            observeStartupSessionDiagnostic,
+        );
 
         const handleGatewayEvent = async (event: ClientEvent): Promise<void> => {
             if (cancelled) {
@@ -584,6 +605,7 @@ export const useGatewaySession = (
             appStateSubscription.remove();
             networkSubscription.remove();
             unsubscribeProjection();
+            unsubscribeDiagnostics();
             unsubscribeGatewayEvents();
             setConnectionId(null);
             setConnectionGatewayId(null);
