@@ -21,7 +21,13 @@ const mockGatewayState = {
     connectionId: 7,
     connectionState: 'Connected',
 };
-const mockWorkspaceState = { activeWorkspaceId: 'workspace-a' };
+const mockWorkspaceState: {
+    activeWorkspaceId: string | null;
+    bootstrappedConnectionId: number | null;
+} = {
+    activeWorkspaceId: 'workspace-a',
+    bootstrappedConnectionId: 7,
+};
 
 jest.mock('@/client', () => ({
     pioneerClient: {
@@ -95,6 +101,8 @@ type RenderedState = {
 describe('mobile administration capability lifecycle', () => {
     beforeEach(() => {
         jest.clearAllMocks();
+        mockWorkspaceState.activeWorkspaceId = 'workspace-a';
+        mockWorkspaceState.bootstrappedConnectionId = 7;
         mockGatewayAuthMe.mockResolvedValue(auth);
         mockGatewayAuthorizationCapabilities.mockResolvedValue(capabilitySnapshot);
         mockPrincipalPresentationCapabilities.mockReturnValue(capabilityPresentation);
@@ -105,6 +113,53 @@ describe('mobile administration capability lifecycle', () => {
                 snapshot,
             }),
         );
+    });
+
+    it('loads auth immediately but waits for the active workspace bootstrap before capabilities', async () => {
+        mockWorkspaceState.bootstrappedConnectionId = null;
+        const queryClient = new QueryClient({
+            defaultOptions: { queries: { gcTime: Infinity } },
+        });
+        let tree: ReactTestRenderer | null = null;
+
+        const Probe = () => {
+            useAdministrationCapabilities();
+            return null;
+        };
+        const renderProbe = () => (
+            <QueryClientProvider client={queryClient}>
+                <Probe />
+            </QueryClientProvider>
+        );
+
+        await act(async () => {
+            tree = renderer.create(renderProbe());
+        });
+        await flushQueryNotifications();
+
+        expect(mockGatewayAuthMe).toHaveBeenCalledTimes(1);
+        expect(mockGatewayAuthorizationCapabilities).not.toHaveBeenCalled();
+
+        mockWorkspaceState.bootstrappedConnectionId = 7;
+        mockWorkspaceState.activeWorkspaceId = null;
+        await act(async () => {
+            tree!.update(renderProbe());
+        });
+        await flushQueryNotifications();
+
+        expect(mockGatewayAuthorizationCapabilities).not.toHaveBeenCalled();
+
+        mockWorkspaceState.activeWorkspaceId = 'workspace-a';
+        await act(async () => {
+            tree!.update(renderProbe());
+        });
+        await flushQueryNotifications();
+
+        expect(mockGatewayAuthorizationCapabilities).toHaveBeenCalledTimes(1);
+        expect(mockGatewayAuthorizationCapabilities).toHaveBeenCalledWith('workspace-a');
+
+        await act(async () => tree!.unmount());
+        queryClient.clear();
     });
 
     it('shares one capability request between capability and principal presentation consumers', async () => {

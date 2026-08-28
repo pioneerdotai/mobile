@@ -40,6 +40,7 @@ import {
     isCliRuntimeProvider,
 } from '@/services/providers/cli-runtime';
 import { useCliRuntimeSummaries } from '@/hooks/use-cli-runtime-summaries';
+import { useAuthorizationCapabilitySnapshot } from '@/hooks/use-administration-capabilities';
 import { useActiveThreadStore } from '@/stores/active-thread';
 import { useGatewayStore } from '@/stores/gateway';
 import { useThreadTreeStore } from '@/stores/thread-tree';
@@ -195,6 +196,7 @@ const RootContent = () => {
                 </>
             ) : null}
             <ThreadTreeController />
+            <AuthorizationProjectionController />
             <RootStack />
             <MobileStartupReadinessController />
             <CliRuntimeComposerCapabilityController />
@@ -202,6 +204,17 @@ const RootContent = () => {
             <TerminalGatewaySessionNavigation />
         </>
     );
+};
+
+/**
+ * Keeps the authenticated principal and active-workspace authorization
+ * projection warm independently of whichever screen happens to be mounted.
+ * The hook waits for workspace bootstrap, so this remains background work and
+ * never extends the splash/readiness boundary.
+ */
+const AuthorizationProjectionController = () => {
+    useAuthorizationCapabilitySnapshot();
+    return null;
 };
 
 const MobileStartupReadinessController = () => {

@@ -13,7 +13,7 @@ import { Text } from '@/components/primitives/text';
 import { VStack } from '@/components/primitives/vstack';
 import {
     useAdministrationCapabilities,
-    useCurrentPrincipalPresentation,
+    useAdministrationPrincipal,
 } from '@/hooks/use-administration-capabilities';
 import { useGatewayStore } from '@/stores/gateway';
 
@@ -103,7 +103,9 @@ const SettingsScreen = () => {
             ),
     );
     const capabilities = useAdministrationCapabilities();
-    const principal = useCurrentPrincipalPresentation();
+    const auth = useAdministrationPrincipal();
+    const principal = auth.data?.principal;
+    const role = capabilities.capabilitySnapshot?.role;
 
     const general = [
         ...(canManageDevices
@@ -152,26 +154,30 @@ const SettingsScreen = () => {
 
     return (
         <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-            {principal.data ? (
+            {principal ? (
                 <VStack>
                     <Pressable
                         accessibilityRole="button"
-                        accessibilityLabel={`${principal.data.display_name}, ${principal.data.role.display_name}`}
+                        accessibilityLabel={
+                            role
+                                ? `${principal.display_name}, ${role.display_name}`
+                                : principal.display_name
+                        }
                         onPress={() => router.navigate({ pathname: '/settings/profile' })}
                     >
                         <HStack style={styles.profileCard}>
                             <MemberAvatar
-                                displayName={principal.data.display_name}
+                                displayName={principal.display_name}
                                 size={theme.space(12)}
-                                principalId={principal.data.principal_id}
-                                avatarRevision={principal.data.avatar_revision}
+                                principalId={principal.id}
+                                avatarRevision={principal.avatar_revision}
                             />
                             <VStack style={styles.profileText}>
-                                <Text fontWeight="semibold">{principal.data.display_name}</Text>
-                                <Text style={styles.secondary}>@{principal.data.nickname}</Text>
-                                <Text style={styles.secondary}>
-                                    {principal.data.role.display_name}
-                                </Text>
+                                <Text fontWeight="semibold">{principal.display_name}</Text>
+                                <Text style={styles.secondary}>@{principal.nickname}</Text>
+                                {role ? (
+                                    <Text style={styles.secondary}>{role.display_name}</Text>
+                                ) : null}
                             </VStack>
                             <ChevronRight
                                 size={theme.space(5)}

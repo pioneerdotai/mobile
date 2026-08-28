@@ -44,7 +44,12 @@ export const useAuthorizationCapabilitySnapshot = (threadId: string | null = nul
     const queryClient = useQueryClient();
     const { enabled, epoch } = useAdministrationAuthorizationEpoch();
     const principal = useAdministrationPrincipal();
-    const workspaceId = useWorkspaceStore((state) => state.activeWorkspaceId);
+    const { workspaceId, bootstrappedConnectionId } = useWorkspaceStore(
+        useShallow((state) => ({
+            workspaceId: state.activeWorkspaceId,
+            bootstrappedConnectionId: state.bootstrappedConnectionId,
+        })),
+    );
     return useQuery({
         ...authorizationCapabilitySnapshotQueryOptions(
             queryClient,
@@ -54,7 +59,10 @@ export const useAuthorizationCapabilitySnapshot = (threadId: string | null = nul
             threadId,
         ),
         enabled:
-            enabled && principal.data !== undefined && (threadId === null || workspaceId !== null),
+            enabled &&
+            epoch.connectionId === bootstrappedConnectionId &&
+            principal.data !== undefined &&
+            workspaceId !== null,
     });
 };
 

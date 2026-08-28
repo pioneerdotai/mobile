@@ -11,6 +11,7 @@ const mockText = (props: Record<string, unknown>) =>
 let mockTerminalReason: 'session_revoked' | null = null;
 let mockCanViewInvitations = false;
 let mockCanViewMembers = false;
+let mockCapabilitiesLoaded = true;
 let mockCurrentPrincipal: {
     display_name: string;
     nickname: string;
@@ -65,12 +66,29 @@ jest.mock('lucide-react-native', () => ({
 
 jest.mock('@/hooks/use-administration-capabilities', () => ({
     useAdministrationCapabilities: () => ({
-        data: {
-            can_view_invitations: mockCanViewInvitations,
-            can_view_member_directory: mockCanViewMembers,
-        },
+        data: mockCapabilitiesLoaded
+            ? {
+                  can_view_invitations: mockCanViewInvitations,
+                  can_view_member_directory: mockCanViewMembers,
+              }
+            : undefined,
+        capabilitySnapshot:
+            mockCapabilitiesLoaded && mockCurrentPrincipal
+                ? { role: mockCurrentPrincipal.role }
+                : undefined,
     }),
-    useCurrentPrincipalPresentation: () => ({ data: mockCurrentPrincipal }),
+    useAdministrationPrincipal: () => ({
+        data: mockCurrentPrincipal
+            ? {
+                  principal: {
+                      id: mockCurrentPrincipal.principal_id,
+                      display_name: mockCurrentPrincipal.display_name,
+                      nickname: mockCurrentPrincipal.nickname,
+                      avatar_revision: mockCurrentPrincipal.avatar_revision,
+                  },
+              }
+            : undefined,
+    }),
 }));
 
 jest.mock('@/components/primitives/box', () => ({
@@ -130,7 +148,33 @@ describe('SettingsScreen', () => {
         mockTerminalReason = null;
         mockCanViewInvitations = false;
         mockCanViewMembers = false;
+        mockCapabilitiesLoaded = true;
         mockCurrentPrincipal = null;
+    });
+
+    it('keeps verified account identity visible while capabilities are unavailable', async () => {
+        mockCapabilitiesLoaded = false;
+        mockCurrentPrincipal = {
+            display_name: 'Alice',
+            nickname: 'alice',
+            principal_id: 'P00000000000000000001',
+            role: {
+                key: 'member',
+                display_name: 'Member',
+                description: 'Workspace collaborator',
+                built_in: true,
+            },
+        };
+        let tree: ReactTestRenderer | null = null;
+        await act(async () => {
+            tree = renderer.create(<SettingsScreen />);
+        });
+
+        const labels = renderedLabels(tree!);
+        expect(labels).toContain('Alice');
+        expect(labels).toContainEqual(['@', 'alice']);
+        expect(labels).not.toContain('Member');
+        expect(tree!.root.findAllByType(mockPressable)[0].props.accessibilityLabel).toBe('Alice');
     });
 
     it('opens the editable authenticated profile', async () => {

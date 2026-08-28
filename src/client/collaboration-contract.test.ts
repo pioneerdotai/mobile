@@ -28,7 +28,7 @@ describe('collaboration presentation Nitro contract', () => {
         role_key: 'member',
     } as AuthMeResponse;
     const capabilitySnapshot = {
-        schema_version: 1,
+        schema_version: 7,
         authorization_revision: 1,
         principal_id: 'principal_a',
         role_key: 'member',
@@ -104,7 +104,7 @@ describe('collaboration presentation Nitro contract', () => {
         );
     });
 
-    it('accepts only the capability snapshot version and scope requested by mobile', async () => {
+    it('leaves capability version and scope acceptance to the shared Rust projection store', async () => {
         nitro.gatewayAuthorizationCapabilitiesJson.mockResolvedValue(
             ok({
                 ...capabilitySnapshot,
@@ -113,14 +113,21 @@ describe('collaboration presentation Nitro contract', () => {
         );
         await expect(
             pioneerClient.gatewayAuthorizationCapabilities({ workspace_id: 'workspace_a' }),
-        ).resolves.toMatchObject({ schema_version: 1, principal_id: 'principal_a' });
+        ).resolves.toMatchObject({ schema_version: 7, principal_id: 'principal_a' });
 
         nitro.gatewayAuthorizationCapabilitiesJson.mockResolvedValue(
-            ok({ ...capabilitySnapshot, schema_version: 2 }),
+            ok({
+                ...capabilitySnapshot,
+                schema_version: 8,
+                workspace: { workspace_id: 'another_workspace', capabilities: {} },
+            }),
         );
-        await expect(pioneerClient.gatewayAuthorizationCapabilities({})).rejects.toThrow(
-            'incompatible_authorization_capability_snapshot',
-        );
+        await expect(
+            pioneerClient.gatewayAuthorizationCapabilities({ workspace_id: 'workspace_a' }),
+        ).resolves.toMatchObject({
+            schema_version: 8,
+            workspace: { workspace_id: 'another_workspace' },
+        });
     });
 
     it('keeps session, administration and thread mutation policy behind Nitro', () => {

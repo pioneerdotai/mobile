@@ -665,8 +665,6 @@ export type VoiceAudioChunkResult = {
     sent: boolean;
 };
 
-const AUTHORIZATION_CAPABILITY_SNAPSHOT_SCHEMA_VERSION = 1;
-
 export const pioneerClient = {
     version(): string {
         return parsePioneerClientResponse<string>(getPioneerClientNitro().versionJson());
@@ -1009,21 +1007,16 @@ export const pioneerClient = {
     async gatewayAuthorizationCapabilities(
         input: AuthorizationCapabilitiesParams,
     ): Promise<AuthorizationCapabilitySnapshot> {
-        const snapshot = parsePioneerClientResponse<AuthorizationCapabilitySnapshot>(
+        // Schema, principal, resource scope, revision and manifest compatibility
+        // are accepted by the shared Rust AuthorizationProjectionStore before a
+        // snapshot is cached or rendered by the shell. Keeping a second schema
+        // version in TypeScript made Mobile reject every newer Gateway projection
+        // even though the bundled shared client already supported it.
+        return parsePioneerClientResponse<AuthorizationCapabilitySnapshot>(
             await getPioneerClientNitro().gatewayAuthorizationCapabilitiesJson(
                 JSON.stringify(input),
             ),
         );
-        if (
-            snapshot.schema_version !== AUTHORIZATION_CAPABILITY_SNAPSHOT_SCHEMA_VERSION ||
-            (snapshot.workspace && snapshot.workspace.workspace_id !== input.workspace_id) ||
-            (snapshot.thread &&
-                (snapshot.thread.workspace_id !== input.workspace_id ||
-                    snapshot.thread.thread_id !== input.thread_id))
-        ) {
-            throw new Error('incompatible_authorization_capability_snapshot');
-        }
-        return snapshot;
     },
 
     async gatewayAuthProfileUpdate(
