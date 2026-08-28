@@ -72,7 +72,6 @@ export const AssistantMessageRow = ({
                         <MarkdownContent
                             text={row.text}
                             document={row.markdown}
-                            highlightCodeBlocks={!row.streaming}
                             streaming={row.streaming}
                         />
                     </Box>
@@ -91,7 +90,6 @@ export const AssistantMessageRow = ({
                 <MarkdownContent
                     text={row.text}
                     document={row.markdown}
-                    highlightCodeBlocks={!row.streaming}
                     streaming={row.streaming}
                 />
             ) : row.streaming ? (

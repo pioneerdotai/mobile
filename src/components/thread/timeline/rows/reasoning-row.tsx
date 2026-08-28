@@ -72,7 +72,6 @@ export const ReasoningRow = ({ row, expanded, onToggle }: ReasoningRowProps) => 
                         text={row.text}
                         document={row.markdown}
                         streaming={row.streaming}
-                        highlightCodeBlocks
                         tone="muted"
                     />
                 </Box>

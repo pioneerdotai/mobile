@@ -64,6 +64,31 @@
             ]
         }
     },
+    "enriched-markdown": {
+        "enableCodeHighlight": true,
+        "enableMath": false,
+        "codeHighlightLanguages": [
+            "json",
+            "html",
+            "css",
+            "markdown",
+            "yaml",
+            "go",
+            "java",
+            "javascript",
+            "python",
+            "c",
+            "rust",
+            "bash",
+            "typescript",
+            "tsx",
+            "cpp",
+            "swift",
+            "php",
+            "ruby",
+            "c-sharp"
+        ]
+    },
     "dependencies": {
         "@gorhom/bottom-sheet": "^5.2.14",
         "@hookform/resolvers": "^5.9.1",
@@ -105,7 +130,6 @@
         "i18next": "^26.4.0",
         "immer": "^11.1.18",
         "intl-pluralrules": "^2.0.1",
-        "katex": "^0.18.4",
         "lodash": "^4.18.1",
         "lucide-react-native": "^1.33.0",
         "nanoid": "^6.0.1",
@@ -118,7 +142,7 @@
         "react-native-audio-api": "^0.13.3",
         "react-native-drax": "^1.1.0",
         "react-native-edge-to-edge": "^1.8.1",
-        "react-native-enriched-markdown": "github:pioneerdotai/react-native-enriched-markdown#f4ad3fe1fe7c123e54218f1e4539b04f338f067d",
+        "react-native-enriched-markdown": "1.0.2",
         "react-native-gesture-handler": "~2.32.0",
         "react-native-get-random-values": "~1.11.0",
         "react-native-keyboard-controller": "1.22.4",
@@ -166,7 +190,8 @@
         "zod-validation-error": "^4.0.2"
     },
     "trustedDependencies": [
-        "@sentry/cli"
+        "@sentry/cli",
+        "react-native-enriched-markdown"
     ],
     "patchedDependencies": {
         "metro@0.84.5": "patches/metro@0.84.5.patch",
