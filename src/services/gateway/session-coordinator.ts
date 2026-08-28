@@ -35,6 +35,7 @@ export type MobileSessionLifecyclePhase =
 
 export type MobileSessionProjection = {
     phase: MobileSessionLifecyclePhase;
+    principalId: string | null;
     deviceId: string | null;
     sessionId: string | null;
     accessExpiresAtUnix: number | null;
@@ -1045,6 +1046,7 @@ const terminalReasonForStopEvent = (
 
 const metadata = (envelope: MobileGatewaySessionEnvelope) => ({
     gateway_id: envelope.gateway_id,
+    principal_id: envelope.principal_id,
     device_id: envelope.device_id,
     session_id: envelope.session_id,
     refresh_generation: envelope.refresh_generation,
@@ -1157,6 +1159,7 @@ const terminalReasonFromCode = (error: unknown): SessionTerminalReason | null =>
 
 const projectionFor = (runtime: RuntimeSession): MobileSessionProjection => ({
     phase: runtime.phase,
+    principalId: runtime.displayMetadata?.principal_id ?? null,
     deviceId: runtime.displayMetadata?.device_id ?? null,
     sessionId: runtime.displayMetadata?.session_id ?? null,
     accessExpiresAtUnix: runtime.access?.accessExpiresAtUnix ?? null,

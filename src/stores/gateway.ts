@@ -31,6 +31,7 @@ type GatewayStoreState = {
     sessionError: string | null;
     sessionRevision: number;
     sessionLifecyclePhase: MobileSessionLifecyclePhase;
+    sessionPrincipalId: string | null;
     sessionDeviceId: string | null;
     sessionId: string | null;
     sessionAccessExpiresAtUnix: number | null;
@@ -77,6 +78,7 @@ export const useGatewayStore = create<GatewayStoreState>((set) => ({
     sessionError: null,
     sessionRevision: 0,
     sessionLifecyclePhase: 'needs_authentication',
+    sessionPrincipalId: null,
     sessionDeviceId: null,
     sessionId: null,
     sessionAccessExpiresAtUnix: null,
@@ -140,6 +142,7 @@ export const useGatewayStore = create<GatewayStoreState>((set) => ({
     setSessionProjection: (projection) => {
         set({
             sessionLifecyclePhase: projection.phase,
+            sessionPrincipalId: projection.principalId,
             sessionDeviceId: projection.deviceId,
             sessionId: projection.sessionId,
             sessionAccessExpiresAtUnix: projection.accessExpiresAtUnix,

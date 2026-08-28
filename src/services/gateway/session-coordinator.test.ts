@@ -357,6 +357,7 @@ describe('mobile Gateway session coordinator', () => {
         expect(mockGatewayAuthSessionCleanup).not.toHaveBeenCalled();
         expect(mobileSessionProjection(endpoint.id)).toMatchObject({
             phase: 'connected',
+            principalId: principal.id,
             terminalReason: null,
         });
     });

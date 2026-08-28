@@ -63,6 +63,19 @@ describe('TimelineGroupingIndex', () => {
         expect(grouping.avatarGroups).toHaveLength(0);
     });
 
+    it('renders an authoritative message from the authenticated principal as current-user', () => {
+        const row = userMessage({ key: 'persisted', authorId: 'current-principal' });
+
+        const grouping = TimelineGroupingIndex.build([row], 'current-principal');
+
+        expect(grouping.rowLayout(0)).toEqual({
+            groupKind: 'current-user',
+            compactTopSpacing: false,
+            startsAvatarGroup: false,
+        });
+        expect(grouping.avatarGroups).toHaveLength(0);
+    });
+
     it('groups only consecutive historical messages from the same author', () => {
         const rows = [
             userMessage({ key: 'alice-one', authorId: 'alice' }),

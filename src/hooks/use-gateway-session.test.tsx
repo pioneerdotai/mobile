@@ -46,6 +46,7 @@ let mockConnectionState = 'Idle';
 
 const projection: MobileSessionProjection = {
     phase: 'connected',
+    principalId: 'principal-1',
     deviceId: 'device-1',
     sessionId: 'session-1',
     accessExpiresAtUnix: 1_800_000_000,

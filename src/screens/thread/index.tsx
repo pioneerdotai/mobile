@@ -90,10 +90,7 @@ import { useActiveThreadStore } from '@/stores/active-thread';
 import { useGatewayStore } from '@/stores/gateway';
 import { useThreadTreeStore } from '@/stores/thread-tree';
 import { useWorkspaceStore } from '@/stores/workspace';
-import {
-    useCurrentPrincipalPresentation,
-    useThreadAuthorizationCapabilities,
-} from '@/hooks/use-administration-capabilities';
+import { useThreadAuthorizationCapabilities } from '@/hooks/use-administration-capabilities';
 import { applyThreadReadResponse } from '@/services/threads/tree';
 import {
     MessageMutationModal,
@@ -197,7 +194,7 @@ const ThreadScreen = ({
     const requestedReadThroughRef = useRef(new Set<string>());
 
     const treeSnapshot = useThreadTreeStore((state) => state.snapshot);
-    const currentPrincipal = useCurrentPrincipalPresentation();
+    const currentPrincipalId = useGatewayStore((state) => state.sessionPrincipalId);
 
     const activeWorkspaceId = useWorkspaceStore((state) => state.activeWorkspaceId);
     const cliRuntimes = useCliRuntimeSummaries(activeWorkspaceId);
@@ -278,10 +275,10 @@ const ThreadScreen = ({
             projectWorkspaceMentionCandidates(
                 mentionDirectoryQuery.data?.members ?? [],
                 gatewayMemberDirectoryQuery.data?.members ?? [],
-                currentPrincipal.data?.principal_id,
+                currentPrincipalId,
             ),
         [
-            currentPrincipal.data?.principal_id,
+            currentPrincipalId,
             gatewayMemberDirectoryQuery.data?.members,
             mentionDirectoryQuery.data?.members,
         ],
@@ -1889,7 +1886,7 @@ const ThreadScreen = ({
                             mcpServerIdByName={EMPTY_MCP_SERVER_ID_BY_NAME}
                             artifactWorkspaceId={artifactWorkspaceId}
                             artifactActionStateByKey={artifactActionStateByKey}
-                            currentPrincipalId={currentPrincipal.data?.principal_id ?? null}
+                            currentPrincipalId={currentPrincipalId}
                             canReviewTasks={threadAgentCapabilities?.can_review_tasks ?? false}
                             canCancelTasks={threadAgentCapabilities?.can_cancel_tasks ?? false}
                             canRespondToAgentRequests={
