@@ -13,6 +13,7 @@ import type { RemendOptions } from 'remend';
 import type { MarkdownDocument } from '@/client/generated/client_active_thread_snapshot';
 
 import { markdownSource } from './markdown-rendering';
+import { openTimelineExternalUrl } from './timeline-link';
 
 type MarkdownContentProps = {
     text: string;
@@ -70,6 +71,9 @@ export const MarkdownContent = ({
         () => AccessibilityInfo.announceForAccessibility(t('timelineCopied')),
         [t],
     );
+    const handleLinkPress = useCallback(({ url }: { url: string }) => {
+        void openTimelineExternalUrl(url);
+    }, []);
 
     return (
         <EnrichedMarkdownText
@@ -81,6 +85,7 @@ export const MarkdownContent = ({
             markdownStyle={markdownStyle}
             md4cFlags={MARKDOWN_FLAGS}
             onCopyPress={handleCopyPress}
+            onLinkPress={handleLinkPress}
             selectable={selectable}
             selectionColor={theme.colors.infoText}
             selectionHandleColor={theme.colors.infoText}
@@ -211,7 +216,7 @@ const timelineMarkdownStyle = ({
         },
         link: {
             color: tone === 'inverted' ? theme.colors.userBubbleForeground : theme.colors.infoText,
-            underline: true,
+            underline: false,
         },
         strong: {
             color: textColor,

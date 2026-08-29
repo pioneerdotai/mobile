@@ -1,0 +1,403 @@
+diff --git a/ReactNativeEnrichedMarkdown.podspec b/ReactNativeEnrichedMarkdown.podspec
+index fffa6e2..536f9be 100644
+--- a/ReactNativeEnrichedMarkdown.podspec
++++ b/ReactNativeEnrichedMarkdown.podspec
+@@ -20,6 +20,7 @@ Pod::Spec.new do |s|
+ 
+   s.platforms    = { :ios => min_ios_version_supported, :osx => '14.0' }
+   s.source       = { :git => "https://github.com/software-mansion/enriched-markdown.git", :tag => "#{s.version}" }
++  resource_bundles = { 'EnrichedMarkdownLinkAssets' => ['ios/assets/LinkIcons.xcassets'] }
+ 
+   if monorepo
+     s.private_header_files = "ios/**/*.h"
+@@ -102,7 +103,7 @@ Pod::Spec.new do |s|
+     s.vendored_frameworks = 'ios/vendor/RaTeX.xcframework'
+     # RaTeXFontLoader.loadFromCocoaPodsBundle() resolves "RaTeXCoreFonts.bundle" by name,
+     # so this resource-bundle name is load-bearing -- keep it exactly RaTeXCoreFonts.
+-    s.resource_bundles = { 'RaTeXCoreFonts' => ['ios/vendor/Fonts/*.ttf'] }
++    resource_bundles['RaTeXCoreFonts'] = ['ios/vendor/Fonts/*.ttf']
+   end
+ 
+   pod_xcconfig = {
+@@ -118,6 +119,7 @@ Pod::Spec.new do |s|
+   # No EXCLUDED_ARCHS dance: the vendored simulator slice (ios-arm64_x86_64-simulator)
+   # already contains x86_64, so universal simulator builds resolve on both arches.
+   s.pod_target_xcconfig = pod_xcconfig
++  s.resource_bundles = resource_bundles
+ 
+   # No script phases: vendoring a single prebuilt XCFramework means there is no
+   # spm_dependency-generated duplicate RaTeXFFI modulemap to strip, and only one
+diff --git a/android/src/main/java/com/swmansion/enriched/markdown/accessibility/MarkdownAccessibilityHelper.kt b/android/src/main/java/com/swmansion/enriched/markdown/accessibility/MarkdownAccessibilityHelper.kt
+index b709380..74f154b 100644
+--- a/android/src/main/java/com/swmansion/enriched/markdown/accessibility/MarkdownAccessibilityHelper.kt
++++ b/android/src/main/java/com/swmansion/enriched/markdown/accessibility/MarkdownAccessibilityHelper.kt
+@@ -192,7 +192,7 @@ class MarkdownAccessibilityHelper(
+       }
+ 
+       // The semantic span itself
+-      val content = span.imageAltText ?: spanned.substring(span.start, span.end).trim()
++      val content = span.imageAltText ?: accessibleSpanText(spanned.substring(span.start, span.end))
+       if (content.isNotEmpty()) {
+         items.add(createSpanItem(nextId++, content, span, spanned))
+       }
+@@ -210,6 +210,12 @@ class MarkdownAccessibilityHelper(
+     return nextId
+   }
+ 
++  private fun accessibleSpanText(value: String): String =
++    value
++      .replace("\u2060", "")
++      .replace("\uFFFC", "")
++      .trim()
++
+   private fun createTextItem(
+     id: Int,
+     label: String,
+diff --git a/android/src/main/java/com/swmansion/enriched/markdown/renderer/LinkRenderer.kt b/android/src/main/java/com/swmansion/enriched/markdown/renderer/LinkRenderer.kt
+index 7beb976..4d7df40 100644
+--- a/android/src/main/java/com/swmansion/enriched/markdown/renderer/LinkRenderer.kt
++++ b/android/src/main/java/com/swmansion/enriched/markdown/renderer/LinkRenderer.kt
+@@ -1,9 +1,65 @@
+ package com.swmansion.enriched.markdown.renderer
+ 
++import android.content.Context
++import android.graphics.Canvas
++import android.graphics.Paint
+ import android.text.SpannableStringBuilder
++import android.text.style.ReplacementSpan
++import com.swmansion.enriched.markdown.R
+ import com.swmansion.enriched.markdown.parser.MarkdownASTNode
+ import com.swmansion.enriched.markdown.spans.LinkSpan
+ import com.swmansion.enriched.markdown.utils.text.span.SPAN_FLAGS_EXCLUSIVE_EXCLUSIVE
++import kotlin.math.roundToInt
++
++private const val LINK_ICON_PLACEHOLDER = "\uFFFC"
++private const val LINK_ICON_SIZE_SCALE = 0.85f
++private const val LINK_ICON_GAP_SCALE = 0.15f
++
++private fun MarkdownASTNode.hasLinkDescendant(): Boolean =
++  children.any { child -> child.type == MarkdownASTNode.NodeType.Link || child.hasLinkDescendant() }
++
++private class LinkIconSpan(
++  context: Context,
++  private val url: String,
++  private val styleCache: SpanStyleCache,
++  private val blockStyle: BlockStyle,
++) : ReplacementSpan() {
++  private val iconSize = blockStyle.fontSize * LINK_ICON_SIZE_SCALE
++  private val reservedWidth = iconSize + blockStyle.fontSize * LINK_ICON_GAP_SCALE
++  private val icon = context.getDrawable(R.drawable.enrm_link_globe)?.mutate()
++
++  override fun getSize(
++    paint: Paint,
++    text: CharSequence?,
++    start: Int,
++    end: Int,
++    fontMetrics: Paint.FontMetricsInt?,
++  ): Int = reservedWidth.roundToInt()
++
++  override fun draw(
++    canvas: Canvas,
++    text: CharSequence?,
++    start: Int,
++    end: Int,
++    x: Float,
++    top: Int,
++    y: Int,
++    bottom: Int,
++    paint: Paint,
++  ) {
++    val drawable = icon ?: return
++    if (iconSize <= 0f) return
++    val centerY = y + (paint.ascent() + paint.descent()) / 2f
++    val iconTop = centerY - iconSize / 2f
++    val color = styleCache.resolvedVariantForUrl(url)?.color ?: styleCache.linkColor
++    val left = x.roundToInt()
++    val topOffset = iconTop.roundToInt()
++    val size = iconSize.roundToInt()
++    drawable.setTint(color)
++    drawable.setBounds(left, topOffset, left + size, topOffset + size)
++    drawable.draw(canvas)
++  }
++}
+ 
+ class LinkRenderer(
+   private val config: RendererConfig,
+@@ -16,8 +72,25 @@ class LinkRenderer(
+     factory: RendererFactory,
+   ) {
+     val url = node.getAttribute("url") ?: return
++    val shouldRenderIcon = !node.hasLinkDescendant()
+ 
+-    factory.renderWithSpan(builder, { factory.renderChildren(node, builder, onLinkPress, onLinkLongPress) }) { start, end, blockStyle ->
++    factory.renderWithSpan(builder, {
++      val iconStart = builder.length
++      if (shouldRenderIcon) {
++        builder.append(LINK_ICON_PLACEHOLDER)
++      }
++      val iconEnd = builder.length
++      factory.renderChildren(node, builder, onLinkPress, onLinkLongPress)
++      if (shouldRenderIcon) {
++        val blockStyle = factory.blockStyleContext.requireBlockStyle()
++        builder.setSpan(
++          LinkIconSpan(factory.context, url, factory.styleCache, blockStyle),
++          iconStart,
++          iconEnd,
++          SPAN_FLAGS_EXCLUSIVE_EXCLUSIVE,
++        )
++      }
++    }) { start, end, blockStyle ->
+       builder.setSpan(
+         LinkSpan(url, onLinkPress, onLinkLongPress, factory.styleCache, blockStyle, factory.context),
+         start,
+diff --git a/android/src/main/res/drawable/enrm_link_globe.xml b/android/src/main/res/drawable/enrm_link_globe.xml
+new file mode 100644
+index 0000000..4aa5e4a
+--- /dev/null
++++ b/android/src/main/res/drawable/enrm_link_globe.xml
+@@ -0,0 +1,28 @@
++<?xml version="1.0" encoding="utf-8"?>
++<vector xmlns:android="http://schemas.android.com/apk/res/android"
++    android:width="24dp"
++    android:height="24dp"
++    android:viewportWidth="24"
++    android:viewportHeight="24">
++    <path
++        android:fillColor="@android:color/transparent"
++        android:pathData="M12,2A10,10 0,1 0,12 22A10,10 0,1 0,12 2"
++        android:strokeColor="#FF000000"
++        android:strokeLineCap="round"
++        android:strokeLineJoin="round"
++        android:strokeWidth="2" />
++    <path
++        android:fillColor="@android:color/transparent"
++        android:pathData="M12,2a14.5,14.5 0,0 0,0 20a14.5,14.5 0,0 0,0 -20"
++        android:strokeColor="#FF000000"
++        android:strokeLineCap="round"
++        android:strokeLineJoin="round"
++        android:strokeWidth="2" />
++    <path
++        android:fillColor="@android:color/transparent"
++        android:pathData="M2,12L22,12"
++        android:strokeColor="#FF000000"
++        android:strokeLineCap="round"
++        android:strokeLineJoin="round"
++        android:strokeWidth="2" />
++</vector>
+diff --git a/ios/assets/LinkIcons.xcassets/LinkGlobe.imageset/Contents.json b/ios/assets/LinkIcons.xcassets/LinkGlobe.imageset/Contents.json
+new file mode 100644
+index 0000000..80bfbcc
+--- /dev/null
++++ b/ios/assets/LinkIcons.xcassets/LinkGlobe.imageset/Contents.json
+@@ -0,0 +1,16 @@
++{
++  "images" : [
++    {
++      "filename" : "globe.svg",
++      "idiom" : "universal"
++    }
++  ],
++  "info" : {
++    "author" : "xcode",
++    "version" : 1
++  },
++  "properties" : {
++    "preserves-vector-representation" : true,
++    "template-rendering-intent" : "template"
++  }
++}
+diff --git a/ios/assets/LinkIcons.xcassets/LinkGlobe.imageset/globe.svg b/ios/assets/LinkIcons.xcassets/LinkGlobe.imageset/globe.svg
+new file mode 100644
+index 0000000..37e3d48
+--- /dev/null
++++ b/ios/assets/LinkIcons.xcassets/LinkGlobe.imageset/globe.svg
+@@ -0,0 +1,5 @@
++<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
++  <circle cx="12" cy="12" r="10"/>
++  <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/>
++  <path d="M2 12h20"/>
++</svg>
+diff --git a/ios/renderer/LinkRenderer.m b/ios/renderer/LinkRenderer.m
+index 5fdc4a7..7645055 100644
+--- a/ios/renderer/LinkRenderer.m
++++ b/ios/renderer/LinkRenderer.m
+@@ -5,6 +5,98 @@
+ #import "StyleConfig.h"
+ #import <React/RCTFont.h>
+ 
++static const CGFloat kLinkIconSizeScale = 0.85;
++static const CGFloat kLinkIconGapScale = 0.15;
++
++static BOOL LinkNodeHasLinkDescendant(MarkdownASTNode *node)
++{
++  for (MarkdownASTNode *child in node.children) {
++    if (child.type == MarkdownNodeTypeLink || LinkNodeHasLinkDescendant(child))
++      return YES;
++  }
++  return NO;
++}
++
++static RCTUIImage *LinkGlobeAsset(RCTUIColor *color)
++{
++  NSBundle *hostBundle = [NSBundle bundleForClass:[LinkRenderer class]];
++  NSURL *bundleURL = [hostBundle URLForResource:@"EnrichedMarkdownLinkAssets" withExtension:@"bundle"];
++  NSBundle *assetBundle = bundleURL ? [NSBundle bundleWithURL:bundleURL] : nil;
++  RCTUIImage *image = [RCTUIImage imageNamed:@"LinkGlobe"
++                                   inBundle:assetBundle
++              compatibleWithTraitCollection:nil];
++  return image ? [image imageWithTintColor:color renderingMode:UIImageRenderingModeAlwaysOriginal] : nil;
++}
++
++static NSAttributedString *LinkIconAttributedString(BlockStyle *blockStyle,
++                                                    CGFloat fallbackFontSize,
++                                                    UIFont *fallbackFont,
++                                                    RCTUIColor *color)
++{
++#if !TARGET_OS_OSX
++  CGFloat fontSize = blockStyle.fontSize > 0 ? blockStyle.fontSize : fallbackFontSize;
++  fontSize = fontSize > 0 ? fontSize : 14.0;
++  color = color ?: blockStyle.color ?: [RCTUIColor linkColor];
++
++  CGFloat iconSize = fontSize * kLinkIconSizeScale;
++  CGFloat gap = fontSize * kLinkIconGapScale;
++  CGSize imageSize = CGSizeMake(iconSize + gap, iconSize);
++  CGFloat scale = iconSize / 24.0;
++  RCTUIGraphicsImageRenderer *renderer = ImageRendererForSize(imageSize);
++  RCTUIImage *image = [renderer imageWithActions:^(RCTUIGraphicsImageRendererContext *rendererContext) {
++    RCTUIImage *asset = LinkGlobeAsset(color);
++    if (!asset) {
++      UIImageSymbolConfiguration *configuration =
++          [UIImageSymbolConfiguration configurationWithPointSize:iconSize weight:UIImageSymbolWeightRegular];
++      asset = [[RCTUIImage systemImageNamed:@"globe" withConfiguration:configuration]
++          imageWithTintColor:color
++               renderingMode:UIImageRenderingModeAlwaysOriginal];
++    }
++    if (asset) {
++      [asset drawInRect:CGRectMake(0, 0, iconSize, iconSize)];
++      return;
++    }
++
++    [color setStroke];
++
++    UIBezierPath *outer = [UIBezierPath bezierPathWithOvalInRect:CGRectMake(2.0 * scale,
++                                                                           2.0 * scale,
++                                                                           20.0 * scale,
++                                                                           20.0 * scale)];
++    outer.lineWidth = MAX(1.0, 2.0 * scale);
++    BezierPathSetRoundStyle(outer);
++    [outer stroke];
++
++    UIBezierPath *meridian = [UIBezierPath bezierPathWithOvalInRect:CGRectMake(8.0 * scale,
++                                                                              2.0 * scale,
++                                                                              8.0 * scale,
++                                                                              20.0 * scale)];
++    meridian.lineWidth = outer.lineWidth;
++    BezierPathSetRoundStyle(meridian);
++    [meridian stroke];
++
++    UIBezierPath *equator = [UIBezierPath bezierPath];
++    [equator moveToPoint:CGPointMake(2.0 * scale, 12.0 * scale)];
++    BezierPathAddLine(equator, CGPointMake(22.0 * scale, 12.0 * scale));
++    equator.lineWidth = outer.lineWidth;
++    BezierPathSetRoundStyle(equator);
++    [equator stroke];
++  }];
++
++  UIFont *font = blockStyle.cachedFont ?: fallbackFont ?: [UIFont systemFontOfSize:fontSize];
++  NSTextAttachment *attachment = [[NSTextAttachment alloc] init];
++  attachment.image = image;
++  attachment.bounds = CGRectMake(0, (font.capHeight - iconSize) / 2.0, imageSize.width, imageSize.height);
++
++  NSMutableAttributedString *value =
++      [[NSMutableAttributedString alloc] initWithAttributedString:[NSAttributedString attributedStringWithAttachment:attachment]];
++  [value appendAttributedString:[[NSAttributedString alloc] initWithString:@"\u2060"]];
++  return value;
++#else
++  return nil;
++#endif
++}
++
+ @implementation LinkRenderer
+ 
+ #pragma mark - Rendering
+@@ -15,22 +107,30 @@ - (void)renderNodeContent:(MarkdownASTNode *)node
+ {
+   NSUInteger start = output.length;
+ 
+-  // 1. Render children first to establish base attributes
+-  [_rendererFactory renderChildrenOfNode:node into:output context:context];
+-
+-  NSRange range = NSMakeRange(start, output.length - start);
+-  if (range.length == 0)
+-    return;
+-
+-  // 2. Extract configuration
+   NSString *url = node.attributes[@"url"] ?: @"";
+   LinkVariantConfig *variant = [_config effectiveLinkVariantForURL:url];
+-
+   RCTUIColor *linkColor = variant.color ?: [_config linkColor];
+   BOOL linkUnderline = variant ? variant.underline : [_config linkUnderline];
+   NSString *linkFontFamily = [_config linkFontFamily];
+   RCTUIColor *backgroundColor = variant ? variant.backgroundColor : [_config linkBackgroundColor];
+ 
++  NSAttributedString *icon = LinkNodeHasLinkDescendant(node)
++      ? nil
++      : LinkIconAttributedString([context getBlockStyle],
++                                 [_config paragraphFontSize],
++                                 [_config paragraphFont],
++                                 linkColor ?: [_config paragraphColor]);
++  NSRange iconRange = NSMakeRange(start, icon.length);
++  if (icon.length > 0)
++    [output appendAttributedString:icon];
++
++  // 1. Render children first to establish base attributes
++  [_rendererFactory renderChildrenOfNode:node into:output context:context];
++
++  NSRange range = NSMakeRange(start, output.length - start);
++  if (range.length == 0)
++    return;
++
+   NSNumber *underlineStyle = @(linkUnderline ? NSUnderlineStyleSingle : NSUnderlineStyleNone);
+ 
+   // 3. Apply core link functionality (non-destructive)
+@@ -78,7 +178,11 @@ - (void)renderNodeContent:(MarkdownASTNode *)node
+     [output addAttribute:NSBackgroundColorAttributeName value:backgroundColor range:range];
+   }
+ 
++  if (iconRange.length > 0) {
++    [output addAttribute:NSUnderlineStyleAttributeName value:@(NSUnderlineStyleNone) range:iconRange];
++  }
++
+   [context registerLinkRange:range url:url];
+ }
+ 
+-@end
+\ No newline at end of file
++@end
+diff --git a/ios/utils/MarkdownAccessibilityElementBuilder.m b/ios/utils/MarkdownAccessibilityElementBuilder.m
+index ea26809..ad6f540 100644
+--- a/ios/utils/MarkdownAccessibilityElementBuilder.m
++++ b/ios/utils/MarkdownAccessibilityElementBuilder.m
+@@ -8,6 +8,13 @@
+ 
+ static const CGFloat kFocusRectPadding = 2.0;
+ 
++static NSString *AccessibleLinkText(NSString *value)
++{
++  NSString *text = [value stringByReplacingOccurrencesOfString:@"\uFFFC" withString:@""];
++  text = [text stringByReplacingOccurrencesOfString:@"\u2060" withString:@""];
++  return [text stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
++}
++
+ @implementation MarkdownAccessibilityElementBuilder
+ 
+ #if !TARGET_OS_OSX
+@@ -113,7 +120,7 @@ + (BOOL)hasAlphanumericContent:(NSString *)text
+     }
+ 
+     BOOL isImg = item[@"altText"] != nil;
+-    NSString *label = isImg ? item[@"altText"] : [fullText substringWithRange:itemRange];
++    NSString *label = isImg ? item[@"altText"] : AccessibleLinkText([fullText substringWithRange:itemRange]);
+     [elements addObject:[self createElementForRange:itemRange
+                                                type:isImg ? ElementTypeImage : ElementTypeLink
+                                                text:label

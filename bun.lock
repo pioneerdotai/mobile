@@ -122,6 +122,7 @@
   "patchedDependencies": {
     "metro-runtime@0.84.5": "patches/metro-runtime@0.84.5.patch",
     "metro@0.84.5": "patches/metro@0.84.5.patch",
+    "react-native-enriched-markdown@1.0.2": "patches/react-native-enriched-markdown@1.0.2.patch",
   },
   "overrides": {
     "zod-validation-error": "^4.0.2",
