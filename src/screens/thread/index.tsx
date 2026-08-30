@@ -86,6 +86,7 @@ import {
     type MobileArtifactActionEvent,
     type MobileArtifactActionState,
 } from '@/services/artifacts/mobile-actions';
+import { registerThreadFileIntent, releaseThreadFileIntent } from '@/services/thread-files/intent';
 import { useActiveThreadStore } from '@/stores/active-thread';
 import { useGatewayStore } from '@/stores/gateway';
 import { useThreadTreeStore } from '@/stores/thread-tree';
@@ -486,6 +487,28 @@ const ThreadScreen = ({
                 pathname: '/message-revisions',
                 params: { threadId: visibleThreadId, turnId },
             });
+        },
+        [visibleThreadId],
+    );
+
+    const handleOpenThreadFile = useCallback(
+        (turnId: string, itemId: string, href: string) => {
+            if (!visibleThreadId) return;
+
+            const intent = registerThreadFileIntent({
+                threadId: visibleThreadId,
+                turnId,
+                itemId,
+                href,
+            });
+            try {
+                router.push({
+                    pathname: '/source-file',
+                    params: { intent },
+                });
+            } catch {
+                releaseThreadFileIntent(intent);
+            }
         },
         [visibleThreadId],
     );
@@ -1900,6 +1923,7 @@ const ThreadScreen = ({
                             onOpenArtifact={
                                 artifactPresentationPolicy.can_open ? handleOpenArtifact : undefined
                             }
+                            onOpenThreadFile={handleOpenThreadFile}
                             onShareArtifact={
                                 artifactPresentationPolicy.can_share
                                     ? handleShareArtifact

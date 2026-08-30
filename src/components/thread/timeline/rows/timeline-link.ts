@@ -1,4 +1,5 @@
 import { Linking } from 'react-native';
+import { isTimelineLocalFileHref } from '@/services/thread-files/intent';
 
 export type TimelineLinkOpener = (url: string) => Promise<unknown>;
 
@@ -29,4 +30,12 @@ export const openTimelineExternalUrl = async (
     } catch {
         return false;
     }
+};
+
+export type TimelineLinkKind = 'external' | 'local-file' | 'unsupported';
+
+export const timelineLinkKind = (value: string): TimelineLinkKind => {
+    if (isTimelineLocalFileHref(value)) return 'local-file';
+    if (normalizeTimelineExternalUrl(value)) return 'external';
+    return 'unsupported';
 };

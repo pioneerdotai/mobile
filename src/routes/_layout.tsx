@@ -433,6 +433,15 @@ const RootStack = () => {
                     }}
                 />
                 <Stack.Screen
+                    name="source-file"
+                    options={{
+                        presentation: 'card',
+                        animationTypeForReplace: 'pop',
+                        cardOverlayEnabled: false,
+                        animation: 'slide_from_bottom',
+                    }}
+                />
+                <Stack.Screen
                     name="editor"
                     options={{
                         presentation: 'card',

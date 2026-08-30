@@ -100,6 +100,7 @@ type ThreadTimelineProps = {
     mcpServerIdByName: Readonly<Record<string, string>>;
     artifactWorkspaceId?: string | null;
     onOpenArtifact?: (artifactId: string, versionId: string | null) => void;
+    onOpenThreadFile?: (turnId: string, itemId: string, href: string) => void;
     onShareArtifact?: (artifactId: string, versionId: string | null) => void;
     onCancelArtifactDownload?: (
         artifactId: string,
@@ -172,6 +173,7 @@ const ThreadTimelineContent = ({
     mcpServerIdByName,
     artifactWorkspaceId,
     onOpenArtifact,
+    onOpenThreadFile,
     onShareArtifact,
     onCancelArtifactDownload,
     artifactActionStateByKey,
@@ -374,6 +376,7 @@ const ThreadTimelineContent = ({
                 mcpServerIdByName={mcpServerIdByName}
                 artifactWorkspaceId={artifactWorkspaceId}
                 onOpenArtifact={onOpenArtifact}
+                onOpenThreadFile={onOpenThreadFile}
                 onShareArtifact={onShareArtifact}
                 onCancelArtifactDownload={onCancelArtifactDownload}
                 artifactActionState={
@@ -407,6 +410,7 @@ const ThreadTimelineContent = ({
             mcpServerIdByName,
             artifactWorkspaceId,
             onOpenArtifact,
+            onOpenThreadFile,
             onShareArtifact,
             onCancelArtifactDownload,
             artifactActionStateByKey,
@@ -607,6 +611,7 @@ const TimelineRowContainer = ({
     mcpServerIdByName,
     artifactWorkspaceId,
     onOpenArtifact,
+    onOpenThreadFile,
     onShareArtifact,
     onCancelArtifactDownload,
     artifactActionState,
@@ -630,6 +635,7 @@ const TimelineRowContainer = ({
     mcpServerIdByName: Readonly<Record<string, string>>;
     artifactWorkspaceId?: string | null;
     onOpenArtifact?: (artifactId: string, versionId: string | null) => void;
+    onOpenThreadFile?: (turnId: string, itemId: string, href: string) => void;
     onShareArtifact?: (artifactId: string, versionId: string | null) => void;
     onCancelArtifactDownload?: (
         artifactId: string,
@@ -690,6 +696,7 @@ const TimelineRowContainer = ({
                 mcpServerIdByName={mcpServerIdByName}
                 artifactWorkspaceId={artifactWorkspaceId}
                 onOpenArtifact={onOpenArtifact}
+                onOpenThreadFile={onOpenThreadFile}
                 onShareArtifact={onShareArtifact}
                 onCancelArtifactDownload={onCancelArtifactDownload}
                 artifactActionStateByKey={artifactActionStateByKey}
@@ -717,6 +724,7 @@ const TimelineRowRenderer = ({
     mcpServerIdByName,
     artifactWorkspaceId,
     onOpenArtifact,
+    onOpenThreadFile,
     onShareArtifact,
     onCancelArtifactDownload,
     artifactActionState,
@@ -739,6 +747,7 @@ const TimelineRowRenderer = ({
     mcpServerIdByName: Readonly<Record<string, string>>;
     artifactWorkspaceId?: string | null;
     onOpenArtifact?: (artifactId: string, versionId: string | null) => void;
+    onOpenThreadFile?: (turnId: string, itemId: string, href: string) => void;
     onShareArtifact?: (artifactId: string, versionId: string | null) => void;
     onCancelArtifactDownload?: (
         artifactId: string,
@@ -766,6 +775,11 @@ const TimelineRowRenderer = ({
                     compactTopSpacing={compactTopSpacing}
                     artifactWorkspaceId={artifactWorkspaceId}
                     onOpenArtifact={onOpenArtifact}
+                    onOpenLocalFile={
+                        onOpenThreadFile
+                            ? (href) => onOpenThreadFile(row.turnId, row.itemId, href)
+                            : undefined
+                    }
                     onShareArtifact={onShareArtifact}
                     onCancelArtifactDownload={onCancelArtifactDownload}
                     artifactActionStateByKey={artifactActionStateByKey}
@@ -781,6 +795,11 @@ const TimelineRowRenderer = ({
                     expanded={expanded}
                     onToggle={onToggleExpanded}
                     onLongPress={() => onOpenMessageActions(row)}
+                    onOpenLocalFile={
+                        onOpenThreadFile
+                            ? (href) => onOpenThreadFile(row.turnId, row.itemId, href)
+                            : undefined
+                    }
                 />
             );
         case 'reasoning':

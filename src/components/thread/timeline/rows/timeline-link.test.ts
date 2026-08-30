@@ -4,6 +4,7 @@ import { Linking } from 'react-native';
 import {
     normalizeTimelineExternalUrl,
     openTimelineExternalUrl,
+    timelineLinkKind,
     type TimelineLinkOpener,
 } from './timeline-link';
 
@@ -56,5 +57,12 @@ describe('timeline external links', () => {
         });
 
         await expect(openTimelineExternalUrl('https://example.com', openUrl)).resolves.toBe(false);
+    });
+
+    it('classifies supported web and local file links without opening unsupported schemes', () => {
+        expect(timelineLinkKind('https://example.com')).toBe('external');
+        expect(timelineLinkKind('/workspace/src/main.rs:12:4')).toBe('local-file');
+        expect(timelineLinkKind('file:///workspace/src/main.rs#L12C4')).toBe('local-file');
+        expect(timelineLinkKind('javascript:alert(1)')).toBe('unsupported');
     });
 });

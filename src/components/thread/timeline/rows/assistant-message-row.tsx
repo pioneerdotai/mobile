@@ -23,6 +23,7 @@ type AssistantMessageRowProps = {
     expanded: boolean;
     onToggle: () => void;
     onLongPress?: (row: Extract<TimelineRow, { type: 'assistant-message' }>) => void;
+    onOpenLocalFile?: (href: string) => void;
 };
 
 export const AssistantMessageRow = ({
@@ -30,6 +31,7 @@ export const AssistantMessageRow = ({
     expanded,
     onToggle,
     onLongPress,
+    onOpenLocalFile,
 }: AssistantMessageRowProps) => {
     const { theme } = useUnistyles();
     const { t } = useTranslation('threads');
@@ -73,6 +75,7 @@ export const AssistantMessageRow = ({
                             text={row.text}
                             document={row.markdown}
                             streaming={row.streaming}
+                            onOpenLocalFile={onOpenLocalFile}
                         />
                     </Box>
                 )}
@@ -91,6 +94,7 @@ export const AssistantMessageRow = ({
                     text={row.text}
                     document={row.markdown}
                     streaming={row.streaming}
+                    onOpenLocalFile={onOpenLocalFile}
                 />
             ) : row.streaming ? (
                 <Spinner color={activityColor} />

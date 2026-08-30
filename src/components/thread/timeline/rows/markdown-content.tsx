@@ -13,7 +13,7 @@ import type { RemendOptions } from 'remend';
 import type { MarkdownDocument } from '@/client/generated/client_active_thread_snapshot';
 
 import { markdownSource } from './markdown-rendering';
-import { openTimelineExternalUrl } from './timeline-link';
+import { openTimelineExternalUrl, timelineLinkKind } from './timeline-link';
 
 type MarkdownContentProps = {
     text: string;
@@ -21,6 +21,7 @@ type MarkdownContentProps = {
     tone?: 'default' | 'muted' | 'inverted';
     selectable?: boolean;
     streaming?: boolean;
+    onOpenLocalFile?: (href: string) => void;
 };
 const MARKDOWN_FLAGS = {
     latexMath: false,
@@ -44,6 +45,7 @@ export const MarkdownContent = ({
     tone = 'default',
     selectable = true,
     streaming = false,
+    onOpenLocalFile,
 }: MarkdownContentProps) => {
     const { theme, rt } = useUnistyles();
     const { t } = useTranslation('threads');
@@ -71,9 +73,16 @@ export const MarkdownContent = ({
         () => AccessibilityInfo.announceForAccessibility(t('timelineCopied')),
         [t],
     );
-    const handleLinkPress = useCallback(({ url }: { url: string }) => {
-        void openTimelineExternalUrl(url);
-    }, []);
+    const handleLinkPress = useCallback(
+        ({ url }: { url: string }) => {
+            if (timelineLinkKind(url) === 'local-file') {
+                onOpenLocalFile?.(url);
+                return;
+            }
+            void openTimelineExternalUrl(url);
+        },
+        [onOpenLocalFile],
+    );
 
     return (
         <EnrichedMarkdownText

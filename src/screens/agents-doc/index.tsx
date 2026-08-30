@@ -7,7 +7,7 @@ import {
     useRef,
     useState,
 } from 'react';
-import { StyleSheet as RNStyleSheet } from 'react-native';
+import { AppState, StyleSheet as RNStyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
@@ -15,10 +15,10 @@ import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { pioneerClient } from '@/client';
 import type { ThreadAgentsDocPayload } from '@/client';
 import { Button } from '@/components/buttons/base';
+import { SourceDocumentEditor } from '@/components/editor/source-document-editor';
 import Spinner from '@/components/feedback/spinner';
 import { Box } from '@/components/primitives/box';
 import { HStack } from '@/components/primitives/hstack';
-import { Input } from '@/components/primitives/input';
 import { KeyboardAvoidingView } from '@/components/primitives/keyboard';
 import { ScrollView } from '@/components/primitives/scrollview';
 import { Text } from '@/components/primitives/text';
@@ -367,6 +367,16 @@ const AgentsDocScreen = forwardRef<AgentsDocScreenHandle, AgentsDocScreenProps>(
             }
         }, [clearSaveTimer, saveNow]);
 
+        useEffect(() => {
+            const subscription = AppState.addEventListener('change', (nextState) => {
+                if (nextState !== 'active') {
+                    flushPendingSave();
+                }
+            });
+
+            return () => subscription.remove();
+        }, [flushPendingSave]);
+
         const handleClose = useCallback(() => {
             clearSaveTimer();
 
@@ -507,17 +517,13 @@ const AgentsDocScreen = forwardRef<AgentsDocScreenHandle, AgentsDocScreenProps>(
                                     </HStack>
                                 </VStack>
                             ) : null}
-                            <Input
-                                autoCapitalize="sentences"
-                                autoCorrect
+                            <SourceDocumentEditor
+                                documentKey={`${workspaceId}:${folderId ?? 'root'}:AGENTS.md`}
                                 editable={editorEditable}
-                                multiline
-                                onBlur={flushPendingSave}
+                                fileName="AGENTS.md"
+                                language="markdown"
+                                lineNumbers
                                 onChangeText={handleChangeText}
-                                placeholder={t('placeholder')}
-                                scrollEnabled
-                                style={styles.editorInput}
-                                textAlignVertical="top"
                                 value={content}
                             />
                         </VStack>
@@ -581,14 +587,6 @@ const styles = StyleSheet.create((theme, rt) => ({
         paddingTop: theme.screenContentPadding('child').paddingTop,
         paddingHorizontal: theme.space(4),
         paddingBottom: rt.insets.bottom,
-    },
-    editorInput: {
-        flex: 1,
-        minHeight: 0,
-        color: theme.colors.typography,
-        fontSize: theme.fontSize.default.fontSize,
-        lineHeight: theme.fontSize['2xl'].fontSize,
-        padding: 0,
     },
     conflictPanel: {
         borderColor: theme.colors.dangerBorder,

@@ -48,6 +48,7 @@ type UserMessageRowProps = {
     artifactActionStateByKey?: Readonly<Record<string, MobileArtifactActionState>>;
     currentPrincipalId?: string | null;
     onLongPress?: (row: Extract<TimelineRow, { type: 'user-message' }>) => void;
+    onOpenLocalFile?: (href: string) => void;
     textSelectionEnabled?: boolean;
     compactTopSpacing?: boolean;
 };
@@ -61,6 +62,7 @@ export const UserMessageRow = ({
     artifactActionStateByKey,
     currentPrincipalId,
     onLongPress,
+    onOpenLocalFile,
     textSelectionEnabled = true,
     compactTopSpacing = false,
 }: UserMessageRowProps) => {
@@ -253,6 +255,7 @@ export const UserMessageRow = ({
                         text={row.text}
                         tone={isCurrentPrincipal ? 'inverted' : 'default'}
                         selectable={textSelectionEnabled}
+                        onOpenLocalFile={onOpenLocalFile}
                     />
                 </Box>
             ) : null}
