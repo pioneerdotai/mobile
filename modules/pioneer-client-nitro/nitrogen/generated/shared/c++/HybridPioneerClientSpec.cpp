@@ -70,6 +70,7 @@ namespace margelo::nitro::pioneer::client {
       prototype.registerHybridMethod("gatewayNextEventsJson", &HybridPioneerClientSpec::gatewayNextEventsJson);
       prototype.registerHybridMethod("gatewayDisconnectJson", &HybridPioneerClientSpec::gatewayDisconnectJson);
       prototype.registerHybridMethod("artifactViewOpenJson", &HybridPioneerClientSpec::artifactViewOpenJson);
+      prototype.registerHybridMethod("threadFileViewOpenJson", &HybridPioneerClientSpec::threadFileViewOpenJson);
       prototype.registerHybridMethod("artifactDownloadJson", &HybridPioneerClientSpec::artifactDownloadJson);
       prototype.registerHybridMethod("artifactDownloadProgressJson", &HybridPioneerClientSpec::artifactDownloadProgressJson);
       prototype.registerHybridMethod("artifactDownloadCancelJson", &HybridPioneerClientSpec::artifactDownloadCancelJson);

@@ -106,6 +106,7 @@ namespace margelo::nitro::pioneer::client {
       virtual std::shared_ptr<Promise<std::string>> gatewayNextEventsJson() = 0;
       virtual std::shared_ptr<Promise<std::string>> gatewayDisconnectJson() = 0;
       virtual std::shared_ptr<Promise<std::string>> artifactViewOpenJson(const std::string& inputJson) = 0;
+      virtual std::shared_ptr<Promise<std::string>> threadFileViewOpenJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> artifactDownloadJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> artifactDownloadProgressJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> artifactDownloadCancelJson(const std::string& inputJson) = 0;

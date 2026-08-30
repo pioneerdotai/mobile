@@ -352,6 +352,11 @@ HybridPioneerClient::artifactViewOpenJson(const std::string& inputJson) {
 }
 
 std::shared_ptr<margelo::nitro::Promise<std::string>>
+HybridPioneerClient::threadFileViewOpenJson(const std::string& inputJson) {
+  return callWithClientAsyncSensitive(pioneer_client_ffi_thread_file_view_open, inputJson);
+}
+
+std::shared_ptr<margelo::nitro::Promise<std::string>>
 HybridPioneerClient::artifactDownloadJson(const std::string& inputJson) {
   return callWithClientAsync(pioneer_client_ffi_artifact_download, inputJson);
 }

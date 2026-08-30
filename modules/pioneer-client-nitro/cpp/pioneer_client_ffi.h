@@ -67,6 +67,7 @@ char* pioneer_client_ffi_gateway_settings_update(PioneerClientFfi* client, const
 char* pioneer_client_ffi_gateway_next_events(PioneerClientFfi* client);
 char* pioneer_client_ffi_gateway_disconnect(PioneerClientFfi* client);
 char* pioneer_client_ffi_artifact_view_open(PioneerClientFfi* client, const char* input_json);
+char* pioneer_client_ffi_thread_file_view_open(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_artifact_download(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_artifact_download_progress(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_artifact_download_cancel(PioneerClientFfi* client, const char* input_json);

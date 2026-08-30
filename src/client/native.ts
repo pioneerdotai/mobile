@@ -28,6 +28,8 @@ import type { ClientArtifactDownloadResult } from './generated/client_artifact_d
 import type { ClientArtifactPresentationPolicyRequest } from './generated/client_artifact_presentation_policy_request';
 import type { ClientArtifactTargetRequest } from './generated/client_artifact_target_request';
 import type { ClientArtifactViewOpenResult } from './generated/client_artifact_view_open_result';
+import type { ClientThreadFileViewOpenRequest } from './generated/client_thread_file_view_open_request';
+import type { ClientThreadFileViewOpenResult } from './generated/client_thread_file_view_open_result';
 import type { ArtifactPresentationPolicy } from './generated/artifact_presentation_policy';
 import type { ClientAuthorizationProjectionAcceptRequest } from './generated/client_authorization_projection_accept_request';
 import type { ClientAuthorizationProjectionAcceptResult } from './generated/client_authorization_projection_accept_result';
@@ -283,6 +285,8 @@ export type { ClientArtifactPresentationPolicyRequest } from './generated/client
 export type { ArtifactPresentationPolicy } from './generated/artifact_presentation_policy';
 export type { ClientArtifactTargetRequest } from './generated/client_artifact_target_request';
 export type { ClientArtifactViewOpenResult } from './generated/client_artifact_view_open_result';
+export type { ClientThreadFileViewOpenRequest } from './generated/client_thread_file_view_open_request';
+export type { ClientThreadFileViewOpenResult } from './generated/client_thread_file_view_open_result';
 export type { ClientAuthorizationProjectionAcceptRequest } from './generated/client_authorization_projection_accept_request';
 export type { ClientAuthorizationProjectionAcceptResult } from './generated/client_authorization_projection_accept_result';
 export type { ClientActiveThreadCancelTurnRequest } from './generated/client_active_thread_cancel_turn_request';
@@ -1094,6 +1098,14 @@ export const pioneerClient = {
     ): Promise<ClientArtifactViewOpenResult> {
         return parsePioneerClientResponse<ClientArtifactViewOpenResult>(
             await getPioneerClientNitro().artifactViewOpenJson(JSON.stringify(input)),
+        );
+    },
+
+    async threadFileViewOpen(
+        input: ClientThreadFileViewOpenRequest,
+    ): Promise<ClientThreadFileViewOpenResult> {
+        return parsePioneerClientResponse<ClientThreadFileViewOpenResult>(
+            await getPioneerClientNitro().threadFileViewOpenJson(JSON.stringify(input)),
         );
     },
 

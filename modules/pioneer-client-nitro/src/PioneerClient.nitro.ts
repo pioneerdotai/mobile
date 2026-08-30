@@ -57,6 +57,7 @@ export interface PioneerClient extends HybridObject<{ ios: 'c++'; android: 'c++'
     gatewayNextEventsJson(): Promise<string>;
     gatewayDisconnectJson(): Promise<string>;
     artifactViewOpenJson(inputJson: string): Promise<string>;
+    threadFileViewOpenJson(inputJson: string): Promise<string>;
     artifactDownloadJson(inputJson: string): Promise<string>;
     artifactDownloadProgressJson(inputJson: string): Promise<string>;
     artifactDownloadCancelJson(inputJson: string): Promise<string>;

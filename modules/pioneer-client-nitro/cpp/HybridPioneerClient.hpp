@@ -142,6 +142,8 @@ public:
   std::shared_ptr<margelo::nitro::Promise<std::string>> gatewayDisconnectJson() override;
   std::shared_ptr<margelo::nitro::Promise<std::string>> artifactViewOpenJson(
       const std::string& inputJson) override;
+  std::shared_ptr<margelo::nitro::Promise<std::string>> threadFileViewOpenJson(
+      const std::string& inputJson) override;
   std::shared_ptr<margelo::nitro::Promise<std::string>> artifactDownloadJson(
       const std::string& inputJson) override;
   std::shared_ptr<margelo::nitro::Promise<std::string>> artifactDownloadProgressJson(
