@@ -14,5 +14,14 @@
     "local": "Lokal",
     "remote": "Entfernt",
     "reloadRemote": "Remote neu laden",
-    "overwriteRemote": "Remote überschreiben"
+    "overwriteRemote": "Remote überschreiben",
+    "fileViewerTitle": "Datei",
+    "fileViewerLoading": "Datei wird geöffnet…",
+    "fileViewerLargeFileNotice": "Die Syntaxhervorhebung ist für diese große Datei deaktiviert.",
+    "fileViewerErrors": {
+        "expired": "Dieser Dateilink ist abgelaufen. Öffnen Sie die Datei erneut.",
+        "invalid_content": "Diese Datei kann nicht angezeigt werden.",
+        "too_large": "Diese Datei ist größer als 10 MB und kann nicht geöffnet werden.",
+        "unavailable": "Die Datei ist nicht verfügbar."
+    }
 }
