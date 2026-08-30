@@ -109,6 +109,7 @@ module.exports = {
         appVariant === 'development' ? './assets/images/icon-dev.png' : './assets/images/icon.png',
     plugins: [
         'expo-asset',
+        '@workspace-sh/react-native-source-editor',
         'expo-secure-store',
         'expo-document-picker',
         'expo-file-system',
@@ -133,6 +134,10 @@ module.exports = {
         [
             'expo-build-properties',
             {
+                ios: {
+                    deploymentTarget: iosDeploymentTarget,
+                    useFrameworks: 'static',
+                },
                 android: {
                     compileSdkVersion: 36,
                     targetSdkVersion: 35,

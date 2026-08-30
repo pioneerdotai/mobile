@@ -54,10 +54,10 @@ index b709380..74f154b 100644
      id: Int,
      label: String,
 diff --git a/android/src/main/java/com/swmansion/enriched/markdown/renderer/LinkRenderer.kt b/android/src/main/java/com/swmansion/enriched/markdown/renderer/LinkRenderer.kt
-index 7beb976..4d7df40 100644
+index 7beb976..03488b4 100644
 --- a/android/src/main/java/com/swmansion/enriched/markdown/renderer/LinkRenderer.kt
 +++ b/android/src/main/java/com/swmansion/enriched/markdown/renderer/LinkRenderer.kt
-@@ -1,9 +1,65 @@
+@@ -1,9 +1,74 @@
  package com.swmansion.enriched.markdown.renderer
  
 +import android.content.Context
@@ -74,6 +74,13 @@ index 7beb976..4d7df40 100644
 +private const val LINK_ICON_PLACEHOLDER = "\uFFFC"
 +private const val LINK_ICON_SIZE_SCALE = 0.85f
 +private const val LINK_ICON_GAP_SCALE = 0.15f
++private val WINDOWS_DRIVE_PATH = Regex("^[A-Za-z]:[\\\\/]")
++
++private fun isLocalFileUrl(url: String): Boolean =
++  url.startsWith("file://", ignoreCase = true) ||
++    url.startsWith("/") ||
++    url.startsWith("\\\\") ||
++    WINDOWS_DRIVE_PATH.containsMatchIn(url)
 +
 +private fun MarkdownASTNode.hasLinkDescendant(): Boolean =
 +  children.any { child -> child.type == MarkdownASTNode.NodeType.Link || child.hasLinkDescendant() }
@@ -86,7 +93,9 @@ index 7beb976..4d7df40 100644
 +) : ReplacementSpan() {
 +  private val iconSize = blockStyle.fontSize * LINK_ICON_SIZE_SCALE
 +  private val reservedWidth = iconSize + blockStyle.fontSize * LINK_ICON_GAP_SCALE
-+  private val icon = context.getDrawable(R.drawable.enrm_link_globe)?.mutate()
++  private val icon = context.getDrawable(
++    if (isLocalFileUrl(url)) R.drawable.enrm_link_file else R.drawable.enrm_link_globe,
++  )?.mutate()
 +
 +  override fun getSize(
 +    paint: Paint,
@@ -123,7 +132,7 @@ index 7beb976..4d7df40 100644
  
  class LinkRenderer(
    private val config: RendererConfig,
-@@ -16,8 +72,25 @@ class LinkRenderer(
+@@ -16,8 +81,25 @@ class LinkRenderer(
      factory: RendererFactory,
    ) {
      val url = node.getAttribute("url") ?: return
@@ -150,78 +159,11 @@ index 7beb976..4d7df40 100644
        builder.setSpan(
          LinkSpan(url, onLinkPress, onLinkLongPress, factory.styleCache, blockStyle, factory.context),
          start,
-diff --git a/android/src/main/res/drawable/enrm_link_globe.xml b/android/src/main/res/drawable/enrm_link_globe.xml
-new file mode 100644
-index 0000000..4aa5e4a
---- /dev/null
-+++ b/android/src/main/res/drawable/enrm_link_globe.xml
-@@ -0,0 +1,28 @@
-+<?xml version="1.0" encoding="utf-8"?>
-+<vector xmlns:android="http://schemas.android.com/apk/res/android"
-+    android:width="24dp"
-+    android:height="24dp"
-+    android:viewportWidth="24"
-+    android:viewportHeight="24">
-+    <path
-+        android:fillColor="@android:color/transparent"
-+        android:pathData="M12,2A10,10 0,1 0,12 22A10,10 0,1 0,12 2"
-+        android:strokeColor="#FF000000"
-+        android:strokeLineCap="round"
-+        android:strokeLineJoin="round"
-+        android:strokeWidth="2" />
-+    <path
-+        android:fillColor="@android:color/transparent"
-+        android:pathData="M12,2a14.5,14.5 0,0 0,0 20a14.5,14.5 0,0 0,0 -20"
-+        android:strokeColor="#FF000000"
-+        android:strokeLineCap="round"
-+        android:strokeLineJoin="round"
-+        android:strokeWidth="2" />
-+    <path
-+        android:fillColor="@android:color/transparent"
-+        android:pathData="M2,12L22,12"
-+        android:strokeColor="#FF000000"
-+        android:strokeLineCap="round"
-+        android:strokeLineJoin="round"
-+        android:strokeWidth="2" />
-+</vector>
-diff --git a/ios/assets/LinkIcons.xcassets/LinkGlobe.imageset/Contents.json b/ios/assets/LinkIcons.xcassets/LinkGlobe.imageset/Contents.json
-new file mode 100644
-index 0000000..80bfbcc
---- /dev/null
-+++ b/ios/assets/LinkIcons.xcassets/LinkGlobe.imageset/Contents.json
-@@ -0,0 +1,16 @@
-+{
-+  "images" : [
-+    {
-+      "filename" : "globe.svg",
-+      "idiom" : "universal"
-+    }
-+  ],
-+  "info" : {
-+    "author" : "xcode",
-+    "version" : 1
-+  },
-+  "properties" : {
-+    "preserves-vector-representation" : true,
-+    "template-rendering-intent" : "template"
-+  }
-+}
-diff --git a/ios/assets/LinkIcons.xcassets/LinkGlobe.imageset/globe.svg b/ios/assets/LinkIcons.xcassets/LinkGlobe.imageset/globe.svg
-new file mode 100644
-index 0000000..37e3d48
---- /dev/null
-+++ b/ios/assets/LinkIcons.xcassets/LinkGlobe.imageset/globe.svg
-@@ -0,0 +1,5 @@
-+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-+  <circle cx="12" cy="12" r="10"/>
-+  <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/>
-+  <path d="M2 12h20"/>
-+</svg>
 diff --git a/ios/renderer/LinkRenderer.m b/ios/renderer/LinkRenderer.m
-index 5fdc4a7..7645055 100644
+index 5fdc4a7..1058273 100644
 --- a/ios/renderer/LinkRenderer.m
 +++ b/ios/renderer/LinkRenderer.m
-@@ -5,6 +5,98 @@
+@@ -5,6 +5,113 @@
  #import "StyleConfig.h"
  #import <React/RCTFont.h>
  
@@ -237,12 +179,25 @@ index 5fdc4a7..7645055 100644
 +  return NO;
 +}
 +
-+static RCTUIImage *LinkGlobeAsset(RCTUIColor *color)
++static BOOL LinkURLIsLocalFile(NSString *url)
++{
++  if ([url hasPrefix:@"/"] || [url hasPrefix:@"\\\\"] ||
++      [url rangeOfString:@"file://" options:NSAnchoredSearch | NSCaseInsensitiveSearch].location != NSNotFound)
++    return YES;
++  if (url.length < 3)
++    return NO;
++  unichar first = [url characterAtIndex:0];
++  unichar separator = [url characterAtIndex:2];
++  return ((first >= 'A' && first <= 'Z') || (first >= 'a' && first <= 'z')) &&
++      [url characterAtIndex:1] == ':' && (separator == '/' || separator == '\\');
++}
++
++static RCTUIImage *LinkAsset(NSString *url, RCTUIColor *color)
 +{
 +  NSBundle *hostBundle = [NSBundle bundleForClass:[LinkRenderer class]];
 +  NSURL *bundleURL = [hostBundle URLForResource:@"EnrichedMarkdownLinkAssets" withExtension:@"bundle"];
 +  NSBundle *assetBundle = bundleURL ? [NSBundle bundleWithURL:bundleURL] : nil;
-+  RCTUIImage *image = [RCTUIImage imageNamed:@"LinkGlobe"
++  RCTUIImage *image = [RCTUIImage imageNamed:LinkURLIsLocalFile(url) ? @"LinkFile" : @"LinkGlobe"
 +                                   inBundle:assetBundle
 +              compatibleWithTraitCollection:nil];
 +  return image ? [image imageWithTintColor:color renderingMode:UIImageRenderingModeAlwaysOriginal] : nil;
@@ -251,6 +206,7 @@ index 5fdc4a7..7645055 100644
 +static NSAttributedString *LinkIconAttributedString(BlockStyle *blockStyle,
 +                                                    CGFloat fallbackFontSize,
 +                                                    UIFont *fallbackFont,
++                                                    NSString *url,
 +                                                    RCTUIColor *color)
 +{
 +#if !TARGET_OS_OSX
@@ -264,11 +220,12 @@ index 5fdc4a7..7645055 100644
 +  CGFloat scale = iconSize / 24.0;
 +  RCTUIGraphicsImageRenderer *renderer = ImageRendererForSize(imageSize);
 +  RCTUIImage *image = [renderer imageWithActions:^(RCTUIGraphicsImageRendererContext *rendererContext) {
-+    RCTUIImage *asset = LinkGlobeAsset(color);
++    RCTUIImage *asset = LinkAsset(url, color);
 +    if (!asset) {
 +      UIImageSymbolConfiguration *configuration =
 +          [UIImageSymbolConfiguration configurationWithPointSize:iconSize weight:UIImageSymbolWeightRegular];
-+      asset = [[RCTUIImage systemImageNamed:@"globe" withConfiguration:configuration]
++      NSString *systemName = LinkURLIsLocalFile(url) ? @"doc" : @"globe";
++      asset = [[RCTUIImage systemImageNamed:systemName withConfiguration:configuration]
 +          imageWithTintColor:color
 +               renderingMode:UIImageRenderingModeAlwaysOriginal];
 +    }
@@ -320,7 +277,7 @@ index 5fdc4a7..7645055 100644
  @implementation LinkRenderer
  
  #pragma mark - Rendering
-@@ -15,22 +107,30 @@ - (void)renderNodeContent:(MarkdownASTNode *)node
+@@ -15,22 +122,31 @@ - (void)renderNodeContent:(MarkdownASTNode *)node
  {
    NSUInteger start = output.length;
  
@@ -345,6 +302,7 @@ index 5fdc4a7..7645055 100644
 +      : LinkIconAttributedString([context getBlockStyle],
 +                                 [_config paragraphFontSize],
 +                                 [_config paragraphFont],
++                                 url,
 +                                 linkColor ?: [_config paragraphColor]);
 +  NSRange iconRange = NSMakeRange(start, icon.length);
 +  if (icon.length > 0)
@@ -360,7 +318,7 @@ index 5fdc4a7..7645055 100644
    NSNumber *underlineStyle = @(linkUnderline ? NSUnderlineStyleSingle : NSUnderlineStyleNone);
  
    // 3. Apply core link functionality (non-destructive)
-@@ -78,7 +178,11 @@ - (void)renderNodeContent:(MarkdownASTNode *)node
+@@ -78,7 +194,11 @@ - (void)renderNodeContent:(MarkdownASTNode *)node
      [output addAttribute:NSBackgroundColorAttributeName value:backgroundColor range:range];
    }
  
@@ -374,30 +332,3 @@ index 5fdc4a7..7645055 100644
 -@end
 \ No newline at end of file
 +@end
-diff --git a/ios/utils/MarkdownAccessibilityElementBuilder.m b/ios/utils/MarkdownAccessibilityElementBuilder.m
-index ea26809..ad6f540 100644
---- a/ios/utils/MarkdownAccessibilityElementBuilder.m
-+++ b/ios/utils/MarkdownAccessibilityElementBuilder.m
-@@ -8,6 +8,13 @@
- 
- static const CGFloat kFocusRectPadding = 2.0;
- 
-+static NSString *AccessibleLinkText(NSString *value)
-+{
-+  NSString *text = [value stringByReplacingOccurrencesOfString:@"\uFFFC" withString:@""];
-+  text = [text stringByReplacingOccurrencesOfString:@"\u2060" withString:@""];
-+  return [text stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
-+}
-+
- @implementation MarkdownAccessibilityElementBuilder
- 
- #if !TARGET_OS_OSX
-@@ -113,7 +120,7 @@ + (BOOL)hasAlphanumericContent:(NSString *)text
-     }
- 
-     BOOL isImg = item[@"altText"] != nil;
--    NSString *label = isImg ? item[@"altText"] : [fullText substringWithRange:itemRange];
-+    NSString *label = isImg ? item[@"altText"] : AccessibleLinkText([fullText substringWithRange:itemRange]);
-     [elements addObject:[self createElementForRange:itemRange
-                                                type:isImg ? ElementTypeImage : ElementTypeLink
-                                                text:label

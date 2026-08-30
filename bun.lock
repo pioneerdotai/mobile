@@ -13,6 +13,7 @@
         "@sentry/react-native": "^8.23.0",
         "@shopify/flash-list": "2.0.2",
         "@tanstack/react-query": "^5.102.2",
+        "@workspace-sh/react-native-source-editor": "git+https://github.com/pioneerdotai/react-native-source-editor.git#fb796ee46d8e100d4e616ce91d319f7530a00718",
         "dayjs": "^1.11.23",
         "dset": "^3.1.4",
         "expo": "^57.0.16",
@@ -117,12 +118,13 @@
   },
   "trustedDependencies": [
     "react-native-enriched-markdown",
+    "@workspace-sh/react-native-source-editor",
     "@sentry/cli",
   ],
   "patchedDependencies": {
     "metro-runtime@0.84.5": "patches/metro-runtime@0.84.5.patch",
-    "metro@0.84.5": "patches/metro@0.84.5.patch",
     "react-native-enriched-markdown@1.0.2": "patches/react-native-enriched-markdown@1.0.2.patch",
+    "metro@0.84.5": "patches/metro@0.84.5.patch",
   },
   "overrides": {
     "zod-validation-error": "^4.0.2",
@@ -779,6 +781,8 @@
     "@unrs/resolver-binding-win32-ia32-msvc": ["@unrs/resolver-binding-win32-ia32-msvc@1.12.2", "", { "os": "win32", "cpu": "ia32" }, "sha512-WD9sY00OfpHVGfsnHZoA8jVT+esS/Bg8z8jzxp5BnDCjjwsuKsPQrzswwpFy4J1AUJbXPRfkpcX0mXrzeXW79g=="],
 
     "@unrs/resolver-binding-win32-x64-msvc": ["@unrs/resolver-binding-win32-x64-msvc@1.12.2", "", { "os": "win32", "cpu": "x64" }, "sha512-nAB74NfSNKknqQ1RrYj6uz8FcXEomu/MATJZxh/x+BArzN2U3JbOYC0APYzUIGhVY3m5hRxA8VPNdPBoG8txlA=="],
+
+    "@workspace-sh/react-native-source-editor": ["@workspace-sh/react-native-source-editor@github:pioneerdotai/react-native-source-editor#fb796ee", { "dependencies": { "@expo/config-plugins": ">=55.0.0 <58.0.0" }, "peerDependencies": { "react": "*", "react-native": "*" } }, "pioneerdotai-react-native-source-editor-fb796ee", "sha512-Fn9pLqPIZEzx18RoIJ95/hG2r8Gy/SXLxyIztWABmrV4TjyCmsqA/zjggCDD/XrMuWaoahMTbKe6Tu5T1a2ibg=="],
 
     "@xmldom/xmldom": ["@xmldom/xmldom@0.8.15", "", {}, "sha512-/5NV/vDALVFDXgLmfsy9TRCBlKwO2LNBFzpzvb9iIj+jR+eSc6DLYYvVOdivT/jm7MtU6TebYuRmzEOI7w40UA=="],
 

@@ -16,6 +16,7 @@
         "build:android": "eas build --platform android --profile development --clear-cache",
         "release:ios": "eas build --platform ios --profile production --clear-cache --auto-submit",
         "release:android": "eas build --platform android --profile production --clear-cache",
+        "postinstall": "node scripts/install-enriched-markdown-assets.mjs",
         "eas-build-pre-install": "bash modules/pioneer-client-nitro/scripts/eas-prepare-rust.sh",
         "update:all": "eas update --channel production --environment production --clear-cache && npx sentry-expo-upload-sourcemaps dist",
         "client": "bun run client:schema && bun run client:types",
@@ -97,6 +98,7 @@
         "@react-native-async-storage/async-storage": "2.2.0",
         "@sentry/react-native": "^8.23.0",
         "@shopify/flash-list": "2.0.2",
+        "@workspace-sh/react-native-source-editor": "git+https://github.com/pioneerdotai/react-native-source-editor.git#fb796ee46d8e100d4e616ce91d319f7530a00718",
         "@tanstack/react-query": "^5.102.2",
         "dayjs": "^1.11.23",
         "dset": "^3.1.4",
@@ -191,6 +193,7 @@
     },
     "trustedDependencies": [
         "@sentry/cli",
+        "@workspace-sh/react-native-source-editor",
         "react-native-enriched-markdown"
     ],
     "patchedDependencies": {
