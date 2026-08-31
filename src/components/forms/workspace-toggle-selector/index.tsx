@@ -100,7 +100,7 @@ const styles = StyleSheet.create((theme) => ({
     },
     textSelected: {
         color: theme.colors.background,
-        opacity: 0.8,
+        opacity: 1,
         ...theme.fontSize.default,
     },
     disabled: {

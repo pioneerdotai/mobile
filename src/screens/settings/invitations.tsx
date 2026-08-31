@@ -432,15 +432,6 @@ const InvitationsSettingsScreen = () => {
                                                 >
                                                     {option.role.display_name}
                                                 </Text>
-                                                <Text
-                                                    style={
-                                                        selected
-                                                            ? styles.roleDescriptionSelected
-                                                            : styles.roleDescription
-                                                    }
-                                                >
-                                                    {option.role.description}
-                                                </Text>
                                             </Pressable>
                                         );
                                     })}
@@ -606,14 +597,13 @@ const styles = StyleSheet.create((theme, rt) => ({
         gap: theme.space(1.5),
     },
     roleOption: {
-        minWidth: theme.space(32),
-        maxWidth: '100%',
-        gap: theme.space(0.5),
+        minHeight: theme.space(10),
+        justifyContent: 'center',
         paddingHorizontal: theme.space(4),
-        paddingVertical: theme.space(2.5),
-        borderRadius: theme.radius['2xl'],
+        borderRadius: theme.radius.full,
     },
     roleOptionIdle: {
+        backgroundColor: 'transparent',
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: theme.colors.border,
     },
@@ -622,21 +612,13 @@ const styles = StyleSheet.create((theme, rt) => ({
     },
     roleOptionText: {
         color: theme.colors.typography,
+        opacity: 0.8,
         ...theme.fontSize.default,
     },
     roleOptionTextSelected: {
         color: theme.colors.background,
+        opacity: 1,
         ...theme.fontSize.default,
-    },
-    roleDescription: {
-        color: theme.colors.typography,
-        ...theme.fontSize.xs,
-        opacity: 0.6,
-    },
-    roleDescriptionSelected: {
-        color: theme.colors.background,
-        ...theme.fontSize.xs,
-        opacity: 0.7,
     },
     presentation: {
         gap: theme.space(5),
