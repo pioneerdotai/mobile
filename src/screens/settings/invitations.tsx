@@ -170,6 +170,7 @@ const InvitationsSettingsScreen = () => {
             headerRight: canCreate
                 ? () => (
                       <CreateButton
+                          variant="primary"
                           accessibilityLabel={t('invitations.create')}
                           onPressHandler={openCreation}
                       />

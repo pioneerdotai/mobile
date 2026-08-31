@@ -4,6 +4,7 @@ import { useUnistyles } from 'react-native-unistyles';
 
 import { ActionsButton } from '@/components/buttons/actions';
 import { CollapseButton } from '@/components/buttons/collapse';
+import { BackButton } from '@/components/buttons/back';
 import { useScreen } from '@/hooks/use-screen';
 
 type ThreadScreenNavigation = 'modal' | 'stack';
@@ -72,15 +73,16 @@ const useThreadScreen = ({
             },
             headerLeft: () =>
                 isTaskChildThread ? (
-                    <CollapseButton icon="left" onPressHandler={handleTaskBack} />
+                    <BackButton variant="secondary" onPressHandler={handleTaskBack} />
                 ) : (
-                    <CollapseButton onPressHandler={handleBack} />
+                    <CollapseButton variant="secondary" onPressHandler={handleBack} />
                 ),
             headerRight: () =>
                 onActionsPress && !isTaskChildThread && threadId ? (
                     <ActionsButton
                         accessibilityLabel={t('threadActions')}
                         onPressHandler={onActionsPress}
+                        variant="secondary"
                     />
                 ) : null,
             cardStyle: {

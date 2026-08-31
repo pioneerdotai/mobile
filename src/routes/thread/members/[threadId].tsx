@@ -48,6 +48,7 @@ const ThreadMembersRoute = () => {
                     headerRight: () =>
                         threadId && canAddMember ? (
                             <CreateButton
+                                variant="primary"
                                 accessibilityLabel={t('members.add')}
                                 onPressHandler={openPicker}
                             />

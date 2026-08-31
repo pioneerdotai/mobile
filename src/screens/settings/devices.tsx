@@ -159,6 +159,7 @@ const DevicesSettingsScreen = () => {
         navigation.setOptions({
             headerRight: () => (
                 <CreateButton
+                    variant="primary"
                     accessibilityLabel={t('devices.createDeviceActivation', { ns: 'gateway' })}
                     onPressHandler={openDeviceActivation}
                 />

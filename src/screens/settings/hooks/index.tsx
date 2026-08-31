@@ -48,13 +48,7 @@ const useSettingScreen = () => {
                 ...options.sceneStyle,
                 backgroundColor: theme.colors.background,
             },
-            headerLeft: () => (
-                <BackButton
-                    onPressHandler={handleBack}
-                    backgroundColor={theme.colors.background}
-                    iconColor={theme.colors.typography}
-                />
-            ),
+            headerLeft: () => <BackButton onPressHandler={handleBack} />,
         },
     };
 };
