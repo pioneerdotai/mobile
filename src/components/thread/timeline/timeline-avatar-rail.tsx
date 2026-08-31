@@ -391,7 +391,6 @@ const TimelineAvatarRailItem = memo(
                         }
                         avatarRevision={group.source.author?.avatar_revision}
                         size={avatarSize}
-                        borderColor={theme.colors.border}
                     />
                 ) : group.source.kind === 'agent' && group.source.showsRunningDino ? (
                     <Image
@@ -410,14 +409,12 @@ const TimelineAvatarRailItem = memo(
                                 ? (agentAvatars[defaultAvatarRevision]?.uri ?? null)
                                 : null
                         }
-                        borderColor={theme.colors.border}
                     />
                 ) : agentAuthor || group.source.kind === 'agent' ? (
                     <MemberAvatar
                         displayName={t('modeAgentLabel')}
                         size={avatarSize}
                         imageUri={agentAvatars[AGENT_AVATAR_REVISIONS.pioneer]?.uri ?? null}
-                        borderColor={theme.colors.border}
                     />
                 ) : (
                     <Box style={styles.absentAvatar(avatarSize)} />
