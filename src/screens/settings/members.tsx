@@ -693,7 +693,6 @@ const MembersSettingsScreen = () => {
                         {...props}
                         title={t('members.memberships')}
                         closeButton
-                        closeButtonType="ghost"
                         handleClose={() => workspaceSheetRef.current?.dismiss()}
                     />
                 )}
@@ -741,7 +740,6 @@ const MembersSettingsScreen = () => {
                         {...props}
                         title={t('members.recoveryTitle')}
                         closeButton
-                        closeButtonType="ghost"
                         handleClose={() => recoverySheetRef.current?.dismiss()}
                     />
                 )}

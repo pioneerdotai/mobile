@@ -366,7 +366,6 @@ const InvitationsSettingsScreen = () => {
                                 : t('invitations.create')
                         }
                         closeButton={!createPending}
-                        closeButtonType="ghost"
                         handleClose={() => creationSheetRef.current?.dismiss()}
                     />
                 )}

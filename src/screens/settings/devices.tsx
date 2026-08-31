@@ -333,12 +333,7 @@ const DevicesSettingsScreen = () => {
                 ref={activationSheetRef}
                 backdropComponent={(props) => <Backdrop {...props} pressBehavior="close" />}
                 handleComponent={(props) => (
-                    <Handle
-                        handleClose={closeActivationSheet}
-                        closeButton
-                        closeButtonType="ghost"
-                        {...props}
-                    />
+                    <Handle handleClose={closeActivationSheet} closeButton {...props} />
                 )}
                 onDismiss={dismissActivationSheet}
                 stackBehavior="push"

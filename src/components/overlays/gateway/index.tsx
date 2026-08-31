@@ -153,7 +153,6 @@ const GatewaySwitcherSheet = () => {
                     handleClose={() => setGatewaySwitcherOpen(false)}
                     title={t('manageTitle', { ns: 'gateway' })}
                     closeButton={true}
-                    closeButtonType="ghost"
                     leftButton={
                         <CreateButton variant="primary" onPressHandler={handleGatewayCreate} />
                     }

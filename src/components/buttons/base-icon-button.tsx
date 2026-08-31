@@ -43,6 +43,9 @@ const styles = StyleSheet.create((theme, rt) => ({
                 confirm: {
                     backgroundColor: theme.colors.blue[500],
                 },
+                ghost: {
+                    backgroundColor: 'transparent',
+                },
             },
         },
     },
@@ -73,6 +76,7 @@ const BaseIconButton = ({
             primary: theme.colors.background,
             secondary: theme.colors.typography,
             confirm: theme.colors.white,
+            ghost: theme.colors.typography,
         }),
         [theme.colors.background, theme.colors.typography, theme.colors.white],
     );
