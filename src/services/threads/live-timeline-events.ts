@@ -2,10 +2,7 @@ import type { QueryClient } from '@tanstack/react-query';
 
 import type { ClientEvent } from '@/client';
 
-import {
-    invalidateThreadTimelinePages,
-    invalidateTimelineQueriesForThread,
-} from './timeline-query';
+import { invalidateTimelineQueriesForThread } from './timeline-query';
 
 export type ActiveThreadTimelineEvent = Extract<ClientEvent, { GatewayNotification: unknown }>;
 
@@ -61,9 +58,6 @@ export const activeThreadTimelineEventNeedsQueryInvalidation = (
     event: ActiveThreadTimelineEvent,
 ): boolean => {
     switch (event.GatewayNotification.kind) {
-        case 'thread_timeline_blocks_changed':
-        case 'turn_work_items_changed':
-        case 'turn_work_state_changed':
         case 'turn_completed':
         case 'turn_failed':
         case 'turn_blocked':
@@ -130,12 +124,5 @@ export const invalidateTimelineQueriesForActiveThreadEvent = (
     }
 
     const threadId = activeThreadTimelineEventThreadId(event) ?? fallbackThreadId;
-    switch (event.GatewayNotification.kind) {
-        case 'thread_timeline_blocks_changed':
-        case 'turn_work_items_changed':
-        case 'turn_work_state_changed':
-            return invalidateThreadTimelinePages(queryClient, threadId);
-        default:
-            return invalidateTimelineQueriesForThread(queryClient, threadId);
-    }
+    return invalidateTimelineQueriesForThread(queryClient, threadId);
 };

@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { QueryClient, type InfiniteData } from '@tanstack/react-query';
 
 import type {
-    ClientEvent,
     TimelinePageAnchor,
     TurnWorkItem,
     TurnWorkItemsGetResponse,
@@ -11,11 +10,7 @@ import type {
 
 import { requestTurnWorkItemsGet } from './timeline-page-requests';
 import { timelineQueryKeys } from './timeline-query';
-import {
-    reconcileTurnWorkItemsForEvent,
-    reconcileTurnWorkItemsOnReconnect,
-} from './turn-work-reconciliation';
-import type { ActiveThreadTimelineEvent } from './live-timeline-events';
+import { reconcileTurnWorkItemsOnReconnect } from './turn-work-reconciliation';
 
 jest.mock('@/client', () => ({}));
 jest.mock('./timeline-page-requests', () => ({
@@ -65,45 +60,9 @@ const queryData = (
     pageParams: [{ kind: 'newest' }],
 });
 
-const changedEvent = (): ActiveThreadTimelineEvent =>
-    ({
-        GatewayNotification: {
-            kind: 'turn_work_items_changed',
-            params: {
-                workspaceId: 'workspace_a',
-                threadId: 'thread_a',
-                turnId: 'turn_a',
-                changedWorkItemIds: ['work_a'],
-                removedWorkItemIds: [],
-                reason: 'live_event',
-            },
-        },
-    }) as ClientEvent as ActiveThreadTimelineEvent;
-
 describe('mobile turn work reconciliation', () => {
     beforeEach(() => {
         requestMock.mockReset();
-    });
-
-    it('fetches changed IDs and patches existing React Query ranges', async () => {
-        const queryClient = new QueryClient();
-        const queryKey = timelineQueryKeys.turnWorkPagesForLimit('thread_a', 'turn_a', 30);
-        queryClient.setQueryData(queryKey, queryData(item('running', 1)));
-        requestMock.mockResolvedValue([response(item('completed', 2))]);
-
-        await reconcileTurnWorkItemsForEvent(queryClient, changedEvent());
-
-        expect(requestMock).toHaveBeenCalledWith({
-            threadId: 'thread_a',
-            turnId: 'turn_a',
-            workItemIds: ['work_a'],
-        });
-        const cached =
-            queryClient.getQueryData<InfiniteData<TurnWorkPageResponse, TimelinePageAnchor>>(
-                queryKey,
-            );
-        expect(cached?.pages[0]?.items?.[0]?.status).toBe('completed');
-        queryClient.clear();
     });
 
     it('reconciles cached running IDs when the gateway reconnects', async () => {

@@ -24,15 +24,14 @@ import {
     invalidateTimelineQueriesForActiveThreadEvent,
     isActiveThreadTimelineEvent,
 } from '@/services/threads/live-timeline-events';
+import { applySemanticTimelineCachePatch } from '@/services/threads/semantic-cache-patch';
 import {
     cacheActiveThreadSnapshot,
     cachedActiveThreadSnapshot,
     invalidateTimelineQueriesForThread,
-    invalidateTurnWorkQueries,
     newestActiveThreadSnapshot,
     timelineQueryKeys,
 } from '@/services/threads/timeline-query';
-import { reconcileTurnWorkItemsForEvent } from '@/services/threads/turn-work-reconciliation';
 import { composerSubmissionPlanForProvider } from '@/services/providers/cli-runtime';
 import { invalidateMaterializedThreadAuthorization } from '@/services/administration/query';
 import { useActiveThreadSnapshotQuery } from '@/hooks/use-active-thread-snapshot-query';
@@ -271,43 +270,13 @@ export const useActiveThread = (
                         return;
                     }
 
+                    applySemanticTimelineCachePatch(queryClient, result.semantic_timeline_patch);
                     void invalidateTimelineQueriesForActiveThreadEvent(
                         queryClient,
                         event,
                         result.snapshot.thread_id,
                     );
                     cacheActiveThreadSnapshot(queryClient, result.snapshot);
-
-                    void reconcileTurnWorkItemsForEvent(queryClient, event)
-                        .then((changed) => {
-                            if (
-                                !changed ||
-                                useGatewayStore.getState().connectionId !== connectionId
-                            ) {
-                                return;
-                            }
-
-                            const nextSnapshot = activeThreadSnapshot({
-                                expanded_keys: useActiveThreadStore.getState().expandedKeys,
-                            });
-                            if (nextSnapshot.thread_id) {
-                                cacheActiveThreadSnapshot(queryClient, nextSnapshot);
-                            }
-                        })
-                        .catch(() => {
-                            if (
-                                useGatewayStore.getState().connectionId !== connectionId ||
-                                event.GatewayNotification.kind !== 'turn_work_items_changed'
-                            ) {
-                                return;
-                            }
-
-                            void invalidateTurnWorkQueries(
-                                queryClient,
-                                event.GatewayNotification.params.threadId,
-                                event.GatewayNotification.params.turnId,
-                            );
-                        });
                 })
                 .catch(() => {});
         });

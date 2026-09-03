@@ -8,7 +8,6 @@ import {
     invalidateTimelineQueriesForActiveThreadEvent,
     isActiveThreadTimelineEvent,
 } from './live-timeline-events';
-import { timelineQueryKeys } from './timeline-query';
 
 jest.mock('@/client', () => ({
     PioneerClientNativeError: class PioneerClientNativeError extends Error {
@@ -115,62 +114,24 @@ describe('active thread live timeline events', () => {
         expect(activeThreadTimelineEventThreadId(event)).toBe('thread_a');
     });
 
-    it('invalidates timeline queries for stale semantic timeline notifications', async () => {
-        const queryClient = new QueryClient();
-        const invalidateSpy = jest
-            .spyOn(queryClient, 'invalidateQueries')
-            .mockResolvedValue(undefined);
-        const event = threadTimelineBlocksChangedEvent('thread_a');
+    it.each([threadTimelineBlocksChangedEvent('thread_a'), turnWorkStateChangedEvent('thread_a')])(
+        'does not refetch React Query pages after native semantic reconciliation',
+        async (event) => {
+            const queryClient = new QueryClient();
+            const invalidateSpy = jest
+                .spyOn(queryClient, 'invalidateQueries')
+                .mockResolvedValue(undefined);
 
-        if (!isActiveThreadTimelineEvent(event)) {
-            throw new Error('expected active thread timeline event');
-        }
+            if (!isActiveThreadTimelineEvent(event)) {
+                throw new Error('expected active thread timeline event');
+            }
 
-        await invalidateTimelineQueriesForActiveThreadEvent(queryClient, event, null);
+            await invalidateTimelineQueriesForActiveThreadEvent(queryClient, event, null);
 
-        expect(invalidateSpy).toHaveBeenCalledWith({
-            queryKey: timelineQueryKeys.threadPages('thread_a'),
-            refetchType: 'active',
-        });
-    });
-
-    it('keeps top-level block invalidation on live notifications', async () => {
-        const queryClient = new QueryClient();
-        const invalidateSpy = jest
-            .spyOn(queryClient, 'invalidateQueries')
-            .mockResolvedValue(undefined);
-        const event = threadTimelineBlocksChangedEvent('thread_a');
-
-        if (!isActiveThreadTimelineEvent(event)) {
-            throw new Error('expected active thread timeline event');
-        }
-
-        await invalidateTimelineQueriesForActiveThreadEvent(queryClient, event, null);
-
-        expect(invalidateSpy).toHaveBeenCalledWith({
-            queryKey: timelineQueryKeys.threadPages('thread_a'),
-            refetchType: 'active',
-        });
-    });
-
-    it('invalidates work-state events through canonical timeline queries', async () => {
-        const queryClient = new QueryClient();
-        const invalidateSpy = jest
-            .spyOn(queryClient, 'invalidateQueries')
-            .mockResolvedValue(undefined);
-        const event = turnWorkStateChangedEvent('thread_a');
-
-        if (!isActiveThreadTimelineEvent(event)) {
-            throw new Error('expected active thread timeline event');
-        }
-
-        await invalidateTimelineQueriesForActiveThreadEvent(queryClient, event, null);
-
-        expect(invalidateSpy).toHaveBeenCalledWith({
-            queryKey: timelineQueryKeys.threadPages('thread_a'),
-            refetchType: 'active',
-        });
-    });
+            expect(invalidateSpy).not.toHaveBeenCalled();
+            queryClient.clear();
+        },
+    );
 
     it.each([
         cliPermissionEvent('cli_runtime_request_opened', 'thread_cli'),
