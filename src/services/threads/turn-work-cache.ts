@@ -34,6 +34,21 @@ const compareRevision = (left: ProjectionRevision, right: ProjectionRevision): n
 
 const isTerminalWorkItem = (item: TurnWorkItem): boolean => item.status !== 'running';
 
+const latestTurnWorkPage = (
+    pages: readonly TurnWorkPageResponse[],
+): TurnWorkPageResponse | null => {
+    let latest: TurnWorkPageResponse | null = null;
+    for (const page of pages) {
+        if (
+            latest === null ||
+            compareRevision(projectionRevision(page), projectionRevision(latest)) > 0
+        ) {
+            latest = page;
+        }
+    }
+    return latest;
+};
+
 export const newerTurnWorkItem = (existing: TurnWorkItem, incoming: TurnWorkItem): TurnWorkItem => {
     if (isTerminalWorkItem(existing) && incoming.status === 'running') {
         return existing;
@@ -45,6 +60,9 @@ export const newerTurnWorkItem = (existing: TurnWorkItem, incoming: TurnWorkItem
 };
 
 export const flattenTurnWorkItems = (pages: readonly TurnWorkPageResponse[]): TurnWorkItem[] => {
+    if (!latestTurnWorkPage(pages)?.work) {
+        return [];
+    }
     const itemsByWorkItemId = new Map<string, TurnWorkItem>();
 
     for (const page of pages) {
@@ -107,6 +125,9 @@ const mergeTurnWorkPage = (
 ): TurnWorkPageResponse => {
     const incomingIsCurrent =
         compareRevision(projectionRevision(incoming), projectionRevision(existing)) >= 0;
+    if (incomingIsCurrent && !incoming.work) {
+        return { ...incoming, items: [] };
+    }
     const itemsById = new Map(
         (existing.items ?? [])
             .filter((item) => pageItemSurvivesTombstone(existing, item, tombstones))
@@ -188,20 +209,11 @@ export const latestTurnWorkBlock = (
     pages: readonly TurnWorkPageResponse[],
     fallback: TurnWorkBlock | null,
 ): TurnWorkBlock | null => {
-    if (fallback) {
-        return fallback;
+    const latest = latestTurnWorkPage(pages);
+    if (latest && !latest.work) {
+        return null;
     }
-
-    let latest: TurnWorkPageResponse | null = null;
-    for (const page of pages) {
-        if (
-            latest === null ||
-            compareRevision(projectionRevision(page), projectionRevision(latest)) > 0
-        ) {
-            latest = page;
-        }
-    }
-    return latest?.work ?? null;
+    return fallback ?? latest?.work ?? null;
 };
 
 export const applyTurnWorkItemsGetResponse = (

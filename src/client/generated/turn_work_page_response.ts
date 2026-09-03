@@ -635,7 +635,11 @@ export interface TurnWorkPageResponse {
   sourceHighWatermark?: number;
   threadId: string;
   turnId: string;
-  work: TurnWorkBlock;
+  /**
+   * `None` is an authoritative tombstone: the Turn exists, but it does not
+   * own a work projection (for example, a detached Task owns the work).
+   */
+  work?: TurnWorkBlock | null;
   workspaceId: string;
   [k: string]: unknown;
 }

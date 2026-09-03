@@ -2140,11 +2140,23 @@ export interface ThreadTimelineBlocksChangedNotification {
   reason: TimelineChangeReason;
   removedBlockIds?: string[];
   threadId: string;
+  /**
+   * Revisioned removals prevent delayed pages or state notifications from
+   * resurrecting a work row after its authoritative projection disappeared.
+   */
+  turnWorkTombstones?: TurnWorkTombstone[];
   workspaceId: string;
   [k: string]: unknown;
 }
 export interface TimelineCursor {
   value: string;
+  [k: string]: unknown;
+}
+export interface TurnWorkTombstone {
+  blockId: string;
+  projectionUpdatedAtUnixMicros?: number;
+  sourceHighWatermark?: number;
+  turnId: string;
   [k: string]: unknown;
 }
 export interface ThreadReadCursorChangedNotification {

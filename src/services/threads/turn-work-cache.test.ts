@@ -59,9 +59,20 @@ const page = (
         sourceHighWatermark,
         projectionUpdatedAtUnixMicros: sourceHighWatermark,
         work: work(state),
-        page: {},
+        page: { hasMoreAfter: false, hasMoreBefore: false },
         items,
     }) as TurnWorkPageResponse;
+
+const noWorkPage = (sourceHighWatermark: number): TurnWorkPageResponse => ({
+    workspaceId: 'workspace_a',
+    threadId: 'thread_a',
+    turnId: 'turn_a',
+    projectionVersion: 1,
+    sourceHighWatermark,
+    projectionUpdatedAtUnixMicros: sourceHighWatermark,
+    page: { hasMoreAfter: false, hasMoreBefore: false },
+    items: [],
+});
 
 const data = (
     pages: TurnWorkPageResponse[],
@@ -176,6 +187,21 @@ describe('mobile turn work cache policy', () => {
         const fallback = work('completed');
 
         expect(latestTurnWorkBlock([page([], 20, 'running')], fallback)).toBe(fallback);
+    });
+
+    it('keeps an authoritative no-work page ahead of delayed work responses', () => {
+        const initial = data([page([item(1)], 20)]);
+        const removed = mergeTurnWorkInfiniteData(initial, data([noWorkPage(30)]));
+
+        expect(flattenTurnWorkItems(removed.pages)).toHaveLength(0);
+        expect(latestTurnWorkBlock(removed.pages, work('running'))).toBeNull();
+
+        const afterDelayedResponse = mergeTurnWorkInfiniteData(
+            removed,
+            data([page([item(1)], 25)]),
+        );
+        expect(flattenTurnWorkItems(afterDelayedResponse.pages)).toHaveLength(0);
+        expect(latestTurnWorkBlock(afterDelayedResponse.pages, work('running'))).toBeNull();
     });
 
     it('collects all cached IDs by turn for reconnect reconciliation', () => {

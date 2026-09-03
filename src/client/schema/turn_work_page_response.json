@@ -34,7 +34,15 @@
       "type": "string"
     },
     "work": {
-      "$ref": "#/$defs/TurnWorkBlock"
+      "description": "`None` is an authoritative tombstone: the Turn exists, but it does not\nown a work projection (for example, a detached Task owns the work).",
+      "anyOf": [
+        {
+          "$ref": "#/$defs/TurnWorkBlock"
+        },
+        {
+          "type": "null"
+        }
+      ]
     },
     "workspaceId": {
       "type": "string"
@@ -45,7 +53,6 @@
     "threadId",
     "turnId",
     "projectionVersion",
-    "work",
     "page"
   ],
   "$defs": {

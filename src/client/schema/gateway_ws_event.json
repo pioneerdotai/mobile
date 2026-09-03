@@ -9857,6 +9857,13 @@
         "threadId": {
           "type": "string"
         },
+        "turnWorkTombstones": {
+          "description": "Revisioned removals prevent delayed pages or state notifications from\nresurrecting a work row after its authoritative projection disappeared.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TurnWorkTombstone"
+          }
+        },
         "workspaceId": {
           "type": "string"
         }
@@ -13639,6 +13646,31 @@
         "turnId",
         "work",
         "reason"
+      ]
+    },
+    "TurnWorkTombstone": {
+      "type": "object",
+      "properties": {
+        "blockId": {
+          "type": "string"
+        },
+        "projectionUpdatedAtUnixMicros": {
+          "type": "integer",
+          "format": "int64",
+          "default": 0
+        },
+        "sourceHighWatermark": {
+          "type": "integer",
+          "format": "int64",
+          "default": 0
+        },
+        "turnId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "turnId",
+        "blockId"
       ]
     },
     "UnknownGatewayNotification": {
