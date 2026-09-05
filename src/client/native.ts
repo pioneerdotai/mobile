@@ -80,6 +80,15 @@ import type { ClientComposerSkillRowsForTargetRequest } from './generated/client
 import type { ClientComposerSubmissionPlanRequest } from './generated/client_composer_submission_plan_request';
 import type { ClientDiagnosticEvent } from './generated/client_diagnostic_event';
 import type { ClientEvent } from './generated/client_event';
+import type { ClientChangeBatchDto } from './generated/client_change_batch_dto';
+import type { ClientChangeBatchRequestDto } from './generated/client_change_batch_request_dto';
+import type { ClientEffectCancellationDto } from './generated/client_effect_cancellation_dto';
+import type { ClientEffectCompletionDto } from './generated/client_effect_completion_dto';
+import type { ClientIntentDispatchDto } from './generated/client_intent_dispatch_dto';
+import type { ClientScopedSnapshotDto } from './generated/client_scoped_snapshot_dto';
+import type { ClientScopedSnapshotRequestDto } from './generated/client_scoped_snapshot_request_dto';
+import type { ClientSequenceGapResnapshotDto } from './generated/client_sequence_gap_resnapshot_dto';
+import type { ClientTransitionDto } from './generated/client_transition_dto';
 import type { ClientAuthDeviceActivateRequest } from './generated/client_auth_activate_device_request';
 import type { ClientAuthRefreshRequest } from './generated/client_auth_refresh_request';
 import type { ClientAuthSessionCleanupRequest } from './generated/client_auth_session_cleanup_request';
@@ -683,6 +692,44 @@ export const pioneerClient = {
                     platform: config.platform ?? Platform.OS,
                 }),
             ),
+        );
+    },
+
+    clientIntentDispatch(input: ClientIntentDispatchDto): ClientTransitionDto {
+        return parsePioneerClientResponse<ClientTransitionDto>(
+            getPioneerClientNitro().clientIntentDispatchJson(JSON.stringify(input)),
+        );
+    },
+
+    clientScopedSnapshot(input: ClientScopedSnapshotRequestDto): ClientScopedSnapshotDto | null {
+        return parsePioneerClientResponse<ClientScopedSnapshotDto | null>(
+            getPioneerClientNitro().clientScopedSnapshotJson(JSON.stringify(input)),
+        );
+    },
+
+    clientChangeBatch(input: ClientChangeBatchRequestDto): ClientChangeBatchDto {
+        return parsePioneerClientResponse<ClientChangeBatchDto>(
+            getPioneerClientNitro().clientChangeBatchJson(JSON.stringify(input)),
+        );
+    },
+
+    clientEffectComplete(input: ClientEffectCompletionDto): ClientTransitionDto {
+        return parsePioneerClientResponse<ClientTransitionDto>(
+            getPioneerClientNitro().clientEffectCompleteJson(JSON.stringify(input)),
+        );
+    },
+
+    clientEffectCancel(input: ClientEffectCancellationDto): ClientTransitionDto {
+        return parsePioneerClientResponse<ClientTransitionDto>(
+            getPioneerClientNitro().clientEffectCancelJson(JSON.stringify(input)),
+        );
+    },
+
+    clientSequenceGapResnapshot(
+        input: ClientSequenceGapResnapshotDto,
+    ): ClientScopedSnapshotDto | null {
+        return parsePioneerClientResponse<ClientScopedSnapshotDto | null>(
+            getPioneerClientNitro().clientSequenceGapResnapshotJson(JSON.stringify(input)),
         );
     },
 

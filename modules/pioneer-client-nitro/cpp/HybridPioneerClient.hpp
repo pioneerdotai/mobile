@@ -39,6 +39,12 @@ public:
 
   std::string versionJson() override;
   std::string initializeJson(const std::string& configJson) override;
+  std::string clientIntentDispatchJson(const std::string& inputJson) override;
+  std::string clientScopedSnapshotJson(const std::string& inputJson) override;
+  std::string clientChangeBatchJson(const std::string& inputJson) override;
+  std::string clientEffectCompleteJson(const std::string& inputJson) override;
+  std::string clientEffectCancelJson(const std::string& inputJson) override;
+  std::string clientSequenceGapResnapshotJson(const std::string& inputJson) override;
   std::string mobileStartupRecordJson(const std::string& inputJson) override;
   std::string diagnosticsDrainJson() override;
   std::string gatewayLoadRegistryV3Json(const std::string& inputJson) override;

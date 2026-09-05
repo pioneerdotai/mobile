@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ClientEffectPlan",
+  "type": "object",
+  "properties": {
+    "effect": {
+      "$ref": "#/$defs/ClientEffect"
+    },
+    "generation": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0
+    },
+    "operation_id": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "operation_id",
+    "generation",
+    "effect"
+  ],
+  "$defs": {
+    "ClientEffect": {
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "RefreshWorkspaceList",
+            "RefreshGatewaySettings",
+            "RefreshProviderLists",
+            "QueueSkillsRefresh",
+            "EnqueueInFlightTurnsForResume"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "UnsubscribeThreads": {
+              "type": "object",
+              "properties": {
+                "thread_ids": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [
+                "thread_ids"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "UnsubscribeThreads"
+          ]
+        }
+      ]
+    }
+  }
+}

@@ -84,6 +84,30 @@ std::string HybridPioneerClient::initializeJson(const std::string& configJson) {
   return callWithClient(pioneer_client_ffi_client_initialize, configJson);
 }
 
+std::string HybridPioneerClient::clientIntentDispatchJson(const std::string& inputJson) {
+  return callWithClient(pioneer_client_ffi_client_intent_dispatch, inputJson);
+}
+
+std::string HybridPioneerClient::clientScopedSnapshotJson(const std::string& inputJson) {
+  return callWithClient(pioneer_client_ffi_client_scoped_snapshot, inputJson);
+}
+
+std::string HybridPioneerClient::clientChangeBatchJson(const std::string& inputJson) {
+  return callWithClient(pioneer_client_ffi_client_change_batch, inputJson);
+}
+
+std::string HybridPioneerClient::clientEffectCompleteJson(const std::string& inputJson) {
+  return callWithClient(pioneer_client_ffi_client_effect_complete, inputJson);
+}
+
+std::string HybridPioneerClient::clientEffectCancelJson(const std::string& inputJson) {
+  return callWithClient(pioneer_client_ffi_client_effect_cancel, inputJson);
+}
+
+std::string HybridPioneerClient::clientSequenceGapResnapshotJson(const std::string& inputJson) {
+  return callWithClient(pioneer_client_ffi_client_sequence_gap_resnapshot, inputJson);
+}
+
 std::string HybridPioneerClient::mobileStartupRecordJson(const std::string& inputJson) {
   return callWithClient(pioneer_client_ffi_mobile_startup_record, inputJson);
 }

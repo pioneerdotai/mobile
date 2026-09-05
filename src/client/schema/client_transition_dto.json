@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ClientTransitionDto",
+  "type": "object",
+  "properties": {
+    "effects": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ClientEffectPlan"
+      }
+    },
+    "outcome": {
+      "$ref": "#/$defs/ClientTransitionOutcome"
+    },
+    "schema_version": {
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0
+    },
+    "sequence": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0
+    }
+  },
+  "required": [
+    "schema_version",
+    "sequence",
+    "outcome",
+    "effects"
+  ],
+  "$defs": {
+    "ClientEffect": {
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "RefreshWorkspaceList",
+            "RefreshGatewaySettings",
+            "RefreshProviderLists",
+            "QueueSkillsRefresh",
+            "EnqueueInFlightTurnsForResume"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "UnsubscribeThreads": {
+              "type": "object",
+              "properties": {
+                "thread_ids": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [
+                "thread_ids"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "UnsubscribeThreads"
+          ]
+        }
+      ]
+    },
+    "ClientEffectPlan": {
+      "type": "object",
+      "properties": {
+        "effect": {
+          "$ref": "#/$defs/ClientEffect"
+        },
+        "generation": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "operation_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "operation_id",
+        "generation",
+        "effect"
+      ]
+    },
+    "ClientTransitionOutcome": {
+      "type": "string",
+      "enum": [
+        "changed",
+        "noop",
+        "stale",
+        "rejected"
+      ]
+    }
+  }
+}

@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ClientEffectCompletionDto",
+  "type": "object",
+  "properties": {
+    "completion": {
+      "$ref": "#/$defs/ClientEffectCompletion"
+    },
+    "schema_version": {
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "completion"
+  ],
+  "$defs": {
+    "ClientEffectCompletion": {
+      "type": "object",
+      "properties": {
+        "generation": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "operation_id": {
+          "type": "string"
+        },
+        "result": {
+          "$ref": "#/$defs/ClientEffectResult"
+        }
+      },
+      "required": [
+        "operation_id",
+        "generation",
+        "result"
+      ]
+    },
+    "ClientEffectResult": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "completed"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "code": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "failed"
+            }
+          },
+          "required": [
+            "kind",
+            "code"
+          ]
+        }
+      ]
+    }
+  }
+}
