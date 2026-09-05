@@ -1,6 +1,11 @@
 import { pioneerClient } from '@/client';
 import type { ClientEvent, ClientGatewayWsTimings, GatewayEndpoint } from '@/client';
 import {
+    isQualificationDiagnosticCaptureActive,
+    recordMobileClientBatchItems,
+    recordMobileClientDelivery,
+} from '@/services/diagnostics/qualification';
+import {
     ensureMobileGatewaySession,
     markMobileGatewayConnectionDisconnected,
     mobileSessionProjection,
@@ -106,16 +111,53 @@ const runGatewayEventPump = async (): Promise<void> => {
             continue;
         }
 
+        recordMobileClientBatchItems('mobile_binding', 'other', events.length);
+
         for (const event of events) {
+            let hadActiveListener = false;
             for (const listener of [...gatewayEventListeners.keys()]) {
                 if (!gatewayEventListeners.has(listener)) {
                     continue;
                 }
+                hadActiveListener = true;
+                const observeDelivery = isQualificationDiagnosticCaptureActive();
                 try {
+                    if (observeDelivery) {
+                        recordMobileClientDelivery(
+                            'mobile_binding',
+                            'other',
+                            'received',
+                            'not_applicable',
+                        );
+                    }
                     await listener(event);
+                    if (observeDelivery) {
+                        recordMobileClientDelivery(
+                            'mobile_binding',
+                            'other',
+                            'delivered',
+                            'not_applicable',
+                        );
+                    }
                 } catch (error) {
+                    if (observeDelivery) {
+                        recordMobileClientDelivery(
+                            'mobile_binding',
+                            'other',
+                            'dropped',
+                            'not_applicable',
+                        );
+                    }
                     reportGatewayEventError(listener, error);
                 }
+            }
+            if (!hadActiveListener) {
+                recordMobileClientDelivery(
+                    'mobile_binding',
+                    'other',
+                    'dropped',
+                    'not_applicable',
+                );
             }
         }
     }

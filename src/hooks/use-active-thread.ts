@@ -9,6 +9,10 @@ import type {
     ComposerSkillPickerProjection,
     Thread,
 } from '@/client';
+import {
+    isQualificationDiagnosticCaptureActive,
+    recordMobileClientDelivery,
+} from '@/services/diagnostics/qualification';
 import { withGatewayTransportLease } from '@/services/gateway/transport-coordinator';
 import {
     activeThreadSnapshot,
@@ -21,6 +25,7 @@ import {
 import { selectedReasoningEffortRequestFields } from '@/services/threads/reasoning-effort';
 import { skillSelectionRequestFields } from '@/services/threads/skill-selection-request';
 import {
+    activeThreadTimelineEventThreadId,
     invalidateTimelineQueriesForActiveThreadEvent,
     isActiveThreadTimelineEvent,
 } from '@/services/threads/live-timeline-events';
@@ -258,6 +263,24 @@ export const useActiveThread = (
             if (!isActiveThreadTimelineEvent(event)) {
                 return;
             }
+            const visibility = isQualificationDiagnosticCaptureActive()
+                ? (() => {
+                      const eventThreadId = activeThreadTimelineEventThreadId(event);
+                      return eventThreadId === null
+                          ? 'not_applicable'
+                          : eventThreadId === subscribedThreadId
+                            ? 'visible'
+                            : 'offscreen';
+                  })()
+                : null;
+            if (visibility !== null) {
+                recordMobileClientDelivery(
+                    'mobile_binding',
+                    'thread',
+                    'received',
+                    visibility,
+                );
+            }
             eventQueueRef.current = eventQueueRef.current
                 .catch(() => {})
                 .then(async () => {
@@ -267,6 +290,14 @@ export const useActiveThread = (
                     });
 
                     if (useGatewayStore.getState().connectionId !== connectionId) {
+                        if (visibility !== null) {
+                            recordMobileClientDelivery(
+                                'mobile_binding',
+                                'thread',
+                                'stale_discard',
+                                visibility,
+                            );
+                        }
                         return;
                     }
 
@@ -277,8 +308,25 @@ export const useActiveThread = (
                         result.snapshot.thread_id,
                     );
                     cacheActiveThreadSnapshot(queryClient, result.snapshot);
+                    if (visibility !== null) {
+                        recordMobileClientDelivery(
+                            'mobile_binding',
+                            'thread',
+                            'applied',
+                            visibility,
+                        );
+                    }
                 })
-                .catch(() => {});
+                .catch(() => {
+                    if (visibility !== null) {
+                        recordMobileClientDelivery(
+                            'mobile_binding',
+                            'thread',
+                            'dropped',
+                            visibility,
+                        );
+                    }
+                });
         });
     }, [active, connected, connectionId, queryClient, subscribedThreadId]);
 
