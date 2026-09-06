@@ -1,44 +1,58 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "ClientProcessChangeBatchDto",
+  "title": "TimelineSnapshot",
   "type": "object",
   "properties": {
-    "changes": {
-      "type": "array",
-      "items": {
-        "$ref": "#/$defs/ClientProcessChangeSetDto"
-      }
-    },
-    "closed": {
-      "type": "boolean"
-    },
-    "effects": {
-      "type": "array",
-      "items": {
-        "$ref": "#/$defs/ClientEffectPlan"
-      }
-    },
-    "resnapshot": {
-      "type": "boolean"
-    },
-    "schema_version": {
-      "type": "integer",
-      "format": "uint32",
-      "minimum": 0
-    },
-    "sequence": {
+    "generation": {
       "type": "integer",
       "format": "uint64",
       "minimum": 0
+    },
+    "groups": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/TimelineGroup"
+      }
+    },
+    "has_loaded_page": {
+      "type": "boolean"
+    },
+    "page": {
+      "$ref": "#/$defs/TimelineLoadedRange"
+    },
+    "revision": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0
+    },
+    "rows": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/TimelineRowSnapshot"
+      }
+    },
+    "source_revision": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0
+    },
+    "status": {
+      "$ref": "#/$defs/TimelineRequestStatus"
+    },
+    "thread_id": {
+      "type": "string"
     }
   },
   "required": [
-    "closed",
-    "effects",
-    "schema_version",
-    "sequence",
-    "resnapshot",
-    "changes"
+    "thread_id",
+    "generation",
+    "source_revision",
+    "revision",
+    "rows",
+    "groups",
+    "page",
+    "has_loaded_page",
+    "status"
   ],
   "$defs": {
     "AgentExecutionId": {
@@ -407,12 +421,6 @@
         "failed"
       ]
     },
-    "AuthSessionId": {
-      "type": "string",
-      "maxLength": 21,
-      "minLength": 21,
-      "pattern": "^[A-Za-z0-9]{21}$"
-    },
     "CLIRuntimePendingRequest": {
       "type": "object",
       "properties": {
@@ -451,475 +459,6 @@
         "permission_approval",
         "user_input",
         "other"
-      ]
-    },
-    "ClientEffect": {
-      "oneOf": [
-        {
-          "type": "string",
-          "enum": [
-            "RefreshWorkspaceList",
-            "RefreshGatewaySettings",
-            "RefreshProviderLists",
-            "QueueSkillsRefresh",
-            "EnqueueInFlightTurnsForResume"
-          ]
-        },
-        {
-          "type": "object",
-          "properties": {
-            "UnsubscribeThreads": {
-              "type": "object",
-              "properties": {
-                "thread_ids": {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                }
-              },
-              "required": [
-                "thread_ids"
-              ]
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "UnsubscribeThreads"
-          ]
-        }
-      ]
-    },
-    "ClientEffectPlan": {
-      "type": "object",
-      "properties": {
-        "effect": {
-          "$ref": "#/$defs/ClientPlannedEffect"
-        },
-        "generation": {
-          "type": "integer",
-          "format": "uint64",
-          "minimum": 0
-        },
-        "operation_id": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "operation_id",
-        "generation",
-        "effect"
-      ]
-    },
-    "ClientPlannedEffect": {
-      "anyOf": [
-        {
-          "$ref": "#/$defs/ClientEffect"
-        },
-        {
-          "$ref": "#/$defs/GatewaySessionStorageEffect"
-        }
-      ]
-    },
-    "ClientProcessChangeSetDto": {
-      "type": "object",
-      "properties": {
-        "predecessor": {
-          "type": [
-            "integer",
-            "null"
-          ],
-          "format": "uint64",
-          "minimum": 0
-        },
-        "sequence": {
-          "type": "integer",
-          "format": "uint64",
-          "minimum": 0
-        },
-        "snapshots": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/ClientScopedSnapshotDto"
-          }
-        },
-        "timeline_changes": {
-          "type": "array",
-          "default": [],
-          "items": {
-            "$ref": "#/$defs/TimelineChangeSet"
-          }
-        }
-      },
-      "required": [
-        "sequence",
-        "snapshots"
-      ]
-    },
-    "ClientRevisions": {
-      "type": "object",
-      "properties": {
-        "content": {
-          "type": "integer",
-          "format": "uint64",
-          "minimum": 0
-        },
-        "domain": {
-          "type": "integer",
-          "format": "uint64",
-          "minimum": 0
-        },
-        "presentation": {
-          "type": "integer",
-          "format": "uint64",
-          "minimum": 0
-        },
-        "scoped": {
-          "type": "integer",
-          "format": "uint64",
-          "minimum": 0
-        }
-      },
-      "required": [
-        "domain",
-        "presentation",
-        "content",
-        "scoped"
-      ]
-    },
-    "ClientScope": {
-      "oneOf": [
-        {
-          "type": "object",
-          "properties": {
-            "kind": {
-              "type": "string",
-              "const": "session"
-            }
-          },
-          "required": [
-            "kind"
-          ]
-        },
-        {
-          "type": "object",
-          "properties": {
-            "kind": {
-              "type": "string",
-              "const": "navigation"
-            }
-          },
-          "required": [
-            "kind"
-          ]
-        },
-        {
-          "type": "object",
-          "properties": {
-            "kind": {
-              "type": "string",
-              "const": "sidebar_summary"
-            },
-            "thread_id": {
-              "type": "string"
-            },
-            "workspace_id": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "kind",
-            "workspace_id",
-            "thread_id"
-          ]
-        },
-        {
-          "type": "object",
-          "properties": {
-            "kind": {
-              "type": "string",
-              "const": "workspace_tree"
-            },
-            "workspace_id": {
-              "type": [
-                "string",
-                "null"
-              ]
-            }
-          },
-          "required": [
-            "kind"
-          ]
-        },
-        {
-          "type": "object",
-          "properties": {
-            "kind": {
-              "type": "string",
-              "const": "task"
-            },
-            "task_id": {
-              "type": [
-                "string",
-                "null"
-              ]
-            }
-          },
-          "required": [
-            "kind"
-          ]
-        },
-        {
-          "type": "object",
-          "properties": {
-            "kind": {
-              "type": "string",
-              "const": "thread"
-            },
-            "thread_id": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "kind",
-            "thread_id"
-          ]
-        },
-        {
-          "type": "object",
-          "properties": {
-            "kind": {
-              "type": "string",
-              "const": "timeline"
-            },
-            "thread_id": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "kind",
-            "thread_id"
-          ]
-        },
-        {
-          "type": "object",
-          "properties": {
-            "kind": {
-              "type": "string",
-              "const": "composer"
-            },
-            "thread_id": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "kind",
-            "thread_id"
-          ]
-        },
-        {
-          "type": "object",
-          "properties": {
-            "kind": {
-              "type": "string",
-              "const": "pending_request"
-            },
-            "thread_id": {
-              "type": [
-                "string",
-                "null"
-              ]
-            },
-            "workspace_id": {
-              "type": [
-                "string",
-                "null"
-              ]
-            }
-          },
-          "required": [
-            "kind"
-          ]
-        },
-        {
-          "type": "object",
-          "properties": {
-            "kind": {
-              "type": "string",
-              "const": "artifact"
-            },
-            "thread_id": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "kind",
-            "thread_id"
-          ]
-        },
-        {
-          "type": "object",
-          "properties": {
-            "kind": {
-              "type": "string",
-              "const": "avatar"
-            },
-            "principal_id": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "kind",
-            "principal_id"
-          ]
-        },
-        {
-          "type": "object",
-          "properties": {
-            "kind": {
-              "type": "string",
-              "const": "provider"
-            }
-          },
-          "required": [
-            "kind"
-          ]
-        },
-        {
-          "type": "object",
-          "properties": {
-            "kind": {
-              "type": "string",
-              "const": "administration"
-            },
-            "workspace_id": {
-              "type": [
-                "string",
-                "null"
-              ]
-            }
-          },
-          "required": [
-            "kind"
-          ]
-        },
-        {
-          "type": "object",
-          "properties": {
-            "kind": {
-              "type": "string",
-              "const": "mcp"
-            },
-            "workspace_id": {
-              "type": [
-                "string",
-                "null"
-              ]
-            }
-          },
-          "required": [
-            "kind"
-          ]
-        },
-        {
-          "type": "object",
-          "properties": {
-            "kind": {
-              "type": "string",
-              "const": "skills"
-            },
-            "workspace_id": {
-              "type": [
-                "string",
-                "null"
-              ]
-            }
-          },
-          "required": [
-            "kind"
-          ]
-        },
-        {
-          "type": "object",
-          "properties": {
-            "kind": {
-              "type": "string",
-              "const": "settings"
-            }
-          },
-          "required": [
-            "kind"
-          ]
-        },
-        {
-          "type": "object",
-          "properties": {
-            "kind": {
-              "type": "string",
-              "const": "onboarding_invitation"
-            }
-          },
-          "required": [
-            "kind"
-          ]
-        },
-        {
-          "type": "object",
-          "properties": {
-            "kind": {
-              "type": "string",
-              "const": "agents_document"
-            },
-            "workspace_id": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "kind",
-            "workspace_id"
-          ]
-        },
-        {
-          "type": "object",
-          "properties": {
-            "kind": {
-              "type": "string",
-              "const": "desktop_update"
-            }
-          },
-          "required": [
-            "kind"
-          ]
-        }
-      ]
-    },
-    "ClientScopedSnapshotDto": {
-      "type": "object",
-      "properties": {
-        "payload": true,
-        "revisions": {
-          "$ref": "#/$defs/ClientRevisions"
-        },
-        "schema_version": {
-          "type": "integer",
-          "format": "uint32",
-          "minimum": 0
-        },
-        "scope": {
-          "$ref": "#/$defs/ClientScope"
-        },
-        "sequence": {
-          "type": "integer",
-          "format": "uint64",
-          "minimum": 0
-        }
-      },
-      "required": [
-        "schema_version",
-        "sequence",
-        "scope",
-        "revisions",
-        "payload"
       ]
     },
     "ClientSecurityDiagnostic": {
@@ -1063,12 +602,6 @@
         }
       ]
     },
-    "DeviceId": {
-      "type": "string",
-      "maxLength": 21,
-      "minLength": 21,
-      "pattern": "^[A-Za-z0-9]{21}$"
-    },
     "DiagnosticExcerptPolicy": {
       "oneOf": [
         {
@@ -1117,180 +650,6 @@
           "required": [
             "mode",
             "max_chars"
-          ]
-        }
-      ]
-    },
-    "GatewayEndpoint": {
-      "type": "object",
-      "properties": {
-        "gateway_base_url": {
-          "type": "string"
-        },
-        "id": {
-          "type": "string"
-        },
-        "kind": {
-          "$ref": "#/$defs/GatewayEndpointKind"
-        },
-        "name": {
-          "type": "string"
-        },
-        "server_gateway_id": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/GatewayId"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "service_name": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "session_ref": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "workspace_id": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "default": null
-        }
-      },
-      "additionalProperties": false,
-      "required": [
-        "id",
-        "name",
-        "gateway_base_url",
-        "kind"
-      ]
-    },
-    "GatewayEndpointKind": {
-      "type": "string",
-      "enum": [
-        "local",
-        "remote"
-      ]
-    },
-    "GatewayId": {
-      "type": "string",
-      "maxLength": 21,
-      "minLength": 21,
-      "pattern": "^[A-Za-z0-9]{21}$"
-    },
-    "GatewaySessionEnvelope": {
-      "type": "object",
-      "properties": {
-        "device_id": {
-          "$ref": "#/$defs/DeviceId"
-        },
-        "gateway_id": {
-          "$ref": "#/$defs/GatewayId"
-        },
-        "installation_id": {
-          "type": "string"
-        },
-        "pending_refresh_request_id": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "principal_id": {
-          "$ref": "#/$defs/PrincipalId"
-        },
-        "refresh_expires_at_unix": {
-          "type": "integer",
-          "format": "uint64",
-          "minimum": 0
-        },
-        "refresh_generation": {
-          "type": "integer",
-          "format": "uint64",
-          "minimum": 0
-        },
-        "refresh_token": {
-          "type": "string"
-        },
-        "schema_version": {
-          "type": "integer",
-          "format": "uint32",
-          "minimum": 0
-        },
-        "session_id": {
-          "$ref": "#/$defs/AuthSessionId"
-        },
-        "token_family_id": {
-          "$ref": "#/$defs/TokenFamilyId"
-        }
-      },
-      "additionalProperties": false,
-      "required": [
-        "schema_version",
-        "gateway_id",
-        "principal_id",
-        "device_id",
-        "session_id",
-        "token_family_id",
-        "installation_id",
-        "refresh_generation",
-        "refresh_expires_at_unix",
-        "refresh_token"
-      ]
-    },
-    "GatewaySessionStorageEffect": {
-      "oneOf": [
-        {
-          "type": "object",
-          "properties": {
-            "ReadGatewaySession": {
-              "type": "object",
-              "properties": {
-                "endpoint": {
-                  "$ref": "#/$defs/GatewayEndpoint"
-                }
-              },
-              "required": [
-                "endpoint"
-              ]
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "ReadGatewaySession"
-          ]
-        },
-        {
-          "type": "object",
-          "properties": {
-            "PersistGatewaySession": {
-              "type": "object",
-              "properties": {
-                "endpoint": {
-                  "$ref": "#/$defs/GatewayEndpoint"
-                },
-                "envelope": {
-                  "$ref": "#/$defs/GatewaySessionEnvelope"
-                }
-              },
-              "required": [
-                "endpoint",
-                "envelope"
-              ]
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "PersistGatewaySession"
           ]
         }
       ]
@@ -2735,66 +2094,6 @@
         "message"
       ]
     },
-    "TimelineChangeSet": {
-      "description": "Apply removals first, then replacements/insertions, then the complete new order.\nReplacements keep their identity. An absent order means membership/order is unchanged.",
-      "type": "object",
-      "properties": {
-        "from_revision": {
-          "type": "integer",
-          "format": "uint64",
-          "minimum": 0
-        },
-        "generation": {
-          "type": "integer",
-          "format": "uint64",
-          "minimum": 0
-        },
-        "inserted": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/TimelineRowSnapshot"
-          }
-        },
-        "order": {
-          "type": [
-            "array",
-            "null"
-          ],
-          "items": {
-            "type": "string"
-          }
-        },
-        "removed": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "replaced": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/TimelineRowSnapshot"
-          }
-        },
-        "thread_id": {
-          "type": "string"
-        },
-        "to_revision": {
-          "type": "integer",
-          "format": "uint64",
-          "minimum": 0
-        }
-      },
-      "required": [
-        "thread_id",
-        "generation",
-        "from_revision",
-        "to_revision",
-        "inserted",
-        "removed",
-        "replaced"
-      ]
-    },
     "TimelineCoalescedToolsKind": {
       "type": "string",
       "enum": [
@@ -2872,6 +2171,17 @@
         "terminal_output"
       ]
     },
+    "TimelineCursor": {
+      "type": "object",
+      "properties": {
+        "value": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "value"
+      ]
+    },
     "TimelineEntryStatus": {
       "type": "string",
       "enum": [
@@ -2905,6 +2215,51 @@
         "Failed",
         "Running",
         "Completed"
+      ]
+    },
+    "TimelineGroup": {
+      "type": "object",
+      "properties": {
+        "author": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TurnAuthorSnapshot"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "current_principal": {
+          "type": "boolean"
+        },
+        "first_row": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "has_running": {
+          "type": "boolean"
+        },
+        "id": {
+          "type": "string"
+        },
+        "last_row": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "user_message": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "first_row",
+        "last_row",
+        "user_message",
+        "current_principal",
+        "has_running"
       ]
     },
     "TimelineItemKind": {
@@ -3048,6 +2403,41 @@
         "child_tool",
         "child_reasoning",
         "child_result"
+      ]
+    },
+    "TimelineLoadedRange": {
+      "type": "object",
+      "properties": {
+        "after_cursor": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TimelineCursor"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "before_cursor": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TimelineCursor"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "has_more_after": {
+          "type": "boolean"
+        },
+        "has_more_before": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "has_more_before",
+        "has_more_after"
       ]
     },
     "TimelineOrigin": {
@@ -3273,6 +2663,57 @@
       },
       "required": [
         "turnId"
+      ]
+    },
+    "TimelineRequestStatus": {
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "Idle",
+            "Ready"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "Loading": {
+              "type": "object",
+              "properties": {
+                "request_key": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "request_key"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "Loading"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "Failed": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "message"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "Failed"
+          ]
+        }
       ]
     },
     "TimelineRow": {
@@ -3557,12 +2998,6 @@
       "required": [
         "detail"
       ]
-    },
-    "TokenFamilyId": {
-      "type": "string",
-      "maxLength": 21,
-      "minLength": 21,
-      "pattern": "^[A-Za-z0-9]{21}$"
     },
     "ToolCallStatus": {
       "type": "string",

@@ -10,9 +10,10 @@ export const timelineRowsAreEqual = (previous: TimelineRow, next: TimelineRow): 
     }
 
     if (
-        !previous.renderFingerprint ||
-        !next.renderFingerprint ||
-        previous.renderFingerprint !== next.renderFingerprint
+        !previous.presentationRevision ||
+        !next.presentationRevision ||
+        previous.presentationRevision !== next.presentationRevision ||
+        previous.presentationLocale !== next.presentationLocale
     ) {
         return false;
     }
@@ -20,7 +21,6 @@ export const timelineRowsAreEqual = (previous: TimelineRow, next: TimelineRow): 
     return (
         rowDisplayedIdentity(previous) === rowDisplayedIdentity(next) &&
         rowTurnId(previous) === rowTurnId(next) &&
-        rowAuthorship(previous) === rowAuthorship(next) &&
         rowElapsedLabel(previous) === rowElapsedLabel(next) &&
         rowTimestampLabel(previous) === rowTimestampLabel(next)
     );
@@ -31,8 +31,6 @@ const rowDisplayedIdentity = (row: TimelineRow): string | null =>
 
 const rowTurnId = (row: TimelineRow): string | null =>
     'turnId' in row ? (row.turnId ?? null) : null;
-
-const rowAuthorship = (row: TimelineRow): string => JSON.stringify(row.author ?? null);
 
 const rowElapsedLabel = (row: TimelineRow): string | null =>
     'elapsedLabel' in row ? row.elapsedLabel : null;

@@ -1,3 +1,5 @@
+import { mobileClientBinding } from '@/client/mobile-client-binding';
+import { useThreadPresentation } from '@/hooks/use-thread-presentation';
 import {
     forwardRef,
     useCallback,
@@ -22,11 +24,8 @@ import type { LegendListRef, OnViewableItemsChanged } from '@legendapp/list/reac
 import { useTranslation } from 'react-i18next';
 
 import type { ClientActiveThreadSnapshot } from '@/client';
-import {
-    formatElapsedMs,
-    projectConversationToRows,
-} from '@/services/threads/conversation/projector';
-import type { TimelinePendingRequest, TimelineRow } from '@/services/threads/conversation/timeline';
+import { formatElapsedMs } from '@/services/threads/conversation/localization';
+import type { TimelineRow } from '@/services/threads/conversation/timeline';
 import { PendingRequestCard } from '@/components/thread/cli-runtime-pending-requests';
 import { Box } from '@/components/primitives/box';
 import { HStack } from '@/components/primitives/hstack';
@@ -49,12 +48,9 @@ import {
     UserMessageRow,
     WorkGroupRow,
 } from './rows';
-import { viewportPrefetchPlan } from './viewport-prefetch';
-import type { TimelineViewportPrefetchPlan } from './viewport-prefetch';
 import { defaultTimelineRowExpanded } from './row-expansion';
 import { timelineRowsAreEqual } from './timeline-row-equality';
 import { viewedThroughLatestUserTurn } from './read-viewability';
-import { ensureTimelineRowRenderFingerprint } from '@/services/threads/conversation/render-fingerprint';
 import { VStack } from '@/components/primitives/vstack';
 import {
     mobileArtifactActionKey,
@@ -72,15 +68,9 @@ import {
 } from './timeline-grouping';
 import { timelineAgentAuthorLabel, timelineAgentAuthorPresentation } from './timeline-author-label';
 
-export type {
-    TimelineTurnWorkBoundaryHint,
-    TimelineViewportPrefetchPlan,
-} from './viewport-prefetch';
-
 type ThreadTimelineProps = {
     conversation: ClientActiveThreadSnapshot;
     timelineIdentityKey: string;
-    rowsOverride?: TimelineRow[] | null;
     loading: boolean;
     closed: boolean;
     connected: boolean;
@@ -88,8 +78,6 @@ type ThreadTimelineProps = {
     closedLabel: string;
     disconnectedLabel: string;
     loadingLabel: string;
-    pendingRequests: TimelinePendingRequest[];
-    semanticWorkItemKeys?: ReadonlySet<string>;
     contentTopInset?: number;
     avatarRailTopInset?: number;
     contentBottomInset?: number;
@@ -121,7 +109,7 @@ type ThreadTimelineProps = {
     onOpenMcpServer?: (serverId: string) => void;
     onOpenTaskThread?: (row: Extract<TimelineRow, { type: 'task-anchor' }>) => void;
     onExpandedKeysChange: (keys: string[]) => void;
-    onViewportPrefetchPlanChange?: (plan: TimelineViewportPrefetchPlan) => void;
+    presentationActive?: boolean;
     onRefresh: () => Promise<void>;
 };
 
@@ -152,8 +140,8 @@ type ThreadTimelineContentProps = ThreadTimelineProps & {
 
 const ThreadTimelineContent = ({
     conversation,
+    presentationActive = true,
     timelineIdentityKey,
-    rowsOverride,
     loading,
     closed,
     connected,
@@ -161,8 +149,6 @@ const ThreadTimelineContent = ({
     closedLabel,
     disconnectedLabel,
     loadingLabel,
-    pendingRequests,
-    semanticWorkItemKeys,
     contentTopInset = 0,
     avatarRailTopInset = 0,
     contentBottomInset = 0,
@@ -190,7 +176,6 @@ const ThreadTimelineContent = ({
     onOpenMcpServer,
     onOpenTaskThread,
     onExpandedKeysChange,
-    onViewportPrefetchPlanChange,
     onRefresh,
     timelineRef,
 }: ThreadTimelineContentProps) => {
@@ -200,7 +185,6 @@ const ThreadTimelineContent = ({
         null,
     );
     const [timelineNowMs, setTimelineNowMs] = useState(() => Date.now());
-    const lastViewportPrefetchPlanKeyRef = useRef<string | null>(null);
     const viewportScrollIntentGenerationRef = useRef(0);
     const consumedViewportScrollIntentGenerationRef = useRef(0);
     const internalTimelineRef = useRef<LegendListRef | null>(null);
@@ -213,7 +197,6 @@ const ThreadTimelineContent = ({
     useImperativeHandle(timelineRef, () => internalTimelineRef.current as LegendListRef);
 
     useEffect(() => {
-        lastViewportPrefetchPlanKeyRef.current = null;
         viewportScrollIntentGenerationRef.current = 0;
         consumedViewportScrollIntentGenerationRef.current = 0;
         avatarRailController.setVisibleGroups(timelineIdentityKey, []);
@@ -239,40 +222,29 @@ const ThreadTimelineContent = ({
         [expandedRows],
     );
 
+    const { rows: publishedRows, snapshot: timelineSnapshot } = useThreadPresentation(
+        conversation.thread_id,
+        presentationActive,
+    );
     const hasLiveTimelineItems = useMemo(
-        () =>
-            rowsOverride
-                ? rowsOverride.some((row) => row.type === 'running' || timelineRowIsStreaming(row))
-                : conversation.projection.items.some((item) => item.status === 'Running'),
-        [conversation, rowsOverride],
+        () => publishedRows.some((row) => row.type === 'running' || timelineRowIsStreaming(row)),
+        [publishedRows],
     );
 
     const projectedRows = useMemo(
-        () =>
-            rowsOverride
-                ? insertPendingRequestRows(
-                      hydrateRunningRowsElapsed(rowsOverride, timelineNowMs),
-                      pendingRequests,
-                  )
-                : projectConversationToRows(conversation, {
-                      expandedKeys: expandedRows,
-                      nowMs: timelineNowMs,
-                      pendingRequests,
-                      semanticWorkItemKeys,
-                  }),
-        [
-            conversation,
-            expandedRows,
-            pendingRequests,
-            rowsOverride,
-            semanticWorkItemKeys,
-            timelineNowMs,
-        ],
+        () => hydrateRunningRowsElapsed(publishedRows, timelineNowMs),
+        [publishedRows, timelineNowMs],
     );
     const rows = projectedRows;
     const timelineGrouping = useMemo(
-        () => TimelineGroupingIndex.build(rows, currentPrincipalId, presentationContext),
-        [currentPrincipalId, presentationContext, rows],
+        () =>
+            TimelineGroupingIndex.fromSnapshot(
+                rows,
+                timelineSnapshot?.groups ?? [],
+                currentPrincipalId,
+                presentationContext,
+            ),
+        [currentPrincipalId, presentationContext, rows, timelineSnapshot?.groups],
     );
     const updateVisibleAvatarGroups = useCallback(
         (visibleIndices: number[]) => {
@@ -301,6 +273,20 @@ const ThreadTimelineContent = ({
     useEffect(() => {
         onExpandedKeysChange(expandedKeys);
     }, [expandedKeys, onExpandedKeysChange]);
+    useEffect(() => {
+        if (presentationActive && conversation.thread_id)
+            mobileClientBinding.dispatch({
+                schema_version: 1,
+                intent: {
+                    kind: 'set_timeline_expansion',
+                    thread_id: conversation.thread_id,
+                    row_ids: expandedKeys,
+                    collapsed_row_ids: Object.keys(expandedRows).filter(
+                        (key) => !expandedRows[key],
+                    ),
+                },
+            });
+    }, [conversation.thread_id, expandedKeys, expandedRows, presentationActive]);
 
     useEffect(() => {
         if (!hasLiveTimelineItems && !hasRunningTimelineRow) {
@@ -347,7 +333,7 @@ const ThreadTimelineContent = ({
             canCancelTasks,
             canRespondToAgentRequests,
             messageActionsRowKey,
-            timelineGroupingFingerprint: timelineGrouping.renderFingerprint,
+            timelineGrouping,
         }),
         [
             artifactActionStateByKey,
@@ -359,7 +345,7 @@ const ThreadTimelineContent = ({
             expandedRows,
             messageActionsRowKey,
             mcpServerIdByName,
-            timelineGrouping.renderFingerprint,
+            timelineGrouping,
         ],
     );
 
@@ -451,21 +437,34 @@ const ThreadTimelineContent = ({
                 onViewedThroughUserTurn?.(viewedThroughTurnId);
             }
 
-            if (!onViewportPrefetchPlanChange) return;
+            if (!presentationActive || !timelineSnapshot) return;
             const scrollIntentGeneration = viewportScrollIntentGenerationRef.current;
-            if (scrollIntentGeneration <= consumedViewportScrollIntentGenerationRef.current) {
-                return;
-            }
-            const plan = viewportPrefetchPlan(rows, visibleIndices, info.start, info.end);
-            if (!plan || plan.key === lastViewportPrefetchPlanKeyRef.current) {
-                return;
-            }
-
-            lastViewportPrefetchPlanKeyRef.current = plan.key;
+            if (scrollIntentGeneration <= consumedViewportScrollIntentGenerationRef.current) return;
+            const indices = visibleIndices.length ? visibleIndices : [info.start, info.end];
+            const rowIds = indices.flatMap((index) => (rows[index] ? [rows[index].key] : []));
             consumedViewportScrollIntentGenerationRef.current = scrollIntentGeneration;
-            onViewportPrefetchPlanChange(plan);
+            mobileClientBinding.dispatch({
+                schema_version: 1,
+                intent: {
+                    kind: 'timeline_viewport',
+                    thread_id: timelineSnapshot.thread_id,
+                    row_ids: rowIds,
+                    source_revision: timelineSnapshot.source_revision,
+                    threshold: 6,
+                    before: true,
+                    after: true,
+                    work: true,
+                    presented_rows: true,
+                },
+            });
         },
-        [onViewedThroughUserTurn, onViewportPrefetchPlanChange, rows, updateVisibleAvatarGroups],
+        [
+            onViewedThroughUserTurn,
+            presentationActive,
+            timelineSnapshot,
+            rows,
+            updateVisibleAvatarGroups,
+        ],
     );
 
     return (
@@ -883,46 +882,6 @@ const timelineRowIsStreaming = (row: TimelineRow): row is StreamingTimelineRow =
         default:
             return false;
     }
-};
-
-const insertPendingRequestRows = (
-    rows: readonly TimelineRow[],
-    pendingRequests: readonly TimelinePendingRequest[],
-): TimelineRow[] => {
-    if (pendingRequests.length === 0) {
-        return [...rows];
-    }
-
-    const existingRequestKeys = new Set(
-        rows.filter((row) => row.type === 'pending-request').map((row) => row.key),
-    );
-    const requestRows = pendingRequests.flatMap((entry): TimelineRow[] => {
-        const key = `timeline-pending-request::${entry.request.request_id}`;
-        if (existingRequestKeys.has(key)) {
-            return [];
-        }
-
-        return [
-            ensureTimelineRowRenderFingerprint({
-                type: 'pending-request',
-                key,
-                turnId: entry.turn_id,
-                author: entry.author ?? null,
-                entry,
-            }),
-        ];
-    });
-    if (requestRows.length === 0) {
-        return [...rows];
-    }
-
-    const runningIndex = rows.findIndex((row) => row.type === 'running');
-
-    if (runningIndex < 0) {
-        return [...rows, ...requestRows];
-    }
-
-    return [...rows.slice(0, runningIndex), ...requestRows, ...rows.slice(runningIndex)];
 };
 
 const hydrateRunningRowsElapsed = (rows: readonly TimelineRow[], nowMs: number): TimelineRow[] =>

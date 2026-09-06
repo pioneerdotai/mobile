@@ -1,5 +1,8 @@
 import type { ClientEffectPlan } from './generated/client_effect_plan';
-import type { ClientProcessChangeBatchDto } from './generated/client_process_change_batch_dto';
+import type {
+    ClientProcessChangeBatchDto,
+    TimelineChangeSet,
+} from './generated/client_process_change_batch_dto';
 import type { ClientChangeBatchDto } from './generated/client_change_batch_dto';
 import type { ClientEffectCancellationDto } from './generated/client_effect_cancellation_dto';
 import type { ClientEffectCompletionDto } from './generated/client_effect_completion_dto';
@@ -137,6 +140,63 @@ const memoizeRows = (
     };
 };
 
+type TimelineValue = { revision: number; generation: number; rows: MobileClientRow[] };
+
+// Transport replacement semantics only: every row value and revision comes from Client.
+const timelineReplacementRows = (
+    previous: unknown,
+    snapshot: ClientScopedSnapshotDto,
+    delta: TimelineChangeSet,
+): MobileClientRow[] | null => {
+    const current = previous as TimelineValue | null | undefined;
+    const header = snapshot.payload as Omit<TimelineValue, 'rows'> | null;
+    if (
+        !current ||
+        !header ||
+        current.revision !== delta.from_revision ||
+        current.generation !== delta.generation ||
+        header.generation !== delta.generation ||
+        header.revision !== delta.to_revision ||
+        snapshot.revisions.scoped !== delta.to_revision ||
+        delta.to_revision <= delta.from_revision ||
+        !Array.isArray(current.rows)
+    )
+        return null;
+    const rows = new Map(current.rows.map((row) => [row.id, row]));
+    if (rows.size !== current.rows.length) return null;
+    const touched = new Set<string>();
+    for (const id of delta.removed) {
+        if (touched.has(id) || !rows.delete(id)) return null;
+        touched.add(id);
+    }
+    for (const row of delta.inserted) {
+        if (!isMobileClientRow(row) || touched.has(row.id) || rows.has(row.id)) return null;
+        touched.add(row.id);
+        rows.set(row.id, row);
+    }
+    for (const row of delta.replaced) {
+        const previous = rows.get(row.id);
+        if (
+            !isMobileClientRow(row) ||
+            touched.has(row.id) ||
+            !previous ||
+            row.revision <= previous.revision
+        )
+            return null;
+        touched.add(row.id);
+        rows.set(row.id, row);
+    }
+    if (!delta.order && (delta.inserted.length || delta.removed.length)) return null;
+    const order = delta.order ?? current.rows.map((row) => row.id);
+    if (
+        new Set(order).size !== rows.size ||
+        order.length !== rows.size ||
+        order.some((id) => !rows.has(id))
+    )
+        return null;
+    return order.map((id) => rows.get(id)!);
+};
+
 let processBridge: MobileClientBridge | null = null;
 
 const configuredBridge: MobileClientBridge = {
@@ -228,9 +288,10 @@ export class MobileClientBinding {
             return;
         }
         let validatedSequence = this.#processSequence;
+        let sequenceGap = false;
         for (const change of batch.changes) {
             if (!batch.resnapshot && (change.predecessor ?? 0) !== validatedSequence) {
-                throw new Error('Mobile Client process sequence gap requires a resnapshot');
+                sequenceGap = true;
             }
             if (change.sequence <= validatedSequence || change.sequence > batch.sequence) {
                 throw new Error('Mobile Client process sequence is invalid');
@@ -253,6 +314,41 @@ export class MobileClientBinding {
         if (validatedSequence !== batch.sequence) {
             throw new Error('Mobile Client process batch watermark is invalid');
         }
+        if (sequenceGap) {
+            // Recover each retained scope from Client; install all values before observers run.
+            const replacements = [...this.#scopes.values()].map((state) => {
+                const snapshot = this.#bridge.resnapshot(
+                    state.scope,
+                    batch.changes[0]?.predecessor ?? null,
+                    state.lastAppliedSequence,
+                );
+                if (snapshot) {
+                    assertSchemaVersion(snapshot);
+                    if (scopeKey(snapshot.scope) !== scopeKey(state.scope))
+                        throw new Error('Client resnapshot scope mismatch');
+                }
+                return { state, snapshot };
+            });
+            const changed = new Set<ScopeState>();
+            for (const { state, snapshot } of replacements) {
+                const previous = state.snapshot;
+                if (snapshot) this.#applySnapshot(state, snapshot, false);
+                else {
+                    state.snapshot = null;
+                    state.rows.clear();
+                }
+                state.lastAppliedSequence = Math.max(
+                    state.lastAppliedSequence ?? 0,
+                    snapshot?.sequence ?? 0,
+                    batch.sequence,
+                );
+                if (state.snapshot !== previous) changed.add(state);
+            }
+            this.#processSequence = batch.sequence;
+            this.#effects?.(batch.effects ?? []);
+            for (const state of changed) for (const listener of [...state.listeners]) listener();
+            return;
+        }
         const changed = new Set<ScopeState>();
         let predecessor = this.#processSequence;
         for (const change of batch.changes) {
@@ -266,8 +362,46 @@ export class MobileClientBinding {
                     continue;
                 }
                 const before = state.snapshot;
-                this.#applySnapshot(state, snapshot, false);
-                state.lastAppliedSequence = snapshot.sequence;
+                const delta =
+                    snapshot.scope.kind === 'timeline'
+                        ? change.timeline_changes?.find(
+                              (delta) =>
+                                  delta.thread_id ===
+                                  (snapshot.scope as Extract<ClientScope, { kind: 'timeline' }>)
+                                      .thread_id,
+                          )
+                        : undefined;
+                if (delta && !batch.resnapshot) {
+                    if ((state.lastAppliedSequence ?? 0) >= snapshot.sequence) continue;
+                    const rows = timelineReplacementRows(state.snapshot?.payload, snapshot, delta);
+                    if (rows) {
+                        this.#applySnapshot(
+                            state,
+                            { ...snapshot, payload: { ...(snapshot.payload as object), rows } },
+                            false,
+                        );
+                    } else {
+                        const fresh = this.#bridge.resnapshot(
+                            state.scope,
+                            change.predecessor ?? null,
+                            state.lastAppliedSequence,
+                        );
+                        if (fresh) {
+                            assertSchemaVersion(fresh);
+                            if (scopeKey(fresh.scope) !== scopeKey(state.scope))
+                                throw new Error('Timeline resnapshot scope mismatch');
+                            this.#applySnapshot(state, fresh, false);
+                        } else {
+                            state.snapshot = null;
+                            state.rows.clear();
+                        }
+                    }
+                } else this.#applySnapshot(state, snapshot, false);
+                state.lastAppliedSequence = Math.max(
+                    state.lastAppliedSequence ?? 0,
+                    state.snapshot?.sequence ?? 0,
+                    snapshot.sequence,
+                );
                 if (before !== state.snapshot) {
                     changed.add(state);
                 }
@@ -499,7 +633,13 @@ export class MobileClientBinding {
         if (state.snapshot && scopedRevision(state.snapshot) >= scopedRevision(snapshot)) {
             return;
         }
-        const memoized = memoizeRows(snapshot.payload, state.rows);
+        const previousGeneration = (state.snapshot?.payload as { generation?: number } | null)
+            ?.generation;
+        const incomingGeneration = (snapshot.payload as { generation?: number } | null)?.generation;
+        const memoized = memoizeRows(
+            snapshot.payload,
+            previousGeneration === incomingGeneration ? state.rows : new Map(),
+        );
         state.rows = memoized.rows;
         state.snapshot = freezeSnapshotValue({
             ...snapshot,

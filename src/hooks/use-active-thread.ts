@@ -20,7 +20,6 @@ import {
 } from '@/services/threads/active';
 import { selectedReasoningEffortRequestFields } from '@/services/threads/reasoning-effort';
 import { skillSelectionRequestFields } from '@/services/threads/skill-selection-request';
-import { applySemanticTimelineCachePatch } from '@/services/threads/semantic-cache-patch';
 import {
     cacheActiveThreadSnapshot,
     cachedActiveThreadSnapshot,
@@ -265,7 +264,6 @@ export const useActiveThread = (
                 thread_id: subscribedThreadId,
                 expanded_keys: useActiveThreadStore.getState().expandedKeys,
             });
-            applySemanticTimelineCachePatch(queryClient, current.semantic_timeline_patch);
             cacheActiveThreadSnapshot(queryClient, current);
         };
         const unsubscribe = store.subscribe(receive);
