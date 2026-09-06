@@ -9,14 +9,10 @@ import type {
     ComposerSkillPickerProjection,
     Thread,
 } from '@/client';
-import {
-    isQualificationDiagnosticCaptureActive,
-    recordMobileClientDelivery,
-} from '@/services/diagnostics/qualification';
+import { mobileClientBinding } from '@/client/mobile-client-binding';
 import { withGatewayTransportLease } from '@/services/gateway/transport-coordinator';
 import {
     activeThreadSnapshot,
-    applyActiveThreadEvent,
     cancelActiveThreadTurn,
     openActiveThread,
     openActiveThreadById,
@@ -24,17 +20,13 @@ import {
 } from '@/services/threads/active';
 import { selectedReasoningEffortRequestFields } from '@/services/threads/reasoning-effort';
 import { skillSelectionRequestFields } from '@/services/threads/skill-selection-request';
-import {
-    activeThreadTimelineEventThreadId,
-    invalidateTimelineQueriesForActiveThreadEvent,
-    isActiveThreadTimelineEvent,
-} from '@/services/threads/live-timeline-events';
 import { applySemanticTimelineCachePatch } from '@/services/threads/semantic-cache-patch';
 import {
     cacheActiveThreadSnapshot,
     cachedActiveThreadSnapshot,
     invalidateTimelineQueriesForThread,
     newestActiveThreadSnapshot,
+    removeTimelineQueriesForThread,
     timelineQueryKeys,
 } from '@/services/threads/timeline-query';
 import { composerSubmissionPlanForProvider } from '@/services/providers/cli-runtime';
@@ -135,7 +127,6 @@ export const useActiveThread = (
         })),
     );
 
-    const eventQueueRef = useRef(Promise.resolve());
     const activeThreadIdRef = useRef<string | null | undefined>(undefined);
     const threadRef = useRef<Thread | null>(null);
     const [turnCancelling, setTurnCancelling] = useState(false);
@@ -254,80 +245,32 @@ export const useActiveThread = (
             return;
         }
 
-        return useGatewayStore.subscribe((state, previousState) => {
-            if (state.lastEventSerial === previousState.lastEventSerial) {
+        const store = mobileClientBinding.scope({ kind: 'thread', thread_id: subscribedThreadId });
+        let revision: number | null = null;
+        const receive = () => {
+            const publication = store.getSnapshot();
+            if (
+                !publication ||
+                (revision !== null && publication.revisions.scoped <= revision) ||
+                useGatewayStore.getState().connectionId !== connectionId
+            ) {
                 return;
             }
-
-            const event = state.lastEvent;
-            if (!isActiveThreadTimelineEvent(event)) {
+            revision = publication.revisions.scoped;
+            if (publication.payload === null) {
+                removeTimelineQueriesForThread(queryClient, subscribedThreadId);
                 return;
             }
-            const visibility = isQualificationDiagnosticCaptureActive()
-                ? (() => {
-                      const eventThreadId = activeThreadTimelineEventThreadId(event);
-                      return eventThreadId === null
-                          ? 'not_applicable'
-                          : eventThreadId === subscribedThreadId
-                            ? 'visible'
-                            : 'offscreen';
-                  })()
-                : null;
-            if (visibility !== null) {
-                recordMobileClientDelivery(
-                    'mobile_binding',
-                    'thread',
-                    'received',
-                    visibility,
-                );
-            }
-            eventQueueRef.current = eventQueueRef.current
-                .catch(() => {})
-                .then(async () => {
-                    const result = await applyActiveThreadEvent({
-                        event,
-                        expanded_keys: useActiveThreadStore.getState().expandedKeys,
-                    });
-
-                    if (useGatewayStore.getState().connectionId !== connectionId) {
-                        if (visibility !== null) {
-                            recordMobileClientDelivery(
-                                'mobile_binding',
-                                'thread',
-                                'stale_discard',
-                                visibility,
-                            );
-                        }
-                        return;
-                    }
-
-                    applySemanticTimelineCachePatch(queryClient, result.semantic_timeline_patch);
-                    void invalidateTimelineQueriesForActiveThreadEvent(
-                        queryClient,
-                        event,
-                        result.snapshot.thread_id,
-                    );
-                    cacheActiveThreadSnapshot(queryClient, result.snapshot);
-                    if (visibility !== null) {
-                        recordMobileClientDelivery(
-                            'mobile_binding',
-                            'thread',
-                            'applied',
-                            visibility,
-                        );
-                    }
-                })
-                .catch(() => {
-                    if (visibility !== null) {
-                        recordMobileClientDelivery(
-                            'mobile_binding',
-                            'thread',
-                            'dropped',
-                            visibility,
-                        );
-                    }
-                });
-        });
+            const current = activeThreadSnapshot({
+                thread_id: subscribedThreadId,
+                expanded_keys: useActiveThreadStore.getState().expandedKeys,
+            });
+            applySemanticTimelineCachePatch(queryClient, current.semantic_timeline_patch);
+            cacheActiveThreadSnapshot(queryClient, current);
+        };
+        const unsubscribe = store.subscribe(receive);
+        receive();
+        return unsubscribe;
     }, [active, connected, connectionId, queryClient, subscribedThreadId]);
 
     const updateExpandedKeys = useCallback(

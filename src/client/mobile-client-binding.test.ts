@@ -1,5 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 
+import wireFixture from './fixtures/thread-registry-wire.json';
+
 import type { ClientChangeBatchDto } from './generated/client_change_batch_dto';
 import type { ClientScope } from './generated/client_scope';
 import type { ClientScopedSnapshotDto } from './generated/client_scoped_snapshot_dto';
@@ -56,6 +58,119 @@ const bridgeFixture = (initial: ClientScopedSnapshotDto | null) => {
 };
 
 describe('MobileClientBinding', () => {
+    test('replays the same serialized Rust/FFI thread scenario without reducing a raw event', () => {
+        const initial = wireFixture.initial as ClientScopedSnapshotDto[];
+        const updated = wireFixture.updated as ClientScopedSnapshotDto[];
+        const fixture = bridgeFixture(null);
+        const bridge: MobileClientBridge = {
+            ...fixture.bridge,
+            snapshot: (scope) =>
+                initial.find((p) => JSON.stringify(p.scope) === JSON.stringify(scope)) ?? null,
+            dispatch: () => ({ schema_version: 1, sequence: 0, outcome: 'changed', effects: [] }),
+        };
+        const binding = new MobileClientBinding(bridge);
+        const a = binding.scope(initial[0].scope);
+        const b = binding.scope(initial[1].scope);
+        const before = a.getSnapshot();
+        let aCalls = 0;
+        let bCalls = 0;
+        const ua = a.subscribe(() => aCalls++);
+        const ub = b.subscribe(() => bCalls++);
+        for (const snapshot of updated) {
+            fixture.batches.push({
+                schema_version: 1,
+                changes: [
+                    {
+                        kind: 'publication',
+                        sequence: snapshot.sequence,
+                        predecessor: initial.find(
+                            (p) => JSON.stringify(p.scope) === JSON.stringify(snapshot.scope),
+                        )!.sequence,
+                        snapshot,
+                    },
+                ],
+            });
+            binding.drain(snapshot.scope);
+        }
+        expect(a.getSnapshot()).toBe(before);
+        expect(aCalls).toBe(0);
+        expect(bCalls).toBe(1);
+        expect(b.getSnapshot()).toEqual(updated[1]);
+        ua();
+        ub();
+    });
+
+    test('thread B changes leave A snapshots and listeners stable and demand ends on unsubscribe', () => {
+        const a: ClientScope = { kind: 'thread', thread_id: 'a' };
+        const b: ClientScope = { kind: 'thread', thread_id: 'b' };
+        const fixture = bridgeFixture(null);
+        const demands: unknown[] = [];
+        const binding = new MobileClientBinding({
+            ...fixture.bridge,
+            dispatch: (request) => {
+                demands.push(request.intent);
+                return {
+                    schema_version: 1,
+                    sequence: demands.length,
+                    outcome: 'changed',
+                    effects: [],
+                };
+            },
+        });
+        const sa = binding.scope(a);
+        const sb = binding.scope(b);
+        let callsA = 0;
+        let callsB = 0;
+        const ua = sa.subscribe(() => callsA++);
+        const ub = sb.subscribe(() => callsB++);
+        const before = sa.getSnapshot();
+        fixture.batches.push({
+            schema_version: 1,
+            changes: [
+                {
+                    kind: 'publication',
+                    sequence: 1,
+                    predecessor: null,
+                    snapshot: snapshot(1, [], b),
+                },
+            ],
+        });
+        binding.drain(b);
+        expect(sa.getSnapshot()).toBe(before);
+        expect(callsA).toBe(0);
+        expect(callsB).toBe(1);
+        fixture.batches.push({
+            schema_version: 1,
+            changes: [
+                {
+                    kind: 'publication',
+                    sequence: 1,
+                    predecessor: null,
+                    snapshot: snapshot(1, [], b),
+                },
+            ],
+        });
+        binding.drain(b);
+        expect(callsB).toBe(1);
+        ub();
+        ub();
+        fixture.batches.push({
+            schema_version: 1,
+            changes: [
+                { kind: 'publication', sequence: 2, predecessor: 1, snapshot: snapshot(2, [], b) },
+            ],
+        });
+        binding.drain(b);
+        expect(callsB).toBe(1);
+        ua();
+        expect(demands).toEqual([
+            { kind: 'set_scope_demand', scope: a, demand: 'visible', generation: 1 },
+            { kind: 'set_scope_demand', scope: b, demand: 'visible', generation: 1 },
+            { kind: 'set_scope_demand', scope: b, demand: 'suspended', generation: 2 },
+            { kind: 'set_scope_demand', scope: a, demand: 'suspended', generation: 2 },
+        ]);
+    });
+
     test('synchronization does not long-poll when the requested revision is already applied', async () => {
         const current = snapshot(1, []);
         const fixture = bridgeFixture(current);

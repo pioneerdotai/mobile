@@ -484,6 +484,11 @@
             }
           ]
         },
+        "domain_revision": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
         "draft_thread_id": {
           "type": [
             "string",
@@ -534,6 +539,9 @@
             "$ref": "#/$defs/TimelineRow"
           }
         },
+        "semantic_timeline_patch": {
+          "$ref": "#/$defs/SemanticTimelineCachePatch"
+        },
         "session_revision": {
           "type": "integer",
           "format": "uint64",
@@ -556,6 +564,11 @@
             "null"
           ]
         },
+        "timeline_revision": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
         "workspace_id": {
           "type": [
             "string",
@@ -567,7 +580,10 @@
         "history_loaded",
         "history_loading",
         "projection",
-        "rows"
+        "rows",
+        "semantic_timeline_patch",
+        "domain_revision",
+        "timeline_revision"
       ]
     },
     "ClientSecurityDiagnostic": {

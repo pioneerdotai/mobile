@@ -9,6 +9,13 @@
       "items": {
         "type": "string"
       }
+    },
+    "thread_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "default": null
     }
   },
   "additionalProperties": false

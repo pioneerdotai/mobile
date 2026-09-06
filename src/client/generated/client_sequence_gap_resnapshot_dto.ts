@@ -10,6 +10,12 @@ export type ClientScope =
       [k: string]: unknown;
     }
   | {
+      kind: 'sidebar_summary';
+      thread_id: string;
+      workspace_id: string;
+      [k: string]: unknown;
+    }
+  | {
       kind: 'workspace_tree';
       workspace_id?: string | null;
       [k: string]: unknown;
@@ -37,6 +43,7 @@ export type ClientScope =
   | {
       kind: 'pending_request';
       thread_id?: string | null;
+      workspace_id?: string | null;
       [k: string]: unknown;
     }
   | {
