@@ -6,13 +6,12 @@ import { KeyboardGestureArea, KeyboardStickyView } from 'react-native-keyboard-c
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useKeyboardChatComposerInset } from '@legendapp/list/keyboard';
 import type { LegendListRef } from '@legendapp/list/react-native';
-import { skipToken, useQuery, useQueryClient } from '@tanstack/react-query';
+import { skipToken, useQuery } from '@tanstack/react-query';
 import { customAlphabet } from 'nanoid';
 
 import {
     pioneerClient,
     PioneerClientNativeError,
-    type ClientActiveThreadSnapshot,
     type CLIRuntimeThreadBinding,
     type ComposerSkillChip,
     type ComposerMentionCandidate,
@@ -20,9 +19,6 @@ import {
     type ComposerSkillSelection,
     type VoiceSessionStartContext,
     type Thread,
-    type TimelineBlock,
-    type TurnWorkBlock,
-    type TurnWorkItem,
     type UserInput,
     type VoiceSessionResultReduction,
     type VoiceStatusResponse,
@@ -33,11 +29,7 @@ import {
     ThreadComposer,
     THREAD_COMPOSER_MIN_INPUT_HEIGHT,
 } from '@/components/thread/composer/thread-composer';
-import {
-    ThreadTimeline,
-    type TimelineTurnWorkBoundaryHint,
-    type TimelineViewportPrefetchPlan,
-} from '@/components/thread/timeline/thread-timeline';
+import { ThreadTimeline } from '@/components/thread/timeline/thread-timeline';
 import {
     DEFAULT_TIMELINE_PRESENTATION_CONTEXT,
     TASK_CHILD_TIMELINE_PRESENTATION_CONTEXT,
@@ -47,7 +39,6 @@ import { useGateway } from '@/hooks/use-gateway';
 import { useTimelineReconnectInvalidation } from '@/hooks/use-timeline-reconnect-invalidation';
 import { useThreadTimelineBlocksQuery } from '@/hooks/use-thread-timeline-blocks-query';
 import { useTimelineQueryCancellation } from '@/hooks/use-timeline-query-cancellation';
-import { useTurnWorkItemsQuery } from '@/hooks/use-turn-work-items-query';
 import {
     useProviderModelDisplayName,
     useProviderModelReasoningEffortLabel,
@@ -61,14 +52,11 @@ import {
     isCliRuntimeProvider,
 } from '@/services/providers/cli-runtime';
 import { providerReadyForModelSelector } from '@/services/providers/model-selector';
-import { projectConversationToRows } from '@/services/threads/conversation/projector';
-import { activeThreadSnapshot } from '@/services/threads/active';
+import { useThreadPresentation } from '@/hooks/use-thread-presentation';
 import { projectAgentActionCapabilities } from '@/services/threads/agent-capabilities';
-import { seedEmptyThreadTimelineCache } from '@/services/threads/semantic-cache-patch';
-import { cacheActiveThreadSnapshot } from '@/services/threads/timeline-query';
 import { selectedReasoningEffortRequestFields } from '@/services/threads/reasoning-effort';
 import { skillSelectionRequestFields } from '@/services/threads/skill-selection-request';
-import type { TimelinePendingRequest, TimelineRow } from '@/services/threads/conversation/timeline';
+import type { TimelineRow } from '@/services/threads/conversation/timeline';
 import {
     MobileVoiceCaptureError,
     type MobileVoiceCaptureSession,
@@ -117,18 +105,10 @@ type MessageEditTarget = {
     row: Extract<TimelineRow, { type: 'user-message' }>;
 };
 
-type SemanticTurnWorkRange = {
-    work: TurnWorkBlock | null;
-    items: TurnWorkItem[];
-    hasLoadedPage: boolean;
-};
-
 const THREAD_COMPOSER_INPUT_NATIVE_ID = 'thread-composer-input';
 const STICKY_KEYBOARD_OFFSET_CLOSED = 0;
 const EMPTY_MCP_SERVER_ID_BY_NAME: Readonly<Record<string, string>> = {};
 const EMPTY_SKILL_PICKER: ComposerSkillPickerProjection = { packs: [], standalone: [] };
-const SEMANTIC_TURN_WORK_GROUP_PREFIX = 'semantic-turn-work-group::';
-const EMPTY_SEMANTIC_WORK_RANGES: Readonly<Record<string, SemanticTurnWorkRange>> = {};
 const VOICE_TURN_ID_LEN = 21;
 const VOICE_TURN_ID_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890';
 const MESSAGE_REVISION_CONFLICT_CODE = 'pioneer_turn_message_revision_conflict';
@@ -139,11 +119,6 @@ type ComposerModelSelection = {
     provider: string;
     model: string;
     selectedReasoningEffort: string | null;
-};
-
-type SemanticWorkRangesState = {
-    threadId: string | null;
-    ranges: Record<string, SemanticTurnWorkRange>;
 };
 
 type VoiceCommitPendingTurn = {
@@ -182,7 +157,6 @@ const ThreadScreen = ({
 }: ThreadScreenProps) => {
     const { t } = useTranslation('threads');
     const { theme, rt } = useUnistyles();
-    const queryClient = useQueryClient();
 
     const [focused, setFocused] = useState(false);
     const [appState, setAppState] = useState<AppStateStatus>(AppState.currentState);
@@ -199,7 +173,6 @@ const ThreadScreen = ({
 
     const activeWorkspaceId = useWorkspaceStore((state) => state.activeWorkspaceId);
     const cliRuntimes = useCliRuntimeSummaries(activeWorkspaceId);
-    const expandedKeys = useActiveThreadStore((state) => state.expandedKeys);
 
     const thread = treeSnapshot?.threads_by_id[threadId] ?? null;
     const activeThread = thread ?? initialThread ?? null;
@@ -391,15 +364,6 @@ const ThreadScreen = ({
     const [steering, setSteering] = useState(false);
     const [cliRuntimeThreadBinding, setCliRuntimeThreadBinding] =
         useState<CLIRuntimeThreadBinding | null>(null);
-    const [viewportPrefetchPlan, setViewportPrefetchPlan] =
-        useState<TimelineViewportPrefetchPlan | null>(null);
-    const [semanticWorkRangesState, setSemanticWorkRangesState] = useState<SemanticWorkRangesState>(
-        {
-            threadId: null,
-            ranges: {},
-        },
-    );
-
     const [composerHeight, setComposerHeight] = useState(THREAD_COMPOSER_MIN_INPUT_HEIGHT);
     const [voiceStatusSnapshot, setVoiceStatusSnapshot] =
         useState<GatewayVoiceStatusSnapshot | null>(null);
@@ -678,30 +642,8 @@ const ThreadScreen = ({
         composerMeasurement?.threadId === visibleThreadId && composerMeasurement.measured;
     const timelineIdentityKey = visibleThreadId;
     const visibleTurnId = visibleSnapshot?.projection.in_flight_turn_id ?? null;
-    const semanticWorkRangesByTurn =
-        semanticWorkRangesState.threadId === visibleThreadId
-            ? semanticWorkRangesState.ranges
-            : EMPTY_SEMANTIC_WORK_RANGES;
-    const nativeSemanticWorkItemKeys = useMemo(() => {
-        const keys = new Set<string>();
-        for (const range of Object.values(semanticWorkRangesByTurn)) {
-            for (const item of range.items) {
-                keys.add(item.workItemId);
-            }
-        }
-        return keys;
-    }, [semanticWorkRangesByTurn]);
-
     useTimelineQueryCancellation(visibleThreadId, focused);
     useTimelineReconnectInvalidation(visibleThreadId, focused);
-
-    useEffect(() => {
-        if (!isLiveDraftThread || !visibleSnapshot?.workspace_id) {
-            return;
-        }
-
-        seedEmptyThreadTimelineCache(queryClient, visibleSnapshot.workspace_id, visibleThreadId);
-    }, [isLiveDraftThread, queryClient, visibleSnapshot?.workspace_id, visibleThreadId]);
 
     const threadTimelineBlocksQuery = useThreadTimelineBlocksQuery({
         threadId: visibleThreadId,
@@ -713,53 +655,8 @@ const ThreadScreen = ({
     useEffect(() => {
         threadTimelineBlocksQueryRef.current = threadTimelineBlocksQuery;
     }, [threadTimelineBlocksQuery]);
-    const refreshNativeActiveThreadSnapshot = useCallback(() => {
-        const nextSnapshot = activeThreadSnapshot({
-            expanded_keys: useActiveThreadStore.getState().expandedKeys,
-        });
-        if (nextSnapshot.thread_id !== visibleThreadId) {
-            return;
-        }
-
-        cacheActiveThreadSnapshot(queryClient, nextSnapshot);
-    }, [queryClient, visibleThreadId]);
-    useEffect(() => {
-        if (
-            !focused ||
-            !connected ||
-            isLiveDraftThread ||
-            !threadTimelineBlocksQuery.hasLoadedPage
-        ) {
-            return;
-        }
-
-        refreshNativeActiveThreadSnapshot();
-    }, [
-        connected,
-        focused,
-        isLiveDraftThread,
-        refreshNativeActiveThreadSnapshot,
-        threadTimelineBlocksQuery.hasLoadedPage,
-        threadTimelineBlocksQuery.pages,
-    ]);
-    const semanticTurnWorkQueryTargets = useMemo(
-        () =>
-            activeSemanticTurnWorkQueryTargets(
-                threadTimelineBlocksQuery.blocks,
-                expandedKeys,
-                visibleTurnId,
-                visibleSnapshot,
-            ),
-        [expandedKeys, threadTimelineBlocksQuery.blocks, visibleSnapshot, visibleTurnId],
-    );
-    const hasNativeTimelineRows = Boolean((visibleSnapshot?.rows.length ?? 0) > 0);
-    const renderedTimelineRowsForVoice = useMemo<TimelineRow[]>(() => {
-        if (!visibleSnapshot) {
-            return [];
-        }
-
-        return projectConversationToRows(visibleSnapshot);
-    }, [visibleSnapshot]);
+    const { rows: renderedTimelineRowsForVoice } = useThreadPresentation(visibleThreadId, focused);
+    const hasNativeTimelineRows = renderedTimelineRowsForVoice.length > 0;
     const voiceCommitPendingTurnId =
         voiceCommitPendingTurn?.threadId === visibleThreadId ? voiceCommitPendingTurn.turnId : null;
     const voiceCommitUserMessageVisible = useMemo(() => {
@@ -910,19 +807,6 @@ const ThreadScreen = ({
         voiceReady,
     );
 
-    const pendingRequests = useMemo(() => {
-        const byRequestId = new Map<string, TimelinePendingRequest>();
-
-        for (const request of visibleSnapshot?.pending_requests ?? []) {
-            byRequestId.set(request.request_id, {
-                thread_id: request.thread_id ?? null,
-                turn_id: request.turn_id ?? null,
-                request,
-            });
-        }
-
-        return Array.from(byRequestId.values());
-    }, [visibleSnapshot?.pending_requests]);
     const activeCliRuntimeThreadBinding =
         cliRuntimeThreadBinding?.workspace_id === activeWorkspaceId &&
         cliRuntimeThreadBinding.thread_id === visibleThreadId
@@ -1054,55 +938,6 @@ const ThreadScreen = ({
             clearInterval(intervalId);
         };
     }, [activeWorkspaceId, connected, connectionId, focused, refreshVoiceStatus, voiceCaptureBusy]);
-
-    const handleTurnWorkRangeChange = useCallback(
-        (turnId: string, range: SemanticTurnWorkRange | null) => {
-            setSemanticWorkRangesState((current) => {
-                const currentRanges =
-                    current.threadId === visibleThreadId
-                        ? current.ranges
-                        : EMPTY_SEMANTIC_WORK_RANGES;
-
-                if (range === null) {
-                    if (!(turnId in currentRanges)) {
-                        return current;
-                    }
-
-                    const next = { ...currentRanges };
-                    delete next[turnId];
-                    return {
-                        threadId: visibleThreadId,
-                        ranges: next,
-                    };
-                }
-
-                if (current.threadId === visibleThreadId && currentRanges[turnId] === range) {
-                    return current;
-                }
-
-                return {
-                    threadId: visibleThreadId,
-                    ranges: {
-                        ...currentRanges,
-                        [turnId]: range,
-                    },
-                };
-            });
-        },
-        [visibleThreadId],
-    );
-
-    const handleViewportPrefetchPlanChange = useCallback((plan: TimelineViewportPrefetchPlan) => {
-        setViewportPrefetchPlan(plan);
-
-        const query = threadTimelineBlocksQueryRef.current;
-        if (plan.nearStart && query.hasNextPage && !query.isFetchingNextPage) {
-            void query.fetchNextPage();
-        }
-        if (plan.nearEnd && query.hasPreviousPage && !query.isFetchingPreviousPage) {
-            void query.fetchPreviousPage();
-        }
-    }, []);
 
     const handleOpenTaskThread = useCallback(
         (row: Extract<TimelineRow, { type: 'task-anchor' }>) => {
@@ -1852,19 +1687,6 @@ const ThreadScreen = ({
 
     return (
         <View style={styles.container}>
-            {semanticTurnWorkQueryTargets.map((target) => (
-                <TurnWorkItemsQueryBridge
-                    key={target.work.turnId}
-                    threadId={visibleThreadId}
-                    enabled={focused && connected && !isLiveDraftThread}
-                    expanded={target.expanded}
-                    liveVisible={target.liveVisible}
-                    boundaryHint={viewportPrefetchPlan?.turnWork[target.work.turnId] ?? null}
-                    onRangeChange={handleTurnWorkRangeChange}
-                    onNativeSnapshotRefresh={refreshNativeActiveThreadSnapshot}
-                    work={target.work}
-                />
-            ))}
             <KeyboardGestureArea
                 interpolator="ios"
                 offset={composerHeight}
@@ -1890,8 +1712,7 @@ const ThreadScreen = ({
                             closedLabel={t('threadClosed')}
                             disconnectedLabel={t('disconnected')}
                             loadingLabel={t('loadingThread')}
-                            pendingRequests={pendingRequests}
-                            semanticWorkItemKeys={nativeSemanticWorkItemKeys}
+                            presentationActive={focused}
                             contentTopInset={contentTopInset}
                             avatarRailTopInset={avatarRailTopInset}
                             contentBottomInset={timelineContentBottomInset}
@@ -1932,7 +1753,7 @@ const ThreadScreen = ({
                             }
                             onCancelArtifactDownload={handleCancelArtifactDownload}
                             onExpandedKeysChange={setExpandedKeys}
-                            onViewportPrefetchPlanChange={handleViewportPrefetchPlanChange}
+
                             onOpenTaskThread={handleOpenTaskThread}
                             onOpenMessageRevisions={handleOpenMessageRevisions}
                             onReplyToMessage={handleReplyToMessage}
@@ -2064,176 +1885,6 @@ const ThreadScreen = ({
             ) : null}
         </View>
     );
-};
-
-type SemanticTurnWorkQueryTarget = {
-    work: TurnWorkBlock;
-    expanded: boolean;
-    liveVisible: boolean;
-};
-
-const TurnWorkItemsQueryBridge = ({
-    threadId,
-    enabled,
-    expanded,
-    liveVisible,
-    boundaryHint,
-    onRangeChange,
-    onNativeSnapshotRefresh,
-    work,
-}: {
-    threadId: string | null;
-    enabled: boolean;
-    expanded: boolean;
-    liveVisible: boolean;
-    boundaryHint: TimelineTurnWorkBoundaryHint | null;
-    onRangeChange: (turnId: string, range: SemanticTurnWorkRange | null) => void;
-    onNativeSnapshotRefresh: () => void;
-    work: TurnWorkBlock;
-}) => {
-    const workItemsQuery = useTurnWorkItemsQuery({
-        threadId,
-        turnId: work.turnId,
-        enabled,
-        expanded,
-        liveVisible,
-        work,
-    });
-    const workItemsQueryRef = useRef(workItemsQuery);
-    const lastBoundaryHintKeyRef = useRef<string | null>(null);
-    const workRange = useMemo<SemanticTurnWorkRange>(
-        () => ({
-            work: workItemsQuery.work,
-            items: workItemsQuery.items,
-            hasLoadedPage: workItemsQuery.hasLoadedPage,
-        }),
-        [workItemsQuery.hasLoadedPage, workItemsQuery.items, workItemsQuery.work],
-    );
-
-    useEffect(() => {
-        workItemsQueryRef.current = workItemsQuery;
-    }, [workItemsQuery]);
-
-    useEffect(() => {
-        onRangeChange(work.turnId, workRange);
-    }, [onRangeChange, work.turnId, workRange]);
-
-    useEffect(() => {
-        if (!workItemsQuery.hasLoadedPage) {
-            return;
-        }
-
-        onNativeSnapshotRefresh();
-    }, [onNativeSnapshotRefresh, workItemsQuery.hasLoadedPage, workItemsQuery.pages]);
-
-    useEffect(() => {
-        if (!boundaryHint?.visible || boundaryHint.key === lastBoundaryHintKeyRef.current) {
-            return;
-        }
-
-        lastBoundaryHintKeyRef.current = boundaryHint.key;
-        const query = workItemsQueryRef.current;
-        if (boundaryHint.nearStart && query.hasNextPage && !query.isFetchingNextPage) {
-            void query.fetchNextPage();
-        }
-        if (boundaryHint.nearEnd && query.hasPreviousPage && !query.isFetchingPreviousPage) {
-            void query.fetchPreviousPage();
-        }
-    }, [boundaryHint]);
-
-    return null;
-};
-
-const activeSemanticTurnWorkQueryTargets = (
-    blocks: readonly TimelineBlock[],
-    expandedKeys: readonly string[],
-    liveTurnId: string | null,
-    snapshot: ClientActiveThreadSnapshot | null,
-): SemanticTurnWorkQueryTarget[] => {
-    const expandedTurnIds = new Set(
-        expandedKeys
-            .map(semanticTurnWorkTurnIdFromKey)
-            .filter((turnId): turnId is string => turnId !== null),
-    );
-    const targetsByTurnId = new Map<string, SemanticTurnWorkQueryTarget>();
-
-    for (const block of blocks) {
-        if (block.kind.kind !== 'turn_work') {
-            continue;
-        }
-
-        const work = block.kind.work;
-        const expanded = expandedTurnIds.has(work.turnId);
-        const protocolVisible = work.presentation === 'expanded_live';
-        const liveVisible = protocolVisible || work.turnId === liveTurnId;
-
-        if (!expanded && !liveVisible) {
-            continue;
-        }
-
-        targetsByTurnId.set(work.turnId, {
-            work,
-            expanded,
-            liveVisible,
-        });
-    }
-
-    if (snapshot) {
-        for (const row of snapshot.rows) {
-            if (!('TurnWorkToggle' in row.kind)) {
-                continue;
-            }
-
-            const group = row.kind.TurnWorkToggle;
-            const turnId = semanticTurnWorkTurnIdFromKey(group.toggle_key || row.key);
-            if (!turnId || targetsByTurnId.has(turnId)) {
-                continue;
-            }
-
-            const expanded = expandedTurnIds.has(turnId) || group.is_open;
-            const liveVisible = turnId === liveTurnId;
-            if (!expanded && !liveVisible) {
-                continue;
-            }
-
-            targetsByTurnId.set(turnId, {
-                work: fallbackTurnWorkBlockFromNativeGroup(turnId, group.elapsed_ms ?? null),
-                expanded,
-                liveVisible,
-            });
-        }
-    }
-
-    return Array.from(targetsByTurnId.values());
-};
-
-const fallbackTurnWorkBlockFromNativeGroup = (
-    turnId: string,
-    elapsedMs: number | null,
-): TurnWorkBlock => ({
-    turnId,
-    presentation: 'collapsed_after_final',
-    state: 'completed',
-    elapsedMs,
-    workCount: 1,
-    visibleWorkCount: 0,
-    hiddenWorkCount: 1,
-    hasMoreBefore: false,
-    hasMoreAfter: false,
-    beforeCursor: null,
-    afterCursor: null,
-    firstWorkItemId: null,
-    lastWorkItemId: null,
-    startedAtUnixMs: null,
-    completedAtUnixMs: null,
-});
-
-const semanticTurnWorkTurnIdFromKey = (key: string): string | null => {
-    if (!key.startsWith(SEMANTIC_TURN_WORK_GROUP_PREFIX)) {
-        return null;
-    }
-
-    return key.slice(SEMANTIC_TURN_WORK_GROUP_PREFIX.length) || null;
 };
 
 const ThreadState = ({

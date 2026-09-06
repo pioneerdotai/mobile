@@ -5,6 +5,103 @@
     {
       "type": "object",
       "properties": {
+        "kind": {
+          "type": "string",
+          "const": "refresh_timeline"
+        },
+        "thread_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "thread_id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "collapsed_row_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "kind": {
+          "type": "string",
+          "const": "set_timeline_expansion"
+        },
+        "row_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "thread_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "thread_id",
+        "row_ids",
+        "collapsed_row_ids"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "after": {
+          "type": "boolean"
+        },
+        "before": {
+          "type": "boolean"
+        },
+        "kind": {
+          "type": "string",
+          "const": "timeline_viewport"
+        },
+        "presented_rows": {
+          "type": "boolean"
+        },
+        "row_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "source_revision": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "thread_id": {
+          "type": "string"
+        },
+        "threshold": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "work": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "kind",
+        "thread_id",
+        "row_ids",
+        "source_revision",
+        "threshold",
+        "before",
+        "after",
+        "work",
+        "presented_rows"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
         "demand": {
           "$ref": "#/$defs/ClientDemand"
         },

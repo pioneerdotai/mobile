@@ -1,12 +1,37 @@
 /* eslint-disable */
 
-export type ClientIntent = {
-  demand: ClientDemand;
-  generation: number;
-  kind: 'set_scope_demand';
-  scope: ClientScope;
-  [k: string]: unknown;
-};
+export type ClientIntent =
+  | {
+      kind: 'refresh_timeline';
+      thread_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      collapsed_row_ids: string[];
+      kind: 'set_timeline_expansion';
+      row_ids: string[];
+      thread_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      after: boolean;
+      before: boolean;
+      kind: 'timeline_viewport';
+      presented_rows: boolean;
+      row_ids: string[];
+      source_revision: number;
+      thread_id: string;
+      threshold: number;
+      work: boolean;
+      [k: string]: unknown;
+    }
+  | {
+      demand: ClientDemand;
+      generation: number;
+      kind: 'set_scope_demand';
+      scope: ClientScope;
+      [k: string]: unknown;
+    };
 export type ClientDemand = 'suspended' | 'visible' | 'prefetch';
 export type ClientScope =
   | {

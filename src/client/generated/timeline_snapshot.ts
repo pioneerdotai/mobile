@@ -1,97 +1,24 @@
 /* eslint-disable */
 
-export type ClientScope =
+export type PersistedActorRef =
   | {
-      kind: 'session';
+      id: PrincipalId;
+      kind: 'principal';
       [k: string]: unknown;
     }
   | {
-      kind: 'navigation';
+      id: AgentExecutionId;
+      kind: 'agent_execution';
       [k: string]: unknown;
     }
   | {
-      kind: 'sidebar_summary';
-      thread_id: string;
-      workspace_id: string;
-      [k: string]: unknown;
-    }
-  | {
-      kind: 'workspace_tree';
-      workspace_id?: string | null;
-      [k: string]: unknown;
-    }
-  | {
-      kind: 'task';
-      task_id?: string | null;
-      [k: string]: unknown;
-    }
-  | {
-      kind: 'thread';
-      thread_id: string;
-      [k: string]: unknown;
-    }
-  | {
-      kind: 'timeline';
-      thread_id: string;
-      [k: string]: unknown;
-    }
-  | {
-      kind: 'composer';
-      thread_id: string;
-      [k: string]: unknown;
-    }
-  | {
-      kind: 'pending_request';
-      thread_id?: string | null;
-      workspace_id?: string | null;
-      [k: string]: unknown;
-    }
-  | {
-      kind: 'artifact';
-      thread_id: string;
-      [k: string]: unknown;
-    }
-  | {
-      kind: 'avatar';
-      principal_id: string;
-      [k: string]: unknown;
-    }
-  | {
-      kind: 'provider';
-      [k: string]: unknown;
-    }
-  | {
-      kind: 'administration';
-      workspace_id?: string | null;
-      [k: string]: unknown;
-    }
-  | {
-      kind: 'mcp';
-      workspace_id?: string | null;
-      [k: string]: unknown;
-    }
-  | {
-      kind: 'skills';
-      workspace_id?: string | null;
-      [k: string]: unknown;
-    }
-  | {
-      kind: 'settings';
-      [k: string]: unknown;
-    }
-  | {
-      kind: 'onboarding_invitation';
-      [k: string]: unknown;
-    }
-  | {
-      kind: 'agents_document';
-      workspace_id: string;
-      [k: string]: unknown;
-    }
-  | {
-      kind: 'desktop_update';
+      kind: 'system';
       [k: string]: unknown;
     };
+export type PrincipalId = string;
+export type AgentExecutionId = string;
+export type AgentIdentityId = string;
+export type AgentIdentitySourceKind = 'native_agent' | 'cli_runtime_instance' | 'ephemeral';
 export type ArtifactKind =
   | 'file'
   | 'text'
@@ -754,25 +681,6 @@ export type TimelineRenderRow =
   | {
       PendingRequest: TimelinePendingRequestRow;
     };
-export type PersistedActorRef =
-  | {
-      id: PrincipalId;
-      kind: 'principal';
-      [k: string]: unknown;
-    }
-  | {
-      id: AgentExecutionId;
-      kind: 'agent_execution';
-      [k: string]: unknown;
-    }
-  | {
-      kind: 'system';
-      [k: string]: unknown;
-    };
-export type PrincipalId = string;
-export type AgentExecutionId = string;
-export type AgentIdentityId = string;
-export type AgentIdentitySourceKind = 'native_agent' | 'cli_runtime_instance' | 'ephemeral';
 export type TimelineRowKind =
   | {
       Item: {
@@ -869,85 +777,76 @@ export type TurnPermissionDecisionReason =
   | 'expired'
   | 'unknown_action_default'
   | 'sandbox_denied';
-export type ClientPlannedEffect = ClientEffect | GatewaySessionStorageEffect;
-export type ClientEffect =
-  | (
-      | 'RefreshWorkspaceList'
-      | 'RefreshGatewaySettings'
-      | 'RefreshProviderLists'
-      | 'QueueSkillsRefresh'
-      | 'EnqueueInFlightTurnsForResume'
-    )
+export type TimelineRequestStatus =
+  | ('Idle' | 'Ready')
   | {
-      UnsubscribeThreads: {
-        thread_ids: string[];
-        [k: string]: unknown;
-      };
-    };
-export type GatewaySessionStorageEffect =
-  | {
-      ReadGatewaySession: {
-        endpoint: GatewayEndpoint;
+      Loading: {
+        request_key: string;
         [k: string]: unknown;
       };
     }
   | {
-      PersistGatewaySession: {
-        endpoint: GatewayEndpoint;
-        envelope: GatewaySessionEnvelope;
+      Failed: {
+        message: string;
         [k: string]: unknown;
       };
     };
-export type GatewayEndpointKind = 'local' | 'remote';
-export type GatewayId = string;
-export type DeviceId = string;
-export type AuthSessionId = string;
-export type TokenFamilyId = string;
 
-export interface ClientProcessChangeBatchDto {
-  changes: ClientProcessChangeSetDto[];
-  closed: boolean;
-  effects: ClientEffectPlan[];
-  resnapshot: boolean;
-  schema_version: number;
-  sequence: number;
-  [k: string]: unknown;
-}
-export interface ClientProcessChangeSetDto {
-  predecessor?: number | null;
-  sequence: number;
-  snapshots: ClientScopedSnapshotDto[];
-  timeline_changes?: TimelineChangeSet[];
-  [k: string]: unknown;
-}
-export interface ClientScopedSnapshotDto {
-  payload: unknown;
-  revisions: ClientRevisions;
-  schema_version: number;
-  scope: ClientScope;
-  sequence: number;
-  [k: string]: unknown;
-}
-export interface ClientRevisions {
-  content: number;
-  domain: number;
-  presentation: number;
-  scoped: number;
-  [k: string]: unknown;
-}
-/**
- * Apply removals first, then replacements/insertions, then the complete new order.
- * Replacements keep their identity. An absent order means membership/order is unchanged.
- */
-export interface TimelineChangeSet {
-  from_revision: number;
+export interface TimelineSnapshot {
   generation: number;
-  inserted: TimelineRowSnapshot[];
-  order?: string[] | null;
-  removed: string[];
-  replaced: TimelineRowSnapshot[];
+  groups: TimelineGroup[];
+  has_loaded_page: boolean;
+  page: TimelineLoadedRange;
+  revision: number;
+  rows: TimelineRowSnapshot[];
+  source_revision: number;
+  status: TimelineRequestStatus;
   thread_id: string;
-  to_revision: number;
+  [k: string]: unknown;
+}
+export interface TimelineGroup {
+  author?: TurnAuthorSnapshot | null;
+  current_principal: boolean;
+  first_row: number;
+  has_running: boolean;
+  id: string;
+  last_row: number;
+  user_message: boolean;
+  [k: string]: unknown;
+}
+export interface TurnAuthorSnapshot {
+  actor: PersistedActorRef;
+  /**
+   * Full immutable identity presentation for an agent-authored Turn.  This
+   * is carried with the Turn instead of being reconstructed from mutable
+   * identity/runtime state. Non-agent actors leave it absent.
+   */
+  agent?: AgentPresentationSnapshot | null;
+  avatar_revision?: string | null;
+  display_name: string;
+  nickname: string;
+  [k: string]: unknown;
+}
+export interface AgentPresentationSnapshot {
+  agent_execution_id: AgentExecutionId;
+  agent_identity_id: AgentIdentityId;
+  avatar_revision?: string | null;
+  display_name: string;
+  identity_source_kind: AgentIdentitySourceKind;
+  identity_source_revision: number;
+  nickname: string;
+  role_label?: string | null;
+  [k: string]: unknown;
+}
+export interface TimelineLoadedRange {
+  after_cursor?: TimelineCursor | null;
+  before_cursor?: TimelineCursor | null;
+  has_more_after: boolean;
+  has_more_before: boolean;
+  [k: string]: unknown;
+}
+export interface TimelineCursor {
+  value: string;
   [k: string]: unknown;
 }
 /**
@@ -1298,30 +1197,6 @@ export interface TimelineRow {
   kind: TimelineRowKind;
   [k: string]: unknown;
 }
-export interface TurnAuthorSnapshot {
-  actor: PersistedActorRef;
-  /**
-   * Full immutable identity presentation for an agent-authored Turn.  This
-   * is carried with the Turn instead of being reconstructed from mutable
-   * identity/runtime state. Non-agent actors leave it absent.
-   */
-  agent?: AgentPresentationSnapshot | null;
-  avatar_revision?: string | null;
-  display_name: string;
-  nickname: string;
-  [k: string]: unknown;
-}
-export interface AgentPresentationSnapshot {
-  agent_execution_id: AgentExecutionId;
-  agent_identity_id: AgentIdentityId;
-  avatar_revision?: string | null;
-  display_name: string;
-  identity_source_kind: AgentIdentitySourceKind;
-  identity_source_revision: number;
-  nickname: string;
-  role_label?: string | null;
-  [k: string]: unknown;
-}
 /**
  * Authoritative collaboration metadata attached to a rendered user-message
  * row. It mirrors disclosed server fields; shells must not reconstruct it by
@@ -1515,33 +1390,4 @@ export interface TurnPermissionApprovalRequestDetail {
   monospace?: boolean;
   value: string;
   [k: string]: unknown;
-}
-export interface ClientEffectPlan {
-  effect: ClientPlannedEffect;
-  generation: number;
-  operation_id: string;
-  [k: string]: unknown;
-}
-export interface GatewayEndpoint {
-  gateway_base_url: string;
-  id: string;
-  kind: GatewayEndpointKind;
-  name: string;
-  server_gateway_id?: GatewayId | null;
-  service_name?: string | null;
-  session_ref?: string | null;
-  workspace_id?: string | null;
-}
-export interface GatewaySessionEnvelope {
-  device_id: DeviceId;
-  gateway_id: GatewayId;
-  installation_id: string;
-  pending_refresh_request_id?: string | null;
-  principal_id: PrincipalId;
-  refresh_expires_at_unix: number;
-  refresh_generation: number;
-  refresh_token: string;
-  schema_version: number;
-  session_id: AuthSessionId;
-  token_family_id: TokenFamilyId;
 }

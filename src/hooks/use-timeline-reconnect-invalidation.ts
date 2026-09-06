@@ -1,27 +1,22 @@
 import { useEffect, useRef } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
-
-import { reconcileTurnWorkItemsOnReconnect } from '@/services/threads/turn-work-reconciliation';
+import { mobileClientBinding } from '@/client/mobile-client-binding';
 import { useGatewayStore } from '@/stores/gateway';
 
-export const useTimelineReconnectInvalidation = (
-    activeThreadId: string | null,
-    enabled: boolean,
-) => {
-    const queryClient = useQueryClient();
+export const useTimelineReconnectInvalidation = (threadId: string | null, enabled: boolean) => {
     const connectionState = useGatewayStore((state) => state.connectionState);
-    const previousConnectionStateRef = useRef(connectionState);
-
+    const previous = useRef(connectionState);
     useEffect(() => {
         if (
             enabled &&
-            activeThreadId &&
-            previousConnectionStateRef.current !== 'Connected' &&
+            threadId &&
+            previous.current !== 'Connected' &&
             connectionState === 'Connected'
         ) {
-            void reconcileTurnWorkItemsOnReconnect(queryClient, activeThreadId);
+            mobileClientBinding.dispatch({
+                schema_version: 1,
+                intent: { kind: 'refresh_timeline', thread_id: threadId },
+            });
         }
-
-        previousConnectionStateRef.current = connectionState;
-    }, [activeThreadId, connectionState, enabled, queryClient]);
+        previous.current = connectionState;
+    }, [threadId, enabled, connectionState]);
 };

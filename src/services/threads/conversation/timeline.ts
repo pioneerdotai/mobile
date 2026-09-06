@@ -39,7 +39,8 @@ export type TimelineRowMeta = {
     author?: TurnAuthorSnapshot | null;
     semanticWorkItem?: boolean;
     startedAtUnixMs?: number | null;
-    renderFingerprint?: string;
+    presentationRevision?: number;
+    presentationLocale?: string;
 };
 
 export type TimelineRow = TimelineRowMeta &
