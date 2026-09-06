@@ -1,3 +1,5 @@
+import type { ClientEffectPlan } from './generated/client_effect_plan';
+import type { ClientProcessChangeBatchDto } from './generated/client_process_change_batch_dto';
 import type { ClientChangeBatchDto } from './generated/client_change_batch_dto';
 import type { ClientEffectCancellationDto } from './generated/client_effect_cancellation_dto';
 import type { ClientEffectCompletionDto } from './generated/client_effect_completion_dto';
@@ -21,6 +23,7 @@ export type MobileClientScopeStore = Readonly<{
 }>;
 
 export type MobileClientBridge = Readonly<{
+    waitForPublications?: (afterSequence: number) => Promise<ClientProcessChangeBatchDto>;
     dispatch: (request: ClientIntentDispatchDto) => ClientTransitionDto;
     snapshot: (scope: ClientScope, afterRevision: number | null) => ClientScopedSnapshotDto | null;
     changes: (scope: ClientScope, maximumItems: number) => ClientChangeBatchDto;
@@ -34,6 +37,7 @@ export type MobileClientBridge = Readonly<{
 }>;
 
 type ScopeState = {
+    scope: ClientScope;
     snapshot: ClientScopedSnapshotDto | null;
     rows: Map<string, MobileClientRow>;
     lastAppliedSequence: number | null;
@@ -133,6 +137,13 @@ const memoizeRows = (
 let processBridge: MobileClientBridge | null = null;
 
 const configuredBridge: MobileClientBridge = {
+    waitForPublications: (sequence) => {
+        const wait = requireProcessBridge().waitForPublications;
+        if (!wait) {
+            throw new Error('Mobile publication wait is unavailable');
+        }
+        return wait(sequence);
+    },
     dispatch: (request) => requireProcessBridge().dispatch(request),
     snapshot: (scope, afterRevision) => requireProcessBridge().snapshot(scope, afterRevision),
     changes: (scope, maximumItems) => requireProcessBridge().changes(scope, maximumItems),
@@ -159,9 +170,167 @@ export const configureMobileClientBindingBridge = (bridge: MobileClientBridge): 
 export class MobileClientBinding {
     readonly #bridge: MobileClientBridge;
     readonly #scopes = new Map<string, ScopeState>();
+    #processSequence = 0;
+    #closed = false;
+    #closeEffects: (() => void) | null = null;
+    #effects: ((plans: readonly ClientEffectPlan[]) => void) | null = null;
+
+    attachPlatformEffects(
+        deliver: (plans: readonly ClientEffectPlan[]) => void,
+        close?: () => void,
+    ): () => void {
+        if (this.#closed) {
+            throw new Error('Mobile Client binding is closed');
+        }
+        if (this.#effects) {
+            throw new Error('Mobile platform effect adapter is already attached');
+        }
+        this.#effects = deliver;
+        this.#closeEffects = close ?? null;
+        this.#startDelivery();
+        return () => {
+            if (this.#effects === deliver) {
+                this.#effects = null;
+                this.#closeEffects = null;
+            }
+        };
+    }
+    #delivery: Promise<void> | null = null;
+
+    applyProcessBatch(batch: ClientProcessChangeBatchDto): void {
+        assertSchemaVersion(batch);
+        if (this.#closed) {
+            return;
+        }
+        if (batch.closed) {
+            this.#closed = true;
+            const close = this.#closeEffects;
+            this.#effects = null;
+            this.#closeEffects = null;
+            close?.();
+            const listeners: Listener[] = [];
+            for (const state of this.#scopes.values()) {
+                state.snapshot = null;
+                state.rows.clear();
+                listeners.push(...state.listeners);
+                state.listeners.clear();
+            }
+            for (const listener of listeners) {
+                listener();
+            }
+            return;
+        }
+        if (batch.sequence <= this.#processSequence) {
+            this.#effects?.(batch.effects ?? []);
+            return;
+        }
+        let validatedSequence = this.#processSequence;
+        for (const change of batch.changes) {
+            if (!batch.resnapshot && (change.predecessor ?? 0) !== validatedSequence) {
+                throw new Error('Mobile Client process sequence gap requires a resnapshot');
+            }
+            if (change.sequence <= validatedSequence || change.sequence > batch.sequence) {
+                throw new Error('Mobile Client process sequence is invalid');
+            }
+            const scopes = new Set<string>();
+            for (const snapshot of change.snapshots) {
+                assertSchemaVersion(snapshot);
+                const key = scopeKey(snapshot.scope);
+                if (
+                    scopes.has(key) ||
+                    snapshot.sequence > change.sequence ||
+                    (!batch.resnapshot && snapshot.sequence !== change.sequence)
+                ) {
+                    throw new Error('Mobile Client process snapshot is incoherent');
+                }
+                scopes.add(key);
+            }
+            validatedSequence = change.sequence;
+        }
+        if (validatedSequence !== batch.sequence) {
+            throw new Error('Mobile Client process batch watermark is invalid');
+        }
+        const changed = new Set<ScopeState>();
+        let predecessor = this.#processSequence;
+        for (const change of batch.changes) {
+            if (!batch.resnapshot && (change.predecessor ?? 0) !== predecessor) {
+                throw new Error('Mobile Client process sequence gap requires a resnapshot');
+            }
+            for (const snapshot of change.snapshots) {
+                assertSchemaVersion(snapshot);
+                const state = this.#scopes.get(scopeKey(snapshot.scope));
+                if (!state) {
+                    continue;
+                }
+                const before = state.snapshot;
+                this.#applySnapshot(state, snapshot, false);
+                state.lastAppliedSequence = snapshot.sequence;
+                if (before !== state.snapshot) {
+                    changed.add(state);
+                }
+            }
+            predecessor = change.sequence;
+        }
+        this.#processSequence = batch.sequence;
+        this.#effects?.(batch.effects ?? []);
+        // Every affected immutable value is installed before any observer runs.
+        for (const state of changed) {
+            for (const listener of [...state.listeners]) {
+                listener();
+            }
+        }
+    }
+
+    #startDelivery(): void {
+        if (this.#closed || this.#delivery || !this.#bridge.waitForPublications) {
+            return;
+        }
+        const deliver = async () => {
+            while (
+                !this.#closed &&
+                (this.#effects ||
+                    [...this.#scopes.values()].some((scope) => scope.listeners.size > 0))
+            ) {
+                try {
+                    const batch = await this.#bridge.waitForPublications!(this.#processSequence);
+                    this.applyProcessBatch(batch);
+                } catch {
+                    // A failed bridge call did not advance the applied watermark.
+                    // Retrying requests the same ordered batch or a Core resnapshot.
+                    await new Promise((resolve) => setTimeout(resolve, 250));
+                }
+            }
+        };
+        this.#delivery = deliver().finally(() => {
+            this.#delivery = null;
+        });
+    }
 
     constructor(bridge: MobileClientBridge = configuredBridge) {
         this.#bridge = bridge;
+    }
+
+    async synchronize(): Promise<void> {
+        if (this.#closed) {
+            return;
+        }
+        if (!this.#bridge.waitForPublications) {
+            throw new Error('Mobile publication wait is unavailable');
+        }
+        let targetSequence = this.#processSequence;
+        for (const state of this.#scopes.values()) {
+            const snapshot = this.#bridge.snapshot(state.scope, null);
+            if (snapshot) {
+                assertSchemaVersion(snapshot);
+                if (scopeKey(snapshot.scope) !== scopeKey(state.scope)) {
+                    throw new Error('Mobile Client snapshot scope does not match its selector');
+                }
+                targetSequence = Math.max(targetSequence, snapshot.sequence);
+            }
+        }
+        if (targetSequence > this.#processSequence) {
+            this.applyProcessBatch(await this.#bridge.waitForPublications(this.#processSequence));
+        }
     }
 
     scope(scope: ClientScope): MobileClientScopeStore {
@@ -236,7 +405,8 @@ export class MobileClientBinding {
         }
 
         const state = {} as ScopeState;
-        const initialSnapshot = this.#bridge.snapshot(scope, null);
+        state.scope = scope;
+        const initialSnapshot = this.#closed ? null : this.#bridge.snapshot(scope, null);
         if (initialSnapshot) {
             assertSchemaVersion(initialSnapshot);
             if (scopeKey(initialSnapshot.scope) !== key) {
@@ -249,6 +419,9 @@ export class MobileClientBinding {
         state.listeners = new Set();
         state.store = {
             subscribe: (listener) => {
+                if (this.#closed) {
+                    return () => {};
+                }
                 let subscribed = true;
                 const registration = () => {
                     if (subscribed) {
@@ -256,6 +429,7 @@ export class MobileClientBinding {
                     }
                 };
                 state.listeners.add(registration);
+                this.#startDelivery();
                 return () => {
                     if (!subscribed) {
                         return;

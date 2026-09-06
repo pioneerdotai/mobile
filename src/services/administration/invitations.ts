@@ -4,12 +4,28 @@ import type {
     ClientInvitationPresentationResult,
     InvitationListResponse,
 } from '@/client';
-import { pioneerClient } from '@/client';
+import { pioneerClient, mobileClientBinding } from '@/client';
+import type { IdentityAuthorizationPublication } from '@/client/generated/identity_authorization_publication';
 
 export const INVITATION_PAGE_LIMIT = 50;
 
-export const loadCurrentAdministrationPrincipal = (): Promise<AuthMeResponse> =>
-    pioneerClient.gatewayAuthMe();
+export const currentAdministrationPrincipalSnapshot = (): AuthMeResponse | null => {
+    const publication = mobileClientBinding
+        .scope({ kind: 'administration', workspace_id: null })
+        .getSnapshot();
+    return (publication?.payload as IdentityAuthorizationPublication | null)?.current_auth ?? null;
+};
+
+export const loadCurrentAdministrationPrincipal = async (): Promise<AuthMeResponse> => {
+    currentAdministrationPrincipalSnapshot();
+    await pioneerClient.gatewayAuthMe();
+    await mobileClientBinding.synchronize();
+    const auth = currentAdministrationPrincipalSnapshot();
+    if (!auth) {
+        throw new Error('stale_authorization_projection');
+    }
+    return auth;
+};
 
 export const loadAuthorizationCapabilitySnapshot = (
     workspaceId: string | null,

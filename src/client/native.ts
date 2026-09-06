@@ -1,3 +1,13 @@
+import type { ClientAccessChangePlanRequestDto } from './generated/client_access_change_plan_request_dto';
+import type { AccessChangedPlan } from './generated/access_changed_plan';
+import type { ClientTransportReserveRequestDto } from './generated/client_transport_reserve_request_dto';
+import type { ClientTransportLeaseRequestDto } from './generated/client_transport_lease_request_dto';
+import type { ClientGatewaySessionEnsureRequest } from './generated/client_gateway_session_ensure_request';
+import type { ClientGatewaySessionControlRequest } from './generated/client_gateway_session_control_request';
+import type { GatewaySessionConnectionResult } from './generated/gateway_session_connection_result';
+import type { ClientGatewaySessionValidationRequest } from './generated/client_gateway_session_validation_request';
+import type { ClientGatewaySessionValidationResult } from './generated/client_gateway_session_validation_result';
+import type { ClientProcessChangeBatchDto } from './generated/client_process_change_batch_dto';
 import { Platform } from 'react-native';
 
 import { getPioneerClientNitro } from '@pioneer/client-nitro';
@@ -268,6 +278,9 @@ import type { WorkspaceMemberMutationResponse } from './generated/workspace_memb
 import type { WorkspaceMemberRemoveParams } from './generated/workspace_member_remove_params';
 import { parsePioneerClientResponse } from './response';
 
+export type { ClientGatewaySessionEnsureRequest } from './generated/client_gateway_session_ensure_request';
+export type { ClientGatewaySessionControlRequest } from './generated/client_gateway_session_control_request';
+export type { GatewaySessionConnectionResult } from './generated/gateway_session_connection_result';
 export type { ActivateGatewayRegistryPlan } from './generated/activate_gateway_registry_plan';
 export type { AuthLogoutResponse } from './generated/auth_logout_response';
 export type { AuthMeResponse } from './generated/auth_me_response';
@@ -713,6 +726,22 @@ export const pioneerClient = {
         );
     },
 
+    async gatewaySessionValidate(
+        input: ClientGatewaySessionValidationRequest,
+    ): Promise<ClientGatewaySessionValidationResult> {
+        return parsePioneerClientResponse<ClientGatewaySessionValidationResult>(
+            await getPioneerClientNitro().gatewaySessionValidateJson(JSON.stringify(input)),
+        );
+    },
+
+    async clientWaitPublications(afterSequence: number): Promise<ClientProcessChangeBatchDto> {
+        return parsePioneerClientResponse<ClientProcessChangeBatchDto>(
+            await getPioneerClientNitro().clientWaitPublicationsJson(
+                JSON.stringify({ schema_version: 1, after_sequence: afterSequence }),
+            ),
+        );
+    },
+
     clientEffectComplete(input: ClientEffectCompletionDto): ClientTransitionDto {
         return parsePioneerClientResponse<ClientTransitionDto>(
             getPioneerClientNitro().clientEffectCompleteJson(JSON.stringify(input)),
@@ -1101,6 +1130,44 @@ export const pioneerClient = {
     async gatewayAuthDeviceCreate(): Promise<AuthDeviceCreateResponse> {
         return parsePioneerClientResponse<AuthDeviceCreateResponse>(
             await getPioneerClientNitro().gatewayAuthDeviceCreateJson('{}'),
+        );
+    },
+
+    authorizationAccessChangePlan(input: ClientAccessChangePlanRequestDto): AccessChangedPlan {
+        return parsePioneerClientResponse<AccessChangedPlan>(
+            getPioneerClientNitro().authorizationAccessChangePlanJson(JSON.stringify(input)),
+        );
+    },
+
+    gatewayTransportReserve(input: ClientTransportReserveRequestDto): number {
+        return parsePioneerClientResponse<number>(
+            getPioneerClientNitro().gatewayTransportReserveJson(JSON.stringify(input)),
+        );
+    },
+
+    async gatewayTransportWait(input: ClientTransportLeaseRequestDto): Promise<boolean> {
+        return parsePioneerClientResponse<boolean>(
+            await getPioneerClientNitro().gatewayTransportWaitJson(JSON.stringify(input)),
+        );
+    },
+
+    gatewayTransportRelease(input: ClientTransportLeaseRequestDto): boolean {
+        return parsePioneerClientResponse<boolean>(
+            getPioneerClientNitro().gatewayTransportReleaseJson(JSON.stringify(input)),
+        );
+    },
+
+    async gatewaySessionEnsure(
+        input: ClientGatewaySessionEnsureRequest,
+    ): Promise<GatewaySessionConnectionResult> {
+        return parsePioneerClientResponse<GatewaySessionConnectionResult>(
+            await getPioneerClientNitro().gatewaySessionEnsureJson(JSON.stringify(input)),
+        );
+    },
+
+    async gatewaySessionControl(input: ClientGatewaySessionControlRequest): Promise<boolean> {
+        return parsePioneerClientResponse<boolean>(
+            await getPioneerClientNitro().gatewaySessionControlJson(JSON.stringify(input)),
         );
     },
 

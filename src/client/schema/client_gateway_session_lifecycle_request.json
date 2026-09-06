@@ -72,6 +72,18 @@
           "properties": {
             "kind": {
               "type": "string",
+              "const": "suspend"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
               "const": "no_stored_session"
             }
           },

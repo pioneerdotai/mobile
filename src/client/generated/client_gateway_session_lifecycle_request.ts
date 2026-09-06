@@ -2,6 +2,10 @@
 
 export type SessionLifecycleEvent =
   | {
+      kind: 'suspend';
+      [k: string]: unknown;
+    }
+  | {
       kind: 'no_stored_session';
       [k: string]: unknown;
     }

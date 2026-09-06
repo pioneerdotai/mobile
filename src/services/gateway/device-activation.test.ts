@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 jest.mock('nanoid', () => ({ nanoid: jest.fn() }));
 
 jest.mock('@/client', () => ({
+    mobileClientBinding: { synchronize: jest.fn(async () => undefined), scope: jest.fn() },
     pioneerClient: {
         gatewayLoadRegistryV3: jest.fn(),
         gatewayDeviceActivationParse: jest.fn(),
@@ -54,7 +55,7 @@ jest.mock('@/storage', () => ({
     },
 }));
 
-import { pioneerClient } from '@/client';
+import { pioneerClient, mobileClientBinding } from '@/client';
 import type { AuthSessionGrant, GatewayRegistry } from '@/client';
 import { beginMobileAuthorizationEpoch } from '@/services/gateway/access-change';
 import { storage } from '@/storage';
@@ -248,7 +249,7 @@ describe('mobile device activation service', () => {
             device: grant().device,
             session: grant().session,
         };
-        mockGatewayAuthSessionList.mockResolvedValue({
+        const authoritative = {
             sessions: [
                 active,
                 {
@@ -267,6 +268,11 @@ describe('mobile device activation service', () => {
                     },
                 },
             ],
+        };
+        mockGatewayAuthSessionList.mockResolvedValue({ sessions: [] });
+        jest.mocked(mobileClientBinding.scope).mockReturnValue({
+            getSnapshot: () => ({ payload: { auth_sessions: authoritative } }) as never,
+            subscribe: () => () => {},
         });
 
         await expect(listMobileGatewaySessions()).resolves.toEqual({

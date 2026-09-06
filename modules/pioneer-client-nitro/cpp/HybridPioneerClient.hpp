@@ -41,7 +41,9 @@ public:
   std::string initializeJson(const std::string& configJson) override;
   std::string clientIntentDispatchJson(const std::string& inputJson) override;
   std::string clientScopedSnapshotJson(const std::string& inputJson) override;
+  std::shared_ptr<margelo::nitro::Promise<std::string>> gatewaySessionValidateJson(const std::string& inputJson) override;
   std::string clientChangeBatchJson(const std::string& inputJson) override;
+  std::shared_ptr<margelo::nitro::Promise<std::string>> clientWaitPublicationsJson(const std::string& inputJson) override;
   std::string clientEffectCompleteJson(const std::string& inputJson) override;
   std::string clientEffectCancelJson(const std::string& inputJson) override;
   std::string clientSequenceGapResnapshotJson(const std::string& inputJson) override;
@@ -137,6 +139,14 @@ public:
   std::shared_ptr<margelo::nitro::Promise<std::string>> threadParticipantAddJson(
       const std::string& inputJson) override;
   std::shared_ptr<margelo::nitro::Promise<std::string>> threadParticipantRemoveJson(
+      const std::string& inputJson) override;
+  std::string authorizationAccessChangePlanJson(const std::string& inputJson) override;
+  std::string gatewayTransportReserveJson(const std::string& inputJson) override;
+  std::string gatewayTransportReleaseJson(const std::string& inputJson) override;
+  std::shared_ptr<margelo::nitro::Promise<std::string>> gatewayTransportWaitJson(const std::string& inputJson) override;
+  std::shared_ptr<margelo::nitro::Promise<std::string>> gatewaySessionEnsureJson(
+      const std::string& inputJson) override;
+  std::shared_ptr<margelo::nitro::Promise<std::string>> gatewaySessionControlJson(
       const std::string& inputJson) override;
   std::shared_ptr<margelo::nitro::Promise<std::string>> gatewaySessionReplaceAccessJson(
       const std::string& inputJson) override;

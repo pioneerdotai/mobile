@@ -5,7 +5,11 @@ import { applyActiveThreadEvent, openActiveThreadById } from '@/services/threads
 import { threadScopeQueryKeys } from '@/services/threads/scope';
 import { timelineQueryKeys } from '@/services/threads/timeline-query';
 import { administrationQueryKeys } from './query';
-import { applyMobileAdministrationEvent, isAdministrationEvent } from './events';
+import {
+    applyMobileAdministrationEvent,
+    applyPublishedMobilePolicyChange,
+    isAdministrationEvent,
+} from './events';
 
 jest.mock('@/client', () => ({
     pioneerClient: {
@@ -76,6 +80,65 @@ describe('administration realtime invalidation', () => {
         expect(queryClient.getQueryData(threadScope)).toBeUndefined();
         expect(queryClient.getQueryData(timeline)).toBeUndefined();
         expect(applyActiveThreadEvent).toHaveBeenCalledTimes(1);
+        queryClient.clear();
+    });
+
+    it('evicts protected caches before the native compatibility adapter completes', async () => {
+        const queryClient = new QueryClient();
+        const key = administrationQueryKeys.capabilities(
+            { gatewayId: 'gateway-a', connectionId: 7 },
+            'workspace-a',
+            'thread-a',
+        );
+        const timeline = timelineQueryKeys.threadSnapshot('thread-a');
+        queryClient.setQueryData(key, { authorization_revision: 6 });
+        queryClient.setQueryData(timeline, { secret: 'old prompt' });
+        let complete!: (value: never) => void;
+        jest.mocked(applyActiveThreadEvent).mockImplementationOnce(
+            () =>
+                new Promise((resolve) => {
+                    complete = resolve;
+                }),
+        );
+        const delivery = applyMobileAdministrationEvent(
+            event('authorization_projection_changed', {
+                policy_generation: 7,
+                change: 'role_assignment',
+                affected: { scope: 'principal', principal_id: 'P00000000000000000001' },
+            }),
+            queryClient,
+        );
+        expect(queryClient.getQueryData(key)).toBeUndefined();
+        expect(queryClient.getQueryData(timeline)).toBeUndefined();
+        complete({ snapshot: { thread_id: null } } as never);
+        await delivery;
+        queryClient.clear();
+    });
+
+    it('does not reopen a protected thread after its publication is superseded', async () => {
+        const queryClient = new QueryClient();
+        mockActiveThreadState.activeComposerThreadId = 'thread-a';
+        let current = true;
+        let complete!: (value: never) => void;
+        jest.mocked(applyActiveThreadEvent).mockImplementationOnce(
+            () =>
+                new Promise((resolve) => {
+                    complete = resolve;
+                }),
+        );
+        const delivery = applyPublishedMobilePolicyChange(
+            {
+                policy_generation: 7,
+                change: 'role_assignment',
+                affected: { scope: 'global' },
+            },
+            queryClient,
+            () => current,
+        );
+        current = false;
+        complete({ snapshot: { thread_id: null } } as never);
+        await delivery;
+        expect(openActiveThreadById).not.toHaveBeenCalled();
         queryClient.clear();
     });
 

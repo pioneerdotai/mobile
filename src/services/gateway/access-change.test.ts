@@ -17,6 +17,7 @@ jest.mock('@/client', () => ({
         }
     },
     pioneerClient: {
+        authorizationAccessChangePlan: jest.fn(),
         composerDomainTransition: jest.fn(
             ({ state, action }: { state: unknown; action: { Reset?: { defaults: unknown } } }) => ({
                 state: action.Reset?.defaults ?? state,
@@ -39,8 +40,11 @@ jest.mock('@/services/gateway/registry', () => ({
 }));
 
 import type { ClientActiveThreadEventResult, Workspace } from '@/client';
+import { pioneerClient } from '@/client';
+import type { IdentityAuthorizationPublication } from '@/client/generated/identity_authorization_publication';
 import {
     applyMobileAccessChangedEvent,
+    applyPublishedMobileAccessProjection,
     applyMobileAccessChangedLifecycle,
     beginMobileAuthorizationEpoch,
     failClosedMobileAccessChange,
@@ -94,6 +98,45 @@ describe('mobile access-change lifecycle', () => {
         useActiveThreadStore.getState().resetDefaultComposerModelSelection();
         useThreadTreeStore.getState().reset();
         useWorkspaceStore.getState().resetConnectionBootstrap();
+    });
+
+    it('applies the Client cleanup plan synchronously without waiting for native thread delivery', () => {
+        const queryClient = createQueryClient();
+        useWorkspaceStore.setState({ activeWorkspaceId: 'workspace-protected' });
+        useActiveThreadStore.setState({ activeComposerThreadId: 'thread-protected' });
+        const timeline = timelineQueryKeys.threadSnapshot('thread-protected');
+        queryClient.setQueryData(timeline, { secret: 'protected data' });
+        jest.mocked(pioneerClient.authorizationAccessChangePlan).mockReturnValue({
+            authorization_revision: 7,
+            workspace_id: 'workspace-protected',
+            change: 'thread_participant_removed',
+            apply: true,
+            invalidate_thread_ids: ['thread-protected'],
+            clear_active_workspace: false,
+            clear_active_thread: true,
+            clear_workspace_capability_projections: false,
+            effects: [],
+        });
+        const publication = {
+            connection_generation: 3,
+            authorization_change_sequence: 4,
+            access_change: {
+                authorization_revision: 7,
+                workspace_id: 'workspace-protected',
+                thread_id: 'thread-protected',
+                change: 'thread_participant_removed',
+                outcome: 'revoked',
+            },
+        } as IdentityAuthorizationPublication;
+        applyPublishedMobileAccessProjection(publication, queryClient);
+        expect(queryClient.getQueryData(timeline)).toBeUndefined();
+        expect(useActiveThreadStore.getState().activeComposerThreadId).toBeNull();
+        expect(useWorkspaceStore.getState().activeWorkspaceId).toBe('workspace-protected');
+        expect(mockApplyActiveThreadEvent).not.toHaveBeenCalled();
+        expect(pioneerClient.authorizationAccessChangePlan).toHaveBeenCalledWith(
+            expect.objectContaining({ connection_generation: 3, change_sequence: 4 }),
+        );
+        queryClient.clear();
     });
 
     it('invalidates provider snapshots only for workspace membership changes', () => {

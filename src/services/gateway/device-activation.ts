@@ -1,4 +1,5 @@
-import { pioneerClient } from '@/client';
+import { pioneerClient, mobileClientBinding } from '@/client';
+import type { IdentityAuthorizationPublication } from '@/client/generated/identity_authorization_publication';
 import type {
     AuthSessionGrant,
     ClientDeviceActivationParseResult,
@@ -368,7 +369,13 @@ const cleanupDeviceActivationSession = async (
     cleanupIssuedMobileSession(gateway_base_url, grant, DEVICE_ACTIVATION_TIMEOUT_MS);
 
 export const listMobileGatewaySessions = async () => {
-    return pioneerClient.gatewayAuthSessionList();
+    const scope = { kind: 'administration', workspace_id: null } as const;
+    mobileClientBinding.scope(scope);
+    await pioneerClient.gatewayAuthSessionList();
+    await mobileClientBinding.synchronize();
+    const publication = mobileClientBinding.scope(scope).getSnapshot()
+        ?.payload as IdentityAuthorizationPublication | null;
+    return { sessions: publication?.auth_sessions.sessions ?? [] };
 };
 
 export const revokeMobileGatewaySession = async (

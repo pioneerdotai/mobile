@@ -1,53 +1,73 @@
-import { describe, expect, it, jest } from '@jest/globals';
-
+import { beforeEach, describe, expect, it, jest } from '@jest/globals';
+import { pioneerClient } from '@/client';
 import {
     acquireGatewayTransportLease,
     runGatewayTransportTransition,
 } from './transport-coordinator';
 
-const deferred = () => {
-    let resolve!: () => void;
-    const promise = new Promise<void>((complete) => {
-        resolve = complete;
-    });
-    return { promise, resolve };
-};
+jest.mock('@/client', () => ({
+    pioneerClient: {
+        gatewayTransportReserve: jest.fn(),
+        gatewayTransportWait: jest.fn(),
+        gatewayTransportRelease: jest.fn(),
+    },
+}));
 
-describe('Gateway transport coordinator', () => {
-    it('waits for an active interaction before replacing the transport', async () => {
-        const release = await acquireGatewayTransportLease();
+describe('Gateway transport lease adapter', () => {
+    beforeEach(() => {
+        jest.resetAllMocks();
+        jest.mocked(pioneerClient.gatewayTransportReserve).mockReturnValue(17);
+        jest.mocked(pioneerClient.gatewayTransportRelease).mockReturnValue(true);
+    });
+
+    it('reserves synchronously and waits for the native grant before executing a transition', async () => {
+        let grant!: (value: boolean) => void;
+        jest.mocked(pioneerClient.gatewayTransportWait).mockReturnValue(
+            new Promise((resolve) => {
+                grant = resolve;
+            }),
+        );
         const operation = jest.fn(async () => 'connected');
         const transition = runGatewayTransportTransition(operation);
-
-        await Promise.resolve();
+        expect(pioneerClient.gatewayTransportReserve).toHaveBeenCalledWith({
+            schema_version: 1,
+            exclusive: true,
+        });
         expect(operation).not.toHaveBeenCalled();
-
-        release();
+        expect(pioneerClient.gatewayTransportRelease).not.toHaveBeenCalled();
+        grant(true);
         await expect(transition).resolves.toBe('connected');
-        expect(operation).toHaveBeenCalledTimes(1);
+        expect(pioneerClient.gatewayTransportRelease).toHaveBeenCalledWith({
+            schema_version: 1,
+            lease_id: 17,
+        });
     });
 
-    it('holds a new interaction until the current transition completes', async () => {
-        const gate = deferred();
-        const started = deferred();
-        const transition = runGatewayTransportTransition(async () => {
-            started.resolve();
-            await gate.promise;
+    it('releases the interactive token exactly once', async () => {
+        jest.mocked(pioneerClient.gatewayTransportWait).mockResolvedValue(true);
+        const release = await acquireGatewayTransportLease();
+        expect(pioneerClient.gatewayTransportReserve).toHaveBeenCalledWith({
+            schema_version: 1,
+            exclusive: false,
         });
-        await started.promise;
-
-        let leaseAcquired = false;
-        const lease = acquireGatewayTransportLease().then((release) => {
-            leaseAcquired = true;
-            return release;
-        });
-        await Promise.resolve();
-        expect(leaseAcquired).toBe(false);
-
-        gate.resolve();
-        await transition;
-        const release = await lease;
-        expect(leaseAcquired).toBe(true);
         release();
+        release();
+        expect(pioneerClient.gatewayTransportRelease).toHaveBeenCalledTimes(1);
+    });
+
+    it('releases on operation failure and on cancelled native acquisition', async () => {
+        jest.mocked(pioneerClient.gatewayTransportWait)
+            .mockResolvedValueOnce(true)
+            .mockResolvedValueOnce(false);
+        const error = new Error('synthetic failure');
+        await expect(
+            runGatewayTransportTransition(async () => {
+                throw error;
+            }),
+        ).rejects.toBe(error);
+        const operation = jest.fn(async () => undefined);
+        await expect(runGatewayTransportTransition(operation)).rejects.toThrow('cancelled');
+        expect(operation).not.toHaveBeenCalled();
+        expect(pioneerClient.gatewayTransportRelease).toHaveBeenCalledTimes(2);
     });
 });

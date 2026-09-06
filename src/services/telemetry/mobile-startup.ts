@@ -89,6 +89,24 @@ class MobileStartupTimeline {
         this.active.set(name, { startedAt: now() });
     }
 
+    recordNativeStage(
+        name: MobileStartupStageName,
+        timing: { started_at_unix_ms: number; duration_ms: number },
+        failed: boolean,
+    ): void {
+        if (this.finalized || this.completed.has(name)) {
+            return;
+        }
+        this.active.delete(name);
+        this.completed.set(name, {
+            name,
+            start_offset_ms: Math.max(0, timing.started_at_unix_ms - startupWallClockOrigin),
+            duration_ms: Math.max(0, timing.duration_ms),
+            failed,
+            cancelled: false,
+        });
+    }
+
     succeed(name: MobileStartupStageName): void {
         this.finishStage(name, 'ok');
     }

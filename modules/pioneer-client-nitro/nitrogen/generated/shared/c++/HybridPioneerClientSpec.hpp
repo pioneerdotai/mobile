@@ -55,6 +55,7 @@ namespace margelo::nitro::pioneer::client {
       virtual std::string clientIntentDispatchJson(const std::string& inputJson) = 0;
       virtual std::string clientScopedSnapshotJson(const std::string& inputJson) = 0;
       virtual std::string clientChangeBatchJson(const std::string& inputJson) = 0;
+      virtual std::shared_ptr<Promise<std::string>> clientWaitPublicationsJson(const std::string& inputJson) = 0;
       virtual std::string clientEffectCompleteJson(const std::string& inputJson) = 0;
       virtual std::string clientEffectCancelJson(const std::string& inputJson) = 0;
       virtual std::string clientSequenceGapResnapshotJson(const std::string& inputJson) = 0;
@@ -69,6 +70,7 @@ namespace margelo::nitro::pioneer::client {
       virtual std::shared_ptr<Promise<std::string>> gatewayPlanDeleteRemoteRegistryJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> gatewayPlanSetWorkspaceRegistryJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> gatewaySessionLifecycleReduceJson(const std::string& inputJson) = 0;
+      virtual std::shared_ptr<Promise<std::string>> gatewaySessionValidateJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> gatewayDeviceActivationPresentationJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> gatewayDeviceActivationParseJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> gatewayAuthRefreshJson(const std::string& inputJson) = 0;
@@ -106,6 +108,12 @@ namespace margelo::nitro::pioneer::client {
       virtual std::shared_ptr<Promise<std::string>> threadUpdateJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> threadParticipantAddJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> threadParticipantRemoveJson(const std::string& inputJson) = 0;
+      virtual std::string authorizationAccessChangePlanJson(const std::string& inputJson) = 0;
+      virtual std::string gatewayTransportReserveJson(const std::string& inputJson) = 0;
+      virtual std::shared_ptr<Promise<std::string>> gatewayTransportWaitJson(const std::string& inputJson) = 0;
+      virtual std::string gatewayTransportReleaseJson(const std::string& inputJson) = 0;
+      virtual std::shared_ptr<Promise<std::string>> gatewaySessionEnsureJson(const std::string& inputJson) = 0;
+      virtual std::shared_ptr<Promise<std::string>> gatewaySessionControlJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> gatewaySessionReplaceAccessJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> gatewaySettingsGetJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> gatewaySettingsUpdateJson(const std::string& inputJson) = 0;

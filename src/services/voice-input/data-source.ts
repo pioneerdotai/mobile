@@ -5,8 +5,10 @@ import { AppState } from 'react-native';
 import { useGatewayStore } from '@/stores/gateway';
 import { useWorkspaceStore } from '@/stores/workspace';
 import type { VoiceInputGatewayTarget } from './gateway-target';
-import { handleVoiceInputGatewayEvent, refetchVoiceInputAfterResume } from './lifecycle';
-import { clearVoiceInputQueries } from './query';
+import { refetchVoiceInputAfterResume } from './lifecycle';
+import { mobileClientBinding } from '@/client';
+import type { GatewaySettingsStore } from '@/client/generated/gateway_settings_store';
+import { clearVoiceInputQueries, applyPublishedVoiceInputSettings } from './query';
 
 export type VoiceInputDataSourceState =
     | Readonly<{
@@ -64,10 +66,6 @@ export const useVoiceInputDataSourceState = (): VoiceInputDataSourceState => {
 export const useVoiceInputGatewayQueryLifecycle = (): void => {
     const queryClient = useQueryClient();
     const state = useVoiceInputDataSourceState();
-    const lastEvent = useGatewayStore((store) => store.lastEvent);
-    const lastEventSerial = useGatewayStore((store) => store.lastEventSerial);
-    const lastEventGatewayId = useGatewayStore((store) => store.lastEventGatewayId);
-    const lastEventConnectionId = useGatewayStore((store) => store.lastEventConnectionId);
     const identity =
         state.kind === 'online' ? `${state.gatewayId}:${state.target.connectionId}` : null;
     const previousIdentityRef = useRef<string | null | undefined>(undefined);
@@ -83,23 +81,17 @@ export const useVoiceInputGatewayQueryLifecycle = (): void => {
     }, [identity, queryClient]);
 
     useEffect(() => {
-        void handleVoiceInputGatewayEvent(
-            queryClient,
-            state.target,
-            {
-                gatewayId: lastEventGatewayId,
-                connectionId: lastEventConnectionId,
-            },
-            lastEvent,
-        );
-    }, [
-        lastEvent,
-        lastEventConnectionId,
-        lastEventGatewayId,
-        lastEventSerial,
-        queryClient,
-        state.target,
-    ]);
+        const binding = mobileClientBinding.scope({ kind: 'settings' });
+        const apply = () => {
+            const publication = binding.getSnapshot()?.payload as GatewaySettingsStore | undefined;
+            if (publication && state.target) {
+                applyPublishedVoiceInputSettings(queryClient, state.target, publication);
+            }
+        };
+        const unregister = binding.subscribe(apply);
+        apply();
+        return unregister;
+    }, [queryClient, state.target]);
 
     useEffect(() => {
         const subscription = AppState.addEventListener('change', (nextState) => {

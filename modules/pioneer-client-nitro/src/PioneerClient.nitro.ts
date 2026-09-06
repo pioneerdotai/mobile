@@ -6,6 +6,7 @@ export interface PioneerClient extends HybridObject<{ ios: 'c++'; android: 'c++'
     clientIntentDispatchJson(inputJson: string): string;
     clientScopedSnapshotJson(inputJson: string): string;
     clientChangeBatchJson(inputJson: string): string;
+    clientWaitPublicationsJson(inputJson: string): Promise<string>;
     clientEffectCompleteJson(inputJson: string): string;
     clientEffectCancelJson(inputJson: string): string;
     clientSequenceGapResnapshotJson(inputJson: string): string;
@@ -20,6 +21,7 @@ export interface PioneerClient extends HybridObject<{ ios: 'c++'; android: 'c++'
     gatewayPlanDeleteRemoteRegistryJson(inputJson: string): Promise<string>;
     gatewayPlanSetWorkspaceRegistryJson(inputJson: string): Promise<string>;
     gatewaySessionLifecycleReduceJson(inputJson: string): Promise<string>;
+    gatewaySessionValidateJson(inputJson: string): Promise<string>;
     gatewayDeviceActivationPresentationJson(inputJson: string): Promise<string>;
     gatewayDeviceActivationParseJson(inputJson: string): Promise<string>;
     gatewayAuthRefreshJson(inputJson: string): Promise<string>;
@@ -57,6 +59,12 @@ export interface PioneerClient extends HybridObject<{ ios: 'c++'; android: 'c++'
     threadUpdateJson(inputJson: string): Promise<string>;
     threadParticipantAddJson(inputJson: string): Promise<string>;
     threadParticipantRemoveJson(inputJson: string): Promise<string>;
+    authorizationAccessChangePlanJson(inputJson: string): string;
+    gatewayTransportReserveJson(inputJson: string): string;
+    gatewayTransportWaitJson(inputJson: string): Promise<string>;
+    gatewayTransportReleaseJson(inputJson: string): string;
+    gatewaySessionEnsureJson(inputJson: string): Promise<string>;
+    gatewaySessionControlJson(inputJson: string): Promise<string>;
     gatewaySessionReplaceAccessJson(inputJson: string): Promise<string>;
     gatewaySettingsGetJson(inputJson: string): Promise<string>;
     gatewaySettingsUpdateJson(inputJson: string): Promise<string>;

@@ -1,6 +1,7 @@
 import type { QueryClient } from '@tanstack/react-query';
 
-import { pioneerClient } from '@/client';
+import { pioneerClient, mobileClientBinding } from '@/client';
+import type { GatewaySettingsStore } from '@/client/generated/gateway_settings_store';
 import type { ClientVoiceInputPlanResult, GatewaySettingsGetResponse } from '@/client';
 import { requireVoiceInputGatewayTarget, type VoiceInputGatewayTarget } from './gateway-target';
 import { voiceInputPollInterval } from './presentation';
@@ -34,9 +35,18 @@ export const fetchVoiceInputSettings = async (
     target: VoiceInputGatewayTarget,
 ): Promise<GatewaySettingsGetResponse> => {
     requireVoiceInputGatewayTarget(target);
-    const response = await pioneerClient.gatewaySettingsGet();
+    const scope = { kind: 'settings' } as const;
+    mobileClientBinding.scope(scope);
+    await pioneerClient.gatewaySettingsGet();
     requireVoiceInputGatewayTarget(target);
-    return response;
+    await mobileClientBinding.synchronize();
+    requireVoiceInputGatewayTarget(target);
+    const publication = mobileClientBinding.scope(scope).getSnapshot()
+        ?.payload as GatewaySettingsStore | null;
+    if (!publication?.settings) {
+        throw new Error('Gateway settings are no longer available');
+    }
+    return { settings: publication.settings };
 };
 
 export const reduceVoiceInputStatus = (
@@ -77,4 +87,33 @@ export const clearVoiceInputQueries = (queryClient: QueryClient): Promise<void> 
     const cancellation = queryClient.cancelQueries({ queryKey: voiceInputQueryKeys.all });
     queryClient.removeQueries({ queryKey: voiceInputQueryKeys.all });
     return cancellation;
+};
+
+/** Apply the accepted Client settings revision to the legacy voice query views. */
+export const applyPublishedVoiceInputSettings = (
+    queryClient: QueryClient,
+    target: VoiceInputGatewayTarget,
+    publication: GatewaySettingsStore,
+): void => {
+    try {
+        requireVoiceInputGatewayTarget(target);
+    } catch {
+        return;
+    }
+    if (!publication.settings && !publication.voice_input) {
+        void queryClient.cancelQueries({ queryKey: voiceInputQueryKeys.gateway(target.gatewayId) });
+        queryClient.removeQueries({ queryKey: voiceInputQueryKeys.gateway(target.gatewayId) });
+        return;
+    }
+    if (publication.settings) {
+        queryClient.setQueryData(voiceInputQueryKeys.settings(target), {
+            settings: publication.settings,
+        });
+    }
+    if (publication.voice_input) {
+        queryClient.setQueryData(
+            voiceInputQueryKeys.status(target),
+            reduceVoiceInputStatus(publication.voice_input),
+        );
+    }
 };

@@ -1,80 +1,40 @@
+import { pioneerClient } from '@/client';
+
 type ReleaseTransportLease = () => void;
 
-let transitionTail: Promise<void> = Promise.resolve();
-let activeLeaseCount = 0;
-let idleWaiters: (() => void)[] = [];
-
-const waitForActiveLeases = (): Promise<void> => {
-    if (activeLeaseCount === 0) {
-        return Promise.resolve();
+const acquireTransport = async (exclusive: boolean): Promise<ReleaseTransportLease> => {
+    const lease_id = pioneerClient.gatewayTransportReserve({ schema_version: 1, exclusive });
+    const request = { schema_version: 1, lease_id };
+    try {
+        if (!(await pioneerClient.gatewayTransportWait(request))) {
+            throw new Error('Gateway transport reservation was cancelled');
+        }
+    } catch (error) {
+        pioneerClient.gatewayTransportRelease(request);
+        throw error;
     }
-
-    return new Promise((resolve) => {
-        idleWaiters.push(resolve);
-    });
+    let released = false;
+    return () => {
+        if (released) {
+            return;
+        }
+        released = true;
+        pioneerClient.gatewayTransportRelease(request);
+    };
 };
 
-const releaseActiveLease = (): void => {
-    activeLeaseCount -= 1;
-    if (activeLeaseCount !== 0) {
-        return;
-    }
-
-    const waiters = idleWaiters;
-    idleWaiters = [];
-    for (const resolve of waiters) {
-        resolve();
-    }
-};
-
-/**
- * Serialize a connection- or Workspace-scoped transport transition.
- * Registration is synchronous, so new composer/Voice leases wait immediately;
- * already running interactions finish before the transition starts.
- */
+/** Reserve the transition synchronously; Client orders it against interactive leases. */
 export const runGatewayTransportTransition = async <T>(operation: () => Promise<T>): Promise<T> => {
-    const predecessor = transitionTail;
-    let completeTransition!: () => void;
-    const completion = new Promise<void>((resolve) => {
-        completeTransition = resolve;
-    });
-    transitionTail = predecessor.catch(() => undefined).then(() => completion);
-
-    await predecessor.catch(() => undefined);
-    await waitForActiveLeases();
-
+    const release = await acquireTransport(true);
     try {
         return await operation();
     } finally {
-        completeTransition();
+        release();
     }
 };
 
-/** Acquire a stable transport for an interactive operation. */
-export const acquireGatewayTransportLease = async (): Promise<ReleaseTransportLease> => {
-    while (true) {
-        const observedTransition = transitionTail;
-        await observedTransition.catch(() => undefined);
-        if (observedTransition !== transitionTail) {
-            continue;
-        }
-
-        activeLeaseCount += 1;
-        if (observedTransition !== transitionTail) {
-            releaseActiveLease();
-            continue;
-        }
-
-        let released = false;
-        return () => {
-            if (released) {
-                return;
-            }
-            released = true;
-            releaseActiveLease();
-        };
-    }
-};
+export const acquireGatewayTransportLease = (): Promise<ReleaseTransportLease> =>
+    acquireTransport(false);
 
 export const withGatewayTransportLease = async <T>(operation: () => Promise<T>): Promise<T> => {
     const release = await acquireGatewayTransportLease();

@@ -16,6 +16,9 @@ char* pioneer_client_ffi_client_initialize(PioneerClientFfi* client, const char*
 char* pioneer_client_ffi_client_intent_dispatch(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_client_scoped_snapshot(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_client_change_batch(PioneerClientFfi* client, const char* input_json);
+char* pioneer_client_ffi_client_wait_publications(PioneerClientFfi* client, const char* input_json);
+char* pioneer_client_ffi_client_shutdown(PioneerClientFfi* client, const char* input_json);
+char* pioneer_client_ffi_gateway_session_validate(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_client_effect_complete(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_client_effect_cancel(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_client_sequence_gap_resnapshot(PioneerClientFfi* client, const char* input_json);
@@ -67,6 +70,12 @@ char* pioneer_client_ffi_thread_participants_list(PioneerClientFfi* client, cons
 char* pioneer_client_ffi_thread_update(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_thread_participant_add(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_thread_participant_remove(PioneerClientFfi* client, const char* input_json);
+char* pioneer_client_ffi_gateway_session_ensure(PioneerClientFfi* client, const char* input_json);
+char* pioneer_client_ffi_authorization_access_change_plan(PioneerClientFfi* client, const char* input_json);
+char* pioneer_client_ffi_gateway_transport_reserve(PioneerClientFfi* client, const char* input_json);
+char* pioneer_client_ffi_gateway_transport_wait(PioneerClientFfi* client, const char* input_json);
+char* pioneer_client_ffi_gateway_transport_release(PioneerClientFfi* client, const char* input_json);
+char* pioneer_client_ffi_gateway_session_control(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_gateway_session_replace_access(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_gateway_settings_get(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_gateway_settings_update(PioneerClientFfi* client, const char* input_json);

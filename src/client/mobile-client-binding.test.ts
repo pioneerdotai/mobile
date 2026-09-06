@@ -56,6 +56,31 @@ const bridgeFixture = (initial: ClientScopedSnapshotDto | null) => {
 };
 
 describe('MobileClientBinding', () => {
+    test('synchronization does not long-poll when the requested revision is already applied', async () => {
+        const current = snapshot(1, []);
+        const fixture = bridgeFixture(current);
+        let waits = 0;
+        const binding = new MobileClientBinding({
+            ...fixture.bridge,
+            waitForPublications: async () => {
+                waits += 1;
+                return {
+                    schema_version: 1,
+                    closed: false,
+                    effects: [],
+                    sequence: 1,
+                    resnapshot: false,
+                    changes: [{ sequence: 1, predecessor: null, snapshots: [current] }],
+                };
+            },
+        });
+        binding.scope(settingsScope);
+        await binding.synchronize();
+        expect(waits).toBe(1);
+        await binding.synchronize();
+        expect(waits).toBe(1);
+    });
+
     test('an absent resnapshot cannot be undone by an older queued publication', () => {
         const fixture = bridgeFixture(snapshot(1, [{ id: 'private', revision: 1 }]));
         const binding = new MobileClientBinding(fixture.bridge);
@@ -279,4 +304,92 @@ describe('MobileClientBinding', () => {
         fixture.batches.push({ schema_version: 2, changes: [] });
         expect(() => binding.drain(settingsScope)).toThrow('Unsupported Mobile Client schema');
     });
+});
+
+test('process change set installs every protected scope before invoking observers', () => {
+    const fixture = bridgeFixture(null);
+    const binding = new MobileClientBinding(fixture.bridge);
+    const settings = binding.scope(settingsScope);
+    const provider = binding.scope(providerScope);
+    const observations: unknown[] = [];
+    settings.subscribe(() => observations.push(provider.getSnapshot()?.payload));
+    const cleared = (scope: ClientScope) => ({ ...snapshot(1, [], scope), payload: null });
+    binding.applyProcessBatch({
+        closed: false,
+        effects: [],
+        schema_version: 1,
+        sequence: 1,
+        resnapshot: false,
+        changes: [
+            {
+                sequence: 1,
+                predecessor: null,
+                snapshots: [cleared(settingsScope), cleared(providerScope)],
+            },
+        ],
+    });
+    expect(observations).toEqual([null]);
+    const retained = settings.getSnapshot();
+    expect(() =>
+        binding.applyProcessBatch({
+            closed: false,
+            effects: [],
+            schema_version: 1,
+            sequence: 2,
+            resnapshot: false,
+            changes: [
+                {
+                    sequence: 2,
+                    predecessor: 1,
+                    snapshots: [
+                        snapshot(2, []),
+                        { ...snapshot(2, [], providerScope), schema_version: 999 },
+                    ],
+                },
+            ],
+        }),
+    ).toThrow();
+    expect(settings.getSnapshot()).toBe(retained);
+    expect(observations).toEqual([null]);
+});
+
+test('process shutdown closes native delivery and clears every retained scope before callbacks', () => {
+    const fixture = bridgeFixture(snapshot(1, []));
+    const binding = new MobileClientBinding(fixture.bridge);
+    const store = binding.scope(settingsScope);
+    let closed = 0;
+    binding.attachPlatformEffects(
+        () => {
+            throw new Error('closed process cannot deliver effects');
+        },
+        () => {
+            closed++;
+        },
+    );
+    let notified = 0;
+    store.subscribe(() => {
+        expect(store.getSnapshot()).toBeNull();
+        notified++;
+    });
+    binding.applyProcessBatch({
+        schema_version: 1,
+        closed: true,
+        sequence: 0,
+        resnapshot: false,
+        changes: [],
+        effects: [],
+    });
+    expect(closed).toBe(1);
+    expect(notified).toBe(1);
+    expect(store.getSnapshot()).toBeNull();
+    binding.applyProcessBatch({
+        schema_version: 1,
+        closed: false,
+        sequence: 0,
+        resnapshot: false,
+        changes: [],
+        effects: [],
+    });
+    expect(store.getSnapshot()).toBeNull();
+    expect(() => binding.attachPlatformEffects(() => {})).toThrow('closed');
 });

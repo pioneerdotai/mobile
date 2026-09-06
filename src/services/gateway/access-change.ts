@@ -1,6 +1,8 @@
+import type { IdentityAuthorizationPublication } from '@/client/generated/identity_authorization_publication';
 import type { QueryClient } from '@tanstack/react-query';
 
 import type { ClientActiveThreadEventResult, ClientEvent } from '@/client';
+import { pioneerClient } from '@/client';
 import {
     clearAdministrationQueries,
     invalidateAdministrationTargets,
@@ -154,10 +156,69 @@ export const applyMobileAccessChangedEvent = async (
     queryClient: QueryClient,
 ): Promise<AccessChangedLifecycle | null> => {
     const notification = accessChangedNotification(event);
-    if (!notification) {
+    return notification ? applyPublishedMobileAccessChange(notification, queryClient) : null;
+};
+
+/** Synchronous publication-to-legacy projection; Client alone chooses cleanup scope. */
+export const applyPublishedMobileAccessProjection = (
+    publication: IdentityAuthorizationPublication,
+    queryClient: QueryClient,
+): AccessChangedLifecycle | null => {
+    const notification = publication.access_change;
+    if (!notification) return null;
+    const workspace = useWorkspaceStore.getState();
+    const tree = useThreadTreeStore.getState();
+    const activeThreadId = useActiveThreadStore.getState().activeComposerThreadId;
+    const knownThreads = Object.keys(tree.snapshot?.threads_by_id ?? {}).map((threadId) => ({
+        thread_id: threadId,
+        workspace_id: tree.workspaceId!,
+    }));
+    if (
+        activeThreadId &&
+        workspace.activeWorkspaceId &&
+        !knownThreads.some((scope) => scope.thread_id === activeThreadId)
+    ) {
+        knownThreads.push({ thread_id: activeThreadId, workspace_id: workspace.activeWorkspaceId });
+    }
+    const plan = pioneerClient.authorizationAccessChangePlan({
+        schema_version: 1,
+        connection_generation: publication.connection_generation,
+        change_sequence: publication.authorization_change_sequence,
+        active_workspace_id: workspace.activeWorkspaceId,
+        active_thread_id: activeThreadId,
+        known_threads: knownThreads,
+    });
+    const lifecycle: AccessChangedLifecycle = {
+        authorization_revision: plan.authorization_revision,
+        workspace_id: plan.workspace_id,
+        change: plan.change,
+        applied: plan.apply,
+        active_scope_cleared: plan.clear_active_workspace,
+        active_thread_cleared: plan.clear_active_thread,
+        refresh_workspace_catalog: plan.effects.some((effect) => effect === 'RefreshWorkspaceList'),
+    };
+    applyMobileAccessChangedLifecycle(
+        lifecycle,
+        queryClient,
+        plan.invalidate_thread_ids,
+        notification.outcome,
+    );
+    return lifecycle;
+};
+
+/** Applies accepted Client authorization input to the unported thread/workspace owners. */
+export const applyPublishedMobileAccessChange = async (
+    notification: AccessChangedNotification,
+    queryClient: QueryClient,
+    isCurrent: () => boolean = () => true,
+    publishedLifecycle?: AccessChangedLifecycle | null,
+): Promise<AccessChangedLifecycle | null> => {
+    if (!isCurrent()) {
         return null;
     }
-
+    const event: ClientEvent = {
+        GatewayNotification: { kind: 'access_changed', params: notification },
+    };
     const expandedKeys = useActiveThreadStore.getState().expandedKeys;
     const threadId = notification.thread_id?.trim();
     const invalidatedThreadIds = threadId ? [threadId] : [];
@@ -165,10 +226,20 @@ export const applyMobileAccessChangedEvent = async (
         event,
         expanded_keys: expandedKeys,
     });
-    const lifecycle = result.access_changed ?? null;
+    if (!isCurrent()) {
+        return null;
+    }
+    const lifecycle =
+        publishedLifecycle === undefined ? (result.access_changed ?? null) : publishedLifecycle;
     await invalidateAdministrationTargets(queryClient, result.administration_refetch ?? []);
+    if (!isCurrent()) {
+        return null;
+    }
     await resetAuthorizationCapabilityQueries(queryClient);
-    if (lifecycle) {
+    if (!isCurrent()) {
+        return null;
+    }
+    if (lifecycle && publishedLifecycle === undefined) {
         applyMobileAccessChangedLifecycle(
             lifecycle,
             queryClient,

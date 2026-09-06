@@ -82,6 +82,14 @@ export type SessionTerminalReason =
   | 'refresh_credential_invalid';
 export type SessionLifecycleState =
   | {
+      data: {
+        metadata?: GatewaySessionMetadata | null;
+        [k: string]: unknown;
+      };
+      kind: 'suspended';
+      [k: string]: unknown;
+    }
+  | {
       kind: 'no_session';
       [k: string]: unknown;
     }

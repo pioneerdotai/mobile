@@ -4,7 +4,7 @@ import path from 'node:path';
 import { QueryClient } from '@tanstack/react-query';
 
 import type { GatewaySettingsGetResponse } from '@/client';
-import { pioneerClient } from '@/client';
+import { pioneerClient, mobileClientBinding } from '@/client';
 import { useGatewayStore } from '@/stores/gateway';
 import { useWorkspaceStore } from '@/stores/workspace';
 import { voiceInputDataSourceState } from './data-source';
@@ -14,6 +14,7 @@ import { VOICE_INPUT_POLL_INTERVAL_MS, voiceInputPollInterval } from './presenta
 import { clearVoiceInputQueries, fetchVoiceInputSettings, voiceInputQueryKeys } from './query';
 
 jest.mock('@/client', () => ({
+    mobileClientBinding: { synchronize: jest.fn(async () => undefined), scope: jest.fn() },
     pioneerClient: {
         gatewaySettingsGet: jest.fn(),
         voiceInputSettingsPlan: jest.fn(),
@@ -180,9 +181,13 @@ describe('mobile Voice Input composer integration gate', () => {
         const remoteTarget = target('remote-gateway', 17);
         const response = settingsResponse(true, 'model-a', 'ready');
         jest.mocked(pioneerClient.gatewaySettingsGet).mockResolvedValue(response as never);
+        jest.mocked(mobileClientBinding.scope).mockReturnValue({
+            getSnapshot: () => ({ payload: response }) as never,
+            subscribe: () => () => {},
+        });
 
         expect(activeVoiceInputGatewayTarget()).toEqual(remoteTarget);
-        await expect(fetchVoiceInputSettings(remoteTarget)).resolves.toBe(response);
+        await expect(fetchVoiceInputSettings(remoteTarget)).resolves.toEqual(response);
         expect(pioneerClient.gatewaySettingsGet).toHaveBeenCalledTimes(1);
     });
 

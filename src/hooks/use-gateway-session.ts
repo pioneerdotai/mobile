@@ -1,3 +1,4 @@
+import type { IdentityAuthorizationPublication } from '@/client/generated/identity_authorization_publication';
 import * as Network from 'expo-network';
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo } from 'react';
@@ -5,16 +6,16 @@ import { useTranslation } from 'react-i18next';
 import { AppState } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
 
-import type { ClientEvent, GatewayEndpoint } from '@/client';
+import { mobileClientBinding, type ClientEvent, type GatewayEndpoint } from '@/client';
 import { redactAuthText } from '@/services/auth-redaction';
 import {
-    accessChangedWorkspaceId,
-    applyMobileAccessChangedEvent,
+    applyPublishedMobileAccessChange,
+    applyPublishedMobileAccessProjection,
     beginMobileAuthorizationEpoch,
-    failClosedMobileAccessChange,
-    providerAccessChangedWorkspaceId,
 } from '@/services/gateway/access-change';
 import {
+    applyPublishedMobilePolicyChange,
+    evictPublishedMobilePolicyProjection,
     applyMobileAdministrationEvent,
     isAdministrationEvent,
 } from '@/services/administration/events';
@@ -23,15 +24,14 @@ import {
     disconnectGateway,
     gatewaySessionProjection,
     gatewaySessionRefreshDelayMs,
-    markMobileGatewayConnectionDisconnected,
     subscribeGatewaySessionDiagnostics,
     subscribeGatewayEvents,
     subscribeMobileSessionProjection,
 } from '@/services/gateway/session';
 import {
     MobileSessionTerminalError,
-    markMobileGatewaySessionTerminal,
-    terminalReasonFromMachineCode,
+    gatewaySessionPublication,
+    mobileSessionReconnectDelayMs,
 } from '@/services/gateway/session-coordinator';
 import type {
     MobileSessionDiagnosticEvent,
@@ -59,12 +59,6 @@ const errorMessage = (error: unknown, fallback: string): string => {
 };
 
 const sessionErrorFromClientEvent = (event: ClientEvent): string | null | undefined => {
-    if ('GatewayConnectionChanged' in event) {
-        const connection = event.GatewayConnectionChanged;
-        return connection.connection_state === 'Disconnected' && connection.gateway_error
-            ? redactAuthText(connection.gateway_error)
-            : null;
-    }
     if ('Error' in event) {
         return redactAuthText(event.Error.message);
     }
@@ -108,7 +102,6 @@ export const useGatewaySession = (
         let activeConnectionId: number | null = null;
         let refreshTimer: ReturnType<typeof setTimeout> | null = null;
         let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
-        let reconnectAttempt = 0;
         let reconnectPending = false;
         let connectInFlight: Promise<void> | null = null;
         let silentReplacementInFlight = false;
@@ -182,7 +175,13 @@ export const useGatewaySession = (
             if (!startupSessionInstrumentationActive) {
                 return;
             }
-            if (event.outcome === 'started') {
+            if (event.timing) {
+                mobileStartup.recordNativeStage(
+                    event.stage,
+                    event.timing,
+                    event.outcome === 'failed',
+                );
+            } else if (event.outcome === 'started') {
                 mobileStartup.begin(event.stage);
             } else if (event.outcome === 'succeeded') {
                 mobileStartup.succeed(event.stage);
@@ -211,8 +210,10 @@ export const useGatewaySession = (
             if (!appActive || cancelled) {
                 return;
             }
-            const delay = Math.min(500 * 2 ** reconnectAttempt, 10_000);
-            reconnectAttempt += 1;
+            const delay = mobileSessionReconnectDelayMs(sessionGateway.id);
+            if (delay === null) {
+                return;
+            }
             reconnectTimer = setTimeout(() => {
                 reconnectTimer = null;
                 void connect(activeConnectionId !== null);
@@ -300,7 +301,6 @@ export const useGatewaySession = (
                     // already connected and therefore had no phase change.
                     observeStartupSessionProjection(connection.projection);
                 }
-                reconnectAttempt = 0;
                 reconnectPending = false;
                 clearReconnectTimer();
                 scheduleRefresh(connect);
@@ -434,66 +434,161 @@ export const useGatewaySession = (
                 observeStartupSessionProjection(projection);
             },
         );
+        const unsubscribeTransport = mobileClientBinding
+            .scope({ kind: 'session' })
+            .subscribe(() => {
+                if (cancelled) {
+                    return;
+                }
+                const publication = gatewaySessionPublication();
+                const connection = publication?.connections[sessionGateway.id];
+                const projection = gatewaySessionProjection(sessionGateway.id);
+                if (projection.terminalReason) {
+                    clearRefreshTimer();
+                    clearReconnectTimer();
+                    beginAuthorizationEpoch();
+                    activeConnectionId = null;
+                    setConnectionId(null);
+                    setConnectionGatewayId(null);
+                    setConnectionState('Disconnected');
+                    setSessionError(projection.terminalReason);
+                    return;
+                }
+                if (connection?.refresh_requested && appActive) {
+                    void connect(true);
+                }
+                if (silentReplacementInFlight || backgroundTransitionInFlight || !appActive) {
+                    return;
+                }
+                if (publication?.startup.endpoint_id !== sessionGateway.id) {
+                    return;
+                }
+                const state = publication.status?.connection_state;
+                if (!state) {
+                    return;
+                }
+                if (
+                    activeConnectionId !== null &&
+                    useGatewayStore.getState().connectionState === 'Connected' &&
+                    (state === 'Connecting' || state === 'Reconnecting')
+                ) {
+                    return;
+                }
+                if (state === 'Disconnected' && activeConnectionId !== null) {
+                    void connect(true);
+                } else {
+                    setConnectionState(state);
+                }
+                setSessionError(
+                    publication.gateway_error ? redactAuthText(publication.gateway_error) : null,
+                );
+            });
         const unsubscribeDiagnostics = subscribeGatewaySessionDiagnostics(
             sessionGateway.id,
             observeStartupSessionDiagnostic,
         );
 
-        const handleGatewayEvent = async (event: ClientEvent): Promise<void> => {
+        const identityStore = mobileClientBinding.scope({
+            kind: 'administration',
+            workspace_id: null,
+        });
+        let acceptedAccessSequence = 0;
+        let acceptedConnectionGeneration: number | null = null;
+        let accessDelivery: Promise<void> = Promise.resolve();
+        const unsubscribeAuthorization = identityStore.subscribe(() => {
             if (cancelled) {
                 return;
             }
-            if (
-                (silentReplacementInFlight || backgroundTransitionInFlight) &&
-                'GatewayConnectionChanged' in event
-            ) {
-                // Planned token rotation is a transport implementation detail.
-                // Do not turn it into Connecting/Connected UI churn.
+            const publication = identityStore.getSnapshot()
+                ?.payload as IdentityAuthorizationPublication | null;
+            if (!publication) {
                 return;
             }
-            if ('GatewayConnectionChanged' in event) {
-                const nextState = event.GatewayConnectionChanged.connection_state;
-                const currentState = useGatewayStore.getState().connectionState;
-                if (
-                    activeConnectionId !== null &&
-                    currentState === 'Connected' &&
-                    (nextState === 'Connecting' || nextState === 'Reconnecting')
-                ) {
-                    // A replacement socket can enqueue its progress event just
-                    // before `connectGatewayEndpoint` resolves. Keep that late
-                    // transport event out of both UI state and thread reducers.
+            const generation = publication.connection_generation;
+            if (acceptedConnectionGeneration !== generation) {
+                if (acceptedConnectionGeneration !== null) {
+                    beginAuthorizationEpoch();
+                }
+                acceptedConnectionGeneration = generation;
+                acceptedAccessSequence =
+                    publication.access_change || publication.policy_change
+                        ? publication.authorization_change_sequence - 1
+                        : publication.authorization_change_sequence;
+            }
+            const change = publication.access_change;
+            const policy = publication.policy_change;
+            if (
+                (!change && !policy) ||
+                publication.authorization_change_sequence <= acceptedAccessSequence
+            ) {
+                return;
+            }
+            if (publication.authorization_change_sequence !== acceptedAccessSequence + 1) {
+                beginAuthorizationEpoch();
+            }
+            acceptedAccessSequence = publication.authorization_change_sequence;
+            const sequence = publication.authorization_change_sequence;
+            const isCurrent = () =>
+                !cancelled &&
+                acceptedConnectionGeneration === generation &&
+                acceptedAccessSequence === sequence;
+            if (change?.change === 'workspace_membership') {
+                clearCliRuntimeSummaries(change.workspace_id);
+            }
+            let publishedLifecycle = null;
+            try {
+                publishedLifecycle = change
+                    ? applyPublishedMobileAccessProjection(publication, queryClient)
+                    : null;
+            } catch {
+                beginAuthorizationEpoch();
+                return;
+            }
+            const policyEviction = policy
+                ? evictPublishedMobilePolicyProjection(policy, queryClient)
+                : undefined;
+            accessDelivery = accessDelivery.then(async () => {
+                if (!isCurrent()) {
                     return;
                 }
-            }
-            const accessChangedWorkspace = accessChangedWorkspaceId(event);
-            const providerAccessChangedWorkspace = providerAccessChangedWorkspaceId(event);
-            if (accessChangedWorkspace !== null) {
-                if (providerAccessChangedWorkspace !== null) {
-                    // Fence workspace-authorized runtime metadata before the
-                    // current-ACL lifecycle is applied. Thread-only access
-                    // changes leave this independent projection intact.
-                    clearCliRuntimeSummaries(providerAccessChangedWorkspace);
-                }
                 try {
-                    const lifecycle = await applyMobileAccessChangedEvent(event, queryClient);
+                    if (policy) {
+                        await applyPublishedMobilePolicyChange(
+                            policy,
+                            queryClient,
+                            isCurrent,
+                            policyEviction,
+                        );
+                        return;
+                    }
+                    if (!change) {
+                        return;
+                    }
+                    const lifecycle = await applyPublishedMobileAccessChange(
+                        change,
+                        queryClient,
+                        isCurrent,
+                        publishedLifecycle,
+                    );
                     if (
-                        providerAccessChangedWorkspace !== null &&
+                        isCurrent() &&
+                        change.change === 'workspace_membership' &&
                         lifecycle?.applied &&
-                        useWorkspaceStore.getState().activeWorkspaceId ===
-                            providerAccessChangedWorkspace
+                        useWorkspaceStore.getState().activeWorkspaceId === change.workspace_id
                     ) {
-                        // A retained membership/role change keeps the active
-                        // workspace but starts a new authorization generation.
-                        // Rehydrate the cache without initiating a provider
-                        // probe; cliRuntimeList only reads Gateway state.
-                        loadCliRuntimeSummariesInBackground(providerAccessChangedWorkspace);
+                        loadCliRuntimeSummariesInBackground(change.workspace_id);
                     }
                 } catch {
-                    // Cache eviction is fail-closed even if the native
-                    // projection cannot be reduced. Registry and session
-                    // credentials are deliberately untouched.
-                    failClosedMobileAccessChange(accessChangedWorkspace, queryClient);
+                    if (isCurrent()) {
+                        beginAuthorizationEpoch();
+                    }
                 }
+            });
+        });
+
+        const handleGatewayEvent = async (event: ClientEvent): Promise<void> => {
+            if (cancelled) {
+                return;
             }
             if (isAdministrationEvent(event)) {
                 try {
@@ -506,28 +601,7 @@ export const useGatewaySession = (
             setLastEvent(event, sessionGateway.id, activeConnectionId);
             if ('GatewayNotification' in event) {
                 const notification = event.GatewayNotification;
-                const currentSessionId = gatewaySessionProjection(sessionGateway.id).sessionId;
-                if (
-                    notification.kind === 'auth_access_expiring' &&
-                    notification.params.session_id === currentSessionId
-                ) {
-                    void connect(true);
-                } else if (
-                    notification.kind === 'auth_session_revoked' &&
-                    notification.params.session_id === currentSessionId
-                ) {
-                    clearRefreshTimer();
-                    beginAuthorizationEpoch();
-                    activeConnectionId = null;
-                    setConnectionId(null);
-                    await markMobileGatewaySessionTerminal(
-                        sessionGateway.id,
-                        notification.params.reason,
-                    );
-                    applyCurrentProjection();
-                    setConnectionState('Disconnected');
-                    setSessionError(notification.params.reason);
-                } else if (notification.kind === 'cli_runtime_status_changed') {
+                if (notification.kind === 'cli_runtime_status_changed') {
                     applyCliRuntimeSummaryUpdate(
                         notification.params.workspace_id,
                         notification.params.revision ?? 0,
@@ -539,32 +613,6 @@ export const useGatewaySession = (
                     notification.kind === 'cli_runtime_apps_changed'
                 ) {
                     loadCliRuntimeSummariesInBackground(notification.params.workspace_id);
-                }
-            }
-            if ('GatewayConnectionChanged' in event) {
-                const connection = event.GatewayConnectionChanged;
-                const state = connection.connection_state;
-                if (state === 'Disconnected') {
-                    markMobileGatewayConnectionDisconnected(sessionGateway.id);
-                    const terminalReason = terminalReasonFromMachineCode(connection.gateway_error);
-                    if (terminalReason) {
-                        clearRefreshTimer();
-                        beginAuthorizationEpoch();
-                        activeConnectionId = null;
-                        setConnectionId(null);
-                        await markMobileGatewaySessionTerminal(sessionGateway.id, terminalReason);
-                        setConnectionState('Disconnected');
-                    } else if (activeConnectionId !== null && appActive) {
-                        // A transient transport loss is not an authorization
-                        // epoch. Keep the last safe projection visible while
-                        // the existing coordinator restores the socket.
-                        void connect(true);
-                    } else {
-                        setConnectionState('Disconnected');
-                    }
-                    applyCurrentProjection();
-                } else {
-                    setConnectionState(state);
                 }
             }
             const nextSessionError = sessionErrorFromClientEvent(event);
@@ -606,6 +654,8 @@ export const useGatewaySession = (
             networkSubscription.remove();
             unsubscribeProjection();
             unsubscribeDiagnostics();
+            unsubscribeTransport();
+            unsubscribeAuthorization();
             unsubscribeGatewayEvents();
             setConnectionId(null);
             setConnectionGatewayId(null);

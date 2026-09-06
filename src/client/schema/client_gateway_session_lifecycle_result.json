@@ -295,6 +295,34 @@
         {
           "type": "object",
           "properties": {
+            "data": {
+              "type": "object",
+              "properties": {
+                "metadata": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/GatewaySessionMetadata"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              }
+            },
+            "kind": {
+              "type": "string",
+              "const": "suspended"
+            }
+          },
+          "required": [
+            "kind",
+            "data"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
             "kind": {
               "type": "string",
               "const": "no_session"

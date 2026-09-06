@@ -1,14 +1,20 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { QueryClient } from '@tanstack/react-query';
 
-import { pioneerClient } from '@/client';
+import { pioneerClient, mobileClientBinding } from '@/client';
 import { useGatewayStore } from '@/stores/gateway';
 import { useWorkspaceStore } from '@/stores/workspace';
 import { voiceInputDataSourceState } from './data-source';
 import type { VoiceInputGatewayTarget } from './gateway-target';
-import { clearVoiceInputQueries, fetchVoiceInputSettings, voiceInputQueryKeys } from './query';
+import {
+    clearVoiceInputQueries,
+    fetchVoiceInputSettings,
+    voiceInputQueryKeys,
+    applyPublishedVoiceInputSettings,
+} from './query';
 
 jest.mock('@/client', () => ({
+    mobileClientBinding: { synchronize: jest.fn(async () => undefined), scope: jest.fn() },
     pioneerClient: {
         gatewaySettingsGet: jest.fn(),
         voiceInputSettingsPlan: jest.fn(),
@@ -66,6 +72,10 @@ describe('active-Gateway Voice Input read model', () => {
 
     it('loads settings only for the active Gateway connection', async () => {
         connect('gateway-a', 7);
+        jest.mocked(mobileClientBinding.scope).mockReturnValue({
+            getSnapshot: () => ({ payload: { settings: { memory: {} } } }) as never,
+            subscribe: () => () => {},
+        });
         jest.mocked(pioneerClient.gatewaySettingsGet).mockResolvedValue({
             settings: { memory: {} },
         } as never);
@@ -110,6 +120,36 @@ describe('active-Gateway Voice Input read model', () => {
         ).toBe(error);
         expect(
             queryClient.getQueryState(voiceInputQueryKeys.settings(target('gateway-b', 8))),
+        ).toBeUndefined();
+    });
+
+    it('applies accepted settings to the exact current connection and evicts on authorization clearing', () => {
+        const queryClient = new QueryClient({
+            defaultOptions: { queries: { gcTime: Number.POSITIVE_INFINITY } },
+        });
+        connect('gateway-a', 7);
+        const publication = {
+            settings: { voice_input: { enabled: true } },
+            voice_input: null,
+            loading: false,
+            saving: false,
+            error: null,
+            vector_refill_refresh_requested: false,
+        } as never;
+        applyPublishedVoiceInputSettings(queryClient, target('gateway-a', 7), publication);
+        expect(
+            queryClient.getQueryData(voiceInputQueryKeys.settings(target('gateway-a', 7))),
+        ).toEqual({ settings: { voice_input: { enabled: true } } });
+        applyPublishedVoiceInputSettings(queryClient, target('gateway-b', 8), publication);
+        expect(
+            queryClient.getQueryData(voiceInputQueryKeys.settings(target('gateway-b', 8))),
+        ).toBeUndefined();
+        applyPublishedVoiceInputSettings(queryClient, target('gateway-a', 7), {
+            settings: null,
+            voice_input: null,
+        } as never);
+        expect(
+            queryClient.getQueryData(voiceInputQueryKeys.settings(target('gateway-a', 7))),
         ).toBeUndefined();
     });
 

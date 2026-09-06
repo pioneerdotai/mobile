@@ -21,8 +21,36 @@
     "result"
   ],
   "$defs": {
+    "AuthSessionId": {
+      "type": "string",
+      "maxLength": 21,
+      "minLength": 21,
+      "pattern": "^[A-Za-z0-9]{21}$"
+    },
     "ClientEffectResult": {
       "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "envelope": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/GatewaySessionEnvelope"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "kind": {
+              "type": "string",
+              "const": "gateway_session_envelope_loaded"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
         {
           "type": "object",
           "properties": {
@@ -52,6 +80,90 @@
           ]
         }
       ]
+    },
+    "DeviceId": {
+      "type": "string",
+      "maxLength": 21,
+      "minLength": 21,
+      "pattern": "^[A-Za-z0-9]{21}$"
+    },
+    "GatewayId": {
+      "type": "string",
+      "maxLength": 21,
+      "minLength": 21,
+      "pattern": "^[A-Za-z0-9]{21}$"
+    },
+    "GatewaySessionEnvelope": {
+      "type": "object",
+      "properties": {
+        "device_id": {
+          "$ref": "#/$defs/DeviceId"
+        },
+        "gateway_id": {
+          "$ref": "#/$defs/GatewayId"
+        },
+        "installation_id": {
+          "type": "string"
+        },
+        "pending_refresh_request_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "principal_id": {
+          "$ref": "#/$defs/PrincipalId"
+        },
+        "refresh_expires_at_unix": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "refresh_generation": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "refresh_token": {
+          "type": "string"
+        },
+        "schema_version": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "session_id": {
+          "$ref": "#/$defs/AuthSessionId"
+        },
+        "token_family_id": {
+          "$ref": "#/$defs/TokenFamilyId"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "gateway_id",
+        "principal_id",
+        "device_id",
+        "session_id",
+        "token_family_id",
+        "installation_id",
+        "refresh_generation",
+        "refresh_expires_at_unix",
+        "refresh_token"
+      ]
+    },
+    "PrincipalId": {
+      "type": "string",
+      "maxLength": 21,
+      "minLength": 21,
+      "pattern": "^[A-Za-z0-9]{21}$"
+    },
+    "TokenFamilyId": {
+      "type": "string",
+      "maxLength": 21,
+      "minLength": 21,
+      "pattern": "^[A-Za-z0-9]{21}$"
     }
   }
 }

@@ -1,0 +1,143 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ClientGatewaySessionEnsureRequest",
+  "type": "object",
+  "properties": {
+    "endpoint": {
+      "$ref": "#/$defs/GatewayEndpoint"
+    },
+    "installation_id": {
+      "type": "string"
+    },
+    "rejected_connection_id": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "uint64",
+      "minimum": 0
+    },
+    "timings": {
+      "$ref": "#/$defs/ClientGatewayWsTimings"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "endpoint",
+    "installation_id",
+    "timings"
+  ],
+  "$defs": {
+    "ClientGatewayWsTimings": {
+      "type": "object",
+      "properties": {
+        "connect_timeout_ms": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "ping_interval_ms": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "pong_timeout_ms": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "reconnect_initial_ms": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "reconnect_jitter_percent": {
+          "type": "integer",
+          "format": "uint8",
+          "maximum": 255,
+          "minimum": 0
+        },
+        "reconnect_max_ms": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "connect_timeout_ms",
+        "ping_interval_ms",
+        "pong_timeout_ms",
+        "reconnect_initial_ms",
+        "reconnect_max_ms",
+        "reconnect_jitter_percent"
+      ]
+    },
+    "GatewayEndpoint": {
+      "type": "object",
+      "properties": {
+        "gateway_base_url": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/GatewayEndpointKind"
+        },
+        "name": {
+          "type": "string"
+        },
+        "server_gateway_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/GatewayId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "service_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "session_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "workspace_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "gateway_base_url",
+        "kind"
+      ]
+    },
+    "GatewayEndpointKind": {
+      "type": "string",
+      "enum": [
+        "local",
+        "remote"
+      ]
+    },
+    "GatewayId": {
+      "type": "string",
+      "maxLength": 21,
+      "minLength": 21,
+      "pattern": "^[A-Za-z0-9]{21}$"
+    }
+  }
+}

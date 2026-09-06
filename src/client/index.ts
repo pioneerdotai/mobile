@@ -6,6 +6,7 @@ import {
 import { pioneerClient } from './native';
 
 const nativeMobileClientBridge: MobileClientBridge = {
+    waitForPublications: (sequence) => pioneerClient.clientWaitPublications(sequence),
     dispatch: (request) => pioneerClient.clientIntentDispatch(request),
     snapshot: (scope, afterRevision) =>
         pioneerClient.clientScopedSnapshot({

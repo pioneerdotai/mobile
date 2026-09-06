@@ -19,6 +19,7 @@ namespace margelo::nitro::pioneer::client {
       prototype.registerHybridMethod("clientIntentDispatchJson", &HybridPioneerClientSpec::clientIntentDispatchJson);
       prototype.registerHybridMethod("clientScopedSnapshotJson", &HybridPioneerClientSpec::clientScopedSnapshotJson);
       prototype.registerHybridMethod("clientChangeBatchJson", &HybridPioneerClientSpec::clientChangeBatchJson);
+      prototype.registerHybridMethod("clientWaitPublicationsJson", &HybridPioneerClientSpec::clientWaitPublicationsJson);
       prototype.registerHybridMethod("clientEffectCompleteJson", &HybridPioneerClientSpec::clientEffectCompleteJson);
       prototype.registerHybridMethod("clientEffectCancelJson", &HybridPioneerClientSpec::clientEffectCancelJson);
       prototype.registerHybridMethod("clientSequenceGapResnapshotJson", &HybridPioneerClientSpec::clientSequenceGapResnapshotJson);
@@ -33,6 +34,7 @@ namespace margelo::nitro::pioneer::client {
       prototype.registerHybridMethod("gatewayPlanDeleteRemoteRegistryJson", &HybridPioneerClientSpec::gatewayPlanDeleteRemoteRegistryJson);
       prototype.registerHybridMethod("gatewayPlanSetWorkspaceRegistryJson", &HybridPioneerClientSpec::gatewayPlanSetWorkspaceRegistryJson);
       prototype.registerHybridMethod("gatewaySessionLifecycleReduceJson", &HybridPioneerClientSpec::gatewaySessionLifecycleReduceJson);
+      prototype.registerHybridMethod("gatewaySessionValidateJson", &HybridPioneerClientSpec::gatewaySessionValidateJson);
       prototype.registerHybridMethod("gatewayDeviceActivationPresentationJson", &HybridPioneerClientSpec::gatewayDeviceActivationPresentationJson);
       prototype.registerHybridMethod("gatewayDeviceActivationParseJson", &HybridPioneerClientSpec::gatewayDeviceActivationParseJson);
       prototype.registerHybridMethod("gatewayAuthRefreshJson", &HybridPioneerClientSpec::gatewayAuthRefreshJson);
@@ -70,6 +72,12 @@ namespace margelo::nitro::pioneer::client {
       prototype.registerHybridMethod("threadUpdateJson", &HybridPioneerClientSpec::threadUpdateJson);
       prototype.registerHybridMethod("threadParticipantAddJson", &HybridPioneerClientSpec::threadParticipantAddJson);
       prototype.registerHybridMethod("threadParticipantRemoveJson", &HybridPioneerClientSpec::threadParticipantRemoveJson);
+      prototype.registerHybridMethod("authorizationAccessChangePlanJson", &HybridPioneerClientSpec::authorizationAccessChangePlanJson);
+      prototype.registerHybridMethod("gatewayTransportReserveJson", &HybridPioneerClientSpec::gatewayTransportReserveJson);
+      prototype.registerHybridMethod("gatewayTransportWaitJson", &HybridPioneerClientSpec::gatewayTransportWaitJson);
+      prototype.registerHybridMethod("gatewayTransportReleaseJson", &HybridPioneerClientSpec::gatewayTransportReleaseJson);
+      prototype.registerHybridMethod("gatewaySessionEnsureJson", &HybridPioneerClientSpec::gatewaySessionEnsureJson);
+      prototype.registerHybridMethod("gatewaySessionControlJson", &HybridPioneerClientSpec::gatewaySessionControlJson);
       prototype.registerHybridMethod("gatewaySessionReplaceAccessJson", &HybridPioneerClientSpec::gatewaySessionReplaceAccessJson);
       prototype.registerHybridMethod("gatewaySettingsGetJson", &HybridPioneerClientSpec::gatewaySettingsGetJson);
       prototype.registerHybridMethod("gatewaySettingsUpdateJson", &HybridPioneerClientSpec::gatewaySettingsUpdateJson);

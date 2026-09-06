@@ -1,3 +1,4 @@
+import { initializeMobilePlatformEffects } from '@/services/gateway/platform-effects';
 import 'react-native-reanimated';
 
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -92,6 +93,7 @@ const RootLayout = () => {
                 pioneerClient.initialize({
                     appDataDir: decodeURIComponent(Paths.cache.uri.replace(/^file:\/\//, '')),
                 });
+                initializeMobilePlatformEffects();
                 mobileStartup.succeed('client.initialize');
             } catch (error) {
                 mobileStartup.fail('client.initialize');

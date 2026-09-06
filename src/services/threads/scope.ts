@@ -12,7 +12,7 @@ import {
 } from '@/client';
 import { loadAllWorkspaceMembers } from '@/services/administration/members';
 import {
-    acceptAuthorizationCapabilitySnapshot,
+    readAuthorizationCapabilitySnapshot,
     administrationQueryKeys,
     type AdministrationAuthorizationEpoch,
 } from '@/services/administration/query';
@@ -84,7 +84,7 @@ export const loadThreadScopePresentation = async (
     };
     let capabilities = emptyCapabilities;
     try {
-        const [participantsResponse, rawCapabilitySnapshot] = await Promise.all([
+        const [participantsResponse] = await Promise.all([
             pioneerClient.threadParticipantsList({
                 workspace_id: thread.workspace_id,
                 thread_id: thread.id,
@@ -94,12 +94,11 @@ export const loadThreadScopePresentation = async (
                 thread_id: thread.id,
             }),
         ]);
-        const capabilitySnapshot = acceptAuthorizationCapabilitySnapshot(
+        const capabilitySnapshot = await readAuthorizationCapabilitySnapshot(
             authorizationEpoch,
             auth.principal.id,
             thread.workspace_id,
             thread.id,
-            rawCapabilitySnapshot,
         );
         participants = participantsResponse;
         capabilities = capabilitySnapshot.thread?.capabilities ?? emptyCapabilities;

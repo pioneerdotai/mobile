@@ -1,4 +1,5 @@
-import { describe, expect, it } from '@jest/globals';
+import { beforeEach, describe, expect, it, jest } from '@jest/globals';
+import { pioneerClient } from '@/client';
 import {
     deleteMobileGatewaySession,
     MOBILE_GATEWAY_SESSION_SCHEMA_VERSION,
@@ -8,6 +9,13 @@ import {
 } from './session-storage';
 import type { MobileGatewaySessionEnvelope } from './session-storage';
 import { FakeGatewaySecureStore } from './test-support';
+
+jest.mock('@/client', () => ({ pioneerClient: { gatewaySessionValidate: jest.fn() } }));
+beforeEach(() => {
+    jest.mocked(pioneerClient.gatewaySessionValidate)
+        .mockReset()
+        .mockResolvedValue({ valid: true, terminal_reason: null });
+});
 
 const envelope = (): MobileGatewaySessionEnvelope => ({
     schema_version: MOBILE_GATEWAY_SESSION_SCHEMA_VERSION,
@@ -108,6 +116,10 @@ describe('mobile Gateway session SecureStore adapter', () => {
     });
 
     it('rejects an envelope without durable installation and token-family binding', async () => {
+        jest.mocked(pioneerClient.gatewaySessionValidate).mockResolvedValueOnce({
+            valid: false,
+            terminal_reason: null,
+        });
         const secureStore = new FakeGatewaySecureStore();
         const {
             installation_id: _installationId,
@@ -125,6 +137,10 @@ describe('mobile Gateway session SecureStore adapter', () => {
     });
 
     it('rejects unknown credential fields in a SecureStore envelope', async () => {
+        jest.mocked(pioneerClient.gatewaySessionValidate).mockResolvedValueOnce({
+            valid: false,
+            terminal_reason: null,
+        });
         const secureStore = new FakeGatewaySecureStore();
         await secureStore.setItemAsync(
             mobileGatewaySessionStorageKey('remote-1'),
@@ -140,6 +156,10 @@ describe('mobile Gateway session SecureStore adapter', () => {
     });
 
     it('rejects a malformed pending refresh request id', async () => {
+        jest.mocked(pioneerClient.gatewaySessionValidate).mockResolvedValueOnce({
+            valid: false,
+            terminal_reason: null,
+        });
         const secureStore = new FakeGatewaySecureStore();
         await secureStore.setItemAsync(
             mobileGatewaySessionStorageKey('remote-1'),

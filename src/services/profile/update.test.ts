@@ -1,9 +1,7 @@
 import { QueryClient } from '@tanstack/react-query';
 import { describe, expect, it, jest } from '@jest/globals';
-
 import type { AuthMeResponse, AuthProfileUpdateResponse } from '@/client';
 import { administrationQueryKeys } from '@/services/administration/query';
-
 import {
     applyCurrentProfileUpdate,
     isValidProfileDisplayName,
@@ -12,7 +10,13 @@ import {
     splitProfileDisplayName,
 } from './update';
 
+let mockCurrentAuth: AuthMeResponse | null = null;
+
 jest.mock('@/client', () => ({
+    mobileClientBinding: {
+        synchronize: jest.fn(async () => {}),
+        scope: () => ({ getSnapshot: () => ({ payload: { current_auth: mockCurrentAuth } }) }),
+    },
     pioneerClient: {
         administrationConflictRefetch: jest.fn(),
         gatewayAuthProfileUpdate: jest.fn(),
@@ -49,7 +53,7 @@ describe('profile display name helpers', () => {
 });
 
 describe('current profile cache update', () => {
-    it('patches the auth/me snapshot for the active authorization epoch', async () => {
+    it('applies the published identity without reducing the profile RPC result in JS', async () => {
         const queryClient = new QueryClient();
         const queryKey = administrationQueryKeys.currentPrincipalForEpoch({
             gatewayId: 'gateway-a',
@@ -62,6 +66,9 @@ describe('current profile cache update', () => {
             },
         } as AuthMeResponse);
 
+        mockCurrentAuth = {
+            principal: { id: 'P00000000000000000001', display_name: 'Published profile' },
+        } as AuthMeResponse;
         await applyCurrentProfileUpdate(queryClient, {
             principal: {
                 id: 'P00000000000000000001',
@@ -70,7 +77,7 @@ describe('current profile cache update', () => {
         } as AuthProfileUpdateResponse);
 
         expect(queryClient.getQueryData<AuthMeResponse>(queryKey)?.principal.display_name).toBe(
-            'After',
+            'Published profile',
         );
         queryClient.clear();
     });

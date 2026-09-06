@@ -35,6 +35,7 @@ const mockApplyCliRuntimeSummaryUpdate = jest.fn();
 const mockMobileStartupBegin = jest.fn();
 const mockMobileStartupSucceed = jest.fn();
 const mockMobileStartupFail = jest.fn();
+const mockMobileStartupRecordNativeStage = jest.fn();
 const mockTranslate = (key: string) => key;
 let mockNetworkListener: ((state: { isConnected?: boolean }) => void) | null = null;
 let mockGatewayEventListener: ((event: Record<string, unknown>) => Promise<void>) | null = null;
@@ -43,6 +44,42 @@ let mockSessionProjectionListener: ((projection: MobileSessionProjection) => voi
 let mockSessionDiagnosticListener: ((event: MobileSessionDiagnosticEvent) => void) | null = null;
 let mockActiveThreadSnapshot: { thread_id: string } | null = null;
 let mockConnectionState = 'Idle';
+const mockApplyPublishedAccessChange = jest
+    .fn<(...args: unknown[]) => Promise<null>>()
+    .mockResolvedValue(null);
+const mockApplyPublishedPolicyChange = jest
+    .fn<(...args: unknown[]) => Promise<void>>()
+    .mockResolvedValue(undefined);
+let mockIdentityPublication: Record<string, unknown> | null = null;
+let mockAuthorizationListener: (() => void) | null = null;
+let mockTransportListener: (() => void) | null = null;
+let mockSessionPublication: Record<string, unknown> | null = null;
+
+jest.mock('@/client', () => ({
+    pioneerClient: {
+        gatewayTransportReserve: jest.fn(() => 1),
+        gatewayTransportWait: jest.fn(async () => true),
+        gatewayTransportRelease: jest.fn(() => true),
+    },
+    mobileClientBinding: {
+        scope: (scope: { kind: string }) => ({
+            getSnapshot: () =>
+                scope.kind === 'administration' ? { payload: mockIdentityPublication } : null,
+            subscribe: (listener: () => void) => {
+                if (scope.kind !== 'session') {
+                    mockAuthorizationListener = listener;
+                    return () => {
+                        mockAuthorizationListener = null;
+                    };
+                }
+                mockTransportListener = listener;
+                return () => {
+                    mockTransportListener = null;
+                };
+            },
+        }),
+    },
+}));
 
 const projection: MobileSessionProjection = {
     phase: 'connected',
@@ -93,12 +130,14 @@ jest.mock('@/services/gateway/session', () => ({
 
 jest.mock('@/services/gateway/session-coordinator', () => ({
     MobileSessionTerminalError: class MobileSessionTerminalError extends Error {},
-    markMobileGatewaySessionTerminal: jest.fn(),
-    terminalReasonFromMachineCode: () => null,
+    gatewaySessionPublication: () => mockSessionPublication,
+    mobileSessionReconnectDelayMs: () => 500,
 }));
 
 jest.mock('@/services/administration/events', () => ({
     applyMobileAdministrationEvent: jest.fn(),
+    evictPublishedMobilePolicyProjection: jest.fn(async () => {}),
+    applyPublishedMobilePolicyChange: mockApplyPublishedPolicyChange,
     isAdministrationEvent: () => false,
 }));
 
@@ -110,6 +149,8 @@ jest.mock('@/services/administration/query', () => ({
 jest.mock('@/services/gateway/access-change', () => ({
     accessChangedWorkspaceId: () => null,
     applyMobileAccessChangedEvent: jest.fn(),
+    applyPublishedMobileAccessChange: mockApplyPublishedAccessChange,
+    applyPublishedMobileAccessProjection: jest.fn(() => null),
     beginMobileAuthorizationEpoch: jest.fn(),
     failClosedMobileAccessChange: jest.fn(),
     providerAccessChangedWorkspaceId: () => null,
@@ -170,6 +211,7 @@ jest.mock('@/services/telemetry/mobile-startup', () => ({
         begin: mockMobileStartupBegin,
         succeed: mockMobileStartupSucceed,
         fail: mockMobileStartupFail,
+        recordNativeStage: mockMobileStartupRecordNativeStage,
     },
 }));
 
@@ -229,6 +271,10 @@ describe('useGatewaySession', () => {
         mockSessionDiagnosticListener = null;
         mockActiveThreadSnapshot = null;
         mockConnectionState = 'Idle';
+        mockSessionPublication = null;
+        mockIdentityPublication = null;
+        mockAuthorizationListener = null;
+        mockTransportListener = null;
         mockSetConnectionState.mockImplementation((state) => {
             mockConnectionState = String(state);
         });
@@ -237,6 +283,75 @@ describe('useGatewaySession', () => {
             projection,
         });
         mockDisconnectGateway.mockResolvedValue(true);
+    });
+
+    it('delivers accepted authorization once and drops queued delivery after teardown', async () => {
+        let tree: ReactTestRenderer;
+        await act(async () => {
+            tree = renderer.create(<Harness endpoint={gateway()} />);
+        });
+        let release!: (value: null) => void;
+        mockApplyPublishedAccessChange.mockImplementationOnce(
+            () =>
+                new Promise((resolve) => {
+                    release = resolve;
+                }),
+        );
+        const change = {
+            authorization_revision: 7,
+            workspace_id: 'workspace-1',
+            outcome: 'revoked',
+            change: 'workspace_membership',
+        };
+        await act(async () => {
+            await mockGatewayEventListener?.({
+                GatewayNotification: { kind: 'access_changed', params: change },
+            });
+        });
+        expect(mockApplyPublishedAccessChange).not.toHaveBeenCalled();
+        await act(async () => {
+            mockIdentityPublication = {
+                connection_generation: 1,
+                authorization_change_sequence: 1,
+                access_change: change,
+                policy_change: null,
+            };
+            mockAuthorizationListener?.();
+            mockAuthorizationListener?.();
+        });
+        expect(mockApplyPublishedAccessChange).toHaveBeenCalledTimes(1);
+        await act(async () => {
+            mockIdentityPublication = {
+                ...mockIdentityPublication,
+                authorization_change_sequence: 2,
+            };
+            mockAuthorizationListener?.();
+            tree!.unmount();
+        });
+        await act(async () => {
+            release(null);
+        });
+        expect(mockApplyPublishedAccessChange).toHaveBeenCalledTimes(1);
+    });
+
+    it('records the native timing instead of measuring JS delivery latency', async () => {
+        mockConnectGatewayEndpoint.mockImplementationOnce(async () => {
+            mockSessionDiagnosticListener?.({
+                stage: 'authorization.refresh.request',
+                outcome: 'succeeded',
+                timing: { started_at_unix_ms: 123456, duration_ms: 47 },
+            });
+            return { connection_id: 1, projection };
+        });
+        await act(async () => {
+            renderer.create(<Harness endpoint={gateway()} />);
+        });
+        expect(mockMobileStartupRecordNativeStage).toHaveBeenCalledWith(
+            'authorization.refresh.request',
+            { started_at_unix_ms: 123456, duration_ms: 47 },
+            false,
+        );
+        expect(mockMobileStartupSucceed).not.toHaveBeenCalledWith('authorization.refresh.request');
     });
 
     it('measures authorization and transport as separate startup phases', async () => {
@@ -348,12 +463,11 @@ describe('useGatewaySession', () => {
 
         mockSetConnectionState.mockClear();
         await act(async () => {
-            await mockGatewayEventListener?.({
-                GatewayNotification: {
-                    kind: 'auth_access_expiring',
-                    params: { session_id: 'session-1', access_expires_at_unix: 1_800_000_000 },
-                },
-            });
+            mockSessionPublication = {
+                connections: { 'remote-1': { refresh_requested: true } },
+                startup: { endpoint_id: 'remote-1' },
+            };
+            mockTransportListener?.();
         });
 
         expect(mockConnectGatewayEndpoint).toHaveBeenCalledTimes(2);
@@ -455,13 +569,13 @@ describe('useGatewaySession', () => {
         mockSetConnectionState.mockClear();
 
         await act(async () => {
-            await mockGatewayEventListener?.({
-                GatewayConnectionChanged: {
-                    connection_id: 1,
-                    connection_state: 'Disconnected',
-                    gateway_error: null,
-                },
-            });
+            mockSessionPublication = {
+                startup: { endpoint_id: 'remote-1' },
+                status: { connection_state: 'Disconnected' },
+                connections: {},
+                gateway_error: null,
+            };
+            mockTransportListener?.();
             await Promise.resolve();
             await Promise.resolve();
         });

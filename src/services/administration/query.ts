@@ -1,7 +1,9 @@
+import type { IdentityAuthorizationPublication } from '@/client/generated/identity_authorization_publication';
 import { queryOptions, type QueryClient, type QueryKey } from '@tanstack/react-query';
 
 import {
     pioneerClient,
+    mobileClientBinding,
     type AdministrationAction,
     type AdministrationRefetch,
     type AuthorizationCapabilitySnapshot,
@@ -98,34 +100,46 @@ export const currentAdministrationPrincipalQueryOptions = (
         staleTime: 30_000,
     });
 
-export const acceptAuthorizationCapabilitySnapshot = (
+/** Read the Client-accepted capability projection after ordered publication delivery. */
+export const readAuthorizationCapabilitySnapshot = async (
     epoch: AdministrationAuthorizationEpoch,
     expectedPrincipalId: string,
     workspaceId: string | null,
     threadId: string | null,
-    snapshot: AuthorizationCapabilitySnapshot,
-): AuthorizationCapabilitySnapshot => {
+): Promise<AuthorizationCapabilitySnapshot> => {
     if (epoch.gatewayId === null || epoch.connectionId === null) {
         throw new Error('inactive_authorization_connection_epoch');
     }
-    const accepted = pioneerClient.authorizationProjectionAccept({
-        gateway_id: epoch.gatewayId,
-        connection_id: epoch.connectionId,
-        expected_principal_id: expectedPrincipalId,
-        workspace_id: workspaceId,
-        thread_id: threadId,
-        snapshot,
-    });
-    if (accepted.acceptance === 'incompatible') {
-        throw new Error('incompatible_authorization_capability_snapshot');
-    }
-    if (accepted.acceptance === 'conflict') {
-        throw new Error('conflicting_authorization_projection');
-    }
-    if (accepted.acceptance === 'stale' || !accepted.snapshot) {
+    const binding = mobileClientBinding.scope({ kind: 'administration', workspace_id: null });
+    await mobileClientBinding.synchronize();
+    const publication = binding.getSnapshot()?.payload as
+        IdentityAuthorizationPublication | undefined;
+    const capabilities = publication?.capabilities;
+    const manifest = capabilities?.manifest;
+    if (
+        !publication ||
+        publication.endpoint_id !== epoch.gatewayId ||
+        publication.connection_id !== epoch.connectionId ||
+        !manifest ||
+        manifest.principal_id !== expectedPrincipalId ||
+        capabilities?.accepted_revision == null
+    ) {
         throw new Error('stale_authorization_projection');
     }
-    return accepted.snapshot;
+    const workspace = workspaceId ? capabilities.workspaces[workspaceId] : null;
+    if (workspaceId && !workspace) {
+        throw new Error('stale_authorization_projection');
+    }
+    const thread = threadId ? (capabilities.threads[threadId] ?? null) : null;
+    if (thread && thread.workspace_id !== workspaceId) {
+        throw new Error('stale_authorization_projection');
+    }
+    return {
+        ...manifest,
+        authorization_revision: capabilities.accepted_revision,
+        workspace: workspace ?? null,
+        thread,
+    };
 };
 
 export const authorizationCapabilitySnapshotQueryOptions = (
@@ -147,13 +161,12 @@ export const authorizationCapabilitySnapshotQueryOptions = (
             if (epoch.gatewayId === null || epoch.connectionId === null) {
                 throw new Error('inactive_authorization_connection_epoch');
             }
-            const raw = await loadAuthorizationCapabilitySnapshot(workspaceId, threadId);
-            const snapshot = acceptAuthorizationCapabilitySnapshot(
+            await loadAuthorizationCapabilitySnapshot(workspaceId, threadId);
+            const snapshot = await readAuthorizationCapabilitySnapshot(
                 epoch,
                 expectedPrincipalId,
                 workspaceId,
                 threadId,
-                raw,
             );
             reconcileAuthorizationCapabilityQueries(queryClient, epoch, queryKey, snapshot);
             return snapshot;
@@ -241,14 +254,17 @@ export const resetAuthorizationCapabilityQueries = async (
     const capabilities = (query: { queryKey: QueryKey }) =>
         query.queryKey[0] === administrationQueryKeys.all[0] &&
         query.queryKey[1] === 'capabilities';
-    await queryClient.cancelQueries({
+    const cancellation = queryClient.cancelQueries({
         queryKey: administrationQueryKeys.all,
         predicate: capabilities,
     });
-    await queryClient.resetQueries({
+    // Reset synchronously: native work and refetch completion must not leave
+    // a readable capability from the preceding authorization generation.
+    const reset = queryClient.resetQueries({
         queryKey: administrationQueryKeys.all,
         predicate: capabilities,
     });
+    await Promise.all([cancellation, reset]);
 };
 
 /** One mutation lane prevents two destructive administration actions from

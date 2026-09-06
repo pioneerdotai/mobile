@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AccessChangedPlan",
+  "type": "object",
+  "properties": {
+    "apply": {
+      "type": "boolean"
+    },
+    "authorization_revision": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0
+    },
+    "change": {
+      "$ref": "#/$defs/AccessChangeKind"
+    },
+    "clear_active_thread": {
+      "type": "boolean"
+    },
+    "clear_active_workspace": {
+      "type": "boolean"
+    },
+    "clear_workspace_capability_projections": {
+      "type": "boolean"
+    },
+    "effects": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ClientEffect"
+      }
+    },
+    "invalidate_thread_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "workspace_id": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "authorization_revision",
+    "workspace_id",
+    "change",
+    "apply",
+    "invalidate_thread_ids",
+    "clear_active_workspace",
+    "clear_active_thread",
+    "clear_workspace_capability_projections",
+    "effects"
+  ],
+  "$defs": {
+    "AccessChangeKind": {
+      "description": "Payload-safe reason for invalidating client authorization-derived state.\n\nThis vocabulary deliberately contains no protected resource metadata or\npolicy-engine details.",
+      "type": "string",
+      "enum": [
+        "workspace_membership",
+        "thread_created",
+        "thread_visibility",
+        "thread_participant_added",
+        "thread_participant_removed"
+      ]
+    },
+    "ClientEffect": {
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "RefreshWorkspaceList",
+            "RefreshGatewaySettings",
+            "RefreshProviderLists",
+            "QueueSkillsRefresh",
+            "EnqueueInFlightTurnsForResume"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "UnsubscribeThreads": {
+              "type": "object",
+              "properties": {
+                "thread_ids": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [
+                "thread_ids"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "UnsubscribeThreads"
+          ]
+        }
+      ]
+    }
+  }
+}

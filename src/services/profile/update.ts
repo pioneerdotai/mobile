@@ -2,11 +2,13 @@ import type { QueryClient } from '@tanstack/react-query';
 
 import {
     pioneerClient,
+    mobileClientBinding,
     type AuthMeResponse,
     type AuthProfileUpdateParams,
     type AuthProfileUpdateResponse,
 } from '@/client';
 import { administrationQueryKeys } from '@/services/administration/query';
+import { currentAdministrationPrincipalSnapshot } from '@/services/administration/invitations';
 
 export type ProfileNameParts = {
     firstName: string;
@@ -55,12 +57,14 @@ export const applyCurrentProfileUpdate = async (
     queryClient: QueryClient,
     response: AuthProfileUpdateResponse,
 ): Promise<void> => {
+    await mobileClientBinding.synchronize();
+    const auth = currentAdministrationPrincipalSnapshot();
+    if (!auth || auth.principal.id !== response.principal.id) {
+        return;
+    }
     queryClient.setQueriesData<AuthMeResponse>(
         { queryKey: administrationQueryKeys.currentPrincipal() },
-        (current) =>
-            current?.principal.id === response.principal.id
-                ? { ...current, principal: response.principal }
-                : current,
+        (current) => (current?.principal.id === auth.principal.id ? auth : current),
     );
 
     await Promise.all([

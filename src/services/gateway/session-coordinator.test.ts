@@ -1,978 +1,250 @@
-/* eslint-disable import/first */
+import { beforeEach, describe, expect, it, jest } from '@jest/globals';
+import type { GatewayEndpoint, GatewaySessionConnectionResult } from '@/client';
+import type { ClientScope } from '@/client/generated/client_scope';
+import { pioneerClient, mobileClientBinding, PioneerClientNativeError } from '@/client';
+import {
+    ensureMobileGatewaySession,
+    refreshMobileGatewaySessionAfterUnauthorized,
+    mobileSessionProjection,
+    subscribeMobileSessionProjection,
+    suspendMobileGatewaySession,
+    clearMobileGatewaySessionRuntime,
+    markMobileGatewaySessionTerminal,
+    resetMobileSessionCoordinatorForTests,
+    MobileSessionTerminalError,
+    MobileSessionSuspendedError,
+    subscribeMobileSessionDiagnostics,
+} from './session-coordinator';
 
-import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
+let mockSessionPayload: Record<string, unknown> | null = null;
+let mockIdentityPayload: Record<string, unknown> | null = null;
+const mockListeners = new Set<() => void>();
 
-jest.mock('nanoid', () => ({ nanoid: jest.fn(() => '00000000000000000000') }));
-
-jest.mock('@/client', () => {
-    class MockPioneerClientNativeError extends Error {
-        readonly code?: string | null;
-
-        constructor(message: string, code?: string | null) {
+jest.mock('@/client', () => ({
+    PioneerClientNativeError: class extends Error {
+        readonly code: string;
+        constructor(message: string, code: string) {
             super(message);
             this.code = code;
         }
-    }
-
-    return {
-        PioneerClientNativeError: MockPioneerClientNativeError,
-        pioneerClient: {
-            gatewayAuthRefresh: jest.fn(),
-            gatewayAuthSessionCleanup: jest.fn(),
-            gatewaySessionReplaceAccess: jest.fn(),
-            gatewayAuthMe: jest.fn(),
-            gatewayDisconnect: jest.fn(),
-            gatewaySessionLifecycleReduce: jest.fn(),
-        },
-    };
-});
-
-jest.mock('./session-storage', () => {
-    class MockMobileGatewaySessionStorageError extends Error {
-        readonly code: string;
-
-        constructor(code: string) {
-            super(code);
-            this.code = code;
-        }
-    }
-
-    return {
-        MOBILE_GATEWAY_SESSION_SCHEMA_VERSION: 2,
-        MobileGatewaySessionStorageError: MockMobileGatewaySessionStorageError,
-        readMobileGatewaySession: jest.fn(),
-        writeMobileGatewaySession: jest.fn(),
-    };
-});
-
-jest.mock('./registry', () => ({
-    loadGatewayRegistry: jest.fn(() => ({
-        installation_id: 'installation-mobile-1',
-    })),
+    },
+    pioneerClient: { gatewaySessionEnsure: jest.fn(), gatewaySessionControl: jest.fn() },
+    mobileClientBinding: {
+        scope: (scope: ClientScope) => ({
+            getSnapshot: () => ({
+                payload: scope.kind === 'session' ? mockSessionPayload : mockIdentityPayload,
+            }),
+            subscribe: (listener: () => void) => {
+                mockListeners.add(listener);
+                return () => mockListeners.delete(listener);
+            },
+        }),
+        synchronize: jest.fn(async () => {
+            for (const listener of [...mockListeners]) {
+                listener();
+            }
+        }),
+    },
 }));
-
-import { PioneerClientNativeError, pioneerClient } from '@/client';
-import type {
-    AuthRefreshGrant,
-    ClientGatewaySessionLifecycleRequest,
-    ClientGatewaySessionLifecycleResult,
-    GatewayEndpoint,
-} from '@/client';
-import {
-    ensureMobileGatewaySession,
-    markMobileGatewayConnectionDisconnected,
-    markMobileGatewaySessionTerminal,
-    mobileSessionProjection,
-    resetMobileSessionCoordinatorForTests,
-    refreshMobileGatewaySessionAfterUnauthorized,
-    subscribeMobileSessionDiagnostics,
-    suspendMobileGatewaySession,
-    terminalReasonFromMachineCode,
-} from './session-coordinator';
-import type { MobileSessionDiagnosticEvent } from './session-coordinator';
-import type { MobileGatewaySessionEnvelope } from './session-storage';
-import {
-    MobileGatewaySessionStorageError,
-    readMobileGatewaySession,
-    writeMobileGatewaySession,
-} from './session-storage';
-
-const mockGatewayAuthRefresh = jest.mocked(pioneerClient.gatewayAuthRefresh);
-const mockGatewayAuthSessionCleanup = jest.mocked(pioneerClient.gatewayAuthSessionCleanup);
-const mockGatewaySessionReplaceAccess = jest.mocked(pioneerClient.gatewaySessionReplaceAccess);
-const mockGatewayAuthMe = jest.mocked(pioneerClient.gatewayAuthMe);
-const mockGatewayDisconnect = jest.mocked(pioneerClient.gatewayDisconnect);
-const mockGatewaySessionLifecycleReduce = jest.mocked(pioneerClient.gatewaySessionLifecycleReduce);
-const mockReadMobileGatewaySession = jest.mocked(readMobileGatewaySession);
-const mockWriteMobileGatewaySession = jest.mocked(writeMobileGatewaySession);
+jest.mock('./registry', () => ({ loadGatewayRegistry: () => ({ installation_id: 'synthetic' }) }));
 
 const endpoint: GatewayEndpoint = {
-    id: 'remote-1',
-    name: 'Remote',
-    gateway_base_url: 'https://gateway.example/',
+    id: 'synthetic',
+    name: 'Synthetic',
+    gateway_base_url: 'https://gateway.invalid',
     kind: 'remote',
-    session_ref: 'mobile-session-1',
-    server_gateway_id: 'G00000000000000000001',
+    session_ref: 'synthetic',
     service_name: null,
-    workspace_id: null,
+    server_gateway_id: 'G00000000000000000001',
 };
-
 const timings = {
-    connect_timeout_ms: 5_000,
-    ping_interval_ms: 10_000,
-    pong_timeout_ms: 30_000,
-    reconnect_initial_ms: 500,
-    reconnect_max_ms: 10_000,
-    reconnect_jitter_percent: 20,
+    connect_timeout_ms: 1000,
+    ping_interval_ms: 1000,
+    pong_timeout_ms: 1000,
+    reconnect_initial_ms: 100,
+    reconnect_max_ms: 1000,
+    reconnect_jitter_percent: 0,
 };
-
-const accessToken = 'test_access_header.test_access_payload.test_access_signature';
-const refreshToken = (generation: number) =>
-    `prf2_${generation.toString().padStart(20, '0')}${'0'.repeat(144)}`;
-
-const envelope = (generation: number): MobileGatewaySessionEnvelope => ({
-    schema_version: 2,
-    gateway_id: 'G00000000000000000001',
-    principal_id: 'P00000000000000000001',
-    device_id: 'D00000000000000000001',
-    session_id: 'S00000000000000000001',
-    token_family_id: 'F00000000000000000001',
-    installation_id: 'installation-mobile-1',
-    refresh_generation: generation,
-    refresh_expires_at_unix: 1_900_000_000,
-    refresh_token: refreshToken(generation),
-});
-
-const refreshGrant = (generation: number, accessExpiry: number): AuthRefreshGrant => ({
-    gateway: { id: 'G00000000000000000001' },
-    principal: {
-        id: 'P00000000000000000001',
-        kind: 'superuser',
-        display_name: 'Superuser',
-        nickname: 'superuser',
-    },
-    access_token: accessToken,
-    access_expires_at_unix: accessExpiry,
-    refresh_token: refreshToken(generation),
-    refresh_expires_at_unix: 1_900_000_000,
-    refresh_generation: generation,
-    auth_protocol_version: 3,
-    credential_storage_order: 'persist_refresh_before_activating_access',
-    device: {
-        id: 'D00000000000000000001',
-        installation_id: 'installation-mobile-1',
-        display_name: 'Phone',
-        client_kind: 'mobile',
-        status: 'active',
-    },
-    session: {
-        id: 'S00000000000000000001',
+const result: GatewaySessionConnectionResult = {
+    connection_id: 17,
+    connection_generation: 4,
+    access_expires_at_unix: 2000,
+    metadata: {
+        gateway_id: 'G00000000000000000001',
         device_id: 'D00000000000000000001',
-        token_family_id: 'F00000000000000000001',
-        status: 'active',
-        refresh_generation: generation,
-        refresh_expires_at_unix: 1_900_000_000,
-    },
-});
-
-const authMe = {
-    gateway: { id: 'G00000000000000000001' },
-    principal: {
-        id: 'P00000000000000000001',
-        kind: 'superuser' as const,
-        display_name: 'Superuser',
-        nickname: 'superuser',
-    },
-    device: {
-        id: 'D00000000000000000001',
-        installation_id: 'installation-mobile-1',
-        display_name: 'Phone',
-        client_kind: 'mobile' as const,
-        status: 'active' as const,
-    },
-    session: {
-        id: 'S00000000000000000001',
-        device_id: 'D00000000000000000001',
-        token_family_id: 'F00000000000000000001',
-        status: 'active' as const,
+        session_id: 'S00000000000000000001',
         refresh_generation: 1,
-        refresh_expires_at_unix: 1_900_000_000,
+        refresh_expires_at_unix: 4000,
     },
 };
 
-const currentAuthMe = (generation: number) => ({
-    ...authMe,
-    session: {
-        ...authMe.session,
-        refresh_generation: generation,
-    },
-});
-
-const installLifecycleDouble = () => {
-    let intent = 0;
-    let connectionGeneration = 0;
-    mockGatewaySessionLifecycleReduce.mockImplementation(
-        async (
-            request: ClientGatewaySessionLifecycleRequest,
-        ): Promise<ClientGatewaySessionLifecycleResult> => {
-            const event = request.event;
-            let effect: ClientGatewaySessionLifecycleResult['effect'];
-            if (event.kind === 'stored_session_loaded' || event.kind === 'clock_advanced') {
-                intent += 1;
-                effect = {
-                    kind: 'begin_refresh',
-                    data: { session_id: envelope(0).session_id, intent_id: intent },
-                };
-            } else if (event.kind === 'refresh_grant_received') {
-                connectionGeneration += 1;
-                effect = {
-                    kind: 'persist_refresh_before_access',
-                    data: {
-                        intent_id: event.data.intent_id,
-                        candidate_connection_generation: connectionGeneration,
-                    },
-                };
-            } else if (event.kind === 'secure_storage_committed') {
-                effect = {
-                    kind: 'connect_with_ephemeral_access',
-                    data: { connection_generation: connectionGeneration },
-                };
-            } else if (event.kind === 'connection_established') {
-                effect = {
-                    kind: 'switch_connection',
-                    data: {
-                        active_connection_generation: event.data.generation,
-                        close_connection_generation: null,
-                    },
-                };
-            } else if (event.kind === 'connection_transport_failed') {
-                effect = {
-                    kind: 'retry_connection',
-                    data: { connection_generation: event.data.generation },
-                };
-            } else if (event.kind === 'refresh_transport_lost') {
-                effect = {
-                    kind: 'begin_refresh',
-                    data: {
-                        session_id: envelope(0).session_id,
-                        intent_id: event.data.intent_id,
-                    },
-                };
-            } else if (event.kind === 'secure_storage_failed') {
-                effect = { kind: 'stop', data: { reason: 'secure_storage_failed' } };
-            } else if (event.kind === 'auth_failed') {
-                effect = { kind: 'stop', data: { reason: event.data.reason } };
-            } else {
-                effect = { kind: 'none' };
-            }
-            return { state: { kind: 'no_session' }, effect };
+const publishConnected = () => {
+    mockSessionPayload = {
+        sessions: {
+            synthetic: {
+                kind: 'active',
+                data: {
+                    metadata: result.metadata,
+                    connection_generation: 4,
+                    access_expires_at_unix: 2000,
+                },
+            },
         },
-    );
+        connections: { synthetic: { epoch: 1, connected: result, failure: null } },
+        access_expiries: { synthetic: 2000 },
+    };
+    mockIdentityPayload = {
+        current_auth: {
+            principal: { id: 'P00000000000000000001' },
+            session: { id: result.metadata.session_id },
+        },
+    };
 };
 
-describe('mobile Gateway session coordinator', () => {
-    let durableEnvelope: MobileGatewaySessionEnvelope;
-    let nowSeconds: number;
-
-    beforeEach(() => {
-        jest.clearAllMocks();
-        resetMobileSessionCoordinatorForTests();
-        nowSeconds = 1_800_000_000;
-        jest.spyOn(Date, 'now').mockImplementation(() => nowSeconds * 1_000);
-        durableEnvelope = envelope(0);
-        installLifecycleDouble();
-        mockReadMobileGatewaySession.mockImplementation(async () =>
-            structuredClone(durableEnvelope),
-        );
-        mockWriteMobileGatewaySession.mockImplementation(
-            async (_sessionRef: string, next: MobileGatewaySessionEnvelope) => {
-                durableEnvelope = structuredClone(next);
-            },
-        );
-        mockGatewayAuthRefresh.mockImplementation(async () =>
-            refreshGrant(durableEnvelope.refresh_generation + 1, nowSeconds + 900),
-        );
-        mockGatewayAuthSessionCleanup.mockResolvedValue({
-            session_id: durableEnvelope.session_id,
-            revoked: true,
+beforeEach(() => {
+    jest.clearAllMocks();
+    mockSessionPayload = null;
+    mockIdentityPayload = null;
+    mockListeners.clear();
+    resetMobileSessionCoordinatorForTests();
+    jest.mocked(pioneerClient.gatewaySessionEnsure)
+        .mockReset()
+        .mockImplementation(async () => {
+            publishConnected();
+            return result;
         });
-        mockGatewaySessionReplaceAccess.mockResolvedValue({ connection_id: 41 });
-        mockGatewayAuthMe.mockImplementation(async () =>
-            currentAuthMe(durableEnvelope.refresh_generation),
-        );
-        mockGatewayDisconnect.mockResolvedValue(true);
-    });
-
-    afterEach(() => {
-        jest.restoreAllMocks();
-    });
-
-    it('coalesces duplicate connect triggers into one refresh', async () => {
-        let releaseRefresh: ((grant: AuthRefreshGrant) => void) | undefined;
-        mockGatewayAuthRefresh.mockImplementationOnce(
-            () =>
-                new Promise<AuthRefreshGrant>((resolve) => {
-                    releaseRefresh = resolve;
-                }),
-        );
-
-        const first = ensureMobileGatewaySession(endpoint, timings);
-        const second = ensureMobileGatewaySession(endpoint, timings);
-        expect(first).toBe(second);
-        await new Promise<void>((resolve) => setImmediate(resolve));
-        expect(mockReadMobileGatewaySession).toHaveBeenCalledTimes(1);
-        expect(releaseRefresh).toBeDefined();
-
-        releaseRefresh!(refreshGrant(1, nowSeconds + 900));
-        await expect(Promise.all([first, second])).resolves.toHaveLength(2);
-        expect(mockGatewayAuthRefresh).toHaveBeenCalledTimes(1);
-        expect(mockGatewaySessionReplaceAccess).toHaveBeenCalledTimes(1);
-    });
-
-    it('publishes bounded diagnostics for authorization and transport work', async () => {
-        const events: MobileSessionDiagnosticEvent[] = [];
-        const unsubscribe = subscribeMobileSessionDiagnostics(endpoint.id, (event) => {
-            events.push(event);
-        });
-
-        await ensureMobileGatewaySession(endpoint, timings);
-        unsubscribe();
-
-        expect(events).toEqual(
-            [
-                'authorization.registry.load',
-                'authorization.credentials.load',
-                'authorization.refresh_intent.persist',
-                'authorization.refresh.request',
-                'authorization.credentials.persist',
-                'gateway_session.connect_attempt',
-                'gateway_session.identity_verify',
-            ].flatMap((stage) => [
-                { stage, outcome: 'started' },
-                { stage, outcome: 'succeeded' },
-            ]),
-        );
-    });
-
-    it('connects an invited member after rotating the initial refresh credential', async () => {
-        const principal = {
-            ...refreshGrant(1, nowSeconds + 900).principal,
-            kind: 'user' as const,
-            display_name: 'Invited Member',
-            nickname: 'invited_member',
-        };
-        mockGatewayAuthRefresh.mockResolvedValueOnce({
-            ...refreshGrant(1, nowSeconds + 900),
-            principal,
-        });
-        mockGatewayAuthMe.mockResolvedValueOnce({
-            ...currentAuthMe(1),
-            principal,
-        });
-
-        await expect(ensureMobileGatewaySession(endpoint, timings)).resolves.toMatchObject({
-            connection_id: 41,
-        });
-
-        expect(mockGatewayAuthSessionCleanup).not.toHaveBeenCalled();
-        expect(mobileSessionProjection(endpoint.id)).toMatchObject({
-            phase: 'connected',
-            principalId: principal.id,
-            terminalReason: null,
-        });
-    });
-
-    it('coalesces concurrent HTTP unauthorized recovery into the existing session lifecycle', async () => {
-        const firstConnection = await ensureMobileGatewaySession(endpoint, timings);
-        const rejectedGeneration = firstConnection.projection.connectionGeneration;
-        expect(rejectedGeneration).not.toBeNull();
-
-        let releaseRefresh: ((grant: AuthRefreshGrant) => void) | undefined;
-        mockGatewayAuthRefresh.mockImplementationOnce(
-            () =>
-                new Promise<AuthRefreshGrant>((resolve) => {
-                    releaseRefresh = resolve;
-                }),
-        );
-
-        const first = refreshMobileGatewaySessionAfterUnauthorized(
-            endpoint,
-            timings,
-            rejectedGeneration!,
-        );
-        const second = refreshMobileGatewaySessionAfterUnauthorized(
-            endpoint,
-            timings,
-            rejectedGeneration!,
-        );
-        await new Promise<void>((resolve) => setImmediate(resolve));
-        expect(releaseRefresh).toBeDefined();
-        releaseRefresh!(refreshGrant(2, nowSeconds + 900));
-
-        await expect(Promise.all([first, second])).resolves.toHaveLength(2);
-        expect(mockGatewayAuthRefresh).toHaveBeenCalledTimes(2);
-        expect(mockGatewaySessionReplaceAccess).toHaveBeenCalledTimes(2);
-        expect(mockGatewayDisconnect).toHaveBeenCalledTimes(1);
-        expect(durableEnvelope.refresh_generation).toBe(2);
-    });
-
-    it('persists refresh intent and rotation before activating access', async () => {
-        const order: string[] = [];
-        mockWriteMobileGatewaySession.mockImplementation(
-            async (_sessionRef: string, next: MobileGatewaySessionEnvelope) => {
-                order.push('persist');
-                durableEnvelope = structuredClone(next);
-            },
-        );
-        mockGatewaySessionReplaceAccess.mockImplementation(async () => {
-            order.push('connect');
-            return { connection_id: 42 };
-        });
-
-        await ensureMobileGatewaySession(endpoint, timings);
-
-        expect(order).toEqual(['persist', 'persist', 'connect']);
-        expect(durableEnvelope.refresh_generation).toBe(1);
-        expect(durableEnvelope.pending_refresh_request_id).toBeUndefined();
-    });
-
-    it('rotates again when access expires while the connection is being established', async () => {
-        const lifecycle = mockGatewaySessionLifecycleReduce.getMockImplementation();
-        expect(lifecycle).toBeDefined();
-        mockGatewaySessionLifecycleReduce.mockImplementation(async (request) => {
-            if (request.event.kind === 'connection_transport_failed') {
-                return {
-                    state: {
-                        kind: 'refreshing',
-                        data: {
-                            metadata: {
-                                gateway_id: durableEnvelope.gateway_id,
-                                device_id: durableEnvelope.device_id,
-                                session_id: durableEnvelope.session_id,
-                                refresh_generation: durableEnvelope.refresh_generation,
-                                refresh_expires_at_unix: durableEnvelope.refresh_expires_at_unix,
-                            },
-                            intent_id: 2,
-                            previous_connection_generation: null,
-                        },
-                    },
-                    effect: {
-                        kind: 'begin_refresh',
-                        data: {
-                            session_id: durableEnvelope.session_id,
-                            intent_id: 2,
-                        },
-                    },
-                };
-            }
-            return lifecycle!(request);
-        });
-        mockGatewaySessionReplaceAccess
-            .mockImplementationOnce(async () => {
-                nowSeconds += 1_000;
-                throw new Error('connection completed after access expiry');
-            })
-            .mockResolvedValueOnce({ connection_id: 42 });
-
-        const connected = await ensureMobileGatewaySession(endpoint, timings);
-
-        expect(connected.connection_id).toBe(42);
-        expect(mockGatewayAuthRefresh).toHaveBeenCalledTimes(2);
-        expect(mockGatewaySessionReplaceAccess).toHaveBeenCalledTimes(2);
-        expect(durableEnvelope.refresh_generation).toBe(2);
-        expect(mobileSessionProjection(endpoint.id).phase).toBe('connected');
-    });
-
-    it('refreshes after background access expiry and reconnects once', async () => {
-        mockGatewayAuthRefresh.mockResolvedValueOnce(refreshGrant(1, nowSeconds + 61));
-        await ensureMobileGatewaySession(endpoint, timings);
-        await suspendMobileGatewaySession(endpoint.id);
-        nowSeconds += 2;
-
-        await ensureMobileGatewaySession(endpoint, timings);
-
-        expect(mockGatewayAuthRefresh).toHaveBeenCalledTimes(2);
-        expect(mockGatewaySessionReplaceAccess).toHaveBeenCalledTimes(2);
-        expect(mobileSessionProjection(endpoint.id).phase).toBe('connected');
-    });
-
-    it('drops unexpired access on background and obtains new access on foreground', async () => {
-        await ensureMobileGatewaySession(endpoint, timings);
-        await suspendMobileGatewaySession(endpoint.id);
-
-        await ensureMobileGatewaySession(endpoint, timings);
-
-        expect(mockGatewayAuthRefresh).toHaveBeenCalledTimes(2);
-        expect(mockGatewaySessionReplaceAccess).toHaveBeenCalledTimes(2);
-        expect(durableEnvelope.refresh_generation).toBe(2);
-    });
-
-    it('does not publish connected when the app suspends during identity verification', async () => {
-        let releaseMe: ((value: typeof authMe) => void) | undefined;
-        mockGatewayAuthMe.mockImplementationOnce(
-            () =>
-                new Promise<typeof authMe>((resolve) => {
-                    releaseMe = resolve;
-                }),
-        );
-        const connecting = ensureMobileGatewaySession(endpoint, timings);
-        await new Promise<void>((resolve) => setImmediate(resolve));
-        expect(releaseMe).toBeDefined();
-
-        const suspended = suspendMobileGatewaySession(endpoint.id);
-        releaseMe!(authMe);
-
-        await suspended;
-        await expect(connecting).rejects.toMatchObject({
-            name: 'MobileSessionSuspendedError',
-        });
-        expect(mobileSessionProjection(endpoint.id).phase).toBe('transiently_disconnected');
-    });
-
-    it('does not let an in-flight connection overwrite a terminal revoke', async () => {
-        let releaseMe: ((value: typeof authMe) => void) | undefined;
-        mockGatewayAuthMe.mockImplementationOnce(
-            () =>
-                new Promise<typeof authMe>((resolve) => {
-                    releaseMe = resolve;
-                }),
-        );
-        const connecting = ensureMobileGatewaySession(endpoint, timings);
-        await new Promise<void>((resolve) => setImmediate(resolve));
-        expect(releaseMe).toBeDefined();
-
-        const terminal = markMobileGatewaySessionTerminal(endpoint.id, 'session_revoked');
-        await new Promise<void>((resolve) => setImmediate(resolve));
-        releaseMe!(authMe);
-
-        await terminal;
-        await expect(connecting).rejects.toMatchObject({
-            name: 'MobileSessionSuspendedError',
-        });
-        expect(mobileSessionProjection(endpoint.id)).toMatchObject({
-            phase: 'revoked',
-            terminalReason: 'session_revoked',
-            deviceId: 'D00000000000000000001',
-            sessionId: 'S00000000000000000001',
-        });
-        await suspendMobileGatewaySession(endpoint.id);
-        expect(mobileSessionProjection(endpoint.id)).toMatchObject({
-            phase: 'revoked',
-            terminalReason: 'session_revoked',
-            deviceId: 'D00000000000000000001',
-            sessionId: 'S00000000000000000001',
-        });
-    });
-
-    it('keeps a known revoke terminal when the lifecycle bridge itself fails', async () => {
-        mockGatewaySessionLifecycleReduce.mockRejectedValueOnce(
-            new Error('injected lifecycle bridge failure'),
-        );
-
-        await expect(
-            markMobileGatewaySessionTerminal(endpoint.id, 'session_revoked'),
-        ).resolves.toBeUndefined();
-        expect(mobileSessionProjection(endpoint.id)).toMatchObject({
-            phase: 'revoked',
-            terminalReason: 'session_revoked',
-        });
-    });
-
-    it('requires explicit authentication for an unbound endpoint', async () => {
-        const unbound = {
-            ...endpoint,
-            session_ref: null,
-            server_gateway_id: null,
-        };
-
-        await expect(ensureMobileGatewaySession(unbound, timings)).rejects.toMatchObject({
-            reason: 'authentication_required',
-        });
-        expect(mockReadMobileGatewaySession).not.toHaveBeenCalled();
-        expect(mobileSessionProjection(unbound.id)).toMatchObject({
-            phase: 'needs_authentication',
-            terminalReason: 'authentication_required',
-        });
-    });
-
-    it('distinguishes a missing session from a temporarily unreadable secure store', async () => {
-        mockReadMobileGatewaySession.mockResolvedValueOnce(null);
-        await expect(ensureMobileGatewaySession(endpoint, timings)).rejects.toMatchObject({
-            reason: 'authentication_required',
-        });
-        expect(mobileSessionProjection(endpoint.id)).toMatchObject({
-            phase: 'needs_authentication',
-            terminalReason: 'authentication_required',
-        });
-
-        resetMobileSessionCoordinatorForTests();
-        installLifecycleDouble();
-        mockReadMobileGatewaySession.mockRejectedValueOnce(
-            new MobileGatewaySessionStorageError('read_failed'),
-        );
-        await expect(ensureMobileGatewaySession(endpoint, timings)).rejects.toMatchObject({
-            code: 'read_failed',
-        });
-        expect(mobileSessionProjection(endpoint.id)).toMatchObject({
-            phase: 'transiently_disconnected',
-            terminalReason: null,
-        });
-
-        await expect(ensureMobileGatewaySession(endpoint, timings)).resolves.toMatchObject({
-            connection_id: 41,
-        });
-    });
-
-    it('retries when the refresh request id cannot be stored before dispatch', async () => {
-        mockWriteMobileGatewaySession.mockRejectedValueOnce(
-            new MobileGatewaySessionStorageError('write_failed'),
-        );
-
-        await expect(ensureMobileGatewaySession(endpoint, timings)).rejects.toMatchObject({
-            code: 'write_failed',
-        });
-        expect(mockGatewayAuthRefresh).not.toHaveBeenCalled();
-        expect(mobileSessionProjection(endpoint.id)).toMatchObject({
-            phase: 'transiently_disconnected',
-            terminalReason: null,
-        });
-
-        await expect(ensureMobileGatewaySession(endpoint, timings)).resolves.toMatchObject({
-            connection_id: 41,
-        });
-        expect(mockGatewayAuthRefresh).toHaveBeenCalledTimes(1);
-    });
-
-    it('keeps an existing connection visible while retrying a SecureStore read', async () => {
-        await ensureMobileGatewaySession(endpoint, timings);
-        nowSeconds += 850;
-        mockReadMobileGatewaySession.mockRejectedValueOnce(
-            new MobileGatewaySessionStorageError('read_failed'),
-        );
-
-        await expect(ensureMobileGatewaySession(endpoint, timings)).rejects.toMatchObject({
-            code: 'read_failed',
-        });
-        expect(mockGatewayDisconnect).not.toHaveBeenCalled();
-        expect(mobileSessionProjection(endpoint.id)).toMatchObject({
-            phase: 'connected',
-            terminalReason: null,
-            accessExpiresAtUnix: 1_800_000_900,
-        });
-
-        await expect(ensureMobileGatewaySession(endpoint, timings)).resolves.toMatchObject({
-            connection_id: 41,
-        });
-    });
-
-    it('still fails closed if the rotated successor cannot be stored', async () => {
-        mockWriteMobileGatewaySession
-            .mockImplementationOnce(
-                async (_sessionRef: string, next: MobileGatewaySessionEnvelope) => {
-                    durableEnvelope = structuredClone(next);
-                },
-            )
-            .mockRejectedValueOnce(new MobileGatewaySessionStorageError('write_failed'));
-
-        await expect(ensureMobileGatewaySession(endpoint, timings)).rejects.toMatchObject({
-            reason: 'secure_storage_failed',
-        });
-        expect(mockGatewayAuthRefresh).toHaveBeenCalledTimes(1);
-        expect(mockGatewayAuthSessionCleanup).toHaveBeenCalledTimes(1);
-        expect(mobileSessionProjection(endpoint.id)).toMatchObject({
-            phase: 'storage_failed',
-            terminalReason: 'secure_storage_failed',
-        });
-    });
-
-    it('fails closed when the durable session does not match the Gateway pin', async () => {
-        mockReadMobileGatewaySession.mockResolvedValueOnce({
-            ...envelope(0),
-            gateway_id: 'G00000000000000000002',
-        });
-
-        await expect(ensureMobileGatewaySession(endpoint, timings)).rejects.toMatchObject({
-            reason: 'gateway_identity_mismatch',
-        });
-        expect(mobileSessionProjection(endpoint.id)).toMatchObject({
-            phase: 'gateway_mismatch',
-            terminalReason: 'gateway_identity_mismatch',
-        });
-    });
-
-    it('reconnects a dropped socket with unexpired ephemeral access without rotating again', async () => {
-        await ensureMobileGatewaySession(endpoint, timings);
-        markMobileGatewayConnectionDisconnected(endpoint.id);
-
-        const reconnected = await ensureMobileGatewaySession(endpoint, timings);
-
-        expect(reconnected.connection_id).toBe(41);
-        expect(mockGatewayAuthRefresh).toHaveBeenCalledTimes(1);
-        expect(mockGatewaySessionReplaceAccess).toHaveBeenCalledTimes(2);
-        expect(mobileSessionProjection(endpoint.id).phase).toBe('connected');
-    });
-
-    it('reloads the refresh credential from SecureStore for an in-foreground rotation', async () => {
-        mockGatewayAuthRefresh.mockResolvedValueOnce(refreshGrant(1, nowSeconds + 61));
-        await ensureMobileGatewaySession(endpoint, timings);
-        const durableOnlyRefresh = `prf2_${'2'.repeat(164)}`;
-        durableEnvelope = {
-            ...durableEnvelope,
-            refresh_token: durableOnlyRefresh,
-        };
-        nowSeconds += 2;
-
-        await ensureMobileGatewaySession(endpoint, timings);
-
-        expect(mockReadMobileGatewaySession).toHaveBeenCalledTimes(2);
-        expect(mockGatewayAuthRefresh.mock.calls[1]?.[0].credential).toBe(durableOnlyRefresh);
-    });
-
-    it('fails closed when auth/me reports a different mobile installation', async () => {
-        mockGatewayAuthMe.mockResolvedValueOnce({
-            ...currentAuthMe(1),
-            device: {
-                ...authMe.device,
-                installation_id: 'different-installation',
-            },
-        });
-
-        await expect(ensureMobileGatewaySession(endpoint, timings)).rejects.toMatchObject({
-            reason: 'session_compromised',
-        });
-        expect(mockGatewayDisconnect).toHaveBeenCalled();
-        expect(mobileSessionProjection(endpoint.id)).toMatchObject({
-            phase: 'compromised',
-            terminalReason: 'session_compromised',
-        });
-    });
-
-    it('rejects a refresh grant for a different mobile installation before persistence', async () => {
-        mockGatewayAuthRefresh.mockResolvedValueOnce({
-            ...refreshGrant(1, nowSeconds + 900),
-            device: {
-                ...refreshGrant(1, nowSeconds + 900).device,
-                installation_id: 'different-installation',
-            },
-        });
-
-        await expect(ensureMobileGatewaySession(endpoint, timings)).rejects.toMatchObject({
-            reason: 'session_compromised',
-        });
-        expect(mockGatewayAuthSessionCleanup).toHaveBeenCalledTimes(1);
-        expect(mockWriteMobileGatewaySession).toHaveBeenCalledTimes(1);
-        expect(durableEnvelope).toMatchObject({
-            refresh_generation: 0,
-            pending_refresh_request_id: 'Q00000000000000000000',
-        });
-        expect(mockGatewaySessionReplaceAccess).not.toHaveBeenCalled();
-    });
-
-    it('rejects a malformed token family before persisting a rotated refresh credential', async () => {
-        mockGatewayAuthRefresh.mockResolvedValueOnce({
-            ...refreshGrant(1, nowSeconds + 900),
-            session: {
-                ...refreshGrant(1, nowSeconds + 900).session,
-                token_family_id: 'invalid-family',
-            },
-        });
-
-        await expect(ensureMobileGatewaySession(endpoint, timings)).rejects.toMatchObject({
-            reason: 'session_compromised',
-        });
-        expect(mockGatewayAuthSessionCleanup).toHaveBeenCalledTimes(1);
-        expect(mockWriteMobileGatewaySession).toHaveBeenCalledTimes(1);
-        expect(durableEnvelope.refresh_generation).toBe(0);
-    });
-
-    it('rejects a well-formed replacement token family before persistence', async () => {
-        mockGatewayAuthRefresh.mockResolvedValueOnce({
-            ...refreshGrant(1, nowSeconds + 900),
-            session: {
-                ...refreshGrant(1, nowSeconds + 900).session,
-                token_family_id: 'F00000000000000000002',
-            },
-        });
-
-        await expect(ensureMobileGatewaySession(endpoint, timings)).rejects.toMatchObject({
-            reason: 'session_compromised',
-        });
-        expect(mockGatewayAuthSessionCleanup).toHaveBeenCalledTimes(1);
-        expect(mockWriteMobileGatewaySession).toHaveBeenCalledTimes(1);
-        expect(durableEnvelope.refresh_generation).toBe(0);
-    });
-
-    it('serializes old-endpoint cleanup before connecting a replacement endpoint', async () => {
-        await ensureMobileGatewaySession(endpoint, timings);
-        const replacement = {
-            ...endpoint,
-            id: 'remote-2',
-            session_ref: 'mobile-session-2',
-        };
-        const order: string[] = [];
-        mockGatewayDisconnect.mockImplementationOnce(async () => {
-            order.push('disconnect-old');
-            return true;
-        });
-        mockGatewaySessionReplaceAccess.mockImplementationOnce(async (request) => {
-            order.push(`connect-${request.endpoint.id}`);
-            return { connection_id: 42 };
-        });
-
-        const oldCleanup = suspendMobileGatewaySession(endpoint.id);
-        const newConnection = ensureMobileGatewaySession(replacement, timings);
-        await oldCleanup;
-        await newConnection;
-
-        expect(order).toEqual(['disconnect-old', 'connect-remote-2']);
-    });
-
-    it('retains ownership of the active endpoint when another replacement handshake fails', async () => {
-        await ensureMobileGatewaySession(endpoint, timings);
-        const replacement = {
-            ...endpoint,
-            id: 'remote-2',
-            session_ref: 'mobile-session-2',
-        };
-        mockGatewayDisconnect.mockClear();
-        mockGatewaySessionReplaceAccess.mockRejectedValueOnce(new Error('replacement failed'));
-
-        await expect(ensureMobileGatewaySession(replacement, timings)).rejects.toThrow(
-            'replacement failed',
-        );
-        expect(mockGatewayDisconnect).not.toHaveBeenCalled();
-
-        await suspendMobileGatewaySession(endpoint.id);
-        expect(mockGatewayDisconnect).toHaveBeenCalledTimes(1);
-    });
-
-    it('invalidates the previous runtime when another endpoint successfully owns the transport', async () => {
-        await ensureMobileGatewaySession(endpoint, timings);
-        const replacement = {
-            ...endpoint,
-            id: 'remote-2',
-            session_ref: 'mobile-session-2',
-        };
-
-        await ensureMobileGatewaySession(replacement, timings);
-
-        expect(mobileSessionProjection(endpoint.id).phase).toBe('transiently_disconnected');
-        await ensureMobileGatewaySession(endpoint, timings);
-        expect(mockGatewaySessionReplaceAccess).toHaveBeenCalledTimes(3);
-        expect(mobileSessionProjection(endpoint.id).phase).toBe('connected');
-        expect(mobileSessionProjection(replacement.id).phase).toBe('transiently_disconnected');
-    });
-
-    it('reloads the durable rotated envelope after a process restart', async () => {
-        await ensureMobileGatewaySession(endpoint, timings);
-        expect(durableEnvelope.refresh_generation).toBe(1);
-        resetMobileSessionCoordinatorForTests();
-        installLifecycleDouble();
-
-        await ensureMobileGatewaySession(endpoint, timings);
-
-        expect(mockGatewayAuthRefresh.mock.calls[1]?.[0].credential).toBe(refreshToken(1));
-        expect(durableEnvelope.refresh_generation).toBe(2);
-    });
-
-    it('recovers an ambiguous refresh outcome with the durable request id', async () => {
-        mockGatewayAuthRefresh.mockRejectedValueOnce(new Error('response lost'));
-
-        await expect(ensureMobileGatewaySession(endpoint, timings)).rejects.toThrow(
-            'response lost',
-        );
-        expect(durableEnvelope).toMatchObject({
-            refresh_generation: 0,
-            pending_refresh_request_id: 'Q00000000000000000000',
-        });
-        resetMobileSessionCoordinatorForTests();
-        installLifecycleDouble();
-        await expect(ensureMobileGatewaySession(endpoint, timings)).resolves.toMatchObject({
-            connection_id: 41,
-        });
-
-        expect(mockGatewayAuthRefresh).toHaveBeenCalledTimes(2);
-        expect(mockGatewayAuthRefresh.mock.calls[0]?.[0].params.refresh_request_id).toBe(
-            'Q00000000000000000000',
-        );
-        expect(mockGatewayAuthRefresh.mock.calls[1]?.[0].params.refresh_request_id).toBe(
-            'Q00000000000000000000',
-        );
-        expect(durableEnvelope.pending_refresh_request_id).toBeUndefined();
-        expect(mobileSessionProjection(endpoint.id)).toMatchObject({
-            phase: 'connected',
-            terminalReason: null,
-        });
-    });
-
-    it('retries the durable credential when the refresh request was not dispatched', async () => {
-        mockGatewayAuthRefresh.mockRejectedValueOnce(
-            new PioneerClientNativeError(
-                'Gateway connection failed',
-                'auth_exchange_transport_before_request',
-            ),
-        );
-
-        await expect(ensureMobileGatewaySession(endpoint, timings)).rejects.toMatchObject({
-            code: 'auth_exchange_transport_before_request',
-        });
-        expect(mobileSessionProjection(endpoint.id)).toMatchObject({
-            phase: 'transiently_disconnected',
-            terminalReason: null,
-        });
-        expect(durableEnvelope.refresh_generation).toBe(0);
-
-        await expect(ensureMobileGatewaySession(endpoint, timings)).resolves.toMatchObject({
-            connection_id: 41,
-        });
-
-        expect(mockGatewayAuthRefresh).toHaveBeenCalledTimes(2);
-        expect(mockGatewayAuthRefresh.mock.calls[0]?.[0].credential).toBe(refreshToken(0));
-        expect(mockGatewayAuthRefresh.mock.calls[1]?.[0].credential).toBe(refreshToken(0));
-        expect(mockGatewayAuthRefresh.mock.calls[0]?.[0].params.refresh_request_id).toBe(
-            mockGatewayAuthRefresh.mock.calls[1]?.[0].params.refresh_request_id,
-        );
-        expect(mobileSessionProjection(endpoint.id)).toMatchObject({
-            phase: 'connected',
-            terminalReason: null,
-        });
-    });
-
-    it('keeps an existing connection visible while retrying a refresh not dispatched', async () => {
-        await ensureMobileGatewaySession(endpoint, timings);
-        nowSeconds += 850;
-        mockGatewayDisconnect.mockClear();
-        mockGatewayAuthRefresh.mockRejectedValueOnce(
-            new PioneerClientNativeError(
-                'Gateway connection failed',
-                'auth_exchange_transport_before_request',
-            ),
-        );
-
-        await expect(ensureMobileGatewaySession(endpoint, timings)).rejects.toMatchObject({
-            code: 'auth_exchange_transport_before_request',
-        });
-        expect(mockGatewayDisconnect).not.toHaveBeenCalled();
-        expect(mobileSessionProjection(endpoint.id)).toMatchObject({
-            phase: 'connected',
-            terminalReason: null,
-            accessExpiresAtUnix: 1_800_000_900,
-        });
-
-        await expect(ensureMobileGatewaySession(endpoint, timings)).resolves.toMatchObject({
-            connection_id: 41,
-        });
-        expect(mockGatewayAuthRefresh.mock.calls[1]?.[0].credential).toBe(refreshToken(1));
-        expect(mockGatewayAuthRefresh.mock.calls[2]?.[0].credential).toBe(refreshToken(1));
-    });
-
-    it('persists a rotated successor when the lifecycle bridge fails after refresh', async () => {
-        mockGatewaySessionLifecycleReduce
-            .mockImplementationOnce(async () => ({
-                state: { kind: 'no_session' },
-                effect: {
-                    kind: 'begin_refresh',
-                    data: { session_id: envelope(0).session_id, intent_id: 1 },
-                },
-            }))
-            .mockRejectedValueOnce(new Error('injected lifecycle bridge failure'));
-
-        await expect(ensureMobileGatewaySession(endpoint, timings)).rejects.toThrow(
-            'injected lifecycle bridge failure',
-        );
-        expect(durableEnvelope.refresh_generation).toBe(1);
-
-        await ensureMobileGatewaySession(endpoint, timings);
-
-        expect(mockGatewayAuthRefresh.mock.calls[1]?.[0].credential).toBe(refreshToken(1));
-        expect(durableEnvelope.refresh_generation).toBe(2);
-    });
+    jest.mocked(pioneerClient.gatewaySessionControl).mockReset().mockResolvedValue(true);
 });
 
-describe('terminalReasonFromMachineCode', () => {
-    it('preserves member suspension and removal as distinct terminal outcomes', () => {
-        expect(terminalReasonFromMachineCode('principal_suspended')).toBe('principal_suspended');
-        expect(terminalReasonFromMachineCode('principal_removed')).toBe('principal_removed');
-        expect(terminalReasonFromMachineCode('unrelated_gateway_error')).toBeNull();
+describe('Mobile session native runtime adapter', () => {
+    it('retains native stage durations across delayed publication and duplicate delivery', async () => {
+        const listener = jest.fn();
+        const unsubscribe = subscribeMobileSessionDiagnostics('synthetic', listener);
+        mockSessionPayload = {
+            startup: {
+                session_diagnostics: {
+                    refresh_request: {
+                        endpoint_id: 'synthetic',
+                        started_at_unix_ms: 123456,
+                        duration_ms: 47,
+                        state: 'succeeded',
+                    },
+                },
+            },
+        };
+        await mobileClientBinding.synchronize();
+        await mobileClientBinding.synchronize();
+        expect(listener).toHaveBeenCalledTimes(1);
+        expect(listener).toHaveBeenCalledWith({
+            stage: 'authorization.refresh.request',
+            outcome: 'succeeded',
+            timing: { started_at_unix_ms: 123456, duration_ms: 47 },
+        });
+        unsubscribe();
+        expect(mockListeners.size).toBe(0);
+    });
+
+    it('dispatches a credential-free request and reads identity/session after ordered synchronization', async () => {
+        const connected = await ensureMobileGatewaySession(endpoint, timings);
+        expect(pioneerClient.gatewaySessionEnsure).toHaveBeenCalledWith({
+            endpoint,
+            timings,
+            installation_id: 'synthetic',
+            rejected_connection_id: undefined,
+        });
+        expect(mobileClientBinding.synchronize).toHaveBeenCalledTimes(1);
+        expect(connected).toEqual({
+            connection_id: 17,
+            projection: {
+                phase: 'connected',
+                principalId: 'P00000000000000000001',
+                deviceId: result.metadata.device_id,
+                sessionId: result.metadata.session_id,
+                accessExpiresAtUnix: 2000,
+                terminalReason: null,
+                connectionGeneration: 17,
+            },
+        });
+    });
+
+    it('leaves request coalescing to the process-local Core', async () => {
+        await Promise.all([
+            ensureMobileGatewaySession(endpoint, timings),
+            ensureMobileGatewaySession(endpoint, timings),
+        ]);
+        expect(pioneerClient.gatewaySessionEnsure).toHaveBeenCalledTimes(2);
+    });
+
+    it('passes the rejected native connection identity without a JS disconnect/rotation sequence', async () => {
+        await refreshMobileGatewaySessionAfterUnauthorized(endpoint, timings, 9);
+        expect(pioneerClient.gatewaySessionEnsure).toHaveBeenCalledWith({
+            endpoint,
+            timings,
+            installation_id: 'synthetic',
+            rejected_connection_id: 9,
+        });
+        expect(pioneerClient.gatewaySessionControl).not.toHaveBeenCalled();
+    });
+
+    it('rejects a native result superseded before its publications were applied', async () => {
+        jest.mocked(pioneerClient.gatewaySessionEnsure).mockResolvedValue(result);
+        await expect(ensureMobileGatewaySession(endpoint, timings)).rejects.toBeInstanceOf(
+            MobileSessionSuspendedError,
+        );
+    });
+
+    it('uses the Core terminal projection for the existing shell error type', async () => {
+        jest.mocked(pioneerClient.gatewaySessionEnsure).mockImplementation(async () => {
+            mockSessionPayload = {
+                sessions: {
+                    synthetic: {
+                        kind: 'terminal',
+                        data: { metadata: result.metadata, reason: 'session_revoked' },
+                    },
+                },
+                connections: {},
+            };
+            throw new PioneerClientNativeError('stopped', 'session_revoked');
+        });
+        await expect(ensureMobileGatewaySession(endpoint, timings)).rejects.toBeInstanceOf(
+            MobileSessionTerminalError,
+        );
+        expect(mobileSessionProjection(endpoint.id).phase).toBe('revoked');
+    });
+
+    it('preserves the expired presentation for invalid refresh credentials', () => {
+        mockSessionPayload = {
+            sessions: {
+                synthetic: { kind: 'terminal', data: { reason: 'refresh_credential_invalid' } },
+            },
+            connections: {},
+        };
+        expect(mobileSessionProjection(endpoint.id).phase).toBe('expired');
+    });
+
+    it('owns only scoped registration tokens and suppresses duplicate immutable projections', async () => {
+        const seen: string[] = [];
+        const unsubscribe = subscribeMobileSessionProjection(endpoint.id, (projection) =>
+            seen.push(projection.phase),
+        );
+        publishConnected();
+        await mobileClientBinding.synchronize();
+        await mobileClientBinding.synchronize();
+        expect(seen).toEqual(['needs_authentication', 'connected']);
+        unsubscribe();
+        expect(mockListeners.size).toBe(0);
+    });
+
+    it('delegates suspend, clear, and stop to typed Core controls', async () => {
+        await suspendMobileGatewaySession(endpoint.id);
+        await clearMobileGatewaySessionRuntime(endpoint.id);
+        await markMobileGatewaySessionTerminal(endpoint.id, 'session_revoked');
+        expect(
+            jest.mocked(pioneerClient.gatewaySessionControl).mock.calls.map(([request]) => request),
+        ).toEqual([
+            { kind: 'suspend', endpoint_id: endpoint.id },
+            { kind: 'clear', endpoint_id: endpoint.id },
+            { kind: 'stop', endpoint_id: endpoint.id, reason: 'session_revoked' },
+        ]);
     });
 });

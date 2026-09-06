@@ -1,10 +1,11 @@
 import { QueryClient } from '@tanstack/react-query';
 import { describe, expect, it, jest } from '@jest/globals';
 
-import { pioneerClient } from '@/client';
+import { pioneerClient, mobileClientBinding } from '@/client';
 import type { AuthorizationCapabilitySnapshot } from '@/client';
 
 import {
+    readAuthorizationCapabilitySnapshot,
     administrationAuthorizationQueryRetry,
     administrationAuthorizationQueryRetryDelay,
     administrationConflictRefetch,
@@ -15,11 +16,63 @@ import {
     reconcileAuthorizationCapabilityQueries,
 } from './query';
 
+let mockAuthorizationPublication: Record<string, unknown> | null = null;
 jest.mock('@/client', () => ({
+    mobileClientBinding: {
+        synchronize: jest.fn(async () => undefined),
+        scope: () => ({
+            getSnapshot: () =>
+                mockAuthorizationPublication ? { payload: mockAuthorizationPublication } : null,
+        }),
+    },
     pioneerClient: { administrationConflictRefetch: jest.fn() },
 }));
 
 describe('administration query ownership', () => {
+    it('reads only an applied publication and rejects superseded endpoint or principal identity', async () => {
+        mockAuthorizationPublication = {
+            endpoint_id: 'gateway-a',
+            connection_id: 7,
+            capabilities: {
+                accepted_revision: 9,
+                manifest: {
+                    schema_version: 1,
+                    principal_id: 'principal-a',
+                    role_key: 'member',
+                    role: {},
+                    global: {},
+                },
+                workspaces: { 'workspace-a': { workspace_id: 'workspace-a', capabilities: {} } },
+                threads: {},
+            },
+        };
+        const epoch = { gatewayId: 'gateway-a', connectionId: 7 };
+        const snapshot = await readAuthorizationCapabilitySnapshot(
+            epoch,
+            'principal-a',
+            'workspace-a',
+            'missing-thread',
+        );
+        expect(mobileClientBinding.synchronize).toHaveBeenCalled();
+        expect(snapshot.authorization_revision).toBe(9);
+        expect(snapshot.thread).toBeNull();
+        await expect(
+            readAuthorizationCapabilitySnapshot(
+                { ...epoch, connectionId: 8 },
+                'principal-a',
+                'workspace-a',
+                null,
+            ),
+        ).rejects.toThrow('stale_authorization_projection');
+        await expect(
+            readAuthorizationCapabilitySnapshot(epoch, 'different-principal', 'workspace-a', null),
+        ).rejects.toThrow('stale_authorization_projection');
+        mockAuthorizationPublication = null;
+        await expect(
+            readAuthorizationCapabilitySnapshot(epoch, 'principal-a', 'workspace-a', null),
+        ).rejects.toThrow('stale_authorization_projection');
+    });
+
     it('scopes authorization snapshots to the connection epoch and workspace', () => {
         const firstEpoch = { gatewayId: 'gateway-a', connectionId: 1 } as const;
         const secondEpoch = { gatewayId: 'gateway-a', connectionId: 2 } as const;

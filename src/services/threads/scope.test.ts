@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { QueryClient } from '@tanstack/react-query';
 
-import { pioneerClient, type AuthMeResponse, type Thread } from '@/client';
+import { pioneerClient, mobileClientBinding, type AuthMeResponse, type Thread } from '@/client';
 import { loadAllWorkspaceMembers } from '@/services/administration/members';
 import {
     addThreadParticipant,
@@ -14,14 +14,22 @@ import {
     updateThreadVisibility,
 } from '@/services/threads/scope';
 
+let mockCapabilityPublication: Record<string, unknown> | null = null;
+
 jest.mock('@/client', () => ({
+    mobileClientBinding: {
+        synchronize: jest.fn(async () => undefined),
+        scope: () => ({
+            getSnapshot: () =>
+                mockCapabilityPublication ? { payload: mockCapabilityPublication } : null,
+        }),
+    },
     pioneerClient: {
         threadParticipantsList: jest.fn(),
         threadParticipantAdd: jest.fn(),
         threadParticipantRemove: jest.fn(),
         threadUpdate: jest.fn(),
         gatewayAuthorizationCapabilities: jest.fn(),
-        authorizationProjectionAccept: jest.fn(),
         threadScopePresentation: jest.fn(),
         threadScopeMutationPlan: jest.fn(),
     },
@@ -43,9 +51,7 @@ const authorizationEpoch = { gatewayId: 'gateway-a', connectionId: 7 } as const;
 describe('thread scope service', () => {
     beforeEach(() => {
         jest.clearAllMocks();
-        jest.mocked(pioneerClient.authorizationProjectionAccept).mockImplementation(
-            ({ snapshot }) => ({ acceptance: 'accepted', snapshot }),
-        );
+        mockCapabilityPublication = null;
     });
 
     it('toggles only user-selectable thread visibility values', () => {
@@ -112,6 +118,33 @@ describe('thread scope service', () => {
                 capabilities,
             },
         });
+        mockCapabilityPublication = {
+            endpoint_id: authorizationEpoch.gatewayId,
+            connection_id: authorizationEpoch.connectionId,
+            capabilities: {
+                accepted_revision: 1,
+                manifest: {
+                    schema_version: 1,
+                    principal_id: auth.principal.id,
+                    role_key: 'member',
+                    role: {},
+                    global: {},
+                },
+                workspaces: {
+                    [privateThread.workspace_id]: {
+                        workspace_id: privateThread.workspace_id,
+                        capabilities: {},
+                    },
+                },
+                threads: {
+                    [privateThread.id]: {
+                        workspace_id: privateThread.workspace_id,
+                        thread_id: privateThread.id,
+                        capabilities,
+                    },
+                },
+            },
+        };
         jest.mocked(loadAllWorkspaceMembers).mockResolvedValue(members);
         jest.mocked(pioneerClient.threadScopePresentation).mockReturnValue({
             marker: true,
@@ -120,14 +153,7 @@ describe('thread scope service', () => {
         await expect(
             loadThreadScopePresentation(auth, privateThread, authorizationEpoch),
         ).resolves.toEqual({ marker: true });
-        expect(pioneerClient.authorizationProjectionAccept).toHaveBeenCalledWith({
-            gateway_id: 'gateway-a',
-            connection_id: 7,
-            expected_principal_id: auth.principal.id,
-            workspace_id: privateThread.workspace_id,
-            thread_id: privateThread.id,
-            snapshot: expect.objectContaining({ authorization_revision: 1 }),
-        });
+        expect(mobileClientBinding.synchronize).toHaveBeenCalled();
         expect(pioneerClient.threadScopePresentation).toHaveBeenCalledWith({
             auth,
             thread: privateThread,
@@ -208,10 +234,6 @@ describe('thread scope service', () => {
             role_key: 'member',
             role: {} as never,
             global: {} as never,
-        });
-        jest.mocked(pioneerClient.authorizationProjectionAccept).mockReturnValue({
-            acceptance: 'stale',
-            snapshot: null,
         });
         jest.mocked(loadAllWorkspaceMembers).mockResolvedValue(members);
         jest.mocked(pioneerClient.threadScopePresentation).mockReturnValue({} as never);

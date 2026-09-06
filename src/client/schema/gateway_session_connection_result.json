@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "GatewaySessionConnectionResult",
+  "type": "object",
+  "properties": {
+    "access_expires_at_unix": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0
+    },
+    "connection_generation": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0
+    },
+    "connection_id": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0
+    },
+    "metadata": {
+      "$ref": "#/$defs/GatewaySessionMetadata"
+    }
+  },
+  "required": [
+    "connection_id",
+    "connection_generation",
+    "metadata",
+    "access_expires_at_unix"
+  ],
+  "$defs": {
+    "AuthSessionId": {
+      "type": "string",
+      "maxLength": 21,
+      "minLength": 21,
+      "pattern": "^[A-Za-z0-9]{21}$"
+    },
+    "DeviceId": {
+      "type": "string",
+      "maxLength": 21,
+      "minLength": 21,
+      "pattern": "^[A-Za-z0-9]{21}$"
+    },
+    "GatewayId": {
+      "type": "string",
+      "maxLength": 21,
+      "minLength": 21,
+      "pattern": "^[A-Za-z0-9]{21}$"
+    },
+    "GatewaySessionMetadata": {
+      "type": "object",
+      "properties": {
+        "device_id": {
+          "$ref": "#/$defs/DeviceId"
+        },
+        "gateway_id": {
+          "$ref": "#/$defs/GatewayId"
+        },
+        "refresh_expires_at_unix": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "refresh_generation": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "session_id": {
+          "$ref": "#/$defs/AuthSessionId"
+        }
+      },
+      "required": [
+        "gateway_id",
+        "device_id",
+        "session_id",
+        "refresh_generation",
+        "refresh_expires_at_unix"
+      ]
+    }
+  }
+}
