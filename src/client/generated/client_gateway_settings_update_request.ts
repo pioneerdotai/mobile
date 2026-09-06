@@ -85,6 +85,10 @@ export interface GatewaySelfImprovementSettings {
 export interface GatewaySelfImprovementModelSelection {
   model: string;
   provider: string;
+  /**
+   * None delegates to the provider; `none` explicitly disables reasoning.
+   */
+  reasoning_effort?: string | null;
 }
 export interface GatewayThreadEpisodicSettingsUpdate {
   default_max_candidates?: number | null;

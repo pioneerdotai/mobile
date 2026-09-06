@@ -21,6 +21,32 @@ export type GatewayRemoteAccessErrorKind =
   | 'restart_limit_reached'
   | 'io'
   | 'unknown';
+export type SelfImprovementStatusReason =
+  | 'disabled'
+  | 'model_unavailable'
+  | 'worker_unavailable'
+  | 'preparing'
+  | 'no_new_sources'
+  | 'awaiting_schedule'
+  | 'analyzing'
+  | 'finalizing'
+  | 'pending'
+  | 'recovering'
+  | 'timeout'
+  | 'output_limit'
+  | 'invalid_response'
+  | 'provider_error'
+  | 'response_filtered'
+  | 'no_candidate'
+  | 'reviewer_rejected'
+  | 'validation_rejected'
+  | 'created'
+  | 'updated'
+  | 'rolled_back'
+  | 'cancelled'
+  | 'unknown';
+export type SelfImprovementPhase =
+  'disabled' | 'unavailable' | 'waiting' | 'running' | 'retrying' | 'failed' | 'no_change' | 'completed' | 'cancelled';
 export type GatewayThreadEpisodicVectorProvider = 'openai' | 'openrouter' | 'local';
 export type GatewayVoiceInputProvider = 'local';
 export type CLIRuntimeProviderSettingsRejection =
@@ -81,6 +107,10 @@ export interface GatewaySettingsSnapshot {
   memory: GatewayMemorySettings;
   remote_access?: GatewayRemoteAccessSettings;
   self_improvement?: GatewaySelfImprovementSettings;
+  /**
+   * Read-only status of learning in the connection's workspace. Absent on older gateways.
+   */
+  self_improvement_status?: GatewaySelfImprovementStatus | null;
   thread_episodic?: GatewayThreadEpisodicSettings;
   voice_input?: GatewayVoiceInputSettings;
   [k: string]: unknown;
@@ -162,6 +192,30 @@ export interface GatewaySelfImprovementSettings {
 export interface GatewaySelfImprovementModelSelection {
   model: string;
   provider: string;
+  /**
+   * None delegates to the provider; `none` explicitly disables reasoning.
+   */
+  reasoning_effort?: string | null;
+}
+/**
+ * Bounded operational projection; contains no history, prompts, or provider error payloads.
+ */
+export interface GatewaySelfImprovementStatus {
+  last_result?: SelfImprovementStatusReason | null;
+  last_run_at_unix?: number | null;
+  next_retry_at_unix?: number | null;
+  next_scheduled_at_unix?: number | null;
+  observed_at_unix: number;
+  phase: SelfImprovementPhase;
+  progress?: SelfImprovementProgress | null;
+  reason: SelfImprovementStatusReason;
+  workspace_id: string;
+  [k: string]: unknown;
+}
+export interface SelfImprovementProgress {
+  processed_chunks: number;
+  total_chunks: number;
+  [k: string]: unknown;
 }
 export interface GatewayThreadEpisodicSettings {
   default_max_candidates: number;

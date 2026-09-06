@@ -3630,6 +3630,10 @@ export interface MemoryRecord {
   };
   namespace?: string | null;
   provenance: MemoryProvenance;
+  /**
+   * Response-only assessment for this read; absence means not assessed.
+   */
+  recall_eligibility?: MemoryRecallEligibility | null;
   scope: MemoryScope;
   sensitivity: MemorySensitivity;
   source_context_kind?: MemorySourceContextKind | null;
@@ -3648,6 +3652,14 @@ export interface MemoryProvenance {
 export interface MemoryActor {
   id?: string | null;
   kind: MemoryActorKind;
+  [k: string]: unknown;
+}
+export interface MemoryRecallEligibility {
+  eligible: boolean;
+  /**
+   * Low-cardinality policy reason, never a payload or identifier.
+   */
+  reason: string;
   [k: string]: unknown;
 }
 export interface MemoryScope {
