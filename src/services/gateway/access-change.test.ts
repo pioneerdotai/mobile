@@ -3,6 +3,20 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { QueryClient } from '@tanstack/react-query';
 
+jest.mock('@/client/navigation', () => {
+    let workspaceId: string | null = null;
+    return {
+        installPublication: (value: string | null) => {
+            workspaceId = value;
+        },
+        navigationSnapshot: () => ({ workspace_id: workspaceId }),
+        useClientNavigation: () => ({ workspace_id: workspaceId }),
+        selectWorkspace: (value: string | null) => {
+            workspaceId = value;
+        },
+    };
+});
+
 jest.mock('@/services/threads/active', () => ({
     applyActiveThreadEvent: jest.fn(),
 }));
@@ -261,6 +275,12 @@ describe('mobile access-change lifecycle', () => {
         );
         queryClient.setQueryData(timelineQueryKeys.thread('thread-kept'), 'unrelated timeline');
 
+        // The Client fence installs selection before delivering the cleanup lifecycle.
+        (
+            jest.requireMock('@/client/navigation') as {
+                installPublication: (id: string | null) => void;
+            }
+        ).installPublication(null);
         applyMobileAccessChangedLifecycle(lifecycle(), queryClient, [], 'revoked');
 
         expect(useWorkspaceStore.getState()).toMatchObject({
@@ -295,9 +315,14 @@ describe('mobile access-change lifecycle', () => {
             bootstrappedConnectionId: 17,
         });
 
+        (
+            jest.requireMock('@/client/navigation') as {
+                installPublication: (id: string | null) => void;
+            }
+        ).installPublication(null);
         applyMobileAccessChangedLifecycle(
             lifecycle({
-                active_scope_cleared: false,
+                active_scope_cleared: true,
                 active_thread_cleared: false,
             }),
             queryClient,

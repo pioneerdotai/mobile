@@ -13,6 +13,17 @@ import {
     applyPublishedVoiceInputSettings,
 } from './query';
 
+jest.mock('@/client/navigation', () => {
+    let workspaceId: string | null = null;
+    return {
+        navigationSnapshot: () => ({ workspace_id: workspaceId }),
+        useClientNavigation: () => ({ workspace_id: workspaceId }),
+        selectWorkspace: (value: string | null) => {
+            workspaceId = value;
+        },
+    };
+});
+
 jest.mock('@/client', () => ({
     mobileClientBinding: { synchronize: jest.fn(async () => undefined), scope: jest.fn() },
     pioneerClient: {

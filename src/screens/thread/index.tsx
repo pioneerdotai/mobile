@@ -1,3 +1,4 @@
+import { dispatchNavigation, navigationSnapshot } from '@/client/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { router, useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -945,6 +946,18 @@ const ThreadScreen = ({
                 return;
             }
 
+            const workspaceId = navigationSnapshot()?.workspace_id;
+            if (!workspaceId) return;
+            const transition = dispatchNavigation({
+                kind: 'push_task_thread',
+                entry: {
+                    parent_thread_id: visibleThreadId,
+                    child_thread_id: row.childThreadId,
+                    workspace_id: workspaceId,
+                    title: row.title,
+                },
+            });
+            if (transition.outcome !== 'changed') return;
             router.push({
                 pathname: '/thread/child/[threadId]',
                 params: {

@@ -1,3 +1,4 @@
+import { SemanticNavigationController } from '@/components/navigation/semantic-navigation';
 import { initializeMobilePlatformEffects } from '@/services/gateway/platform-effects';
 import 'react-native-reanimated';
 
@@ -200,6 +201,7 @@ const RootContent = () => {
             <ThreadTreeController />
             <AuthorizationProjectionController />
             <RootStack />
+            <SemanticNavigationController />
             <MobileStartupReadinessController />
             <CliRuntimeComposerCapabilityController />
             <TaskUserNotificationController />
