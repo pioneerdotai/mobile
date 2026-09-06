@@ -46,12 +46,6 @@ export const activeThreadSnapshot = (
     return pioneerClient.activeThreadSnapshot(request);
 };
 
-export const applyActiveThreadEvent = async (
-    request: ClientActiveThreadEventRequest,
-): Promise<ClientActiveThreadEventResult> => {
-    return pioneerClient.activeThreadApplyEvent(request);
-};
-
 export const sendActiveThreadText = async (
     request: ClientActiveThreadSendTextRequest,
 ): Promise<ClientActiveThreadSendTextResult> => {
@@ -73,3 +67,8 @@ export const unsubscribeOrCloseActiveThread = async (
 export const clearActiveThread = async (): Promise<ClientActiveThreadClearResult> => {
     return pioneerClient.activeThreadClear();
 };
+
+// Compatibility delivery for administration and authorization endpoints.
+export const applyActiveThreadEvent = async (
+    request: ClientActiveThreadEventRequest,
+): Promise<ClientActiveThreadEventResult> => pioneerClient.activeThreadApplyEvent(request);

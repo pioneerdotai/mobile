@@ -723,6 +723,147 @@ export type TurnWorkState =
   'starting' | 'running' | 'waiting_for_approval' | 'stalled' | 'completed' | 'blocked' | 'failed' | 'interrupted';
 export type TimelineCoalescedToolsKind = 'CompletedTaskTools' | 'RepeatedTaskWait';
 export type AgentWorkNodeState = 'queued' | 'running' | 'completed' | 'failed' | 'cancelled' | 'blocked';
+export type TimelineBlockKind =
+  | {
+      attachments?: UserMessageAttachment[];
+      author?: TurnAuthorSnapshot | null;
+      deleted?: boolean;
+      edited?: boolean;
+      inputs?: UserInput[];
+      itemId?: string | null;
+      kind: 'user_message';
+      mentions?: TurnMention[];
+      mode?: ('Message' | 'Agent') | 'Chat';
+      reply?: TimelineReplySummary | null;
+      revision?: number;
+      route?: SafeRouteProvenance | null;
+      text?: string;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'turn_work';
+      work: TurnWorkBlock;
+      [k: string]: unknown;
+    }
+  | {
+      author?: TurnAuthorSnapshot | null;
+      kind: 'detached_task_run';
+      task: TaskTurnItem;
+      [k: string]: unknown;
+    }
+  | {
+      author?: TurnAuthorSnapshot | null;
+      itemId: string;
+      kind: 'assistant_message';
+      markdown?: MarkdownDocument | null;
+      route?: SafeRouteProvenance | null;
+      status?: 'running' | 'completed' | 'blocked' | 'failed' | 'cancelled';
+      text: string;
+      [k: string]: unknown;
+    }
+  | {
+      /**
+       * Exact responding execution whose work this lifecycle row describes.
+       */
+      author?: TurnAuthorSnapshot | null;
+      kind: 'turn_state';
+      message?: string | null;
+      route?: SafeRouteProvenance | null;
+      state: TurnWorkState;
+      [k: string]: unknown;
+    }
+  | {
+      author?: TurnAuthorSnapshot | null;
+      itemId?: string | null;
+      kind: 'pending_request';
+      request: CLIRuntimePendingRequest;
+      requestId: string;
+      runtimeId: string;
+      status: CLIRuntimePendingRequestStatus;
+      [k: string]: unknown;
+    };
+export type UserInput =
+  | {
+      text: string;
+      textElements?: TextElement[];
+      type: 'text';
+      [k: string]: unknown;
+    }
+  | {
+      type: 'image';
+      url: string;
+      [k: string]: unknown;
+    }
+  | {
+      path: string;
+      type: 'localImage';
+      [k: string]: unknown;
+    }
+  | {
+      type: 'file';
+      url: string;
+      [k: string]: unknown;
+    }
+  | {
+      path: string;
+      type: 'localFile';
+      [k: string]: unknown;
+    }
+  | {
+      type: 'audio';
+      url: string;
+      [k: string]: unknown;
+    }
+  | {
+      path: string;
+      type: 'localAudio';
+      [k: string]: unknown;
+    }
+  | {
+      type: 'video';
+      url: string;
+      [k: string]: unknown;
+    }
+  | {
+      path: string;
+      type: 'localVideo';
+      [k: string]: unknown;
+    }
+  | {
+      artifactId: string;
+      type: 'artifact';
+      versionId?: string | null;
+      [k: string]: unknown;
+    }
+  | {
+      name: string;
+      path: string;
+      type: 'mention';
+      [k: string]: unknown;
+    };
+export type TurnWorkPresentation = 'expanded_live' | 'collapsed_after_final' | 'expanded_terminal_no_final';
+export type CLIRuntimePendingRequestStatus =
+  | 'pending'
+  | 'response_accepted'
+  | 'delivering'
+  | 'delivery_failed'
+  | 'answered'
+  | 'resolved'
+  | 'cancelled'
+  | 'expired';
+export type TurnItemType =
+  | 'user_message'
+  | 'agent_message'
+  | 'reasoning'
+  | 'system_event'
+  | 'task'
+  | 'command_execution'
+  | 'file_change'
+  | 'web_search'
+  | 'web_fetch'
+  | 'download'
+  | 'dynamic_tool_call';
+export type TurnWorkItemStatus = 'running' | 'completed' | 'blocked' | 'failed' | 'cancelled';
 export type ThreadStatus = 'Active' | 'Idle' | 'Closed';
 export type PromptManifestDiagnosticCode =
   | 'missing_file'
@@ -755,6 +896,7 @@ export type ThreadVisibility = 'private' | 'workspace';
 export interface ClientActiveThreadSnapshot {
   active_turn_security_diagnostics?: ClientSecurityDiagnosticRow[];
   active_turn_security_summary?: ClientTurnSecuritySummary | null;
+  domain_revision: number;
   draft_thread_id?: string | null;
   draft_workspace_id?: string | null;
   history_loaded: boolean;
@@ -766,9 +908,11 @@ export interface ClientActiveThreadSnapshot {
     [k: string]: string;
   };
   rows: TimelineRow[];
+  semantic_timeline_patch: SemanticTimelineCachePatch;
   session_revision?: number;
   thread?: Thread | null;
   thread_id?: string | null;
+  timeline_revision: number;
   workspace_id?: string | null;
   [k: string]: unknown;
 }
@@ -1274,6 +1418,114 @@ export interface AgentWorkNodeProjection {
   progressLabel?: string | null;
   progressRevision: number;
   state: AgentWorkNodeState;
+}
+export interface SemanticTimelineCachePatch {
+  changed_blocks?: TimelineBlock[];
+  changed_work_items?: TurnWorkItem[];
+  removed_block_ids?: string[];
+  removed_work_items?: SemanticTimelineRemovedWorkItem[];
+  thread_id: string;
+  workspace_id: string;
+  [k: string]: unknown;
+}
+export interface TimelineBlock {
+  blockId: string;
+  kind: TimelineBlockKind;
+  sortKey: string;
+  startedAtUnixMs?: number | null;
+  threadId: string;
+  turnId?: string | null;
+  updatedAtUnixMs?: number | null;
+  workspaceId: string;
+  [k: string]: unknown;
+}
+export interface TextElement {
+  byte_range: ByteRange;
+  placeholder?: string | null;
+  [k: string]: unknown;
+}
+export interface ByteRange {
+  end: number;
+  start: number;
+  [k: string]: unknown;
+}
+export interface TurnWorkBlock {
+  afterCursor?: TimelineCursor | null;
+  /**
+   * Server-owned aggregate state for the root Agent work graph bound to
+   * this Turn. Descendant Turns do not repeat the graph projection.
+   */
+  agentWorkGraph?: AgentWorkGraphProjection | null;
+  /**
+   * Exact execution whose work this row presents. This is separate from
+   * the Turn input author and is required for stable Agent attribution.
+   */
+  author?: TurnAuthorSnapshot | null;
+  beforeCursor?: TimelineCursor | null;
+  completedAtUnixMs?: number | null;
+  elapsedMs?: number | null;
+  firstWorkItemId?: string | null;
+  hasMoreAfter: boolean;
+  hasMoreBefore: boolean;
+  hiddenWorkCount: number;
+  lastWorkItemId?: string | null;
+  presentation: TurnWorkPresentation;
+  startedAtUnixMs?: number | null;
+  state: TurnWorkState;
+  turnId: string;
+  visibleWorkCount: number;
+  workCount: number;
+  [k: string]: unknown;
+}
+export interface TimelineCursor {
+  value: string;
+  [k: string]: unknown;
+}
+export interface TaskTurnItem {
+  agentRole?: string | null;
+  attachment?: 'attached' | 'detached';
+  childThreadId?: string | null;
+  childTurnId?: string | null;
+  createdAt: number;
+  createdByTurnId?: string | null;
+  depth: number;
+  errorPreview?: string | null;
+  executorKind: TaskExecutorKind;
+  id: string;
+  maxDepth: number;
+  nextFireAt?: number | null;
+  parentTaskId?: string | null;
+  progressPreview?: string | null;
+  resultPreview?: string | null;
+  rootTaskId?: string | null;
+  runId?: string | null;
+  startedAt?: number | null;
+  status: TaskStatus;
+  taskId: string;
+  title: string;
+  triggerKind: TaskTriggerKind;
+  updatedAt: number;
+  [k: string]: unknown;
+}
+export interface TurnWorkItem {
+  completedAtUnixMs?: number | null;
+  item: TurnItem;
+  itemId: string;
+  itemType: TurnItemType;
+  metadata?: unknown;
+  orderKey: string;
+  sourceSequence?: number;
+  sourceUpdatedAtUnixMicros?: number;
+  startedAtUnixMs?: number | null;
+  status: TurnWorkItemStatus;
+  turnId: string;
+  workItemId: string;
+  [k: string]: unknown;
+}
+export interface SemanticTimelineRemovedWorkItem {
+  turn_id: string;
+  work_item_id: string;
+  [k: string]: unknown;
 }
 export interface Thread {
   agent_nickname?: string | null;

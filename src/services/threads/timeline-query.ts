@@ -96,7 +96,11 @@ export const newestActiveThreadSnapshot = (
     current: ClientActiveThreadSnapshot | null | undefined,
     incoming: ClientActiveThreadSnapshot,
 ): ClientActiveThreadSnapshot => {
-    if (current && current.projection.revision > incoming.projection.revision) {
+    if (
+        current &&
+        current.thread_id === incoming.thread_id &&
+        current.domain_revision > incoming.domain_revision
+    ) {
         return current;
     }
 

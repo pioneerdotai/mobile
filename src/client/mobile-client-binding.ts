@@ -41,6 +41,7 @@ type ScopeState = {
     snapshot: ClientScopedSnapshotDto | null;
     rows: Map<string, MobileClientRow>;
     lastAppliedSequence: number | null;
+    demandGeneration: number;
     listeners: Set<Listener>;
     store: MobileClientScopeStore;
 };
@@ -63,7 +64,9 @@ const scopeKey = (scope: ClientScope): string => {
         case 'artifact':
             return `${scope.kind}:${JSON.stringify(scope.thread_id)}`;
         case 'pending_request':
-            return `${scope.kind}:${optionalIdentity(scope.thread_id)}`;
+            return `${scope.kind}:${optionalIdentity(scope.workspace_id)}:${optionalIdentity(scope.thread_id)}`;
+        case 'sidebar_summary':
+            return `${scope.kind}:${JSON.stringify(scope.workspace_id)}:${JSON.stringify(scope.thread_id)}`;
         case 'avatar':
             return `${scope.kind}:${JSON.stringify(scope.principal_id)}`;
         case 'agents_document':
@@ -397,6 +400,19 @@ export class MobileClientBinding {
         }
     }
 
+    #setThreadDemand(state: ScopeState, demand: 'visible' | 'suspended'): void {
+        if (state.scope.kind !== 'thread' && state.scope.kind !== 'timeline') return;
+        this.dispatch({
+            schema_version: 1,
+            intent: {
+                kind: 'set_scope_demand',
+                scope: state.scope,
+                demand,
+                generation: ++state.demandGeneration,
+            },
+        });
+    }
+
     #scopeState(scope: ClientScope): ScopeState {
         const key = scopeKey(scope);
         const existing = this.#scopes.get(key);
@@ -417,6 +433,7 @@ export class MobileClientBinding {
         state.rows = new Map();
         state.lastAppliedSequence = initialSnapshot?.sequence ?? null;
         state.listeners = new Set();
+        state.demandGeneration = 0;
         state.store = {
             subscribe: (listener) => {
                 if (this.#closed) {
@@ -428,7 +445,9 @@ export class MobileClientBinding {
                         listener();
                     }
                 };
+                const first = state.listeners.size === 0;
                 state.listeners.add(registration);
+                if (first) this.#setThreadDemand(state, 'visible');
                 this.#startDelivery();
                 return () => {
                     if (!subscribed) {
@@ -436,6 +455,7 @@ export class MobileClientBinding {
                     }
                     subscribed = false;
                     state.listeners.delete(registration);
+                    if (state.listeners.size === 0) this.#setThreadDemand(state, 'suspended');
                 };
             },
             getSnapshot: () => state.snapshot,

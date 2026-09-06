@@ -705,7 +705,8 @@ const ThreadScreen = ({
 
     const threadTimelineBlocksQuery = useThreadTimelineBlocksQuery({
         threadId: visibleThreadId,
-        enabled: focused && connected && !isLiveDraftThread,
+        enabled:
+            focused && connected && !isLiveDraftThread && Boolean(visibleSnapshot?.domain_revision),
     });
     const { refetch: refetchThreadTimelineBlocks } = threadTimelineBlocksQuery;
     const threadTimelineBlocksQueryRef = useRef(threadTimelineBlocksQuery);

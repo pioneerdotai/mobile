@@ -205,6 +205,26 @@
           "properties": {
             "kind": {
               "type": "string",
+              "const": "sidebar_summary"
+            },
+            "thread_id": {
+              "type": "string"
+            },
+            "workspace_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "workspace_id",
+            "thread_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
               "const": "workspace_tree"
             },
             "workspace_id": {
@@ -292,6 +312,12 @@
               "const": "pending_request"
             },
             "thread_id": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "workspace_id": {
               "type": [
                 "string",
                 "null"

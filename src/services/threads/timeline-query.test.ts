@@ -42,6 +42,8 @@ const activeThreadSnapshot = (threadId: string, revision: number): ClientActiveT
     ({
         thread_id: threadId,
         projection: { revision },
+        domain_revision: revision,
+        timeline_revision: revision,
     }) as unknown as ClientActiveThreadSnapshot;
 
 describe('mobile timeline query orchestration', () => {

@@ -1334,6 +1334,7 @@ export interface SemanticTimelineRemovedWorkItem {
 export interface ClientActiveThreadSnapshot {
   active_turn_security_diagnostics?: ClientSecurityDiagnosticRow[];
   active_turn_security_summary?: ClientTurnSecuritySummary | null;
+  domain_revision: number;
   draft_thread_id?: string | null;
   draft_workspace_id?: string | null;
   history_loaded: boolean;
@@ -1345,9 +1346,11 @@ export interface ClientActiveThreadSnapshot {
     [k: string]: string;
   };
   rows: TimelineRow[];
+  semantic_timeline_patch: SemanticTimelineCachePatch;
   session_revision?: number;
   thread?: Thread | null;
   thread_id?: string | null;
+  timeline_revision: number;
   workspace_id?: string | null;
   [k: string]: unknown;
 }
