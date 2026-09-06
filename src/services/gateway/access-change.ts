@@ -66,14 +66,7 @@ export const applyMobileAccessChangedLifecycle = (
     const workspaceState = useWorkspaceStore.getState();
     const accessRevoked = outcome === 'revoked';
     const workspaceAccessLost = lifecycle.change === 'workspace_membership' && accessRevoked;
-    // The native active-thread reducer cannot observe the shell-owned workspace
-    // selection when no thread is open. Reconcile that selection from the
-    // workspace store instead of treating the native lifecycle flag as the
-    // complete mobile UI state.
-    const activeWorkspaceLost =
-        workspaceAccessLost && workspaceState.activeWorkspaceId === lifecycle.workspace_id;
-    const preferredWorkspaceLost =
-        workspaceAccessLost && workspaceState.preferredWorkspaceId === lifecycle.workspace_id;
+    const activeWorkspaceLost = lifecycle.active_scope_cleared;
 
     useWorkspaceStore.setState({
         workspaces: workspaceAccessLost
@@ -81,8 +74,6 @@ export const applyMobileAccessChangedLifecycle = (
                   (workspace) => workspace.id !== lifecycle.workspace_id,
               )
             : workspaceState.workspaces,
-        activeWorkspaceId: activeWorkspaceLost ? null : workspaceState.activeWorkspaceId,
-        preferredWorkspaceId: preferredWorkspaceLost ? null : workspaceState.preferredWorkspaceId,
         error: null,
         bootstrappedConnectionId: lifecycle.refresh_workspace_catalog
             ? null

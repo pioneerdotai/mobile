@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { navigationSnapshot, selectWorkspace, useClientNavigation } from '@/client/navigation';
 
 import type { Workspace } from '@/client';
 import type { WorkspaceOperationErrorCode } from '@/services/workspace/management';
@@ -21,10 +22,12 @@ type WorkspaceStoreState = {
     resetConnectionBootstrap: () => void;
 };
 
-export const useWorkspaceStore = create<WorkspaceStoreState>((set) => ({
+type WorkspacePresentationState = Omit<
+    WorkspaceStoreState,
+    'activeWorkspaceId' | 'preferredWorkspaceId'
+>;
+const useWorkspacePresentationStore = create<WorkspacePresentationState>((set) => ({
     workspaces: [],
-    activeWorkspaceId: null,
-    preferredWorkspaceId: null,
     loading: false,
     error: null,
     bootstrappedConnectionId: null,
@@ -35,11 +38,11 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set) => ({
     },
 
     setActiveWorkspaceId: (workspaceId) => {
-        set({ activeWorkspaceId: workspaceId });
+        selectWorkspace(workspaceId);
     },
 
     setPreferredWorkspaceId: (workspaceId) => {
-        set({ preferredWorkspaceId: workspaceId });
+        selectWorkspace(workspaceId);
     },
 
     setLoading: (loading) => {
@@ -59,13 +62,39 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set) => ({
     },
 
     resetConnectionBootstrap: () => {
+        selectWorkspace(null);
         set({
             workspaces: [],
-            activeWorkspaceId: null,
-            preferredWorkspaceId: null,
             loading: false,
             error: null,
             bootstrappedConnectionId: null,
         });
     },
 }));
+
+// Selection is a Client publication; this facade preserves workspace presentation callers.
+export const useWorkspaceStore = Object.assign(
+    <T>(selector: (state: WorkspaceStoreState) => T): T => {
+        const navigation = useClientNavigation();
+        return useWorkspacePresentationStore((state) =>
+            selector({
+                ...state,
+                activeWorkspaceId: navigation?.workspace_id ?? null,
+                preferredWorkspaceId: navigation?.workspace_id ?? null,
+            }),
+        );
+    },
+    {
+        getState: (): WorkspaceStoreState => ({
+            ...useWorkspacePresentationStore.getState(),
+            activeWorkspaceId: navigationSnapshot()?.workspace_id ?? null,
+            preferredWorkspaceId: navigationSnapshot()?.workspace_id ?? null,
+        }),
+        setState: (patch: Partial<WorkspaceStoreState>) => {
+            const { activeWorkspaceId, preferredWorkspaceId, ...presentation } = patch;
+            if (activeWorkspaceId !== undefined) selectWorkspace(activeWorkspaceId);
+            else if (preferredWorkspaceId !== undefined) selectWorkspace(preferredWorkspaceId);
+            useWorkspacePresentationStore.setState(presentation);
+        },
+    },
+);
