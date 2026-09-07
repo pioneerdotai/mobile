@@ -1,6 +1,18 @@
 /* eslint-disable */
 
 export type AdministrationRoute = 'Members' | 'Invitations';
+export type AgentsDocEditorScope =
+  | {
+      kind: 'root';
+      workspace_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      folder_id: string;
+      kind: 'folder';
+      workspace_id: string;
+      [k: string]: unknown;
+    };
 export type SemanticDestination =
   | {
       kind: 'threads';
@@ -42,6 +54,7 @@ export type SettingsRoute = 'General' | 'Account' | 'Memory' | 'SelfImprovement'
 export interface ClientNavigationState {
   active_thread_id?: string | null;
   administration: AdministrationRoute;
+  agents_document_scope?: AgentsDocEditorScope | null;
   destination: SemanticDestination;
   drafts: {
     [k: string]: string;

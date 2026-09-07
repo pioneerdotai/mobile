@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { Image } from 'expo-image';
 import { StyleSheet } from 'react-native-unistyles';
 
 import { Box } from '@/components/primitives/box';
 import { Text } from '@/components/primitives/text';
-import { resolveMemberAvatar } from '@/services/members/resolve-avatar';
+import { useAuthenticatedAvatar } from '@/client/avatars';
 
 import { avatarFallbackAppearance } from './avatar-appearance';
 
@@ -26,43 +26,12 @@ const MemberAvatar = ({
     fallbackBackgroundColor,
 }: MemberAvatarProps) => {
     const normalizedRevision = avatarRevision?.trim() || null;
-    const avatarKey =
-        principalId && normalizedRevision ? `${principalId}:${normalizedRevision}` : null;
-    const [resolvedAvatar, setResolvedAvatar] = useState<{
-        key: string;
-        uri: string | null;
-    } | null>(null);
+    const authenticatedUri = useAuthenticatedAvatar(
+        imageUri === undefined ? (principalId ?? null) : null,
+        normalizedRevision,
+    );
     const fallbackAppearance = useMemo(() => avatarFallbackAppearance(displayName), [displayName]);
-
-    useEffect(() => {
-        let cancelled = false;
-        if (imageUri !== undefined || !avatarKey || !principalId || !normalizedRevision) {
-            return;
-        }
-
-        void resolveMemberAvatar(principalId, normalizedRevision)
-            .then((uri) => {
-                if (!cancelled) {
-                    setResolvedAvatar({ key: avatarKey, uri });
-                }
-            })
-            .catch(() => {
-                if (!cancelled) {
-                    setResolvedAvatar({ key: avatarKey, uri: null });
-                }
-            });
-
-        return () => {
-            cancelled = true;
-        };
-    }, [avatarKey, imageUri, normalizedRevision, principalId]);
-
-    const resolvedUri =
-        imageUri !== undefined
-            ? imageUri
-            : resolvedAvatar?.key === avatarKey
-              ? resolvedAvatar.uri
-              : null;
+    const resolvedUri = imageUri !== undefined ? imageUri : authenticatedUri;
 
     if (resolvedUri) {
         return (

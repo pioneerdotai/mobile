@@ -4,7 +4,6 @@ import { pioneerQueryClient } from '@/services/query/client';
 import { clearActiveThread } from '@/services/threads/active';
 import { clearThreadQueryCache } from '@/services/threads/timeline-query';
 import { useActiveThreadStore } from '@/stores/active-thread';
-import { useThreadTreeStore } from '@/stores/thread-tree';
 
 export const useActiveThreadCleanup = () => {
     return useCallback(async (): Promise<void> => {
@@ -16,7 +15,6 @@ export const useActiveThreadCleanup = () => {
             await clearThreadQueryCache(pioneerQueryClient);
             useActiveThreadStore.getState().reset();
             useActiveThreadStore.getState().resetDefaultComposerModelSelection();
-            useThreadTreeStore.getState().reset();
         }
     }, []);
 };

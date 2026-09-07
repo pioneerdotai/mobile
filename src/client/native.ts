@@ -211,7 +211,7 @@ import type { TaskUserNotificationListParams } from './generated/task_user_notif
 import type { TaskUserNotificationListResponse } from './generated/task_user_notification_list_response';
 import type { SelectableSkillCapability } from './generated/selectable_skill_capability';
 import type { SetGatewayWorkspaceRegistryPlan } from './generated/set_gateway_workspace_registry_plan';
-import type { ClientThreadTreeLevel } from './generated/thread_tree_level';
+import type { ThreadTreeLevel as ClientThreadTreeLevel } from './generated/thread_tree_level';
 import type { ClientThreadScopePresentationRequest } from './generated/client_thread_scope_presentation_request';
 import type { ClientThreadCreateVisibilityRequest } from './generated/client_thread_create_visibility_request';
 import type { ClientThreadScopeMutationPlanRequest } from './generated/client_thread_scope_mutation_plan_request';
@@ -514,7 +514,7 @@ export type { WorkspaceMemberListResponse } from './generated/workspace_member_l
 export type { WorkspaceMemberMutationResponse } from './generated/workspace_member_mutation_response';
 export type { WorkspaceMemberRemoveParams } from './generated/workspace_member_remove_params';
 export type { SelectableMcpCapability } from './generated/selectable_mcp_capability';
-export type { ClientThreadTreeLevel } from './generated/thread_tree_level';
+export type { ThreadTreeLevel as ClientThreadTreeLevel } from './generated/thread_tree_level';
 export type { ClientThreadScopePresentationRequest } from './generated/client_thread_scope_presentation_request';
 export type { ClientThreadCreateVisibilityRequest } from './generated/client_thread_create_visibility_request';
 export type { ClientThreadScopeMutationPlanRequest } from './generated/client_thread_scope_mutation_plan_request';
@@ -543,7 +543,7 @@ export type { ThreadUpdateResponse } from './generated/thread_update_response';
 export type { ThreadTreeLevelRequest } from './generated/thread_tree_level_request';
 export type {
     ClientThreadTreeQueryData,
-    ClientThreadTreeSnapshot,
+    ThreadTreeSnapshot as ClientThreadTreeSnapshot,
     Thread,
     ThreadAgentsDocSummary,
     ThreadFolder,

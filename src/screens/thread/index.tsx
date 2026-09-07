@@ -81,7 +81,6 @@ import { useGatewayStore } from '@/stores/gateway';
 import { useThreadTreeStore } from '@/stores/thread-tree';
 import { useWorkspaceStore } from '@/stores/workspace';
 import { useThreadAuthorizationCapabilities } from '@/hooks/use-administration-capabilities';
-import { applyThreadReadResponse } from '@/services/threads/tree';
 import {
     MessageMutationModal,
     type MessageMutationTarget,
@@ -495,14 +494,6 @@ const ThreadScreen = ({
                 .threadRead({
                     thread_id: visibleThreadId,
                     through_turn_id: turnId,
-                })
-                .then((response) => {
-                    const current = useThreadTreeStore.getState().snapshot;
-                    if (current) {
-                        useThreadTreeStore
-                            .getState()
-                            .setSnapshot(applyThreadReadResponse(current, response));
-                    }
                 })
                 .catch(() => {
                     requestedReadThroughRef.current.delete(requestKey);

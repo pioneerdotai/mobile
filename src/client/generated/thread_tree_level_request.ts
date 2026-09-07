@@ -56,9 +56,9 @@ export type ThreadVisibility = 'private' | 'workspace';
 
 export interface ThreadTreeLevelRequest {
   folder_id?: string | null;
-  snapshot: ClientThreadTreeSnapshot;
+  snapshot: ThreadTreeSnapshot;
 }
-export interface ClientThreadTreeSnapshot {
+export interface ThreadTreeSnapshot {
   agents_doc_summaries_by_folder_key: {
     [k: string]: ThreadAgentsDocSummary;
   };

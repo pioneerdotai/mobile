@@ -14,7 +14,7 @@
       ]
     },
     "snapshot": {
-      "$ref": "#/$defs/ClientThreadTreeSnapshot"
+      "$ref": "#/$defs/ThreadTreeSnapshot"
     }
   },
   "additionalProperties": false,
@@ -85,73 +85,6 @@
         "identity_source_revision",
         "display_name",
         "nickname"
-      ]
-    },
-    "ClientThreadTreeSnapshot": {
-      "type": "object",
-      "properties": {
-        "agents_doc_summaries_by_folder_key": {
-          "type": "object",
-          "additionalProperties": {
-            "$ref": "#/$defs/ThreadAgentsDocSummary"
-          }
-        },
-        "child_folder_ids_by_parent_id": {
-          "type": "object",
-          "additionalProperties": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          }
-        },
-        "folders_by_id": {
-          "type": "object",
-          "additionalProperties": {
-            "$ref": "#/$defs/ThreadFolder"
-          }
-        },
-        "placements_by_thread_id": {
-          "type": "object",
-          "additionalProperties": {
-            "$ref": "#/$defs/ThreadPlacement"
-          }
-        },
-        "thread_ids_by_folder_id": {
-          "type": "object",
-          "additionalProperties": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          }
-        },
-        "threads_by_id": {
-          "type": "object",
-          "additionalProperties": {
-            "$ref": "#/$defs/Thread"
-          }
-        },
-        "unread": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/ThreadUnreadSummary"
-          }
-        },
-        "workspace_id": {
-          "type": "string"
-        }
-      },
-      "additionalProperties": false,
-      "required": [
-        "workspace_id",
-        "threads_by_id",
-        "unread",
-        "folders_by_id",
-        "placements_by_thread_id",
-        "child_folder_ids_by_parent_id",
-        "thread_ids_by_folder_id",
-        "agents_doc_summaries_by_folder_key"
       ]
     },
     "ComposerModelSelection": {
@@ -715,6 +648,73 @@
         "Active",
         "Idle",
         "Closed"
+      ]
+    },
+    "ThreadTreeSnapshot": {
+      "type": "object",
+      "properties": {
+        "agents_doc_summaries_by_folder_key": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/ThreadAgentsDocSummary"
+          }
+        },
+        "child_folder_ids_by_parent_id": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "folders_by_id": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/ThreadFolder"
+          }
+        },
+        "placements_by_thread_id": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/ThreadPlacement"
+          }
+        },
+        "thread_ids_by_folder_id": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "threads_by_id": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/Thread"
+          }
+        },
+        "unread": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ThreadUnreadSummary"
+          }
+        },
+        "workspace_id": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "workspace_id",
+        "threads_by_id",
+        "unread",
+        "folders_by_id",
+        "placements_by_thread_id",
+        "child_folder_ids_by_parent_id",
+        "thread_ids_by_folder_id",
+        "agents_doc_summaries_by_folder_key"
       ]
     },
     "ThreadUnreadSummary": {

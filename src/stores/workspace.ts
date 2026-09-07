@@ -1,3 +1,4 @@
+import { catalogSnapshot, useWorkspaceCatalog } from '@/client/workspaces';
 import { create } from 'zustand';
 import { navigationSnapshot, selectWorkspace, useClientNavigation } from '@/client/navigation';
 
@@ -12,11 +13,8 @@ type WorkspaceStoreState = {
     error: WorkspaceOperationErrorCode | null;
     bootstrappedConnectionId: number | null;
     showWorkspaceSwitcher: boolean;
-    setWorkspaces: (workspaces: Workspace[]) => void;
     setActiveWorkspaceId: (workspaceId: string | null) => void;
     setPreferredWorkspaceId: (workspaceId: string | null) => void;
-    setLoading: (loading: boolean) => void;
-    setError: (error: WorkspaceOperationErrorCode | null) => void;
     setBootstrappedConnectionId: (connectionId: number | null) => void;
     setWorkspaceSwitcherOpen: (open: boolean) => void;
     resetConnectionBootstrap: () => void;
@@ -24,18 +22,11 @@ type WorkspaceStoreState = {
 
 type WorkspacePresentationState = Omit<
     WorkspaceStoreState,
-    'activeWorkspaceId' | 'preferredWorkspaceId'
+    'activeWorkspaceId' | 'preferredWorkspaceId' | 'workspaces' | 'loading' | 'error'
 >;
 const useWorkspacePresentationStore = create<WorkspacePresentationState>((set) => ({
-    workspaces: [],
-    loading: false,
-    error: null,
     bootstrappedConnectionId: null,
     showWorkspaceSwitcher: false,
-
-    setWorkspaces: (workspaces) => {
-        set({ workspaces });
-    },
 
     setActiveWorkspaceId: (workspaceId) => {
         selectWorkspace(workspaceId);
@@ -43,14 +34,6 @@ const useWorkspacePresentationStore = create<WorkspacePresentationState>((set) =
 
     setPreferredWorkspaceId: (workspaceId) => {
         selectWorkspace(workspaceId);
-    },
-
-    setLoading: (loading) => {
-        set({ loading });
-    },
-
-    setError: (error) => {
-        set({ error });
     },
 
     setBootstrappedConnectionId: (connectionId) => {
@@ -64,9 +47,6 @@ const useWorkspacePresentationStore = create<WorkspacePresentationState>((set) =
     resetConnectionBootstrap: () => {
         selectWorkspace(null);
         set({
-            workspaces: [],
-            loading: false,
-            error: null,
             bootstrappedConnectionId: null,
         });
     },
@@ -76,9 +56,13 @@ const useWorkspacePresentationStore = create<WorkspacePresentationState>((set) =
 export const useWorkspaceStore = Object.assign(
     <T>(selector: (state: WorkspaceStoreState) => T): T => {
         const navigation = useClientNavigation();
+        const catalog = useWorkspaceCatalog();
         return useWorkspacePresentationStore((state) =>
             selector({
                 ...state,
+                workspaces: catalog?.workspaces ?? [],
+                error: catalogError(catalog),
+                loading: (catalog?.loading || catalog?.action_pending) ?? false,
                 activeWorkspaceId: navigation?.workspace_id ?? null,
                 preferredWorkspaceId: navigation?.workspace_id ?? null,
             }),
@@ -87,10 +71,18 @@ export const useWorkspaceStore = Object.assign(
     {
         getState: (): WorkspaceStoreState => ({
             ...useWorkspacePresentationStore.getState(),
+            workspaces: catalogSnapshot()?.workspaces ?? [],
+            error: catalogError(catalogSnapshot()),
+            loading: (catalogSnapshot()?.loading || catalogSnapshot()?.action_pending) ?? false,
             activeWorkspaceId: navigationSnapshot()?.workspace_id ?? null,
             preferredWorkspaceId: navigationSnapshot()?.workspace_id ?? null,
         }),
-        setState: (patch: Partial<WorkspaceStoreState>) => {
+        setState: (
+            patch: Partial<WorkspacePresentationState> & {
+                activeWorkspaceId?: string | null;
+                preferredWorkspaceId?: string | null;
+            },
+        ) => {
             const { activeWorkspaceId, preferredWorkspaceId, ...presentation } = patch;
             if (activeWorkspaceId !== undefined) selectWorkspace(activeWorkspaceId);
             else if (preferredWorkspaceId !== undefined) selectWorkspace(preferredWorkspaceId);
@@ -98,3 +90,19 @@ export const useWorkspaceStore = Object.assign(
         },
     },
 );
+
+const catalogError = (
+    catalog: ReturnType<typeof catalogSnapshot>,
+): WorkspaceOperationErrorCode | null => {
+    if (!catalog?.error) return null;
+    switch (catalog.operation) {
+        case 'select':
+            return 'selectFailed';
+        case 'create':
+            return 'createFailed';
+        case 'rename':
+            return 'renameFailed';
+        default:
+            return 'bootstrapFailed';
+    }
+};

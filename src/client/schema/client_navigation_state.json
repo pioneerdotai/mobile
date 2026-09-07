@@ -12,6 +12,17 @@
     "administration": {
       "$ref": "#/$defs/AdministrationRoute"
     },
+    "agents_document_scope": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/AgentsDocEditorScope"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
     "destination": {
       "$ref": "#/$defs/SemanticDestination"
     },
@@ -83,6 +94,46 @@
       "enum": [
         "Members",
         "Invitations"
+      ]
+    },
+    "AgentsDocEditorScope": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "root"
+            },
+            "workspace_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "workspace_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "folder_id": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "folder"
+            },
+            "workspace_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "workspace_id",
+            "folder_id"
+          ]
+        }
       ]
     },
     "ProviderFilter": {

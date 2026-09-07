@@ -1,0 +1,113 @@
+/* eslint-disable */
+
+export type AgentExecutionId = string;
+export type AgentIdentityId = string;
+export type AgentIdentitySourceKind = 'native_agent' | 'cli_runtime_instance' | 'ephemeral';
+export type TaskErrorClass =
+  'cancelled' | 'timeout' | 'provider' | 'tool' | 'validation' | 'dependency' | 'policy' | 'internal' | 'unknown';
+export type PublicErrorCode =
+  | 'invalid_input'
+  | 'policy_denied'
+  | 'not_found'
+  | 'conflict'
+  | 'resource_exhausted'
+  | 'unavailable'
+  | 'timeout'
+  | 'internal';
+export type PublicErrorStage =
+  'discovery' | 'admission' | 'preparation' | 'execution' | 'persistence' | 'delivery' | 'observation';
+
+export interface TaskInboxPublication {
+  error?: string | null;
+  items: TaskInboxItem[];
+  loading: boolean;
+  native_notifications: TaskNotificationEffect[];
+  next_cursor?: string | null;
+  opened?: TaskNotificationPublication | null;
+  revision: number;
+  workspace_id: string;
+  [k: string]: unknown;
+}
+export interface TaskInboxItem {
+  dismissing: boolean;
+  notification: TaskUserNotification;
+  revision: number;
+  [k: string]: unknown;
+}
+/**
+ * Durable exact-recipient Task notification returned by the user inbox.
+ *
+ * The websocket notification is only a live invalidation hint. This record is
+ * the reconnect-safe source of truth and deliberately contains only the
+ * collaborator-safe Task projection.
+ */
+export interface TaskUserNotification {
+  acknowledgedAt?: number | null;
+  author?: AgentPresentationSnapshot | null;
+  createdAt: number;
+  deliveryActionReceiptId?: string | null;
+  deliveryId: string;
+  error?: PublicTaskFailure | null;
+  notificationId: string;
+  result?: PublicTaskResult | null;
+  runId: string;
+  taskId: string;
+  workspaceId: string;
+  [k: string]: unknown;
+}
+export interface AgentPresentationSnapshot {
+  agent_execution_id: AgentExecutionId;
+  agent_identity_id: AgentIdentityId;
+  avatar_revision?: string | null;
+  display_name: string;
+  identity_source_kind: AgentIdentitySourceKind;
+  identity_source_revision: number;
+  nickname: string;
+  role_label?: string | null;
+  [k: string]: unknown;
+}
+export interface PublicTaskFailure {
+  class: TaskErrorClass;
+  error: PublicError;
+  [k: string]: unknown;
+}
+/**
+ * Stable, bounded failure presentation shared by RPC, voice and task
+ * execution surfaces. Raw source chains are never part of this type.
+ */
+export interface PublicError {
+  code: PublicErrorCode;
+  correlation_id: string;
+  message: string;
+  retry_after_ms?: number | null;
+  retryable: boolean;
+  stage: PublicErrorStage;
+  version: number;
+  [k: string]: unknown;
+}
+export interface PublicTaskResult {
+  artifacts?: PublicTaskArtifact[];
+  summary?: string | null;
+  [k: string]: unknown;
+}
+export interface PublicTaskArtifact {
+  artifactId?: string | null;
+  mimeType?: string | null;
+  versionId?: string | null;
+  [k: string]: unknown;
+}
+export interface TaskNotificationEffect {
+  notification_id: string;
+  revision: number;
+  task_id: string;
+  workspace_id: string;
+  [k: string]: unknown;
+}
+export interface TaskNotificationPublication {
+  notification_id: string;
+  operation_id: number;
+  task_id: string;
+  task_revision: number;
+  thread_id: string;
+  [k: string]: unknown;
+}

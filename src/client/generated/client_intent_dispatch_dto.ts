@@ -2,6 +2,16 @@
 
 export type ClientIntent =
   | {
+      intent: WorkspaceIntent;
+      kind: 'workspace';
+      [k: string]: unknown;
+    }
+  | {
+      intent: TaskNotificationIntent;
+      kind: 'task_notification';
+      [k: string]: unknown;
+    }
+  | {
       expected_revision?: number | null;
       intent: NavigationIntent;
       kind: 'navigation';
@@ -38,7 +48,125 @@ export type ClientIntent =
       scope: ClientScope;
       [k: string]: unknown;
     };
+export type WorkspaceIntent =
+  | {
+      kind: 'create_workspace';
+      name: string;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'rename_workspace';
+      name: string;
+      workspace_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'new_thread';
+      workspace_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'select_thread';
+      thread_id: string;
+      workspace_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'select_workspace';
+      workspace_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'rename_thread';
+      name: string;
+      thread_id: string;
+      workspace_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'delete_thread';
+      thread_id: string;
+      workspace_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      folder_id?: string | null;
+      kind: 'move_thread';
+      thread_id: string;
+      workspace_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'create_folder';
+      name: string;
+      workspace_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      folder_id: string;
+      kind: 'rename_folder';
+      name: string;
+      workspace_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      folder_id: string;
+      kind: 'delete_folder';
+      workspace_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      folder_id: string;
+      kind: 'move_folder';
+      parent_folder_id?: string | null;
+      workspace_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      folder_id?: string | null;
+      kind: 'remove_agents_document';
+      workspace_id: string;
+      [k: string]: unknown;
+    };
+export type TaskNotificationIntent =
+  | {
+      kind: 'refresh';
+      workspace_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'dismiss';
+      notification_id: string;
+      revision: number;
+      workspace_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'retry';
+      workspace_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'open';
+      notification_id: string;
+      revision: number;
+      workspace_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      completion: TaskNotificationCompletion;
+      effect: TaskNotificationEffect;
+      kind: 'native_completion';
+      workspace_id: string;
+      [k: string]: unknown;
+    };
+export type TaskNotificationCompletion = 'activated' | 'dismissed';
 export type NavigationIntent =
+  | {
+      kind: 'open_agents_document';
+      scope: AgentsDocEditorScope;
+      [k: string]: unknown;
+    }
   | {
       kind: 'set_administration_route';
       route: AdministrationRoute;
@@ -114,6 +242,18 @@ export type NavigationIntent =
       kind: 'reset';
       [k: string]: unknown;
     };
+export type AgentsDocEditorScope =
+  | {
+      kind: 'root';
+      workspace_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      folder_id: string;
+      kind: 'folder';
+      workspace_id: string;
+      [k: string]: unknown;
+    };
 export type AdministrationRoute = 'Members' | 'Invitations';
 export type SettingsRoute = 'General' | 'Account' | 'Memory' | 'SelfImprovement';
 export type ProviderFilter = 'Api' | 'Connected' | 'Cli';
@@ -171,6 +311,11 @@ export type ClientScope =
   | {
       kind: 'workspace_tree';
       workspace_id?: string | null;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'task_inbox';
+      workspace_id: string;
       [k: string]: unknown;
     }
   | {
@@ -240,15 +385,18 @@ export type ClientScope =
       kind: 'agents_document';
       workspace_id: string;
       [k: string]: unknown;
-    }
-  | {
-      kind: 'desktop_update';
-      [k: string]: unknown;
     };
 
 export interface ClientIntentDispatchDto {
   intent: ClientIntent;
   schema_version: number;
+}
+export interface TaskNotificationEffect {
+  notification_id: string;
+  revision: number;
+  task_id: string;
+  workspace_id: string;
+  [k: string]: unknown;
 }
 export interface TaskThreadLineage {
   child_thread_id: string;

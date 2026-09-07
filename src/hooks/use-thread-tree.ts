@@ -1,19 +1,12 @@
 import { useCallback, useEffect, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { useTranslation } from 'react-i18next';
 import { useShallow } from 'zustand/react/shallow';
 
 import type { ClientThreadTreeLevel } from '@/client';
 import { composerCapabilityTargetForProvider } from '@/services/providers/cli-runtime';
 import { cliRuntimeSummariesSnapshot } from '@/services/providers/cli-runtime-snapshot';
 import { cachedActiveThreadSnapshot } from '@/services/threads/timeline-query';
-import {
-    refreshThreadTree,
-    applyThreadUpdatedToTreeSnapshot,
-    threadUnreadById,
-    threadTreeInvalidationWorkspaceId,
-    threadTreeLevel,
-} from '@/services/threads/tree';
+import { refreshThreadTree, threadUnreadById, threadTreeLevel } from '@/services/threads/tree';
 import { useActiveThreadStore } from '@/stores/active-thread';
 import { useGatewayStore } from '@/stores/gateway';
 import { useThreadTreeStore } from '@/stores/thread-tree';
@@ -32,39 +25,19 @@ const EMPTY_LEVEL: ClientThreadTreeLevel = {
     threads: [],
 };
 
-const errorMessage = (error: unknown, fallback: string): string => {
-    if (error instanceof Error) {
-        return error.message;
-    }
-
-    return fallback;
-};
-
 const useThreadTreeRefresh = () => {
-    const { t } = useTranslation('threads');
     const queryClient = useQueryClient();
-    const { setSnapshot, setLoading, setError, reset } = useThreadTreeStore(
-        useShallow((state) => ({
-            setSnapshot: state.setSnapshot,
-            setLoading: state.setLoading,
-            setError: state.setError,
-            reset: state.reset,
-        })),
-    );
-
     return useCallback(async (): Promise<void> => {
         const gatewayState = useGatewayStore.getState();
         const workspaceState = useWorkspaceStore.getState();
         const currentWorkspaceId = workspaceState.activeWorkspaceId;
 
         if (gatewayState.connectionState !== 'Connected' || gatewayState.connectionId === null) {
-            reset();
             useActiveThreadStore.getState().resetDefaultComposerModelSelection();
             return;
         }
 
         if (!currentWorkspaceId) {
-            reset();
             useActiveThreadStore.getState().resetDefaultComposerModelSelection();
             return;
         }
@@ -87,8 +60,6 @@ const useThreadTreeRefresh = () => {
         activeThreadState.beginDefaultComposerModelSelectionRefresh(requestWorkspaceId);
         mobileStartup.begin('thread_tree.load');
         mobileStartup.begin('thread_tree.request');
-        setLoading(true);
-        setError(null);
 
         try {
             const result = await refreshThreadTree({
@@ -121,7 +92,6 @@ const useThreadTreeRefresh = () => {
             }
 
             mobileStartup.begin('thread_tree.response.apply');
-            setSnapshot(result.snapshot);
             mobileStartup.succeed('thread_tree.response.apply');
             mobileStartup.succeed('thread_tree.load');
             mobileStartup.begin('composer.prepare');
@@ -152,7 +122,6 @@ const useThreadTreeRefresh = () => {
                 return;
             }
 
-            setError(errorMessage(caught, t('loadFailed')));
             mobileStartup.fail('thread_tree.request');
             mobileStartup.fail('thread_tree.response.apply');
             mobileStartup.fail('thread_tree.load');
@@ -160,19 +129,8 @@ const useThreadTreeRefresh = () => {
             useActiveThreadStore
                 .getState()
                 .completeDefaultComposerModelSelectionRefresh(requestWorkspaceId);
-        } finally {
-            const latestGatewayState = useGatewayStore.getState();
-            const latestWorkspaceState = useWorkspaceStore.getState();
-
-            if (
-                refreshSequence === sequence &&
-                latestGatewayState.connectionId === requestConnectionId &&
-                latestWorkspaceState.activeWorkspaceId === requestWorkspaceId
-            ) {
-                setLoading(false);
-            }
         }
-    }, [queryClient, reset, setError, setLoading, setSnapshot, t]);
+    }, [queryClient]);
 };
 
 export const useThreadTreeController = () => {
@@ -183,54 +141,15 @@ export const useThreadTreeController = () => {
         })),
     );
     const activeWorkspaceId = useWorkspaceStore((state) => state.activeWorkspaceId);
-    const reset = useThreadTreeStore((state) => state.reset);
     const refresh = useThreadTreeRefresh();
 
     useEffect(() => {
         if (connectionState !== 'Connected' || connectionId === null || !activeWorkspaceId) {
-            reset();
             return;
         }
 
         void refresh();
-    }, [activeWorkspaceId, connectionId, connectionState, refresh, reset]);
-
-    useEffect(() => {
-        return useGatewayStore.subscribe((state, previousState) => {
-            if (state.lastEventSerial === previousState.lastEventSerial) return;
-
-            const event = state.lastEvent;
-            const currentWorkspaceId = useWorkspaceStore.getState().activeWorkspaceId;
-            if (
-                event &&
-                'GatewayNotification' in event &&
-                event.GatewayNotification.kind === 'thread_updated'
-            ) {
-                const notification = event.GatewayNotification.params;
-                const tree = useThreadTreeStore.getState();
-                if (
-                    tree.snapshot &&
-                    tree.workspaceId === currentWorkspaceId &&
-                    notification.thread.workspace_id === currentWorkspaceId
-                ) {
-                    tree.setSnapshot(
-                        applyThreadUpdatedToTreeSnapshot(
-                            tree.snapshot,
-                            notification.thread,
-                            notification.placement,
-                        ),
-                    );
-                }
-                return;
-            }
-
-            const eventWorkspaceId = threadTreeInvalidationWorkspaceId(event);
-
-            if (!eventWorkspaceId || eventWorkspaceId !== currentWorkspaceId) return;
-
-            void refresh();
-        });
-    }, [refresh]);
+    }, [activeWorkspaceId, connectionId, connectionState, refresh]);
 
     return null;
 };

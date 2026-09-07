@@ -44,7 +44,6 @@ type ScopeState = {
     snapshot: ClientScopedSnapshotDto | null;
     rows: Map<string, MobileClientRow>;
     lastAppliedSequence: number | null;
-    demandGeneration: number;
     listeners: Set<Listener>;
     store: MobileClientScopeStore;
 };
@@ -54,6 +53,7 @@ const optionalIdentity = (value: string | null | undefined): string =>
 
 const scopeKey = (scope: ClientScope): string => {
     switch (scope.kind) {
+        case 'task_inbox':
         case 'workspace_tree':
         case 'administration':
         case 'mcp':
@@ -79,7 +79,6 @@ const scopeKey = (scope: ClientScope): string => {
         case 'provider':
         case 'settings':
         case 'onboarding_invitation':
-        case 'desktop_update':
             return scope.kind;
     }
 };
@@ -235,6 +234,7 @@ export class MobileClientBinding {
     readonly #scopes = new Map<string, ScopeState>();
     #processSequence = 0;
     #closed = false;
+    #demandGeneration = 0;
     #closeEffects: (() => void) | null = null;
     #effects: ((plans: readonly ClientEffectPlan[]) => void) | null = null;
 
@@ -534,15 +534,22 @@ export class MobileClientBinding {
         }
     }
 
-    #setThreadDemand(state: ScopeState, demand: 'visible' | 'suspended'): void {
-        if (state.scope.kind !== 'thread' && state.scope.kind !== 'timeline') return;
+    #setScopeDemand(state: ScopeState, demand: 'visible' | 'suspended'): void {
+        if (
+            state.scope.kind !== 'thread' &&
+            state.scope.kind !== 'timeline' &&
+            state.scope.kind !== 'avatar' &&
+            state.scope.kind !== 'task_inbox' &&
+            state.scope.kind !== 'workspace_tree'
+        )
+            return;
         this.dispatch({
             schema_version: 1,
             intent: {
                 kind: 'set_scope_demand',
                 scope: state.scope,
                 demand,
-                generation: ++state.demandGeneration,
+                generation: ++this.#demandGeneration,
             },
         });
     }
@@ -567,7 +574,6 @@ export class MobileClientBinding {
         state.rows = new Map();
         state.lastAppliedSequence = initialSnapshot?.sequence ?? null;
         state.listeners = new Set();
-        state.demandGeneration = 0;
         state.store = {
             subscribe: (listener) => {
                 if (this.#closed) {
@@ -580,8 +586,12 @@ export class MobileClientBinding {
                     }
                 };
                 const first = state.listeners.size === 0;
+                if (first && !this.#scopes.has(key)) {
+                    this.#scopes.set(key, state);
+                    this.#resnapshot(state.scope, state, null, state.lastAppliedSequence ?? 0);
+                }
                 state.listeners.add(registration);
-                if (first) this.#setThreadDemand(state, 'visible');
+                if (first) this.#setScopeDemand(state, 'visible');
                 this.#startDelivery();
                 return () => {
                     if (!subscribed) {
@@ -589,7 +599,14 @@ export class MobileClientBinding {
                     }
                     subscribed = false;
                     state.listeners.delete(registration);
-                    if (state.listeners.size === 0) this.#setThreadDemand(state, 'suspended');
+                    if (state.listeners.size === 0) {
+                        this.#setScopeDemand(state, 'suspended');
+                        if (state.scope.kind === 'avatar' || state.scope.kind === 'task_inbox') {
+                            state.snapshot = null;
+                            state.rows.clear();
+                            this.#scopes.delete(key);
+                        }
+                    }
                 };
             },
             getSnapshot: () => state.snapshot,

@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
 import type { GatewayEndpoint } from '@/client';
@@ -42,6 +42,23 @@ const normalizeErrorCode = (
     return fallbackCode;
 };
 
+// Form/connection validation stays local; request failures are Client catalog output.
+const localWorkspaceError = (
+    error: unknown,
+    fallback: WorkspaceOperationErrorCode,
+): WorkspaceOperationErrorCode | null => {
+    const code = normalizeErrorCode(error, fallback);
+    return [
+        'busy',
+        'emptyName',
+        'unknownTarget',
+        'gatewayNotFound',
+        'gatewayNotConnected',
+    ].includes(code)
+        ? code
+        : null;
+};
+
 export const useWorkspace = () => {
     const setGatewayRegistry = useGatewayStore((state) => state.setRegistry);
 
@@ -50,13 +67,8 @@ export const useWorkspace = () => {
         activeWorkspaceId,
         preferredWorkspaceId,
         loading,
-        error,
+        error: catalogError,
         bootstrappedConnectionId,
-        setWorkspaces,
-        setActiveWorkspaceId,
-        setPreferredWorkspaceId,
-        setLoading,
-        setError,
         setBootstrappedConnectionId,
         resetConnectionBootstrap,
     } = useWorkspaceStore(
@@ -67,16 +79,13 @@ export const useWorkspace = () => {
             loading: state.loading,
             error: state.error,
             bootstrappedConnectionId: state.bootstrappedConnectionId,
-            setWorkspaces: state.setWorkspaces,
-            setActiveWorkspaceId: state.setActiveWorkspaceId,
-            setPreferredWorkspaceId: state.setPreferredWorkspaceId,
-            setLoading: state.setLoading,
-            setError: state.setError,
             setBootstrappedConnectionId: state.setBootstrappedConnectionId,
             resetConnectionBootstrap: state.resetConnectionBootstrap,
         })),
     );
 
+    const [localError, setError] = useState<WorkspaceOperationErrorCode | null>(null);
+    const error = localError ?? catalogError;
     const ensureWorkspaceIdle = useCallback((): void => {
         if (!useWorkspaceStore.getState().loading) {
             return;
@@ -131,7 +140,6 @@ export const useWorkspace = () => {
     const bootstrapGatewayWorkspace = useCallback(
         async (activeGateway: GatewayEndpoint, connectionId: number): Promise<void> => {
             mobileStartup.begin('workspace.load');
-            setLoading(true);
             setError(null);
 
             try {
@@ -144,9 +152,6 @@ export const useWorkspace = () => {
 
                 setBootstrappedConnectionId(connectionId);
                 setGatewayRegistry(result.registry);
-                setWorkspaces(result.reduction.workspaces);
-                setActiveWorkspaceId(selected.workspace_id);
-                setPreferredWorkspaceId(selected.set_preferred_workspace_id);
                 setError(null);
                 mobileStartup.succeed('workspace.load');
                 loadCliRuntimeSummariesInBackground(selected.workspace_id);
@@ -155,25 +160,12 @@ export const useWorkspace = () => {
                     return;
                 }
 
-                setError(normalizeErrorCode(caught, 'bootstrapFailed'));
+                setError(localWorkspaceError(caught, 'bootstrapFailed'));
                 mobileStartup.fail('workspace.load');
                 throw caught;
-            } finally {
-                if (bootstrapResultIsCurrent(activeGateway.id, connectionId)) {
-                    setLoading(false);
-                }
             }
         },
-        [
-            bootstrapResultIsCurrent,
-            setActiveWorkspaceId,
-            setBootstrappedConnectionId,
-            setError,
-            setGatewayRegistry,
-            setLoading,
-            setPreferredWorkspaceId,
-            setWorkspaces,
-        ],
+        [bootstrapResultIsCurrent, setBootstrappedConnectionId, setError, setGatewayRegistry],
     );
 
     const applyWorkspaceSwitchResult = useCallback(
@@ -184,9 +176,6 @@ export const useWorkspace = () => {
                 case 'switched': {
                     const selected = result.reduction.selected;
                     setGatewayRegistry(registry);
-                    setWorkspaces(result.reduction.workspaces);
-                    setActiveWorkspaceId(selected.workspace_id);
-                    setPreferredWorkspaceId(selected.set_preferred_workspace_id);
                     setError(null);
                     loadCliRuntimeSummariesInBackground(selected.workspace_id);
                     return;
@@ -202,13 +191,7 @@ export const useWorkspace = () => {
                     throw new WorkspaceOperationError('unknownTarget');
             }
         },
-        [
-            setActiveWorkspaceId,
-            setError,
-            setGatewayRegistry,
-            setPreferredWorkspaceId,
-            setWorkspaces,
-        ],
+        [setError, setGatewayRegistry],
     );
 
     const switchWorkspace = useCallback(
@@ -224,16 +207,8 @@ export const useWorkspace = () => {
                 setError(error.code);
                 throw error;
             }
-            const previousActiveWorkspaceId = workspaceState.activeWorkspaceId;
-            const previousPreferredWorkspaceId = workspaceState.preferredWorkspaceId;
 
-            setLoading(true);
             setError(null);
-            // Publish the user's choice immediately. The RPC below persists and
-            // validates it in the background; it is not a navigation/loading
-            // boundary for the UI.
-            setActiveWorkspaceId(workspaceId);
-            setPreferredWorkspaceId(workspaceId);
 
             try {
                 const result = await switchActiveGatewayWorkspace({
@@ -253,24 +228,15 @@ export const useWorkspace = () => {
                     return;
                 }
 
-                setActiveWorkspaceId(previousActiveWorkspaceId);
-                setPreferredWorkspaceId(previousPreferredWorkspaceId);
-                setError(normalizeErrorCode(caught, 'selectFailed'));
+                setError(localWorkspaceError(caught, 'selectFailed'));
                 throw caught;
-            } finally {
-                if (workspaceResultIsCurrent(connectionContext)) {
-                    setLoading(false);
-                }
             }
         },
         [
             ensureWorkspaceIdle,
             applyWorkspaceSwitchResult,
             requireWorkspaceConnection,
-            setActiveWorkspaceId,
             setError,
-            setLoading,
-            setPreferredWorkspaceId,
             workspaceResultIsCurrent,
         ],
     );
@@ -281,7 +247,6 @@ export const useWorkspace = () => {
             const connectionContext = requireWorkspaceConnection();
             const workspaceState = useWorkspaceStore.getState();
 
-            setLoading(true);
             setError(null);
 
             try {
@@ -296,7 +261,6 @@ export const useWorkspace = () => {
                             return;
                         }
 
-                        setWorkspaces(result.reduction.workspaces);
                         setError(null);
                         const switchResult = await switchActiveGatewayWorkspace({
                             activeGateway: connectionContext.gateway,
@@ -320,12 +284,8 @@ export const useWorkspace = () => {
                     return;
                 }
 
-                setError(normalizeErrorCode(caught, 'createFailed'));
+                setError(localWorkspaceError(caught, 'createFailed'));
                 throw caught;
-            } finally {
-                if (workspaceResultIsCurrent(connectionContext)) {
-                    setLoading(false);
-                }
             }
         },
         [
@@ -333,8 +293,6 @@ export const useWorkspace = () => {
             applyWorkspaceSwitchResult,
             requireWorkspaceConnection,
             setError,
-            setLoading,
-            setWorkspaces,
             workspaceResultIsCurrent,
         ],
     );
@@ -345,7 +303,6 @@ export const useWorkspace = () => {
             const connectionContext = requireWorkspaceConnection();
             const workspaceState = useWorkspaceStore.getState();
 
-            setLoading(true);
             setError(null);
 
             try {
@@ -361,7 +318,6 @@ export const useWorkspace = () => {
 
                 switch (result.status) {
                     case 'renamed':
-                        setWorkspaces(result.reduction.workspaces);
                         setError(null);
                         return;
                     case 'unchanged':
@@ -377,22 +333,11 @@ export const useWorkspace = () => {
                     return;
                 }
 
-                setError(normalizeErrorCode(caught, 'renameFailed'));
+                setError(localWorkspaceError(caught, 'renameFailed'));
                 throw caught;
-            } finally {
-                if (workspaceResultIsCurrent(connectionContext)) {
-                    setLoading(false);
-                }
             }
         },
-        [
-            ensureWorkspaceIdle,
-            requireWorkspaceConnection,
-            setError,
-            setLoading,
-            setWorkspaces,
-            workspaceResultIsCurrent,
-        ],
+        [ensureWorkspaceIdle, requireWorkspaceConnection, setError, workspaceResultIsCurrent],
     );
 
     return {

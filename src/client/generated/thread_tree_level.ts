@@ -54,7 +54,7 @@ export type TurnStatus = 'InProgress' | 'Completed' | 'Failed' | 'Interrupted' |
  */
 export type ThreadVisibility = 'private' | 'workspace';
 
-export interface ClientThreadTreeLevel {
+export interface ThreadTreeLevel {
   agents_doc_summary?: ThreadAgentsDocSummary | null;
   folder?: ThreadFolder | null;
   folder_id?: string | null;

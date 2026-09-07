@@ -1,10 +1,10 @@
+import { useAuthenticatedAvatar } from '@/client/avatars';
 import {
     memo,
     useCallback,
     useEffect,
     useLayoutEffect,
     useMemo,
-    useState,
     useSyncExternalStore,
     type RefObject,
 } from 'react';
@@ -23,7 +23,6 @@ import { MemberAvatar } from '@/components/member-avatar';
 import { Box } from '@/components/primitives/box';
 import {
     AGENT_AVATAR_REVISIONS,
-    resolveAgentAvatarRepresentation,
     type ResolvedAgentAvatar,
 } from '@/services/members/resolve-agent-avatar';
 
@@ -141,8 +140,48 @@ export const TimelineAvatarRail = ({
     const contentOriginOffset = contentTopInset - viewportTopInset;
     const endAlignmentPadding = useSharedValue(0);
     const viewportHeight = useSharedValue(0);
-    const [agentAvatars, setAgentAvatars] = useState<Readonly<Record<string, ResolvedAgentAvatar>>>(
-        {},
+    const displayedAgentRevisions = new Set(
+        groups.flatMap((group) => {
+            if (group.source.kind === 'agent' && group.source.showsRunningDino) return [];
+            const author = timelineAvatarSourceAgentAuthor(group.source);
+            if (!author && group.source.kind !== 'agent') return [];
+            const avatar = timelineAgentDefaultAvatar(author);
+            return [avatar ? AGENT_AVATAR_REVISIONS[avatar] : AGENT_AVATAR_REVISIONS.pioneer];
+        }),
+    );
+    const pioneerAvatar = useAuthenticatedAvatar(
+        connected && displayedAgentRevisions.has(AGENT_AVATAR_REVISIONS.pioneer)
+            ? `agent:${AGENT_AVATAR_REVISIONS.pioneer}`
+            : null,
+        AGENT_AVATAR_REVISIONS.pioneer,
+        true,
+    );
+    const codexAvatar = useAuthenticatedAvatar(
+        connected && displayedAgentRevisions.has(AGENT_AVATAR_REVISIONS.codex)
+            ? `agent:${AGENT_AVATAR_REVISIONS.codex}`
+            : null,
+        AGENT_AVATAR_REVISIONS.codex,
+        true,
+    );
+    const claudeAvatar = useAuthenticatedAvatar(
+        connected && displayedAgentRevisions.has(AGENT_AVATAR_REVISIONS.claude)
+            ? `agent:${AGENT_AVATAR_REVISIONS.claude}`
+            : null,
+        AGENT_AVATAR_REVISIONS.claude,
+        true,
+    );
+    const agentAvatars = useMemo<Readonly<Record<string, ResolvedAgentAvatar>>>(
+        () =>
+            Object.fromEntries(
+                [
+                    [AGENT_AVATAR_REVISIONS.pioneer, pioneerAvatar],
+                    [AGENT_AVATAR_REVISIONS.codex, codexAvatar],
+                    [AGENT_AVATAR_REVISIONS.claude, claudeAvatar],
+                ].flatMap(([avatarRevision, uri]) =>
+                    avatarRevision && uri ? [[avatarRevision, { avatarRevision, uri }]] : [],
+                ),
+            ),
+        [pioneerAvatar, codexAvatar, claudeAvatar],
     );
     const handleViewportLayout = useCallback(
         (event: LayoutChangeEvent) => {
@@ -150,29 +189,6 @@ export const TimelineAvatarRail = ({
         },
         [viewportHeight],
     );
-
-    useEffect(() => {
-        if (!connected) {
-            return undefined;
-        }
-
-        let cancelled = false;
-        for (const revision of Object.values(AGENT_AVATAR_REVISIONS)) {
-            void resolveAgentAvatarRepresentation(revision)
-                .then((avatar) => {
-                    if (!cancelled && avatar) {
-                        setAgentAvatars((current) => ({
-                            ...current,
-                            [avatar.avatarRevision]: avatar,
-                        }));
-                    }
-                })
-                .catch(() => undefined);
-        }
-        return () => {
-            cancelled = true;
-        };
-    }, [connected]);
 
     useLayoutEffect(() => {
         const state = listRef.current?.getState();

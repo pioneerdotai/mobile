@@ -11,7 +11,6 @@ import {
 import { applyActiveThreadEvent } from '@/services/threads/active';
 import { timelineQueryKeys } from '@/services/threads/timeline-query';
 import { clearThreadScopeQueries, threadScopeQueryKeys } from '@/services/threads/scope';
-import { removeThreadFromTreeSnapshot } from '@/services/threads/tree';
 import { useActiveThreadStore } from '@/stores/active-thread';
 import { useThreadTreeStore } from '@/stores/thread-tree';
 import { useWorkspaceStore } from '@/stores/workspace';
@@ -24,7 +23,6 @@ type AccessChangedNotification = Extract<
 >['params'];
 
 const clearProtectedMobileProjections = (queryClient: QueryClient) => {
-    useThreadTreeStore.getState().reset();
     useActiveThreadStore.getState().reset();
     useActiveThreadStore.getState().resetDefaultComposerModelSelection();
     void queryClient.cancelQueries({ queryKey: timelineQueryKeys.all });
@@ -69,32 +67,11 @@ export const applyMobileAccessChangedLifecycle = (
     const activeWorkspaceLost = lifecycle.active_scope_cleared;
 
     useWorkspaceStore.setState({
-        workspaces: workspaceAccessLost
-            ? workspaceState.workspaces.filter(
-                  (workspace) => workspace.id !== lifecycle.workspace_id,
-              )
-            : workspaceState.workspaces,
-        error: null,
         bootstrappedConnectionId: lifecycle.refresh_workspace_catalog
             ? null
             : workspaceState.bootstrappedConnectionId,
     });
 
-    const threadTreeState = useThreadTreeStore.getState();
-    if (activeWorkspaceLost) {
-        threadTreeState.reset();
-    } else if (
-        accessRevoked &&
-        threadTreeState.snapshot &&
-        threadTreeState.workspaceId === lifecycle.workspace_id
-    ) {
-        threadTreeState.setSnapshot(
-            invalidatedThreadIds.reduce(
-                (snapshot, threadId) => removeThreadFromTreeSnapshot(snapshot, threadId),
-                threadTreeState.snapshot,
-            ),
-        );
-    }
     if (activeWorkspaceLost || lifecycle.active_thread_cleared) {
         const activeThreadState = useActiveThreadStore.getState();
         activeThreadState.reset();

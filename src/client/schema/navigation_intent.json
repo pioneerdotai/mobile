@@ -7,6 +7,22 @@
       "properties": {
         "kind": {
           "type": "string",
+          "const": "open_agents_document"
+        },
+        "scope": {
+          "$ref": "#/$defs/AgentsDocEditorScope"
+        }
+      },
+      "required": [
+        "kind",
+        "scope"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
           "const": "set_administration_route"
         },
         "route": {
@@ -267,6 +283,46 @@
       "enum": [
         "Members",
         "Invitations"
+      ]
+    },
+    "AgentsDocEditorScope": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "root"
+            },
+            "workspace_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "workspace_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "folder_id": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "folder"
+            },
+            "workspace_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "workspace_id",
+            "folder_id"
+          ]
+        }
       ]
     },
     "ProviderFilter": {

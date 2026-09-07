@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "ClientThreadTreeLevel",
+  "title": "ThreadTreeLevel",
   "type": "object",
   "properties": {
     "agents_doc_summary": {

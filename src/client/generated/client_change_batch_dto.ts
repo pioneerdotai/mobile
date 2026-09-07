@@ -35,6 +35,11 @@ export type ClientScope =
       [k: string]: unknown;
     }
   | {
+      kind: 'task_inbox';
+      workspace_id: string;
+      [k: string]: unknown;
+    }
+  | {
       kind: 'task';
       task_id?: string | null;
       [k: string]: unknown;
@@ -100,10 +105,6 @@ export type ClientScope =
   | {
       kind: 'agents_document';
       workspace_id: string;
-      [k: string]: unknown;
-    }
-  | {
-      kind: 'desktop_update';
       [k: string]: unknown;
     };
 

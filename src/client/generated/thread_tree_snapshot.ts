@@ -54,7 +54,7 @@ export type TurnStatus = 'InProgress' | 'Completed' | 'Failed' | 'Interrupted' |
  */
 export type ThreadVisibility = 'private' | 'workspace';
 
-export interface ClientThreadTreeSnapshot {
+export interface ThreadTreeSnapshot {
   agents_doc_summaries_by_folder_key: {
     [k: string]: ThreadAgentsDocSummary;
   };

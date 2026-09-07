@@ -56,7 +56,7 @@ export type ThreadVisibility = 'private' | 'workspace';
 
 export interface ClientThreadTreeQueryData {
   composer_model_selection?: ComposerModelSelection | null;
-  snapshot: ClientThreadTreeSnapshot;
+  snapshot: ThreadTreeSnapshot;
 }
 export interface ComposerModelSelection {
   model: string;
@@ -64,7 +64,7 @@ export interface ComposerModelSelection {
   selected_reasoning_effort?: string | null;
   [k: string]: unknown;
 }
-export interface ClientThreadTreeSnapshot {
+export interface ThreadTreeSnapshot {
   agents_doc_summaries_by_folder_key: {
     [k: string]: ThreadAgentsDocSummary;
   };

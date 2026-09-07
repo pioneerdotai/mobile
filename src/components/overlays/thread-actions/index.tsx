@@ -15,9 +15,7 @@ import {
     updateThreadVisibility,
 } from '@/services/threads/scope';
 import { timelineQueryKeys } from '@/services/threads/timeline-query';
-import { applyThreadUpdatedToTreeSnapshot } from '@/services/threads/tree';
 import { useGatewayStore } from '@/stores/gateway';
-import { useThreadTreeStore } from '@/stores/thread-tree';
 
 type ThreadActionsSheetProps = {
     open: boolean;
@@ -76,12 +74,6 @@ const ThreadActionsSheet = ({ open, thread, onClose, onOpenMembers }: ThreadActi
             void queryClient.invalidateQueries({
                 queryKey: threadScopeQueryKeys.detail(response.thread.id),
             });
-            const tree = useThreadTreeStore.getState();
-            if (tree.snapshot?.workspace_id === response.thread.workspace_id) {
-                tree.setSnapshot(
-                    applyThreadUpdatedToTreeSnapshot(tree.snapshot, response.thread, null),
-                );
-            }
         },
         onError: () => {
             Alert.alert(t('scope.actionFailed'));

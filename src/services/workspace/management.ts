@@ -1,3 +1,4 @@
+import { drainWorkspacePublications } from '@/client/workspaces';
 import { PioneerClientNativeError, pioneerClient } from '@/client';
 import type {
     GatewayEndpoint,
@@ -90,6 +91,8 @@ export const switchActiveGatewayWorkspace = async (
         });
     } catch (error) {
         throw normalizeWorkspaceOperationError(error, 'selectFailed');
+    } finally {
+        drainWorkspacePublications(null);
     }
 };
 
@@ -104,6 +107,8 @@ export const createWorkspace = async (
         });
     } catch (error) {
         throw normalizeWorkspaceOperationError(error, 'createFailed');
+    } finally {
+        drainWorkspacePublications(null);
     }
 };
 
@@ -119,6 +124,8 @@ export const renameWorkspace = async (
         });
     } catch (error) {
         throw normalizeWorkspaceOperationError(error, 'renameFailed');
+    } finally {
+        drainWorkspacePublications(null);
     }
 };
 

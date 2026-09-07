@@ -1,3 +1,4 @@
+import { drainWorkspacePublications } from '@/client/workspaces';
 import { pioneerClient } from '@/client';
 import type {
     GatewayEndpoint,
@@ -33,5 +34,7 @@ export const bootstrapActiveGatewayWorkspace = async (
         };
     } catch (error) {
         throw normalizeWorkspaceOperationError(error, 'bootstrapFailed');
+    } finally {
+        drainWorkspacePublications(null);
     }
 };

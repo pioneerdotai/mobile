@@ -17,6 +17,23 @@ jest.mock('@/client/navigation', () => {
     };
 });
 
+jest.mock('@/client/workspaces', () => {
+    let catalog: unknown = { workspaces: [], loading: false, action_pending: false, revision: 0 };
+    let directory: unknown = null;
+    return {
+        installCatalog: (workspaces: unknown) => {
+            catalog = { workspaces, loading: false, action_pending: false, revision: 1 };
+        },
+        installDirectory: (publication: unknown) => {
+            directory = publication;
+        },
+        catalogSnapshot: () => catalog,
+        useWorkspaceCatalog: () => catalog,
+        directorySnapshot: (workspace: string | null) => (workspace ? directory : null),
+        useWorkspaceDirectory: () => directory,
+    };
+});
+
 jest.mock('@/services/threads/active', () => ({
     applyActiveThreadEvent: jest.fn(),
 }));
@@ -72,6 +89,29 @@ import { useGatewayStore } from '@/stores/gateway';
 import { useThreadTreeStore } from '@/stores/thread-tree';
 import { useWorkspaceStore } from '@/stores/workspace';
 
+// These immutable outputs are installed by Client before the shell receives
+// the access lifecycle; the Mobile cleanup never edits the catalog/directory.
+const installCatalogPublication = (workspaces: Workspace[]) => {
+    (
+        jest.requireMock('@/client/workspaces') as { installCatalog: (rows: Workspace[]) => void }
+    ).installCatalog(workspaces);
+};
+const installDirectoryPublication = (value: { snapshot: unknown; workspaceId?: string } | null) => {
+    (
+        jest.requireMock('@/client/workspaces') as { installDirectory: (value: unknown) => void }
+    ).installDirectory(
+        value
+            ? {
+                  snapshot: value.snapshot,
+                  revision: 1,
+                  loading: false,
+                  error: null,
+                  changes: { changed: [], removed: [], reordered_folders: [] },
+              }
+            : null,
+    );
+};
+
 const mockApplyActiveThreadEvent = jest.mocked(applyActiveThreadEvent);
 
 type AccessChangedLifecycle = NonNullable<ClientActiveThreadEventResult['access_changed']>;
@@ -110,7 +150,8 @@ describe('mobile access-change lifecycle', () => {
         mockApplyActiveThreadEvent.mockReset();
         useActiveThreadStore.getState().reset();
         useActiveThreadStore.getState().resetDefaultComposerModelSelection();
-        useThreadTreeStore.getState().reset();
+        installDirectoryPublication(null);
+        installCatalogPublication([]);
         useWorkspaceStore.getState().resetConnectionBootstrap();
     });
 
@@ -174,6 +215,7 @@ describe('mobile access-change lifecycle', () => {
     });
 
     it('preserves an open thread and tree when visibility changes without access loss', async () => {
+        useWorkspaceStore.setState({ activeWorkspaceId: 'workspace-protected' });
         const queryClient = createQueryClient();
         const snapshot = {
             thread_id: 'thread-protected',
@@ -185,7 +227,7 @@ describe('mobile access-change lifecycle', () => {
             activeComposerThreadId: 'thread-protected',
             expandedKeys: ['turn:expanded'],
         });
-        useThreadTreeStore.setState({
+        installDirectoryPublication({
             snapshot: {
                 workspace_id: 'workspace-protected',
                 threads_by_id: { 'thread-protected': { id: 'thread-protected' } },
@@ -240,13 +282,13 @@ describe('mobile access-change lifecycle', () => {
             sessionDeviceId: 'device-kept',
             sessionAccessExpiresAtUnix: 1234,
         });
+        installCatalogPublication([workspace('workspace-protected'), workspace('workspace-kept')]);
         useWorkspaceStore.setState({
-            workspaces: [workspace('workspace-protected'), workspace('workspace-kept')],
             activeWorkspaceId: 'workspace-protected',
             preferredWorkspaceId: 'workspace-protected',
             bootstrappedConnectionId: 42,
         });
-        useThreadTreeStore.setState({
+        installDirectoryPublication({
             snapshot: {
                 workspace_id: 'workspace-protected',
                 threads_by_id: {
@@ -281,6 +323,8 @@ describe('mobile access-change lifecycle', () => {
                 installPublication: (id: string | null) => void;
             }
         ).installPublication(null);
+        installCatalogPublication([workspace('workspace-kept')]);
+        installDirectoryPublication(null);
         applyMobileAccessChangedLifecycle(lifecycle(), queryClient, [], 'revoked');
 
         expect(useWorkspaceStore.getState()).toMatchObject({
@@ -308,8 +352,8 @@ describe('mobile access-change lifecycle', () => {
 
     it('clears a selected revoked workspace even when native has no active thread scope', () => {
         const queryClient = createQueryClient();
+        installCatalogPublication([workspace('workspace-protected'), workspace('workspace-kept')]);
         useWorkspaceStore.setState({
-            workspaces: [workspace('workspace-protected'), workspace('workspace-kept')],
             activeWorkspaceId: 'workspace-protected',
             preferredWorkspaceId: 'workspace-protected',
             bootstrappedConnectionId: 17,
@@ -320,6 +364,8 @@ describe('mobile access-change lifecycle', () => {
                 installPublication: (id: string | null) => void;
             }
         ).installPublication(null);
+        installCatalogPublication([workspace('workspace-kept')]);
+        installDirectoryPublication(null);
         applyMobileAccessChangedLifecycle(
             lifecycle({
                 active_scope_cleared: true,
@@ -342,8 +388,8 @@ describe('mobile access-change lifecycle', () => {
 
     it('stale/no-op lifecycle preserves current Superuser projections', () => {
         const queryClient = createQueryClient();
+        installCatalogPublication([workspace('workspace-protected')]);
         useWorkspaceStore.setState({
-            workspaces: [workspace('workspace-protected')],
             activeWorkspaceId: 'workspace-protected',
             preferredWorkspaceId: 'workspace-protected',
             bootstrappedConnectionId: 12,
@@ -376,13 +422,13 @@ describe('mobile access-change lifecycle', () => {
 
     it('thread access loss clears protected thread state but keeps workspace access', () => {
         const queryClient = createQueryClient();
+        installCatalogPublication([workspace('workspace-protected'), workspace('workspace-kept')]);
         useWorkspaceStore.setState({
-            workspaces: [workspace('workspace-protected'), workspace('workspace-kept')],
             activeWorkspaceId: 'workspace-protected',
             preferredWorkspaceId: 'workspace-protected',
             bootstrappedConnectionId: 15,
         });
-        useThreadTreeStore.setState({
+        installDirectoryPublication({
             snapshot: {
                 workspace_id: 'workspace-protected',
                 threads_by_id: {
@@ -411,6 +457,12 @@ describe('mobile access-change lifecycle', () => {
         );
         queryClient.setQueryData(timelineQueryKeys.thread('thread-kept'), 'accessible timeline');
 
+        installDirectoryPublication({
+            snapshot: {
+                workspace_id: 'workspace-protected',
+                threads_by_id: { 'thread-kept': { id: 'thread-kept', preview: 'kept' } },
+            },
+        });
         applyMobileAccessChangedLifecycle(
             lifecycle({
                 change: 'thread_participant_removed',
@@ -475,8 +527,8 @@ describe('mobile access-change lifecycle', () => {
 
     it('native reduction failure still evicts the affected active scope', () => {
         const queryClient = createQueryClient();
+        installCatalogPublication([workspace('workspace-protected')]);
         useWorkspaceStore.setState({
-            workspaces: [workspace('workspace-protected')],
             activeWorkspaceId: 'workspace-protected',
             preferredWorkspaceId: 'workspace-protected',
             bootstrappedConnectionId: 9,
@@ -486,6 +538,8 @@ describe('mobile access-change lifecycle', () => {
             'protected timeline',
         );
 
+        installCatalogPublication([]);
+        installDirectoryPublication(null);
         failClosedMobileAccessChange('workspace-protected', queryClient);
 
         expect(useWorkspaceStore.getState().activeWorkspaceId).toBeNull();
@@ -502,13 +556,13 @@ describe('mobile access-change lifecycle', () => {
             sessionDeviceId: 'device-kept',
             sessionAccessExpiresAtUnix: 5678,
         });
+        installCatalogPublication([workspace('workspace-protected')]);
         useWorkspaceStore.setState({
-            workspaces: [workspace('workspace-protected')],
             activeWorkspaceId: 'workspace-protected',
             preferredWorkspaceId: 'workspace-protected',
             bootstrappedConnectionId: 22,
         });
-        useThreadTreeStore.setState({
+        installDirectoryPublication({
             snapshot: {
                 workspace_id: 'workspace-protected',
                 threads_by_id: { protected: { preview: 'secret' } },
@@ -528,6 +582,8 @@ describe('mobile access-change lifecycle', () => {
             'protected timeline',
         );
 
+        installCatalogPublication([]);
+        installDirectoryPublication(null);
         beginMobileAuthorizationEpoch(queryClient);
 
         expect(useWorkspaceStore.getState()).toMatchObject({

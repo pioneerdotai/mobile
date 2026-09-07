@@ -2,6 +2,11 @@
 
 export type NavigationIntent =
   | {
+      kind: 'open_agents_document';
+      scope: AgentsDocEditorScope;
+      [k: string]: unknown;
+    }
+  | {
       kind: 'set_administration_route';
       route: AdministrationRoute;
       [k: string]: unknown;
@@ -74,6 +79,18 @@ export type NavigationIntent =
     }
   | {
       kind: 'reset';
+      [k: string]: unknown;
+    };
+export type AgentsDocEditorScope =
+  | {
+      kind: 'root';
+      workspace_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      folder_id: string;
+      kind: 'folder';
+      workspace_id: string;
       [k: string]: unknown;
     };
 export type AdministrationRoute = 'Members' | 'Invitations';

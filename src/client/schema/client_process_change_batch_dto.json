@@ -656,6 +656,22 @@
           "properties": {
             "kind": {
               "type": "string",
+              "const": "task_inbox"
+            },
+            "workspace_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "workspace_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
               "const": "task"
             },
             "task_id": {
@@ -877,18 +893,6 @@
           "required": [
             "kind",
             "workspace_id"
-          ]
-        },
-        {
-          "type": "object",
-          "properties": {
-            "kind": {
-              "type": "string",
-              "const": "desktop_update"
-            }
-          },
-          "required": [
-            "kind"
           ]
         }
       ]

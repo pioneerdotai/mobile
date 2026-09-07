@@ -58,6 +58,39 @@ const bridgeFixture = (initial: ClientScopedSnapshotDto | null) => {
 };
 
 describe('MobileClientBinding', () => {
+    test('avatar and task scopes release protected snapshots and remount with a newer demand', () => {
+        for (const scope of [
+            { kind: 'avatar', principal_id: 'avatar-key' },
+            { kind: 'task_inbox', workspace_id: 'a' },
+        ] as ClientScope[]) {
+            const fixture = bridgeFixture(snapshot(1, [], scope));
+            const generations: number[] = [];
+            const binding = new MobileClientBinding({
+                ...fixture.bridge,
+                dispatch: (request) => {
+                    if (request.intent.kind === 'set_scope_demand')
+                        generations.push(request.intent.generation);
+                    return {
+                        schema_version: 1,
+                        sequence: generations.length,
+                        outcome: 'changed',
+                        effects: [],
+                    };
+                },
+            });
+            const first = binding.scope(scope);
+            const unsubscribe = first.subscribe(() => {});
+            expect(first.getSnapshot()).not.toBeNull();
+            unsubscribe();
+            expect(first.getSnapshot()).toBeNull();
+            const second = binding.scope(scope);
+            const close = second.subscribe(() => {});
+            expect(second.getSnapshot()).not.toBeNull();
+            close();
+            expect(generations).toEqual([1, 2, 3, 4]);
+        }
+    });
+
     test('replays the same serialized Rust/FFI thread scenario without reducing a raw event', () => {
         const initial = wireFixture.initial as ClientScopedSnapshotDto[];
         const updated = wireFixture.updated as ClientScopedSnapshotDto[];
@@ -165,9 +198,9 @@ describe('MobileClientBinding', () => {
         ua();
         expect(demands).toEqual([
             { kind: 'set_scope_demand', scope: a, demand: 'visible', generation: 1 },
-            { kind: 'set_scope_demand', scope: b, demand: 'visible', generation: 1 },
-            { kind: 'set_scope_demand', scope: b, demand: 'suspended', generation: 2 },
-            { kind: 'set_scope_demand', scope: a, demand: 'suspended', generation: 2 },
+            { kind: 'set_scope_demand', scope: b, demand: 'visible', generation: 2 },
+            { kind: 'set_scope_demand', scope: b, demand: 'suspended', generation: 3 },
+            { kind: 'set_scope_demand', scope: a, demand: 'suspended', generation: 4 },
         ]);
     });
 
