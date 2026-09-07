@@ -18,8 +18,11 @@ const mockStore = {
     },
     getSnapshot: () => mockPublication,
 };
+const mockThreadStores = new Map<string, typeof mockStore>();
 jest.mock('@/client/mobile-client-binding', () => ({
-    mobileClientBinding: { scope: () => mockStore },
+    mobileClientBinding: {
+        scope: (scope: { thread_id: string }) => mockThreadStores.get(scope.thread_id) ?? mockStore,
+    },
 }));
 jest.mock('react-i18next', () => ({
     useTranslation: () => ({ i18n: { language: mockLanguage } }),
@@ -27,6 +30,66 @@ jest.mock('react-i18next', () => ({
 jest.mock('@/locale/i18n', () => ({ __esModule: true, default: { t: (key: string) => key } }));
 
 describe('published timeline selector', () => {
+    it('switches A to B and back, restoring rows and ignoring the inactive thread', async () => {
+        const publications = new Map(
+            ['a', 'b'].map((id) => [
+                id,
+                {
+                    ...wire.initial,
+                    scope: { kind: 'timeline', thread_id: id },
+                    payload: { ...wire.initial.payload, thread_id: id },
+                } as unknown as ClientScopedSnapshotDto,
+            ]),
+        );
+        const listeners = new Map<string, Set<() => void>>();
+        for (const id of ['a', 'b']) {
+            const registered = new Set<() => void>();
+            listeners.set(id, registered);
+            mockThreadStores.set(id, {
+                subscribe: (listener) => {
+                    registered.add(listener);
+                    return () => {
+                        registered.delete(listener);
+                    };
+                },
+                getSnapshot: () => publications.get(id)!,
+            });
+        }
+        let selected!: ReturnType<typeof useThreadPresentation>;
+        const Probe = ({ id }: { id: string }) => {
+            selected = useThreadPresentation(id);
+            return null;
+        };
+        let tree!: ReactTestRenderer;
+        await act(async () => {
+            tree = renderer.create(<Probe id="a" />);
+        });
+        for (const id of ['a', 'b', 'a', 'b']) {
+            await act(async () => {
+                tree.update(<Probe id={id} />);
+            });
+            expect(selected.snapshot?.thread_id).toBe(id);
+            expect(selected.rows.length).toBeGreaterThan(0);
+            expect(listeners.get(id)?.size).toBe(1);
+            const inactive = id === 'a' ? 'b' : 'a';
+            expect(listeners.get(inactive)?.size).toBe(0);
+            const current = selected;
+            await act(async () => {
+                publications.set(inactive, {
+                    ...publications.get(inactive)!,
+                    payload: { ...wire.next.payload, thread_id: inactive },
+                });
+                for (const listener of listeners.get(inactive)!) listener();
+            });
+            expect(selected).toBe(current);
+        }
+        await act(async () => {
+            tree.unmount();
+        });
+        expect([...listeners.values()].every((registered) => registered.size === 0)).toBe(true);
+        mockThreadStores.clear();
+    });
+
     it('preserves snapshot and row identities across replacements, shell renders and locale changes', async () => {
         let selected!: ReturnType<typeof useThreadPresentation>;
         const Probe = ({ active = true }: { active?: boolean }) => {
@@ -73,6 +136,12 @@ describe('published timeline selector', () => {
         });
         expect(selected.snapshot).toBeNull();
         expect(mockListeners.size).toBe(0);
+        await act(async () => {
+            tree.update(<Probe active />);
+        });
+        expect(selected.snapshot).toBe(replacement.snapshot);
+        expect(selected.rows.length).toBeGreaterThan(0);
+        expect(mockListeners.size).toBe(1);
         await act(async () => {
             tree.unmount();
         });
