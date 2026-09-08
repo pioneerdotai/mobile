@@ -23,6 +23,7 @@ export type ParsedUserAttachmentKind = 'File' | 'Skill' | 'Mcp';
 export interface ParsedUserAttachment {
   artifact?: ArtifactRef | null;
   display_name: string;
+  id: string;
   kind: ParsedUserAttachmentKind;
   [k: string]: unknown;
 }

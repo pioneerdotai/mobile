@@ -36,7 +36,7 @@ export const AssistantMessageRow = ({
     const { theme } = useUnistyles();
     const { t } = useTranslation('threads');
 
-    const hasText = row.text.trim().length > 0 || (row.markdown?.blocks?.length ?? 0) > 0;
+    const hasText = row.text.trim().length > 0 || (row.markdown?.nodes?.length ?? 0) > 0;
     const iconSize = theme.space(4);
     const activityColor = theme.colors.textMuted;
     if (row.taskTimeline) {

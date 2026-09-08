@@ -1905,6 +1905,70 @@
         }
       ]
     },
+    "MarkdownNode": {
+      "type": "object",
+      "properties": {
+        "block": {
+          "$ref": "#/$defs/MarkdownBlock"
+        },
+        "children": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/MarkdownNode"
+          }
+        },
+        "id": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "revision": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "id",
+        "revision",
+        "block",
+        "children"
+      ]
+    },
+    "MarkdownPresentation": {
+      "type": "object",
+      "properties": {
+        "document_id": {
+          "type": "string"
+        },
+        "next_id": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "nodes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/MarkdownNode"
+          }
+        },
+        "revision": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "source": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "document_id",
+        "revision",
+        "nodes",
+        "source",
+        "next_id"
+      ]
+    },
     "McpScopeKind": {
       "type": "string",
       "enum": [
@@ -3142,6 +3206,16 @@
           "anyOf": [
             {
               "$ref": "#/$defs/MarkdownDocument"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "markdown_presentation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MarkdownPresentation"
             },
             {
               "type": "null"

@@ -1024,6 +1024,7 @@ export interface TimelineItemPresentation {
   final_status?: TimelineFinalStatus | null;
   kind: TimelineItemKind;
   markdown?: MarkdownDocument | null;
+  markdown_presentation?: MarkdownPresentation | null;
   streaming: boolean;
   system_label?: SystemEventLabel | null;
   task_timeline: boolean;
@@ -1112,6 +1113,21 @@ export interface MarkdownMark {
 }
 export interface MarkdownList {
   type: 'list';
+  [k: string]: unknown;
+}
+export interface MarkdownPresentation {
+  document_id: string;
+  next_id: number;
+  nodes: MarkdownNode[];
+  revision: number;
+  source: string;
+  [k: string]: unknown;
+}
+export interface MarkdownNode {
+  block: MarkdownBlock;
+  children: MarkdownNode[];
+  id: number;
+  revision: number;
   [k: string]: unknown;
 }
 export interface TimelineToolContent {

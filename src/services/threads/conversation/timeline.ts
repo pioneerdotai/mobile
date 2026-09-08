@@ -1,7 +1,7 @@
+import type { MarkdownPresentation } from '@/client/generated/timeline_snapshot';
 import type {
     AgentMessagePhase,
     ArtifactRef,
-    MarkdownDocument,
 } from '@/client/generated/client_active_thread_snapshot';
 import type { ClientTurnSecuritySummary } from '@/client/generated/client_turn_security_summary';
 import type { PendingRequest } from '@/client/generated/pending_request';
@@ -69,7 +69,7 @@ export type TimelineRow = TimelineRowMeta &
               itemId: string;
               turnId: string;
               text: string;
-              markdown: MarkdownDocument | null;
+              markdown: MarkdownPresentation | null;
               phase: AgentMessagePhase;
               streaming: boolean;
               taskTimeline: boolean;
@@ -82,7 +82,7 @@ export type TimelineRow = TimelineRowMeta &
               itemId: string;
               turnId: string;
               text: string;
-              markdown: MarkdownDocument | null;
+              markdown: MarkdownPresentation | null;
               collapsed: boolean;
               streaming: boolean;
               elapsedLabel: string | null;

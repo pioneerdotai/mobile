@@ -10,14 +10,14 @@ import { useTranslation } from 'react-i18next';
 import remend from 'remend';
 import type { RemendOptions } from 'remend';
 
-import type { MarkdownDocument } from '@/client/generated/client_active_thread_snapshot';
+import type { MarkdownPresentation } from '@/client/generated/timeline_snapshot';
 
 import { markdownSource } from './markdown-rendering';
 import { openTimelineExternalUrl, timelineLinkKind } from './timeline-link';
 
 type MarkdownContentProps = {
     text: string;
-    document?: MarkdownDocument | null;
+    document?: MarkdownPresentation | null;
     tone?: 'default' | 'muted' | 'inverted';
     selectable?: boolean;
     streaming?: boolean;
@@ -86,7 +86,7 @@ export const MarkdownContent = ({
 
     return (
         <EnrichedMarkdownText
-            key={selectable ? 'selection-enabled' : 'selection-disabled'}
+            key={`${document?.document_id ?? 'plain-text'}:${selectable ? 'selection-enabled' : 'selection-disabled'}`}
             allowTrailingMargin={false}
             containerStyle={styles.document}
             flavor="github"
