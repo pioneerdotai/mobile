@@ -24,6 +24,11 @@ type AccessChangedNotification = Extract<
 
 const clearProtectedMobileProjections = (queryClient: QueryClient) => {
     useActiveThreadStore.getState().reset();
+    revalidateMobileAuthorizationProjections(queryClient);
+};
+
+/** A missed policy notification requires fresh data, not a new editing session. */
+export const revalidateMobileAuthorizationProjections = (queryClient: QueryClient) => {
     void queryClient.cancelQueries({ queryKey: timelineQueryKeys.all });
     queryClient.removeQueries({ queryKey: timelineQueryKeys.all });
     clearThreadScopeQueries(queryClient);
