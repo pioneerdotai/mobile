@@ -12,6 +12,7 @@ import {
     applyPublishedMobileAccessChange,
     applyPublishedMobileAccessProjection,
     beginMobileAuthorizationEpoch,
+    revalidateMobileAuthorizationProjections,
 } from '@/services/gateway/access-change';
 import {
     applyPublishedMobilePolicyChange,
@@ -524,7 +525,7 @@ export const useGatewaySession = (
                 return;
             }
             if (publication.authorization_change_sequence !== acceptedAccessSequence + 1) {
-                beginAuthorizationEpoch();
+                revalidateMobileAuthorizationProjections(queryClient);
             }
             acceptedAccessSequence = publication.authorization_change_sequence;
             const sequence = publication.authorization_change_sequence;

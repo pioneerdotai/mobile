@@ -29,6 +29,7 @@ const mockResetActiveThread = jest.fn(() => {
     mockActiveThreadSnapshot = null;
 });
 const mockBeginMobileAuthorizationEpoch = jest.fn();
+const mockRevalidateMobileAuthorizationProjections = jest.fn();
 const mockClearCliRuntimeSummaries = jest.fn();
 const mockLoadCliRuntimeSummariesInBackground = jest.fn();
 const mockApplyCliRuntimeSummaryUpdate = jest.fn();
@@ -152,6 +153,7 @@ jest.mock('@/services/gateway/access-change', () => ({
     applyPublishedMobileAccessChange: mockApplyPublishedAccessChange,
     applyPublishedMobileAccessProjection: jest.fn(() => null),
     beginMobileAuthorizationEpoch: mockBeginMobileAuthorizationEpoch,
+    revalidateMobileAuthorizationProjections: mockRevalidateMobileAuthorizationProjections,
     failClosedMobileAccessChange: jest.fn(),
     providerAccessChangedWorkspaceId: () => null,
 }));
@@ -369,6 +371,44 @@ describe('useGatewaySession', () => {
             release(null);
         });
         expect(mockApplyPublishedAccessChange).toHaveBeenCalledTimes(1);
+    });
+
+    it('revalidates coalesced administration saves without resetting the editing session', async () => {
+        let tree: ReactTestRenderer;
+        await act(async () => {
+            tree = renderer.create(<Harness endpoint={gateway()} />);
+        });
+        await act(async () => {
+            mockIdentityPublication = {
+                connection_generation: 1,
+                authorization_change_sequence: 0,
+                access_change: null,
+                policy_change: null,
+            };
+            mockAuthorizationListener?.();
+        });
+        const resets = mockBeginMobileAuthorizationEpoch.mock.calls.length;
+        mockActiveThreadSnapshot = { thread_id: 'existing-thread' };
+        await act(async () => {
+            mockIdentityPublication = {
+                connection_generation: 1,
+                authorization_change_sequence: 3,
+                access_change: null,
+                policy_change: {
+                    policy_generation: 9,
+                    change: 'resource_selector',
+                    affected: { scope: 'invitation', invitation_id: 'invite-a' },
+                },
+            };
+            mockAuthorizationListener?.();
+        });
+        expect(mockRevalidateMobileAuthorizationProjections).toHaveBeenCalledTimes(1);
+        expect(mockBeginMobileAuthorizationEpoch).toHaveBeenCalledTimes(resets);
+        expect(mockActiveThreadSnapshot?.thread_id).toBe('existing-thread');
+        expect(mockApplyPublishedPolicyChange).toHaveBeenCalledTimes(1);
+        await act(async () => {
+            tree!.unmount();
+        });
     });
 
     it('records the native timing instead of measuring JS delivery latency', async () => {

@@ -92,6 +92,7 @@ import {
     applyPublishedMobileAccessProjection,
     applyMobileAccessChangedLifecycle,
     beginMobileAuthorizationEpoch,
+    revalidateMobileAuthorizationProjections,
     failClosedMobileAccessChange,
     providerAccessChangedWorkspaceId,
 } from '@/services/gateway/access-change';
@@ -160,6 +161,22 @@ const createQueryClient = () =>
     });
 
 describe('mobile access-change lifecycle', () => {
+    it('clears stale policy data while preserving the active editing scope', () => {
+        const queryClient = createQueryClient();
+        useWorkspaceStore.setState({ activeWorkspaceId: 'workspace-kept' });
+        useActiveThreadStore.getState().activateComposerThread('thread-kept');
+        const timeline = timelineQueryKeys.threadSnapshot('thread-kept');
+        const capabilities = threadScopeQueryKeys.detail('thread-kept');
+        queryClient.setQueryData(timeline, { content: 'old server data' });
+        queryClient.setQueryData(capabilities, { canManage: true });
+        revalidateMobileAuthorizationProjections(queryClient);
+        expect(queryClient.getQueryData(timeline)).toBeUndefined();
+        expect(queryClient.getQueryData(capabilities)).toBeUndefined();
+        expect(useActiveThreadStore.getState().activeComposerThreadId).toBe('thread-kept');
+        expect(useWorkspaceStore.getState().activeWorkspaceId).toBe('workspace-kept');
+        queryClient.clear();
+    });
+
     beforeEach(() => {
         mockApplyActiveThreadEvent.mockReset();
         useActiveThreadStore.getState().reset();
