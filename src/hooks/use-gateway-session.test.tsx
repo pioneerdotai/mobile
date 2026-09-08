@@ -28,6 +28,7 @@ const mockCacheActiveThreadSnapshot = jest.fn();
 const mockResetActiveThread = jest.fn(() => {
     mockActiveThreadSnapshot = null;
 });
+const mockBeginMobileAuthorizationEpoch = jest.fn();
 const mockClearCliRuntimeSummaries = jest.fn();
 const mockLoadCliRuntimeSummariesInBackground = jest.fn();
 const mockApplyCliRuntimeSummaryUpdate = jest.fn();
@@ -150,7 +151,7 @@ jest.mock('@/services/gateway/access-change', () => ({
     applyMobileAccessChangedEvent: jest.fn(),
     applyPublishedMobileAccessChange: mockApplyPublishedAccessChange,
     applyPublishedMobileAccessProjection: jest.fn(() => null),
-    beginMobileAuthorizationEpoch: jest.fn(),
+    beginMobileAuthorizationEpoch: mockBeginMobileAuthorizationEpoch,
     failClosedMobileAccessChange: jest.fn(),
     providerAccessChangedWorkspaceId: () => null,
 }));
@@ -281,6 +282,44 @@ describe('useGatewaySession', () => {
             projection,
         });
         mockDisconnectGateway.mockResolvedValue(true);
+    });
+
+    it('keeps the active thread through transport rotation within the same authorization epoch', async () => {
+        let tree: ReactTestRenderer;
+        await act(async () => {
+            tree = renderer.create(<Harness endpoint={gateway()} />);
+        });
+        mockActiveThreadSnapshot = { thread_id: 'existing-thread' };
+        await act(async () => {
+            mockIdentityPublication = {
+                connection_id: 1,
+                connection_generation: 1,
+                authorization_change_sequence: 0,
+                access_change: null,
+                policy_change: null,
+            };
+            mockAuthorizationListener?.();
+        });
+        const resets = mockBeginMobileAuthorizationEpoch.mock.calls.length;
+        for (const connectionId of [2, 3]) {
+            await act(async () => {
+                mockIdentityPublication = {
+                    ...mockIdentityPublication,
+                    connection_id: connectionId,
+                };
+                mockAuthorizationListener?.();
+            });
+            expect(mockBeginMobileAuthorizationEpoch).toHaveBeenCalledTimes(resets);
+            expect(mockActiveThreadSnapshot?.thread_id).toBe('existing-thread');
+        }
+        await act(async () => {
+            mockIdentityPublication = { ...mockIdentityPublication, connection_generation: 2 };
+            mockAuthorizationListener?.();
+        });
+        expect(mockBeginMobileAuthorizationEpoch).toHaveBeenCalledTimes(resets + 1);
+        await act(async () => {
+            tree!.unmount();
+        });
     });
 
     it('delivers accepted authorization once and drops queued delivery after teardown', async () => {

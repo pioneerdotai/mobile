@@ -49,6 +49,7 @@ import {
     WorkGroupRow,
 } from './rows';
 import { defaultTimelineRowExpanded } from './row-expansion';
+import { TIMELINE_SCROLL_BEHAVIOR, useTimelineScroll } from './use-timeline-scroll';
 import { timelineRowsAreEqual } from './timeline-row-equality';
 import { viewedThroughLatestUserTurn } from './read-viewability';
 import { VStack } from '@/components/primitives/vstack';
@@ -113,7 +114,6 @@ type ThreadTimelineProps = {
     onRefresh: () => Promise<void>;
 };
 
-const BOTTOM_FOLLOW_THRESHOLD_RATIO = 0.12;
 const TIMELINE_DRAW_DISTANCE = 640;
 const TIMELINE_ESTIMATED_ITEM_SIZE = 64;
 const TIMELINE_CONTENT_BOTTOM_PADDING_UNITS = 6;
@@ -129,7 +129,7 @@ type MessageActionsTarget = {
     row: MessageActionsTimelineRow;
 };
 export const ThreadTimeline = forwardRef<LegendListRef, ThreadTimelineProps>((props, ref) => {
-    return <ThreadTimelineContent {...props} timelineRef={ref} />;
+    return <ThreadTimelineContent key={props.timelineIdentityKey} {...props} timelineRef={ref} />;
 });
 
 ThreadTimeline.displayName = 'ThreadTimeline';
@@ -185,8 +185,6 @@ const ThreadTimelineContent = ({
         null,
     );
     const [timelineNowMs, setTimelineNowMs] = useState(() => Date.now());
-    const viewportScrollIntentGenerationRef = useRef(0);
-    const consumedViewportScrollIntentGenerationRef = useRef(0);
     const internalTimelineRef = useRef<LegendListRef | null>(null);
     const avatarRailController = useMemo(() => new TimelineAvatarRailController(), []);
     const listScrollOffset = useSharedValue(0);
@@ -197,8 +195,6 @@ const ThreadTimelineContent = ({
     useImperativeHandle(timelineRef, () => internalTimelineRef.current as LegendListRef);
 
     useEffect(() => {
-        viewportScrollIntentGenerationRef.current = 0;
-        consumedViewportScrollIntentGenerationRef.current = 0;
         avatarRailController.setVisibleGroups(timelineIdentityKey, []);
     }, [avatarRailController, timelineIdentityKey]);
 
@@ -225,6 +221,11 @@ const ThreadTimelineContent = ({
     const { rows: publishedRows, snapshot: timelineSnapshot } = useThreadPresentation(
         conversation.thread_id,
         presentationActive,
+    );
+    const timelineScroll = useTimelineScroll(
+        timelineIdentityKey,
+        publishedRows,
+        internalTimelineRef,
     );
     const hasLiveTimelineItems = useMemo(
         () => publishedRows.some((row) => row.type === 'running' || timelineRowIsStreaming(row)),
@@ -311,16 +312,19 @@ const ThreadTimelineContent = ({
         }
     }, [onRefresh]);
 
-    const toggleExpandedRow = useCallback((row: TimelineRow) => {
-        setExpandedRows((current) => ({
-            ...current,
-            [row.key]: !(current[row.key] ?? defaultTimelineRowExpanded(row)),
-        }));
-    }, []);
-
-    const markViewportScrollIntent = useCallback(() => {
-        viewportScrollIntentGenerationRef.current += 1;
-    }, []);
+    const toggleExpandedRow = useCallback(
+        (row: TimelineRow) => {
+            const expanded = !(expandedRows[row.key] ?? defaultTimelineRowExpanded(row));
+            timelineScroll.prepareExpansion(
+                row,
+                expanded,
+                publishedRows,
+                internalTimelineRef.current,
+            );
+            setExpandedRows((current) => ({ ...current, [row.key]: expanded }));
+        },
+        [expandedRows, publishedRows, timelineScroll],
+    );
 
     const listExtraData = useMemo(
         () => ({
@@ -438,11 +442,9 @@ const ThreadTimelineContent = ({
             }
 
             if (!presentationActive || !timelineSnapshot) return;
-            const scrollIntentGeneration = viewportScrollIntentGenerationRef.current;
-            if (scrollIntentGeneration <= consumedViewportScrollIntentGenerationRef.current) return;
+            if (!timelineScroll.consumeViewportScrollIntent(publishedRows)) return;
             const indices = visibleIndices.length ? visibleIndices : [info.start, info.end];
             const rowIds = indices.flatMap((index) => (rows[index] ? [rows[index].key] : []));
-            consumedViewportScrollIntentGenerationRef.current = scrollIntentGeneration;
             mobileClientBinding.dispatch({
                 schema_version: 1,
                 intent: {
@@ -463,6 +465,8 @@ const ThreadTimelineContent = ({
             presentationActive,
             timelineSnapshot,
             rows,
+            publishedRows,
+            timelineScroll,
             updateVisibleAvatarGroups,
         ],
     );
@@ -472,29 +476,22 @@ const ThreadTimelineContent = ({
             <KeyboardAwareLegendList<TimelineRow>
                 key={timelineIdentityKey}
                 ref={internalTimelineRef}
-                alignItemsAtEnd
+                {...TIMELINE_SCROLL_BEHAVIOR}
                 contentInsetEndAdjustment={contentInsetEndAdjustment}
                 data={rows}
                 drawDistance={TIMELINE_DRAW_DISTANCE}
                 estimatedItemSize={TIMELINE_ESTIMATED_ITEM_SIZE}
                 extraData={listExtraData}
                 getItemType={getTimelineItemType}
-                initialScrollAtEnd
                 itemsAreEqual={timelineRowsAreEqual}
                 keyExtractor={(row) => row.key}
                 keyboardDismissMode="interactive"
                 keyboardLiftBehavior={TIMELINE_KEYBOARD_LIFT_BEHAVIOR}
                 keyboardOffset={keyboardOffset}
                 ListHeaderComponent={ListHeaderComponent}
-                maintainScrollAtEnd={{
-                    animated: false,
-                    on: { dataChange: true, itemLayout: true, layout: true },
-                }}
-                maintainScrollAtEndThreshold={BOTTOM_FOLLOW_THRESHOLD_RATIO}
-                maintainVisibleContentPosition
-                onMomentumScrollBegin={markViewportScrollIntent}
+                onMomentumScrollBegin={timelineScroll.markScrollIntent}
                 onItemSizeChanged={handleTimelineItemSizeChanged}
-                onScrollBeginDrag={markViewportScrollIntent}
+                onScrollBeginDrag={timelineScroll.markScrollIntent}
                 onViewableItemsChanged={handleViewableItemsChanged}
                 onRefresh={handleRefresh}
                 recycleItems
