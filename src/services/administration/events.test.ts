@@ -24,7 +24,6 @@ const mockActiveThreadState = {
     activeComposerThreadId: null as string | null,
     expandedKeys: [] as string[],
     reset: jest.fn(),
-    resetDefaultComposerModelSelection: jest.fn(),
 };
 jest.mock('@/stores/active-thread', () => ({
     useActiveThreadStore: {

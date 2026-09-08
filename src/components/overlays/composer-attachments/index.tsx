@@ -8,6 +8,11 @@ import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useShallow } from 'zustand/react/shallow';
 
 import type { ComposerAttachment } from '@/client';
+import {
+    beginComposerOperation,
+    completeComposerOperation,
+    type ComposerOperationIdentity,
+} from '@/client/composer';
 import { McpIcon } from '@/components/icons/mcp-icon';
 import { Backdrop } from '@/components/overlays/components/backdrop';
 import { Handle } from '@/components/overlays/components/handle';
@@ -20,7 +25,6 @@ import {
     pickComposerFileAttachments,
     pickComposerMediaAttachments,
 } from '@/services/threads/composer-attachments';
-import { composerTargetThreadIsActive } from '@/services/threads/composer-target';
 import { useActiveThreadStore } from '@/stores/active-thread';
 import { useAdministrationCapabilities } from '@/hooks/use-administration-capabilities';
 
@@ -34,14 +38,12 @@ const ComposerAttachmentMenuSheet = () => {
     const {
         showComposerAttachmentMenu,
         setComposerAttachmentMenuOpen,
-        addComposerAttachment,
         setComposerError,
         selectedMode,
     } = useActiveThreadStore(
         useShallow((state) => ({
             showComposerAttachmentMenu: state.showComposerAttachmentMenu,
             setComposerAttachmentMenuOpen: state.setComposerAttachmentMenuOpen,
-            addComposerAttachment: state.addComposerAttachment,
             setComposerError: state.setComposerError,
             selectedMode: state.composerSelectedMode,
         })),
@@ -70,17 +72,14 @@ const ComposerAttachmentMenuSheet = () => {
         [setComposerAttachmentMenuOpen, showComposerAttachmentMenu],
     );
 
-    const addAttachments = useCallback(
-        (attachments: ComposerAttachment[]) => {
-            if (attachments.length === 0) {
-                return;
-            }
-
-            for (const attachment of attachments) {
-                addComposerAttachment(attachment);
-            }
+    const nativeRequest = useRef<ComposerOperationIdentity | null>(null);
+    useEffect(
+        () => () => {
+            const identity = nativeRequest.current;
+            nativeRequest.current = null;
+            if (identity) completeComposerOperation(identity, { kind: 'cancelled' });
         },
-        [addComposerAttachment],
+        [],
     );
 
     const errorMessage = useCallback(
@@ -93,61 +92,58 @@ const ComposerAttachmentMenuSheet = () => {
         [t],
     );
 
-    const pickMedia = useCallback(() => {
-        const targetThreadId = useActiveThreadStore.getState().activeComposerThreadId;
-        close();
-        void pickComposerMediaAttachments()
-            .then((attachments) => {
-                if (
-                    !composerTargetThreadIsActive(
-                        targetThreadId,
-                        useActiveThreadStore.getState().activeComposerThreadId,
+    const pick = useCallback(
+        (media: boolean) => {
+            const targetThreadId = useActiveThreadStore.getState().activeComposerThreadId;
+            const plan = beginComposerOperation(
+                targetThreadId,
+                media ? 'pick_media' : 'pick_files',
+            );
+            if (!plan) return;
+            nativeRequest.current = plan.identity;
+            close();
+            const picker = media ? pickComposerMediaAttachments : pickComposerFileAttachments;
+            void picker()
+                .then((attachments: ComposerAttachment[]) => {
+                    const matched = completeComposerOperation(
+                        plan.identity,
+                        attachments.length
+                            ? { kind: 'files_selected', attachments }
+                            : { kind: 'cancelled' },
+                    );
+                    if (
+                        matched &&
+                        attachments.length &&
+                        useActiveThreadStore.getState().activeComposerThreadId ===
+                            plan.identity.thread_id
                     )
-                ) {
-                    return;
-                }
-                addAttachments(attachments);
-            })
-            .catch((error) => {
-                if (
-                    !composerTargetThreadIsActive(
-                        targetThreadId,
-                        useActiveThreadStore.getState().activeComposerThreadId,
-                    )
-                ) {
-                    return;
-                }
-                setComposerError(errorMessage(error, t('composerPickMediaFailed')));
-            });
-    }, [addAttachments, close, errorMessage, setComposerError, t]);
-
-    const pickFiles = useCallback(() => {
-        const targetThreadId = useActiveThreadStore.getState().activeComposerThreadId;
-        close();
-        void pickComposerFileAttachments()
-            .then((attachments) => {
-                if (
-                    !composerTargetThreadIsActive(
-                        targetThreadId,
-                        useActiveThreadStore.getState().activeComposerThreadId,
-                    )
-                ) {
-                    return;
-                }
-                addAttachments(attachments);
-            })
-            .catch((error) => {
-                if (
-                    !composerTargetThreadIsActive(
-                        targetThreadId,
-                        useActiveThreadStore.getState().activeComposerThreadId,
-                    )
-                ) {
-                    return;
-                }
-                setComposerError(errorMessage(error, t('composerPickFileFailed')));
-            });
-    }, [addAttachments, close, errorMessage, setComposerError, t]);
+                        setComposerError(null);
+                })
+                .catch((error) => {
+                    const message = errorMessage(
+                        error,
+                        t(media ? 'composerPickMediaFailed' : 'composerPickFileFailed'),
+                    );
+                    const matched = completeComposerOperation(plan.identity, {
+                        kind: 'failed',
+                        message,
+                    });
+                    if (
+                        matched &&
+                        useActiveThreadStore.getState().activeComposerThreadId ===
+                            plan.identity.thread_id
+                    ) {
+                        setComposerError(message);
+                    }
+                })
+                .finally(() => {
+                    if (nativeRequest.current === plan.identity) nativeRequest.current = null;
+                });
+        },
+        [close, errorMessage, setComposerError, t],
+    );
+    const pickMedia = useCallback(() => pick(true), [pick]);
+    const pickFiles = useCallback(() => pick(false), [pick]);
 
     const openSkills = useCallback(() => {
         close();

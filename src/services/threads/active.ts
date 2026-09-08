@@ -1,7 +1,5 @@
 import { pioneerClient } from '@/client';
 import type {
-    ClientActiveThreadCancelTurnRequest,
-    ClientActiveThreadCancelTurnResult,
     ClientActiveThreadClearResult,
     ClientActiveThreadEventRequest,
     ClientActiveThreadEventResult,
@@ -50,12 +48,6 @@ export const sendActiveThreadText = async (
     request: ClientActiveThreadSendTextRequest,
 ): Promise<ClientActiveThreadSendTextResult> => {
     return pioneerClient.activeThreadSendText(request);
-};
-
-export const cancelActiveThreadTurn = async (
-    request: ClientActiveThreadCancelTurnRequest,
-): Promise<ClientActiveThreadCancelTurnResult> => {
-    return pioneerClient.activeThreadCancelTurn(request);
 };
 
 export const unsubscribeOrCloseActiveThread = async (

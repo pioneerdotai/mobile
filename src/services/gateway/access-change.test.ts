@@ -38,6 +38,20 @@ jest.mock('@/services/threads/active', () => ({
     applyActiveThreadEvent: jest.fn(),
 }));
 
+jest.mock('@/client/composer', () => {
+    let publication: unknown = null;
+    return {
+        install: (value: unknown) => {
+            publication = value;
+        },
+        composerSnapshot: () => publication,
+        useComposerPublication: () => publication,
+        dispatchComposer: jest.fn((intent: { kind: string }) => {
+            if (intent.kind === 'clear_all') publication = null;
+        }),
+    };
+});
+
 jest.mock('@/client', () => ({
     PioneerClientNativeError: class PioneerClientNativeError extends Error {
         code: string | null;
@@ -149,7 +163,6 @@ describe('mobile access-change lifecycle', () => {
     beforeEach(() => {
         mockApplyActiveThreadEvent.mockReset();
         useActiveThreadStore.getState().reset();
-        useActiveThreadStore.getState().resetDefaultComposerModelSelection();
         installDirectoryPublication(null);
         installCatalogPublication([]);
         useWorkspaceStore.getState().resetConnectionBootstrap();
@@ -158,7 +171,7 @@ describe('mobile access-change lifecycle', () => {
     it('applies the Client cleanup plan synchronously without waiting for native thread delivery', () => {
         const queryClient = createQueryClient();
         useWorkspaceStore.setState({ activeWorkspaceId: 'workspace-protected' });
-        useActiveThreadStore.setState({ activeComposerThreadId: 'thread-protected' });
+        useActiveThreadStore.getState().activateComposerThread('thread-protected');
         const timeline = timelineQueryKeys.threadSnapshot('thread-protected');
         queryClient.setQueryData(timeline, { secret: 'protected data' });
         jest.mocked(pioneerClient.authorizationAccessChangePlan).mockReturnValue({
@@ -223,10 +236,8 @@ describe('mobile access-change lifecycle', () => {
             projection: { revision: 8 },
         } as never;
         const membersQueryKey = [...threadScopeQueryKeys.detail('thread-protected'), 12] as const;
-        useActiveThreadStore.setState({
-            activeComposerThreadId: 'thread-protected',
-            expandedKeys: ['turn:expanded'],
-        });
+        useActiveThreadStore.getState().activateComposerThread('thread-protected');
+        useActiveThreadStore.getState().setExpandedKeys(['turn:expanded']);
         installDirectoryPublication({
             snapshot: {
                 workspace_id: 'workspace-protected',
@@ -303,10 +314,31 @@ describe('mobile access-change lifecycle', () => {
             } as never,
             workspaceId: 'workspace-protected',
         });
-        useActiveThreadStore.setState({
-            activeComposerThreadId: 'thread-protected',
-            composerAttachments: [{ name: 'protected.txt' }] as never,
+        (jest.requireMock('@/client/composer') as { install: (value: unknown) => void }).install({
+            thread_id: 'thread-protected',
+            draft_id: 1,
+            revision: 1,
+            draft: {
+                text: '',
+                domain: {
+                    capability_target: {
+                        kind: 'native',
+                        supports_skills: true,
+                        supports_mcp_tools: true,
+                    },
+                    attachments: [
+                        {
+                            path: '/synthetic/protected.txt',
+                            file_name: 'protected.txt',
+                            kind: 'File',
+                            upload_state: 'Local',
+                        },
+                    ],
+                },
+            },
         });
+        useActiveThreadStore.getState().activateComposerThread('thread-protected');
+        expect(useActiveThreadStore.getState().composerAttachments).toHaveLength(1);
         queryClient.setQueryData(timelineQueryKeys.threadSnapshot('thread-protected'), {
             workspace_id: 'workspace-protected',
             thread_id: 'thread-protected',
@@ -443,10 +475,31 @@ describe('mobile access-change lifecycle', () => {
             } as never,
             workspaceId: 'workspace-protected',
         });
-        useActiveThreadStore.setState({
-            activeComposerThreadId: 'thread-protected',
-            composerAttachments: [{ name: 'protected.txt' }] as never,
+        (jest.requireMock('@/client/composer') as { install: (value: unknown) => void }).install({
+            thread_id: 'thread-protected',
+            draft_id: 1,
+            revision: 1,
+            draft: {
+                text: '',
+                domain: {
+                    capability_target: {
+                        kind: 'native',
+                        supports_skills: true,
+                        supports_mcp_tools: true,
+                    },
+                    attachments: [
+                        {
+                            path: '/synthetic/protected.txt',
+                            file_name: 'protected.txt',
+                            kind: 'File',
+                            upload_state: 'Local',
+                        },
+                    ],
+                },
+            },
         });
+        useActiveThreadStore.getState().activateComposerThread('thread-protected');
+        expect(useActiveThreadStore.getState().composerAttachments).toHaveLength(1);
         queryClient.setQueryData(timelineQueryKeys.threadSnapshot('thread-protected'), {
             workspace_id: 'workspace-protected',
             thread_id: 'thread-protected',
@@ -569,10 +622,31 @@ describe('mobile access-change lifecycle', () => {
             } as never,
             workspaceId: 'workspace-protected',
         });
-        useActiveThreadStore.setState({
-            activeComposerThreadId: 'thread-protected',
-            composerAttachments: [{ name: 'protected.txt' }] as never,
+        (jest.requireMock('@/client/composer') as { install: (value: unknown) => void }).install({
+            thread_id: 'thread-protected',
+            draft_id: 1,
+            revision: 1,
+            draft: {
+                text: '',
+                domain: {
+                    capability_target: {
+                        kind: 'native',
+                        supports_skills: true,
+                        supports_mcp_tools: true,
+                    },
+                    attachments: [
+                        {
+                            path: '/synthetic/protected.txt',
+                            file_name: 'protected.txt',
+                            kind: 'File',
+                            upload_state: 'Local',
+                        },
+                    ],
+                },
+            },
         });
+        useActiveThreadStore.getState().activateComposerThread('thread-protected');
+        expect(useActiveThreadStore.getState().composerAttachments).toHaveLength(1);
         queryClient.setQueryData(timelineQueryKeys.threadSnapshot('thread-protected'), {
             workspace_id: 'workspace-protected',
             thread_id: 'thread-protected',

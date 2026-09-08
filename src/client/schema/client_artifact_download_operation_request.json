@@ -3,12 +3,18 @@
   "title": "ClientArtifactDownloadOperationRequest",
   "type": "object",
   "properties": {
+    "generation": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0
+    },
     "operation_id": {
       "type": "string"
     }
   },
   "additionalProperties": false,
   "required": [
-    "operation_id"
+    "operation_id",
+    "generation"
   ]
 }

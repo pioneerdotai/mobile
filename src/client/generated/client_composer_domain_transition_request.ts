@@ -34,6 +34,12 @@ export type ComposerDomainAction =
       };
     }
   | {
+      RemoveAttachment: {
+        path: string;
+        [k: string]: unknown;
+      };
+    }
+  | {
       MarkAttachmentsFailed: {
         error: string;
         [k: string]: unknown;
@@ -54,6 +60,26 @@ export type ComposerDomainAction =
   | {
       AddCapability: {
         capability: ComposerCapability;
+        [k: string]: unknown;
+      };
+    }
+  | {
+      AddCapabilities: {
+        capabilities: ComposerCapability[];
+        [k: string]: unknown;
+      };
+    }
+  | {
+      ToggleMcpSelection: {
+        key: string;
+        server_rows: SelectableMcpCapability[];
+        tool_rows: SelectableMcpCapability[];
+        [k: string]: unknown;
+      };
+    }
+  | {
+      RemoveSkillSelection: {
+        selection: ComposerSkillSelection;
         [k: string]: unknown;
       };
     }
@@ -219,6 +245,8 @@ export type ComposerCapabilityKind =
     };
 export type SkillId = string;
 export type McpScopeKind = 'workspace' | 'user';
+export type McpCapabilityUnavailableReason =
+  'DisabledByPolicy' | 'RuntimeUnavailable' | 'RuntimeNotReady' | 'NoToolCatalog';
 export type ComposerSkillSelection =
   | {
       kind: 'skill';
@@ -283,6 +311,19 @@ export interface ComposerCapability {
   id: string;
   kind: ComposerCapabilityKind;
   label: string;
+  [k: string]: unknown;
+}
+export interface SelectableMcpCapability {
+  description: string;
+  key: string;
+  label: string;
+  raw_tool_name?: string | null;
+  scope_kind: McpScopeKind;
+  selectable: boolean;
+  server_id: string;
+  server_name: string;
+  tools_count?: number | null;
+  unavailable_reason?: McpCapabilityUnavailableReason | null;
   [k: string]: unknown;
 }
 export interface ComposerSkillPickerProjection {

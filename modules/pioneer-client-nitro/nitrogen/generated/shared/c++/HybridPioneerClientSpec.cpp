@@ -96,18 +96,15 @@ namespace margelo::nitro::pioneer::client {
       prototype.registerHybridMethod("cliRuntimeListJson", &HybridPioneerClientSpec::cliRuntimeListJson);
       prototype.registerHybridMethod("cliRuntimeRefreshJson", &HybridPioneerClientSpec::cliRuntimeRefreshJson);
       prototype.registerHybridMethod("cliRuntimeListModelsJson", &HybridPioneerClientSpec::cliRuntimeListModelsJson);
-      prototype.registerHybridMethod("cliRuntimeThreadBindingGetJson", &HybridPioneerClientSpec::cliRuntimeThreadBindingGetJson);
       prototype.registerHybridMethod("cliRuntimeThreadCompactJson", &HybridPioneerClientSpec::cliRuntimeThreadCompactJson);
-      prototype.registerHybridMethod("cliRuntimeTurnSteerJson", &HybridPioneerClientSpec::cliRuntimeTurnSteerJson);
       prototype.registerHybridMethod("cliRuntimeReviewStartJson", &HybridPioneerClientSpec::cliRuntimeReviewStartJson);
-      prototype.registerHybridMethod("cliRuntimeRequestRespondJson", &HybridPioneerClientSpec::cliRuntimeRequestRespondJson);
-      prototype.registerHybridMethod("turnPermissionRequestRespondJson", &HybridPioneerClientSpec::turnPermissionRequestRespondJson);
       prototype.registerHybridMethod("taskAcceptJson", &HybridPioneerClientSpec::taskAcceptJson);
       prototype.registerHybridMethod("taskReviseJson", &HybridPioneerClientSpec::taskReviseJson);
       prototype.registerHybridMethod("taskCancelJson", &HybridPioneerClientSpec::taskCancelJson);
       prototype.registerHybridMethod("taskUserNotificationListJson", &HybridPioneerClientSpec::taskUserNotificationListJson);
       prototype.registerHybridMethod("taskUserNotificationAcknowledgeJson", &HybridPioneerClientSpec::taskUserNotificationAcknowledgeJson);
       prototype.registerHybridMethod("voiceStatusJson", &HybridPioneerClientSpec::voiceStatusJson);
+      prototype.registerHybridMethod("composerVoiceCapturePlanJson", &HybridPioneerClientSpec::composerVoiceCapturePlanJson);
       prototype.registerHybridMethod("voiceSessionStartJson", &HybridPioneerClientSpec::voiceSessionStartJson);
       prototype.registerHybridMethod("voiceAudioChunkJson", &HybridPioneerClientSpec::voiceAudioChunkJson);
       prototype.registerHybridMethod("voiceSessionFinalizeJson", &HybridPioneerClientSpec::voiceSessionFinalizeJson);
@@ -134,8 +131,6 @@ namespace margelo::nitro::pioneer::client {
       prototype.registerHybridMethod("administrationConflictRefetchJson", &HybridPioneerClientSpec::administrationConflictRefetchJson);
       prototype.registerHybridMethod("composerAttachmentFromPathJson", &HybridPioneerClientSpec::composerAttachmentFromPathJson);
       prototype.registerHybridMethod("composerAttachmentsUpdateJson", &HybridPioneerClientSpec::composerAttachmentsUpdateJson);
-      prototype.registerHybridMethod("composerSkillPickerRowsJson", &HybridPioneerClientSpec::composerSkillPickerRowsJson);
-      prototype.registerHybridMethod("composerMcpPickerRowsJson", &HybridPioneerClientSpec::composerMcpPickerRowsJson);
       prototype.registerHybridMethod("composerSkillPackPickerJson", &HybridPioneerClientSpec::composerSkillPackPickerJson);
       prototype.registerHybridMethod("composerSkillSelectionToggleJson", &HybridPioneerClientSpec::composerSkillSelectionToggleJson);
       prototype.registerHybridMethod("composerSkillChipsJson", &HybridPioneerClientSpec::composerSkillChipsJson);
@@ -155,9 +150,6 @@ namespace margelo::nitro::pioneer::client {
       prototype.registerHybridMethod("threadTreeRefreshJson", &HybridPioneerClientSpec::threadTreeRefreshJson);
       prototype.registerHybridMethod("threadTreeLevelJson", &HybridPioneerClientSpec::threadTreeLevelJson);
       prototype.registerHybridMethod("threadTimelinePageJson", &HybridPioneerClientSpec::threadTimelinePageJson);
-      prototype.registerHybridMethod("turnMessageEditJson", &HybridPioneerClientSpec::turnMessageEditJson);
-      prototype.registerHybridMethod("turnMessageDeleteJson", &HybridPioneerClientSpec::turnMessageDeleteJson);
-      prototype.registerHybridMethod("turnMessageRevisionsPageJson", &HybridPioneerClientSpec::turnMessageRevisionsPageJson);
       prototype.registerHybridMethod("messageRevisionPagePresentationJson", &HybridPioneerClientSpec::messageRevisionPagePresentationJson);
       prototype.registerHybridMethod("threadReadJson", &HybridPioneerClientSpec::threadReadJson);
       prototype.registerHybridMethod("turnWorkPageJson", &HybridPioneerClientSpec::turnWorkPageJson);
@@ -173,7 +165,6 @@ namespace margelo::nitro::pioneer::client {
       prototype.registerHybridMethod("activeThreadApplyEventJson", &HybridPioneerClientSpec::activeThreadApplyEventJson);
       prototype.registerHybridMethod("activeThreadSendTextJson", &HybridPioneerClientSpec::activeThreadSendTextJson);
       prototype.registerHybridMethod("prepareVoiceComposerSnapshotJson", &HybridPioneerClientSpec::prepareVoiceComposerSnapshotJson);
-      prototype.registerHybridMethod("activeThreadCancelTurnJson", &HybridPioneerClientSpec::activeThreadCancelTurnJson);
       prototype.registerHybridMethod("activeThreadUnsubscribeOrCloseJson", &HybridPioneerClientSpec::activeThreadUnsubscribeOrCloseJson);
       prototype.registerHybridMethod("activeThreadClearJson", &HybridPioneerClientSpec::activeThreadClearJson);
     });

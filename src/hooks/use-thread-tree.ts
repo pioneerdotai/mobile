@@ -3,8 +3,6 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useShallow } from 'zustand/react/shallow';
 
 import type { ClientThreadTreeLevel } from '@/client';
-import { composerCapabilityTargetForProvider } from '@/services/providers/cli-runtime';
-import { cliRuntimeSummariesSnapshot } from '@/services/providers/cli-runtime-snapshot';
 import { cachedActiveThreadSnapshot } from '@/services/threads/timeline-query';
 import { refreshThreadTree, threadUnreadById, threadTreeLevel } from '@/services/threads/tree';
 import { useActiveThreadStore } from '@/stores/active-thread';
@@ -33,12 +31,10 @@ const useThreadTreeRefresh = () => {
         const currentWorkspaceId = workspaceState.activeWorkspaceId;
 
         if (gatewayState.connectionState !== 'Connected' || gatewayState.connectionId === null) {
-            useActiveThreadStore.getState().resetDefaultComposerModelSelection();
             return;
         }
 
         if (!currentWorkspaceId) {
-            useActiveThreadStore.getState().resetDefaultComposerModelSelection();
             return;
         }
 
@@ -57,12 +53,11 @@ const useThreadTreeRefresh = () => {
         const sequence = refreshSequence + 1;
         refreshSequence = sequence;
 
-        activeThreadState.beginDefaultComposerModelSelectionRefresh(requestWorkspaceId);
         mobileStartup.begin('thread_tree.load');
         mobileStartup.begin('thread_tree.request');
 
         try {
-            const result = await refreshThreadTree({
+            await refreshThreadTree({
                 workspace_id: requestWorkspaceId,
                 active_thread_id: activeThreadMatchesWorkspace
                     ? (activeThreadSnapshot?.thread_id ?? null)
@@ -95,22 +90,9 @@ const useThreadTreeRefresh = () => {
             mobileStartup.succeed('thread_tree.response.apply');
             mobileStartup.succeed('thread_tree.load');
             mobileStartup.begin('composer.prepare');
-            const defaultProvider = result.composer_model_selection?.provider ?? null;
-            const capabilityTarget = composerCapabilityTargetForProvider(
-                defaultProvider,
-                cliRuntimeSummariesSnapshot(requestWorkspaceId),
-            );
-            useActiveThreadStore
-                .getState()
-                .syncDefaultComposerModelSelection(
-                    requestWorkspaceId,
-                    result.composer_model_selection?.provider ?? null,
-                    result.composer_model_selection?.model ?? null,
-                    result.composer_model_selection?.selected_reasoning_effort ?? null,
-                    capabilityTarget,
-                );
+            useActiveThreadStore.getState().syncComposerModelSelection();
             mobileStartup.succeed('composer.prepare');
-        } catch (caught) {
+        } catch {
             const latestGatewayState = useGatewayStore.getState();
             const latestWorkspaceState = useWorkspaceStore.getState();
 
@@ -126,9 +108,6 @@ const useThreadTreeRefresh = () => {
             mobileStartup.fail('thread_tree.response.apply');
             mobileStartup.fail('thread_tree.load');
             mobileStartup.fail('composer.prepare');
-            useActiveThreadStore
-                .getState()
-                .completeDefaultComposerModelSelectionRefresh(requestWorkspaceId);
         }
     }, [queryClient]);
 };

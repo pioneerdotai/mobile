@@ -1,9 +1,14 @@
-import { AppState, Linking, Share } from 'react-native';
+import { Linking, Share } from 'react-native';
+import {
+    beginArtifactAction,
+    dispatchArtifact,
+    type ArtifactActionIdentity,
+    type ArtifactActionKind,
+} from '@/client/artifact-actions';
 
 import {
     PioneerClientNativeError,
     pioneerClient,
-    type ClientArtifactDownloadProgressResult,
     type ClientArtifactDownloadRequest,
     type ClientArtifactDownloadResult,
     type ClientArtifactTargetRequest,
@@ -13,16 +18,11 @@ import {
     activeGatewayConnectionGeneration,
     refreshActiveGatewaySessionAfterUnauthorized,
 } from '@/services/gateway/session';
-import type {
-    MobileArtifactActionErrorCode,
-    MobileArtifactActionEvent,
-    MobileArtifactTarget,
-} from './mobile-action-state';
+import type { MobileArtifactTarget } from './mobile-action-state';
 
-export { mobileArtifactActionKey, reduceMobileArtifactAction } from './mobile-action-state';
+export { mobileArtifactActionKey } from './mobile-action-state';
 export type {
     MobileArtifactActionErrorCode,
-    MobileArtifactActionEvent,
     MobileArtifactActionState,
     MobileArtifactTarget,
 } from './mobile-action-state';
@@ -30,8 +30,6 @@ export type {
 export type MobileArtifactNativePort = Readonly<{
     open(request: ClientArtifactTargetRequest): Promise<ClientArtifactViewOpenResult>;
     download(request: ClientArtifactDownloadRequest): Promise<ClientArtifactDownloadResult>;
-    progress(operationId: string): Promise<ClientArtifactDownloadProgressResult>;
-    cancel(operationId: string): Promise<boolean>;
 }>;
 
 export type MobileArtifactViewerPort = Readonly<{
@@ -52,23 +50,22 @@ export type MobileArtifactActionPorts = Readonly<{
     viewer: MobileArtifactViewerPort;
     share: MobileArtifactSharePort;
     session: MobileArtifactSessionPort;
-    isForeground(): boolean;
-    delay(milliseconds: number): Promise<void>;
-    nowUnixSeconds(): number;
+    workflow: Readonly<{
+        begin(
+            target: MobileArtifactTarget,
+            action: ArtifactActionKind,
+        ): ArtifactActionIdentity | null;
+        claim(identity: ArtifactActionIdentity): boolean;
+        complete(identity: ArtifactActionIdentity, error: string | null): void;
+        fail(identity: ArtifactActionIdentity, code: string): void;
+        cancel(identity: ArtifactActionIdentity): boolean;
+    }>;
 }>;
 
 export const mobileArtifactActionPorts: MobileArtifactActionPorts = {
     native: {
         open: (request) => pioneerClient.artifactViewOpen(request),
         download: (request) => pioneerClient.artifactDownload(request),
-        progress: (operationId) =>
-            pioneerClient.artifactDownloadProgress({ operation_id: operationId }),
-        cancel: async (operationId) => {
-            const result = await pioneerClient.artifactDownloadCancel({
-                operation_id: operationId,
-            });
-            return result.operation_id === operationId && result.cancelled;
-        },
     },
     viewer: {
         openUrl: async (url) => {
@@ -87,177 +84,107 @@ export const mobileArtifactActionPorts: MobileArtifactActionPorts = {
         currentConnectionGeneration: activeGatewayConnectionGeneration,
         refreshAfterUnauthorized: refreshActiveGatewaySessionAfterUnauthorized,
     },
-    isForeground: () => AppState.currentState === 'active',
-    delay: (milliseconds) =>
-        new Promise((resolve) => {
-            setTimeout(resolve, milliseconds);
-        }),
-    nowUnixSeconds: () => Math.floor(Date.now() / 1_000),
+    workflow: {
+        begin: (target, action) =>
+            target.threadId
+                ? beginArtifactAction(
+                      target.threadId,
+                      target.artifactId,
+                      target.versionId ?? null,
+                      action,
+                  )
+                : null,
+        claim: (identity) => dispatchArtifact({ kind: 'claim_presentation', identity }),
+        complete: (identity, error) => {
+            dispatchArtifact({ kind: 'complete_presentation', identity, error });
+        },
+        fail: (identity, code) => {
+            dispatchArtifact({ kind: 'fail_preparation', identity, code });
+        },
+        cancel: (identity) => dispatchArtifact({ kind: 'cancel_action', identity }),
+    },
 };
 
 export const openMobileArtifact = async (
     target: MobileArtifactTarget,
-    dispatch: (event: MobileArtifactActionEvent) => void,
     ports: MobileArtifactActionPorts = mobileArtifactActionPorts,
 ): Promise<void> => {
-    dispatch({ type: 'open-started' });
+    const identity = ports.workflow.begin(target, 'open');
+    if (!identity) return;
+    let result: ClientArtifactViewOpenResult;
     try {
-        // Minting a view grant is a mutation without an idempotency key. Do
-        // not retry it automatically: a late authentication/session failure
-        // could otherwise leave one valid grant behind and mint a second one.
-        // The shared session coordinator still owns refresh, and the user can
-        // retry Open after that lifecycle has recovered.
-        const result = await ports.native.open(nativeTarget(target));
-        if (result.expires_at <= ports.nowUnixSeconds()) {
-            throw new MobileArtifactActionError('grant_expired');
-        }
-        const ephemeralViewUrl = result.view_url;
-        await ports.viewer.openUrl(ephemeralViewUrl);
-        dispatch({ type: 'completed' });
+        result = await ports.native.open(nativeTarget(target, identity));
     } catch (error) {
-        dispatch({ type: 'failed', code: mobileArtifactErrorCode(error, 'viewer_failed') });
+        ports.workflow.fail(identity, nativeErrorCode(error, 'viewer_failed'));
+        return;
+    }
+    if (!ports.workflow.claim(identity)) return;
+    try {
+        await ports.viewer.openUrl(result.view_url);
+        ports.workflow.complete(identity, null);
+    } catch {
+        ports.workflow.complete(identity, 'viewer_failed');
     }
 };
 
 export const downloadAndShareMobileArtifact = async (
     target: MobileArtifactTarget,
     operationId: string,
-    dispatch: (event: MobileArtifactActionEvent) => void,
     ports: MobileArtifactActionPorts = mobileArtifactActionPorts,
 ): Promise<void> => {
-    dispatch({ type: 'download-started', operationId });
-    let settled = false;
-    const request = {
-        ...nativeTarget(target),
-        operation_id: operationId,
-    };
-    const resultPromise = withCoordinatedAuthenticationRetry(
-        () => ports.native.download(request),
-        ports.session,
-    )
-        .then(
-            (result) => ({ kind: 'success' as const, result }),
-            (error: unknown) => ({ kind: 'failure' as const, error }),
-        )
-        .finally(() => {
-            settled = true;
-        });
+    const identity = ports.workflow.begin(target, 'share');
+    if (!identity) return;
+    let result: ClientArtifactDownloadResult;
     try {
-        while (!settled) {
-            await ports.delay(150);
-            if (!settled && ports.isForeground()) {
-                await ports.native
-                    .progress(operationId)
-                    .then((progress) => dispatch({ type: 'download-progress', progress }))
-                    .catch(() => undefined);
-            }
-        }
-        const outcome = await resultPromise;
-        if (outcome.kind === 'failure') {
-            throw outcome.error;
-        }
-        const result = outcome.result;
-        assertVerifiedNativeResult(result, operationId, target);
-        dispatch({ type: 'share-started' });
-        await ports.share
-            .shareVerifiedFile(result)
-            .catch(() => Promise.reject(new MobileArtifactActionError('share_failed')));
-        dispatch({ type: 'completed' });
+        result = await withCoordinatedAuthenticationRetry(
+            () =>
+                ports.native.download({
+                    ...nativeTarget(target, identity),
+                    operation_id: operationId,
+                    thread_id: identity.thread_id,
+                }),
+            ports.session,
+        );
     } catch (error) {
-        dispatch({ type: 'failed', code: mobileArtifactErrorCode(error, 'download_failed') });
+        ports.workflow.fail(identity, nativeErrorCode(error, 'download_failed'));
+        return;
     }
-};
-
-export const cancelMobileArtifactDownload = async (
-    operationId: string,
-    dispatch: (event: MobileArtifactActionEvent) => void,
-    ports: MobileArtifactActionPorts = mobileArtifactActionPorts,
-): Promise<boolean> => {
+    if (!ports.workflow.claim(identity)) return;
     try {
-        const cancelled = await ports.native.cancel(operationId);
-        if (!cancelled) {
-            return false;
-        }
-        dispatch({ type: 'failed', code: 'cancelled' });
-        return true;
+        await ports.share.shareVerifiedFile(result);
+        ports.workflow.complete(identity, null);
     } catch {
-        // A failed cancellation does not make the still-running native
-        // operation terminal. Keep its generation and progress state alive so
-        // its eventual verified result (or real failure) remains authoritative.
-        return false;
+        ports.workflow.complete(identity, 'share_failed');
     }
 };
 
-class MobileArtifactActionError extends Error {
-    readonly code: MobileArtifactActionErrorCode;
+export const cancelMobileArtifactDownload = (
+    identity: ArtifactActionIdentity,
+    ports: MobileArtifactActionPorts = mobileArtifactActionPorts,
+): boolean => ports.workflow.cancel(identity);
 
-    constructor(code: MobileArtifactActionErrorCode) {
-        super(code);
-        this.name = 'MobileArtifactActionError';
-        this.code = code;
-    }
-}
-
-const nativeTarget = (target: MobileArtifactTarget): ClientArtifactTargetRequest => ({
+const nativeTarget = (
+    target: MobileArtifactTarget,
+    identity: ArtifactActionIdentity,
+): ClientArtifactTargetRequest => ({
+    identity,
     workspace_id: target.workspaceId,
     artifact_id: target.artifactId,
     version_id: target.versionId ?? null,
 });
 
+const nativeErrorCode = (error: unknown, fallback: string): string =>
+    error instanceof PioneerClientNativeError ? (error.code ?? fallback) : fallback;
+
 const localFileUrl = (path: string): string => {
     if (!path.startsWith('/') || /[\0\r\n]/u.test(path)) {
-        throw new MobileArtifactActionError('integrity_failed');
+        throw new Error('Invalid native file path');
     }
     const encodedPath = path
         .split('/')
         .map((segment) => encodeURIComponent(segment))
         .join('/');
     return `file://${encodedPath}`;
-};
-
-const assertVerifiedNativeResult = (
-    result: ClientArtifactDownloadResult,
-    operationId: string,
-    target: MobileArtifactTarget,
-): void => {
-    if (
-        result.operation_id !== operationId ||
-        !result.local_file_path ||
-        result.artifact_id !== target.artifactId ||
-        !result.version_id ||
-        (target.versionId != null && result.version_id !== target.versionId) ||
-        !/^[0-9a-f]{64}$/u.test(result.sha256) ||
-        !Number.isSafeInteger(result.size_bytes) ||
-        result.size_bytes < 0
-    ) {
-        throw new MobileArtifactActionError('integrity_failed');
-    }
-};
-
-const mobileArtifactErrorCode = (
-    error: unknown,
-    fallback: MobileArtifactActionErrorCode,
-): MobileArtifactActionErrorCode => {
-    if (error instanceof MobileArtifactActionError) {
-        return error.code;
-    }
-    const code = error instanceof PioneerClientNativeError ? error.code : null;
-    switch (code) {
-        case 'artifact_authentication_required':
-            return 'authentication_required';
-        case 'artifact_reconfiguration_required':
-            return 'reconfiguration_required';
-        case 'artifact_revoked_or_unavailable':
-            return 'revoked_or_unavailable';
-        case 'cancelled':
-            return 'cancelled';
-        case 'integrity_failed':
-            return 'integrity_failed';
-        case 'disk_full':
-            return 'disk_full';
-        default:
-            return fallback;
-    }
 };
 
 const withCoordinatedAuthenticationRetry = async <T>(

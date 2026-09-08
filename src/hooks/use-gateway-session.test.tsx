@@ -28,7 +28,6 @@ const mockCacheActiveThreadSnapshot = jest.fn();
 const mockResetActiveThread = jest.fn(() => {
     mockActiveThreadSnapshot = null;
 });
-const mockResetDefaultComposerModelSelection = jest.fn();
 const mockClearCliRuntimeSummaries = jest.fn();
 const mockLoadCliRuntimeSummariesInBackground = jest.fn();
 const mockApplyCliRuntimeSummaryUpdate = jest.fn();
@@ -175,7 +174,6 @@ jest.mock('@/stores/active-thread', () => ({
             activeComposerThreadId: mockActiveThreadSnapshot?.thread_id ?? null,
             expandedKeys: [],
             reset: mockResetActiveThread,
-            resetDefaultComposerModelSelection: mockResetDefaultComposerModelSelection,
         }),
     },
 }));

@@ -182,17 +182,9 @@ public:
       const std::string& inputJson) override;
   std::shared_ptr<margelo::nitro::Promise<std::string>> cliRuntimeListModelsJson(
       const std::string& inputJson) override;
-  std::shared_ptr<margelo::nitro::Promise<std::string>> cliRuntimeThreadBindingGetJson(
-      const std::string& inputJson) override;
   std::shared_ptr<margelo::nitro::Promise<std::string>> cliRuntimeThreadCompactJson(
       const std::string& inputJson) override;
-  std::shared_ptr<margelo::nitro::Promise<std::string>> cliRuntimeTurnSteerJson(
-      const std::string& inputJson) override;
   std::shared_ptr<margelo::nitro::Promise<std::string>> cliRuntimeReviewStartJson(
-      const std::string& inputJson) override;
-  std::shared_ptr<margelo::nitro::Promise<std::string>> cliRuntimeRequestRespondJson(
-      const std::string& inputJson) override;
-  std::shared_ptr<margelo::nitro::Promise<std::string>> turnPermissionRequestRespondJson(
       const std::string& inputJson) override;
   std::shared_ptr<margelo::nitro::Promise<std::string>> taskAcceptJson(
       const std::string& inputJson) override;
@@ -205,6 +197,8 @@ public:
   std::shared_ptr<margelo::nitro::Promise<std::string>> taskUserNotificationAcknowledgeJson(
       const std::string& inputJson) override;
   std::shared_ptr<margelo::nitro::Promise<std::string>> voiceStatusJson(
+      const std::string& inputJson) override;
+  std::shared_ptr<margelo::nitro::Promise<std::string>> composerVoiceCapturePlanJson(
       const std::string& inputJson) override;
   std::shared_ptr<margelo::nitro::Promise<std::string>> voiceSessionStartJson(
       const std::string& inputJson) override;
@@ -240,11 +234,7 @@ public:
   std::string administrationConflictRefetchJson(const std::string& inputJson) override;
   std::string composerAttachmentFromPathJson(const std::string& inputJson) override;
   std::string composerAttachmentsUpdateJson(const std::string& inputJson) override;
-  std::shared_ptr<margelo::nitro::Promise<std::string>> composerSkillPickerRowsJson(
-      const std::string& inputJson) override;
-  std::shared_ptr<margelo::nitro::Promise<std::string>> composerMcpPickerRowsJson(
-      const std::string& inputJson) override;
-  std::shared_ptr<margelo::nitro::Promise<std::string>> composerSkillPackPickerJson(
+  std::string composerSkillPackPickerJson(
       const std::string& inputJson) override;
   std::string composerSkillSelectionToggleJson(const std::string& inputJson) override;
   std::string composerSkillChipsJson(const std::string& inputJson) override;
@@ -265,12 +255,6 @@ public:
       const std::string& inputJson) override;
   std::string threadTreeLevelJson(const std::string& inputJson) override;
   std::shared_ptr<margelo::nitro::Promise<std::string>> threadTimelinePageJson(
-      const std::string& inputJson) override;
-  std::shared_ptr<margelo::nitro::Promise<std::string>> turnMessageEditJson(
-      const std::string& inputJson) override;
-  std::shared_ptr<margelo::nitro::Promise<std::string>> turnMessageDeleteJson(
-      const std::string& inputJson) override;
-  std::shared_ptr<margelo::nitro::Promise<std::string>> turnMessageRevisionsPageJson(
       const std::string& inputJson) override;
   std::string messageRevisionPagePresentationJson(const std::string& inputJson) override;
   std::shared_ptr<margelo::nitro::Promise<std::string>> threadReadJson(
@@ -299,8 +283,6 @@ public:
   std::shared_ptr<margelo::nitro::Promise<std::string>> activeThreadSendTextJson(
       const std::string& inputJson) override;
   std::shared_ptr<margelo::nitro::Promise<std::string>> prepareVoiceComposerSnapshotJson(
-      const std::string& inputJson) override;
-  std::shared_ptr<margelo::nitro::Promise<std::string>> activeThreadCancelTurnJson(
       const std::string& inputJson) override;
   std::shared_ptr<margelo::nitro::Promise<std::string>> activeThreadUnsubscribeOrCloseJson(
       const std::string& inputJson) override;

@@ -132,18 +132,15 @@ namespace margelo::nitro::pioneer::client {
       virtual std::shared_ptr<Promise<std::string>> cliRuntimeListJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> cliRuntimeRefreshJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> cliRuntimeListModelsJson(const std::string& inputJson) = 0;
-      virtual std::shared_ptr<Promise<std::string>> cliRuntimeThreadBindingGetJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> cliRuntimeThreadCompactJson(const std::string& inputJson) = 0;
-      virtual std::shared_ptr<Promise<std::string>> cliRuntimeTurnSteerJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> cliRuntimeReviewStartJson(const std::string& inputJson) = 0;
-      virtual std::shared_ptr<Promise<std::string>> cliRuntimeRequestRespondJson(const std::string& inputJson) = 0;
-      virtual std::shared_ptr<Promise<std::string>> turnPermissionRequestRespondJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> taskAcceptJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> taskReviseJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> taskCancelJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> taskUserNotificationListJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> taskUserNotificationAcknowledgeJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> voiceStatusJson(const std::string& inputJson) = 0;
+      virtual std::shared_ptr<Promise<std::string>> composerVoiceCapturePlanJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> voiceSessionStartJson(const std::string& inputJson) = 0;
       virtual std::string voiceAudioChunkJson(const std::string& inputJson, const std::shared_ptr<ArrayBuffer>& pcmChunk) = 0;
       virtual std::shared_ptr<Promise<std::string>> voiceSessionFinalizeJson(const std::string& inputJson) = 0;
@@ -170,9 +167,7 @@ namespace margelo::nitro::pioneer::client {
       virtual std::string administrationConflictRefetchJson(const std::string& inputJson) = 0;
       virtual std::string composerAttachmentFromPathJson(const std::string& inputJson) = 0;
       virtual std::string composerAttachmentsUpdateJson(const std::string& inputJson) = 0;
-      virtual std::shared_ptr<Promise<std::string>> composerSkillPickerRowsJson(const std::string& inputJson) = 0;
-      virtual std::shared_ptr<Promise<std::string>> composerMcpPickerRowsJson(const std::string& inputJson) = 0;
-      virtual std::shared_ptr<Promise<std::string>> composerSkillPackPickerJson(const std::string& inputJson) = 0;
+      virtual std::string composerSkillPackPickerJson(const std::string& inputJson) = 0;
       virtual std::string composerSkillSelectionToggleJson(const std::string& inputJson) = 0;
       virtual std::string composerSkillChipsJson(const std::string& inputJson) = 0;
       virtual std::string composerCapabilitiesUpdateJson(const std::string& inputJson) = 0;
@@ -191,9 +186,6 @@ namespace margelo::nitro::pioneer::client {
       virtual std::shared_ptr<Promise<std::string>> threadTreeRefreshJson(const std::string& inputJson) = 0;
       virtual std::string threadTreeLevelJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> threadTimelinePageJson(const std::string& inputJson) = 0;
-      virtual std::shared_ptr<Promise<std::string>> turnMessageEditJson(const std::string& inputJson) = 0;
-      virtual std::shared_ptr<Promise<std::string>> turnMessageDeleteJson(const std::string& inputJson) = 0;
-      virtual std::shared_ptr<Promise<std::string>> turnMessageRevisionsPageJson(const std::string& inputJson) = 0;
       virtual std::string messageRevisionPagePresentationJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> threadReadJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> turnWorkPageJson(const std::string& inputJson) = 0;
@@ -209,7 +201,6 @@ namespace margelo::nitro::pioneer::client {
       virtual std::shared_ptr<Promise<std::string>> activeThreadApplyEventJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> activeThreadSendTextJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> prepareVoiceComposerSnapshotJson(const std::string& inputJson) = 0;
-      virtual std::shared_ptr<Promise<std::string>> activeThreadCancelTurnJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> activeThreadUnsubscribeOrCloseJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> activeThreadClearJson() = 0;
 

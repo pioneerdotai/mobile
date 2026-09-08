@@ -6,6 +6,182 @@
       "type": "object",
       "properties": {
         "intent": {
+          "$ref": "#/$defs/ArtifactIntent"
+        },
+        "kind": {
+          "type": "string",
+          "const": "artifact"
+        }
+      },
+      "required": [
+        "kind",
+        "intent"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "intent": {
+          "$ref": "#/$defs/ThreadMemberIntent"
+        },
+        "kind": {
+          "type": "string",
+          "const": "thread_member"
+        }
+      },
+      "required": [
+        "kind",
+        "intent"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "intent": {
+          "$ref": "#/$defs/ThreadCapabilityIntent"
+        },
+        "kind": {
+          "type": "string",
+          "const": "thread_capability"
+        }
+      },
+      "required": [
+        "kind",
+        "intent"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "intent": {
+          "$ref": "#/$defs/TurnCancellationIntent"
+        },
+        "kind": {
+          "type": "string",
+          "const": "turn_cancellation"
+        }
+      },
+      "required": [
+        "kind",
+        "intent"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "intent": {
+          "$ref": "#/$defs/ComposerModelPickerIntent"
+        },
+        "kind": {
+          "type": "string",
+          "const": "composer_model_picker"
+        }
+      },
+      "required": [
+        "kind",
+        "intent"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "intent": {
+          "$ref": "#/$defs/ComposerCatalogIntent"
+        },
+        "kind": {
+          "type": "string",
+          "const": "composer_catalog"
+        }
+      },
+      "required": [
+        "kind",
+        "intent"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "intent": {
+          "$ref": "#/$defs/MessageRevisionIntent"
+        },
+        "kind": {
+          "type": "string",
+          "const": "message_revisions"
+        }
+      },
+      "required": [
+        "kind",
+        "intent"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "intent": {
+          "$ref": "#/$defs/MessageDeletionIntent"
+        },
+        "kind": {
+          "type": "string",
+          "const": "message_deletion"
+        }
+      },
+      "required": [
+        "kind",
+        "intent"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "intent": {
+          "$ref": "#/$defs/ApprovalActionIntent"
+        },
+        "kind": {
+          "type": "string",
+          "const": "approval_action"
+        }
+      },
+      "required": [
+        "kind",
+        "intent"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "intent": {
+          "$ref": "#/$defs/TaskReviewIntent"
+        },
+        "kind": {
+          "type": "string",
+          "const": "task_review"
+        }
+      },
+      "required": [
+        "kind",
+        "intent"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "intent": {
+          "$ref": "#/$defs/ComposerIntent"
+        },
+        "kind": {
+          "type": "string",
+          "const": "composer"
+        }
+      },
+      "required": [
+        "kind",
+        "intent"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "intent": {
           "$ref": "#/$defs/WorkspaceIntent"
         },
         "kind": {
@@ -190,6 +366,62 @@
         "Invitations"
       ]
     },
+    "AgentExecutionBackend": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "provider": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "const": "apiProvider"
+            }
+          },
+          "required": [
+            "type",
+            "provider"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "runtime_id": {
+              "type": "string"
+            },
+            "runtime_kind": {
+              "$ref": "#/$defs/CLIAgentRuntimeKind"
+            },
+            "type": {
+              "type": "string",
+              "const": "cliAgentRuntime"
+            }
+          },
+          "required": [
+            "type",
+            "runtime_id",
+            "runtime_kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "runtime_id": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "const": "acpAgentRuntime"
+            }
+          },
+          "required": [
+            "type",
+            "runtime_id"
+          ]
+        }
+      ]
+    },
     "AgentsDocEditorScope": {
       "oneOf": [
         {
@@ -228,6 +460,418 @@
             "folder_id"
           ]
         }
+      ]
+    },
+    "ApprovalActionIntent": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "observe"
+            },
+            "request_id": {
+              "type": "string"
+            },
+            "thread_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "thread_id",
+            "request_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "respond"
+            },
+            "request_generation": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "request_id": {
+              "type": "string"
+            },
+            "resolution": {
+              "$ref": "#/$defs/PendingRequestResolution"
+            },
+            "thread_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "thread_id",
+            "request_id",
+            "request_generation",
+            "resolution"
+          ]
+        }
+      ]
+    },
+    "ArtifactActionIdentity": {
+      "type": "object",
+      "properties": {
+        "artifact_id": {
+          "type": "string"
+        },
+        "generation": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "thread_id": {
+          "type": "string"
+        },
+        "version_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "thread_id",
+        "artifact_id",
+        "generation"
+      ]
+    },
+    "ArtifactActionKind": {
+      "type": "string",
+      "enum": [
+        "open",
+        "share",
+        "download",
+        "reveal"
+      ]
+    },
+    "ArtifactIntent": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "observe"
+            },
+            "thread_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "thread_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "retry"
+            },
+            "thread_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "thread_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "$ref": "#/$defs/ArtifactActionKind"
+            },
+            "artifact_id": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "begin_action"
+            },
+            "thread_id": {
+              "type": "string"
+            },
+            "version_id": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "kind",
+            "thread_id",
+            "artifact_id",
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "identity": {
+              "$ref": "#/$defs/ArtifactActionIdentity"
+            },
+            "kind": {
+              "type": "string",
+              "const": "claim_presentation"
+            }
+          },
+          "required": [
+            "kind",
+            "identity"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "error": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "identity": {
+              "$ref": "#/$defs/ArtifactActionIdentity"
+            },
+            "kind": {
+              "type": "string",
+              "const": "complete_presentation"
+            }
+          },
+          "required": [
+            "kind",
+            "identity"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "code": {
+              "type": "string"
+            },
+            "identity": {
+              "$ref": "#/$defs/ArtifactActionIdentity"
+            },
+            "kind": {
+              "type": "string",
+              "const": "fail_preparation"
+            }
+          },
+          "required": [
+            "kind",
+            "identity",
+            "code"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "identity": {
+              "$ref": "#/$defs/ArtifactActionIdentity"
+            },
+            "kind": {
+              "type": "string",
+              "const": "cancel_action"
+            }
+          },
+          "required": [
+            "kind",
+            "identity"
+          ]
+        }
+      ]
+    },
+    "ArtifactKind": {
+      "type": "string",
+      "enum": [
+        "file",
+        "text",
+        "image",
+        "audio",
+        "video",
+        "pdf",
+        "spreadsheet",
+        "archive",
+        "json",
+        "generated_image",
+        "screenshot",
+        "workspace_file",
+        "directory_manifest",
+        "unknown"
+      ]
+    },
+    "ArtifactPreviewRef": {
+      "type": "object",
+      "properties": {
+        "artifact_id": {
+          "type": "string"
+        },
+        "blob_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "mime_type": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "projection_kind": {
+          "$ref": "#/$defs/ArtifactProjectionKind"
+        },
+        "sha256": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "size_bytes": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0
+        },
+        "status": {
+          "$ref": "#/$defs/ArtifactProjectionStatus"
+        },
+        "version_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "projection_kind",
+        "status",
+        "artifact_id",
+        "version_id"
+      ]
+    },
+    "ArtifactProjectionKind": {
+      "type": "string",
+      "enum": [
+        "plain_text",
+        "thumbnail",
+        "json_summary",
+        "pdf_text"
+      ]
+    },
+    "ArtifactProjectionStatus": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "ready",
+        "failed",
+        "stale"
+      ]
+    },
+    "ArtifactRef": {
+      "type": "object",
+      "properties": {
+        "artifact_id": {
+          "type": "string"
+        },
+        "display_name": {
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/ArtifactKind"
+        },
+        "mime_type": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "preview": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ArtifactPreviewRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "sha256": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "size_bytes": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0
+        },
+        "status": {
+          "$ref": "#/$defs/ArtifactStatus"
+        },
+        "version_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "artifact_id",
+        "display_name",
+        "kind",
+        "status"
+      ]
+    },
+    "ArtifactStatus": {
+      "type": "string",
+      "enum": [
+        "ready",
+        "pending",
+        "quarantined",
+        "deleted",
+        "missing_external_source",
+        "failed"
+      ]
+    },
+    "ByteRange": {
+      "type": "object",
+      "properties": {
+        "end": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "start": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "start",
+        "end"
+      ]
+    },
+    "CLIAgentRuntimeKind": {
+      "type": "string",
+      "enum": [
+        "codex",
+        "claude"
       ]
     },
     "ClientDemand": {
@@ -382,6 +1026,158 @@
           "required": [
             "kind",
             "thread_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "thread_member"
+            },
+            "thread_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "thread_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "thread_capability"
+            },
+            "thread_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "thread_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "turn_cancellation"
+            },
+            "thread_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "thread_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "composer_model_picker"
+            },
+            "thread_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "thread_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "composer_catalog"
+            },
+            "thread_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "thread_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "message_deletion"
+            },
+            "thread_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "thread_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "message_revisions"
+            },
+            "thread_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "thread_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "approval_action"
+            },
+            "request_id": {
+              "type": "string"
+            },
+            "thread_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "thread_id",
+            "request_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "candidate_id": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "task_review"
+            },
+            "thread_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "thread_id",
+            "candidate_id"
           ]
         },
         {
@@ -544,6 +1340,2349 @@
           "required": [
             "kind",
             "workspace_id"
+          ]
+        }
+      ]
+    },
+    "ComposerAttachment": {
+      "type": "object",
+      "properties": {
+        "file_name": {
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/ComposerAttachmentKind"
+        },
+        "path": {
+          "type": "string"
+        },
+        "upload_state": {
+          "$ref": "#/$defs/ComposerAttachmentUploadState"
+        }
+      },
+      "required": [
+        "path",
+        "file_name",
+        "kind",
+        "upload_state"
+      ]
+    },
+    "ComposerAttachmentKind": {
+      "type": "string",
+      "enum": [
+        "Image",
+        "File",
+        "Audio",
+        "Video"
+      ]
+    },
+    "ComposerAttachmentUploadState": {
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "Local",
+            "Uploading"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "Uploaded": {
+              "type": "object",
+              "properties": {
+                "artifact": {
+                  "$ref": "#/$defs/ArtifactRef"
+                }
+              },
+              "required": [
+                "artifact"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "Uploaded"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "Failed": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "error"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "Failed"
+          ]
+        }
+      ]
+    },
+    "ComposerCapability": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/ComposerCapabilityKind"
+        },
+        "label": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "kind"
+      ]
+    },
+    "ComposerCapabilityKind": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "Skill": {
+              "type": "object",
+              "properties": {
+                "owner": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "skill_id": {
+                  "$ref": "#/$defs/SkillId"
+                },
+                "slug": {
+                  "type": "string"
+                },
+                "source_kind": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "skill_id",
+                "slug",
+                "source_kind"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "Skill"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "McpServer": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "scope_kind": {
+                  "$ref": "#/$defs/McpScopeKind"
+                }
+              },
+              "required": [
+                "name",
+                "scope_kind"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "McpServer"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "McpTool": {
+              "type": "object",
+              "properties": {
+                "raw_tool_name": {
+                  "type": "string"
+                },
+                "scope_kind": {
+                  "$ref": "#/$defs/McpScopeKind"
+                },
+                "server_name": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "server_name",
+                "raw_tool_name",
+                "scope_kind"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "McpTool"
+          ]
+        }
+      ]
+    },
+    "ComposerCapabilityTarget": {
+      "description": "Capability eligibility context.\n\nThe target kind exists only because native skills retain their current\nsource policy while CLI skills must be exportable. Capability support is\nrepresented exclusively by [`ComposerCapabilityPolicy`].",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/ComposerCapabilityTargetKind"
+        },
+        "supports_mcp_tools": {
+          "type": "boolean"
+        },
+        "supports_skills": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "supports_skills",
+        "supports_mcp_tools"
+      ]
+    },
+    "ComposerCapabilityTargetKind": {
+      "type": "string",
+      "enum": [
+        "native",
+        "cli"
+      ]
+    },
+    "ComposerCatalogIntent": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "draft_id": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "key": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "remove_skill_chip"
+            },
+            "thread_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "thread_id",
+            "draft_id",
+            "key"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "catalog": {
+              "$ref": "#/$defs/ComposerCatalogKind"
+            },
+            "draft_id": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "kind": {
+              "type": "string",
+              "const": "observe"
+            },
+            "thread_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "thread_id",
+            "draft_id",
+            "catalog"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "catalog": {
+              "$ref": "#/$defs/ComposerCatalogKind"
+            },
+            "draft_id": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "kind": {
+              "type": "string",
+              "const": "retry"
+            },
+            "thread_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "thread_id",
+            "draft_id",
+            "catalog"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "deferred": {
+              "type": "boolean"
+            },
+            "draft_id": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "kind": {
+              "type": "string",
+              "const": "open_picker"
+            },
+            "picker": {
+              "$ref": "#/$defs/ComposerPickerKind"
+            },
+            "thread_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "thread_id",
+            "draft_id",
+            "picker",
+            "deferred"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "identity": {
+              "$ref": "#/$defs/ComposerOperationIdentity"
+            },
+            "kind": {
+              "type": "string",
+              "const": "toggle_skill"
+            },
+            "selection": {
+              "$ref": "#/$defs/ComposerSkillSelection"
+            }
+          },
+          "required": [
+            "kind",
+            "identity",
+            "selection"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "identity": {
+              "$ref": "#/$defs/ComposerOperationIdentity"
+            },
+            "key": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "toggle_mcp"
+            }
+          },
+          "required": [
+            "kind",
+            "identity",
+            "key"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "identity": {
+              "$ref": "#/$defs/ComposerOperationIdentity"
+            },
+            "kind": {
+              "type": "string",
+              "const": "commit_picker"
+            }
+          },
+          "required": [
+            "kind",
+            "identity"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "identity": {
+              "$ref": "#/$defs/ComposerOperationIdentity"
+            },
+            "kind": {
+              "type": "string",
+              "const": "close_picker"
+            }
+          },
+          "required": [
+            "kind",
+            "identity"
+          ]
+        }
+      ]
+    },
+    "ComposerCatalogKind": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "skills"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "mcp_servers"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "mcp_tools"
+            },
+            "server_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "server_id"
+          ]
+        }
+      ]
+    },
+    "ComposerDomainAction": {
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "MarkAttachmentsUploading",
+            "ClearReplyTarget",
+            "ClearReasoningEffort",
+            "ClearPayload",
+            "SendSucceeded",
+            "SendFailed"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "SetAttachments": {
+              "type": "object",
+              "properties": {
+                "attachments": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/ComposerAttachment"
+                  }
+                }
+              },
+              "required": [
+                "attachments"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "SetAttachments"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "AddAttachment": {
+              "type": "object",
+              "properties": {
+                "attachment": {
+                  "$ref": "#/$defs/ComposerAttachment"
+                }
+              },
+              "required": [
+                "attachment"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "AddAttachment"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "AddArtifactAttachment": {
+              "type": "object",
+              "properties": {
+                "artifact": {
+                  "$ref": "#/$defs/ArtifactRef"
+                }
+              },
+              "required": [
+                "artifact"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "AddArtifactAttachment"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "RemoveAttachmentAt": {
+              "type": "object",
+              "properties": {
+                "index": {
+                  "type": "integer",
+                  "format": "uint",
+                  "minimum": 0
+                }
+              },
+              "required": [
+                "index"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "RemoveAttachmentAt"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "RemoveAttachment": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "path"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "RemoveAttachment"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "MarkAttachmentsFailed": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "error"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "MarkAttachmentsFailed"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "ApplyUploadedAttachments": {
+              "type": "object",
+              "properties": {
+                "artifacts": {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/$defs/ArtifactRef"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "artifacts"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "ApplyUploadedAttachments"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "SetCapabilities": {
+              "type": "object",
+              "properties": {
+                "capabilities": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/ComposerCapability"
+                  }
+                }
+              },
+              "required": [
+                "capabilities"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "SetCapabilities"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "AddCapability": {
+              "type": "object",
+              "properties": {
+                "capability": {
+                  "$ref": "#/$defs/ComposerCapability"
+                }
+              },
+              "required": [
+                "capability"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "AddCapability"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "AddCapabilities": {
+              "type": "object",
+              "properties": {
+                "capabilities": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/ComposerCapability"
+                  }
+                }
+              },
+              "required": [
+                "capabilities"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "AddCapabilities"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "ToggleMcpSelection": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string"
+                },
+                "server_rows": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/SelectableMcpCapability"
+                  }
+                },
+                "tool_rows": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/SelectableMcpCapability"
+                  }
+                }
+              },
+              "required": [
+                "server_rows",
+                "tool_rows",
+                "key"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "ToggleMcpSelection"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "RemoveSkillSelection": {
+              "type": "object",
+              "properties": {
+                "selection": {
+                  "$ref": "#/$defs/ComposerSkillSelection"
+                }
+              },
+              "required": [
+                "selection"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "RemoveSkillSelection"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "RemoveCapability": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "RemoveCapability"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "RemoveCapabilityAt": {
+              "type": "object",
+              "properties": {
+                "index": {
+                  "type": "integer",
+                  "format": "uint",
+                  "minimum": 0
+                }
+              },
+              "required": [
+                "index"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "RemoveCapabilityAt"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "SetSkillSelections": {
+              "type": "object",
+              "properties": {
+                "selections": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/ComposerSkillSelection"
+                  }
+                }
+              },
+              "required": [
+                "selections"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "SetSkillSelections"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "ToggleSkillSelection": {
+              "type": "object",
+              "properties": {
+                "picker": {
+                  "$ref": "#/$defs/ComposerSkillPickerProjection"
+                },
+                "selection": {
+                  "$ref": "#/$defs/ComposerSkillSelection"
+                }
+              },
+              "required": [
+                "picker",
+                "selection"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "ToggleSkillSelection"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "SetModeFromUser": {
+              "type": "object",
+              "properties": {
+                "mode": {
+                  "$ref": "#/$defs/ThreadMode"
+                }
+              },
+              "required": [
+                "mode"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "SetModeFromUser"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "SetReplyTarget": {
+              "type": "object",
+              "properties": {
+                "target": {
+                  "$ref": "#/$defs/ComposerReplyTarget"
+                }
+              },
+              "required": [
+                "target"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "SetReplyTarget"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "SelectMention": {
+              "type": "object",
+              "properties": {
+                "candidate": {
+                  "$ref": "#/$defs/ComposerMentionCandidate"
+                }
+              },
+              "required": [
+                "candidate"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "SelectMention"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "RemoveMention": {
+              "type": "object",
+              "properties": {
+                "principal_id": {
+                  "$ref": "#/$defs/PrincipalId"
+                }
+              },
+              "required": [
+                "principal_id"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "RemoveMention"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "ReconcileMentionsWithText": {
+              "type": "object",
+              "properties": {
+                "text": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "text"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "ReconcileMentionsWithText"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "SetPermissionMode": {
+              "type": "object",
+              "properties": {
+                "mode": {
+                  "$ref": "#/$defs/TurnPermissionMode"
+                }
+              },
+              "required": [
+                "mode"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "SetPermissionMode"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "SetModelSelectionFromUser": {
+              "type": "object",
+              "properties": {
+                "capability_target": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/ComposerCapabilityTarget"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null
+                },
+                "model": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "default": null
+                },
+                "provider": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "default": null
+                }
+              }
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "SetModelSelectionFromUser"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "SetReasoningEffortFromUser": {
+              "type": "object",
+              "properties": {
+                "effort": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "default": null
+                }
+              }
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "SetReasoningEffortFromUser"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "SyncResolvedModelSelection": {
+              "type": "object",
+              "properties": {
+                "capability_target": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/ComposerCapabilityTarget"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null
+                },
+                "selection": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/ComposerModelSelection"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null
+                }
+              }
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "SyncResolvedModelSelection"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "ResetModelSelection": {
+              "type": "object",
+              "properties": {
+                "capability_target": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/ComposerCapabilityTarget"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null
+                },
+                "selection": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/ComposerModelSelection"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null
+                }
+              }
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "ResetModelSelection"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "SyncCapabilityTarget": {
+              "type": "object",
+              "properties": {
+                "provider": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "default": null
+                },
+                "target": {
+                  "$ref": "#/$defs/ComposerCapabilityTarget"
+                }
+              },
+              "required": [
+                "target"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "SyncCapabilityTarget"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "Reset": {
+              "type": "object",
+              "properties": {
+                "defaults": {
+                  "$ref": "#/$defs/ComposerDomainState"
+                }
+              },
+              "required": [
+                "defaults"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "Reset"
+          ]
+        }
+      ]
+    },
+    "ComposerDomainState": {
+      "type": "object",
+      "properties": {
+        "attachments": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/ComposerAttachment"
+          }
+        },
+        "capabilities": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/ComposerCapability"
+          }
+        },
+        "capability_target": {
+          "$ref": "#/$defs/ComposerCapabilityTarget"
+        },
+        "mode_manually_selected": {
+          "type": "boolean",
+          "default": false
+        },
+        "model_manually_selected": {
+          "type": "boolean",
+          "default": false
+        },
+        "reply_target": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ComposerReplyTarget"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "selected_mentions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ComposerMentionSelection"
+          }
+        },
+        "selected_mode": {
+          "$ref": "#/$defs/ThreadMode",
+          "default": "Message"
+        },
+        "selected_model": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "selected_permission_mode": {
+          "$ref": "#/$defs/TurnPermissionMode",
+          "default": "full_access"
+        },
+        "selected_provider": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "selected_reasoning_effort": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "skill_selections": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/ComposerSkillSelection"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "capability_target"
+      ]
+    },
+    "ComposerIntent": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "activate"
+            },
+            "thread_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "thread_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "demand": {
+              "$ref": "#/$defs/ComposerVoiceReadinessDemand"
+            },
+            "draft_id": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "kind": {
+              "type": "string",
+              "const": "set_voice_readiness_demand"
+            },
+            "thread_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "thread_id",
+            "draft_id",
+            "demand"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "draft_id": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "kind": {
+              "type": "string",
+              "const": "sync_model_selection"
+            },
+            "reset": {
+              "type": "boolean"
+            },
+            "thread_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "thread_id",
+            "draft_id",
+            "reset"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "draft_id": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "kind": {
+              "type": "string",
+              "const": "retry_runtime_selection"
+            },
+            "thread_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "thread_id",
+            "draft_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "draft_id": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "kind": {
+              "type": "string",
+              "const": "retry_model_display"
+            },
+            "thread_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "thread_id",
+            "draft_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "identity": {
+              "$ref": "#/$defs/ComposerOperationIdentity"
+            },
+            "kind": {
+              "type": "string",
+              "const": "commit_voice_capture"
+            }
+          },
+          "required": [
+            "kind",
+            "identity"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "identity": {
+              "$ref": "#/$defs/ComposerOperationIdentity"
+            },
+            "kind": {
+              "type": "string",
+              "const": "voice_finalized"
+            },
+            "response": {
+              "$ref": "#/$defs/VoiceSessionFinalizeResponse"
+            }
+          },
+          "required": [
+            "kind",
+            "identity",
+            "response"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "draft_id": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "kind": {
+              "type": "string",
+              "const": "start_message_edit"
+            },
+            "thread_id": {
+              "type": "string"
+            },
+            "turn_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "thread_id",
+            "draft_id",
+            "turn_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "draft_id": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "kind": {
+              "type": "string",
+              "const": "submit_steer"
+            },
+            "thread_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "thread_id",
+            "draft_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "draft_id": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "kind": {
+              "type": "string",
+              "const": "submit_message_edit"
+            },
+            "thread_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "thread_id",
+            "draft_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "identity": {
+              "$ref": "#/$defs/ComposerOperationIdentity"
+            },
+            "kind": {
+              "type": "string",
+              "const": "start_voice_capture"
+            }
+          },
+          "required": [
+            "kind",
+            "identity"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "identity": {
+              "$ref": "#/$defs/ComposerOperationIdentity"
+            },
+            "kind": {
+              "type": "string",
+              "const": "finalize_voice_capture"
+            }
+          },
+          "required": [
+            "kind",
+            "identity"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "identity": {
+              "$ref": "#/$defs/ComposerOperationIdentity"
+            },
+            "kind": {
+              "type": "string",
+              "const": "voice_session_started"
+            },
+            "session_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "identity",
+            "session_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "clear_all"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "identity": {
+              "$ref": "#/$defs/ComposerOperationIdentity"
+            },
+            "kind": {
+              "type": "string",
+              "const": "prepare_operation"
+            }
+          },
+          "required": [
+            "kind",
+            "identity"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "identity": {
+              "$ref": "#/$defs/ComposerOperationIdentity"
+            },
+            "kind": {
+              "type": "string",
+              "const": "upload_operation"
+            }
+          },
+          "required": [
+            "kind",
+            "identity"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "draft_id": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "kind": {
+              "type": "string",
+              "const": "begin_operation"
+            },
+            "operation": {
+              "$ref": "#/$defs/ComposerOperationKind"
+            },
+            "thread_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "thread_id",
+            "draft_id",
+            "operation"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "completion": {
+              "$ref": "#/$defs/ComposerOperationCompletion"
+            },
+            "identity": {
+              "$ref": "#/$defs/ComposerOperationIdentity"
+            },
+            "kind": {
+              "type": "string",
+              "const": "complete_operation"
+            }
+          },
+          "required": [
+            "kind",
+            "identity",
+            "completion"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "defaults": {
+              "$ref": "#/$defs/ComposerDomainState"
+            },
+            "kind": {
+              "type": "string",
+              "const": "open"
+            },
+            "thread_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "thread_id",
+            "defaults"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "draft_id": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "kind": {
+              "type": "string",
+              "const": "edit_text"
+            },
+            "text": {
+              "type": "string"
+            },
+            "thread_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "thread_id",
+            "draft_id",
+            "text"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "$ref": "#/$defs/ComposerDomainAction"
+            },
+            "draft_id": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "kind": {
+              "type": "string",
+              "const": "domain"
+            },
+            "thread_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "thread_id",
+            "draft_id",
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "draft_id": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "kind": {
+              "type": "string",
+              "const": "clear"
+            },
+            "thread_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "thread_id",
+            "draft_id"
+          ]
+        }
+      ]
+    },
+    "ComposerMentionCandidate": {
+      "type": "object",
+      "properties": {
+        "avatar_revision": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "display_name": {
+          "type": "string"
+        },
+        "nickname": {
+          "type": "string"
+        },
+        "principal_id": {
+          "$ref": "#/$defs/PrincipalId"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "principal_id",
+        "display_name",
+        "nickname"
+      ]
+    },
+    "ComposerMentionSelection": {
+      "type": "object",
+      "properties": {
+        "display_name": {
+          "type": "string"
+        },
+        "nickname": {
+          "type": "string"
+        },
+        "principal_id": {
+          "$ref": "#/$defs/PrincipalId"
+        },
+        "text_token": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "principal_id",
+        "display_name",
+        "nickname",
+        "text_token"
+      ]
+    },
+    "ComposerModelPickerIntent": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "deferred": {
+              "type": "boolean"
+            },
+            "draft_id": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "kind": {
+              "type": "string",
+              "const": "open"
+            },
+            "thread_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "thread_id",
+            "draft_id",
+            "deferred"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "identity": {
+              "$ref": "#/$defs/ComposerOperationIdentity"
+            },
+            "kind": {
+              "type": "string",
+              "const": "select_provider"
+            },
+            "provider": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "identity",
+            "provider"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "identity": {
+              "$ref": "#/$defs/ComposerOperationIdentity"
+            },
+            "kind": {
+              "type": "string",
+              "const": "select_model"
+            },
+            "model": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "identity",
+            "model"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "effort": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "identity": {
+              "$ref": "#/$defs/ComposerOperationIdentity"
+            },
+            "kind": {
+              "type": "string",
+              "const": "select_reasoning_effort"
+            }
+          },
+          "required": [
+            "kind",
+            "identity"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "identity": {
+              "$ref": "#/$defs/ComposerOperationIdentity"
+            },
+            "kind": {
+              "type": "string",
+              "const": "retry_providers"
+            }
+          },
+          "required": [
+            "kind",
+            "identity"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "identity": {
+              "$ref": "#/$defs/ComposerOperationIdentity"
+            },
+            "kind": {
+              "type": "string",
+              "const": "retry_models"
+            }
+          },
+          "required": [
+            "kind",
+            "identity"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "identity": {
+              "$ref": "#/$defs/ComposerOperationIdentity"
+            },
+            "kind": {
+              "type": "string",
+              "const": "commit"
+            }
+          },
+          "required": [
+            "kind",
+            "identity"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "identity": {
+              "$ref": "#/$defs/ComposerOperationIdentity"
+            },
+            "kind": {
+              "type": "string",
+              "const": "close"
+            }
+          },
+          "required": [
+            "kind",
+            "identity"
+          ]
+        }
+      ]
+    },
+    "ComposerModelSelection": {
+      "type": "object",
+      "properties": {
+        "model": {
+          "type": "string"
+        },
+        "provider": {
+          "type": "string"
+        },
+        "selected_reasoning_effort": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "provider",
+        "model"
+      ]
+    },
+    "ComposerOperationCompletion": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "voice_prepared"
+            },
+            "snapshot": {
+              "$ref": "#/$defs/PreparedVoiceComposerSnapshot"
+            }
+          },
+          "required": [
+            "kind",
+            "snapshot"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "artifacts": {
+              "type": "array",
+              "items": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/ArtifactRef"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "kind": {
+              "type": "string",
+              "const": "uploaded"
+            }
+          },
+          "required": [
+            "kind",
+            "artifacts"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "attachments": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/ComposerAttachment"
+              }
+            },
+            "kind": {
+              "type": "string",
+              "const": "files_selected"
+            }
+          },
+          "required": [
+            "kind",
+            "attachments"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "sent"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "conflicted": {
+              "type": "boolean"
+            },
+            "kind": {
+              "type": "string",
+              "const": "message_edit_failed"
+            }
+          },
+          "required": [
+            "kind",
+            "conflicted"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "failed"
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "message"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "cancelled"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        }
+      ]
+    },
+    "ComposerOperationIdentity": {
+      "type": "object",
+      "properties": {
+        "draft_id": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "generation": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "thread_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "thread_id",
+        "draft_id",
+        "generation"
+      ]
+    },
+    "ComposerOperationKind": {
+      "type": "string",
+      "enum": [
+        "send",
+        "edit_message",
+        "steer",
+        "voice",
+        "pick_files",
+        "pick_media"
+      ]
+    },
+    "ComposerPickerKind": {
+      "type": "string",
+      "enum": [
+        "skills",
+        "mcp"
+      ]
+    },
+    "ComposerReplyTarget": {
+      "type": "object",
+      "properties": {
+        "author_display_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "preview": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "turn_id": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "turn_id"
+      ]
+    },
+    "ComposerSkillPickerProjection": {
+      "type": "object",
+      "properties": {
+        "packs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SelectableSkillPackCapability"
+          }
+        },
+        "standalone": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SelectableSkillCapability"
+          }
+        }
+      },
+      "required": [
+        "standalone",
+        "packs"
+      ]
+    },
+    "ComposerSkillSelection": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "skill"
+            },
+            "pack_id": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/SkillPackId"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "skill_id": {
+              "$ref": "#/$defs/SkillId"
+            }
+          },
+          "required": [
+            "kind",
+            "skill_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "skill_pack"
+            },
+            "pack_id": {
+              "$ref": "#/$defs/SkillPackId"
+            }
+          },
+          "required": [
+            "kind",
+            "pack_id"
+          ]
+        }
+      ]
+    },
+    "ComposerVoiceReadinessDemand": {
+      "type": "string",
+      "enum": [
+        "suspended",
+        "until_ready",
+        "while_visible"
+      ]
+    },
+    "McpCapabilityUnavailableReason": {
+      "type": "string",
+      "enum": [
+        "DisabledByPolicy",
+        "RuntimeUnavailable",
+        "RuntimeNotReady",
+        "NoToolCatalog"
+      ]
+    },
+    "McpScopeKind": {
+      "type": "string",
+      "enum": [
+        "workspace",
+        "user"
+      ]
+    },
+    "MessageDeletionIdentity": {
+      "type": "object",
+      "properties": {
+        "generation": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "thread_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "thread_id",
+        "generation"
+      ]
+    },
+    "MessageDeletionIntent": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "expected_revision": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "kind": {
+              "type": "string",
+              "const": "begin"
+            },
+            "thread_id": {
+              "type": "string"
+            },
+            "turn_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "thread_id",
+            "turn_id",
+            "expected_revision"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "identity": {
+              "$ref": "#/$defs/MessageDeletionIdentity"
+            },
+            "kind": {
+              "type": "string",
+              "const": "confirm"
+            }
+          },
+          "required": [
+            "kind",
+            "identity"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "identity": {
+              "$ref": "#/$defs/MessageDeletionIdentity"
+            },
+            "kind": {
+              "type": "string",
+              "const": "cancel"
+            }
+          },
+          "required": [
+            "kind",
+            "identity"
+          ]
+        }
+      ]
+    },
+    "MessageRevisionIdentity": {
+      "type": "object",
+      "properties": {
+        "generation": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "thread_id": {
+          "type": "string"
+        },
+        "turn_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "thread_id",
+        "turn_id",
+        "generation"
+      ]
+    },
+    "MessageRevisionIntent": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "open"
+            },
+            "thread_id": {
+              "type": "string"
+            },
+            "turn_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "thread_id",
+            "turn_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "identity": {
+              "$ref": "#/$defs/MessageRevisionIdentity"
+            },
+            "kind": {
+              "type": "string",
+              "const": "more"
+            }
+          },
+          "required": [
+            "kind",
+            "identity"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "identity": {
+              "$ref": "#/$defs/MessageRevisionIdentity"
+            },
+            "kind": {
+              "type": "string",
+              "const": "retry"
+            }
+          },
+          "required": [
+            "kind",
+            "identity"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "identity": {
+              "$ref": "#/$defs/MessageRevisionIdentity"
+            },
+            "kind": {
+              "type": "string",
+              "const": "close"
+            }
+          },
+          "required": [
+            "kind",
+            "identity"
           ]
         }
       ]
@@ -826,12 +3965,358 @@
         }
       ]
     },
+    "PendingRequestResolution": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "resolution": {
+              "type": "string",
+              "const": "allow"
+            }
+          },
+          "required": [
+            "resolution"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "resolution": {
+              "type": "string",
+              "const": "allow_for_turn"
+            }
+          },
+          "required": [
+            "resolution"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "resolution": {
+              "type": "string",
+              "const": "allow_for_session"
+            }
+          },
+          "required": [
+            "resolution"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "reason": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "resolution": {
+              "type": "string",
+              "const": "deny"
+            }
+          },
+          "required": [
+            "resolution"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "resolution": {
+              "type": "string",
+              "const": "cancel"
+            }
+          },
+          "required": [
+            "resolution"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "resolution": {
+              "type": "string",
+              "const": "answered"
+            },
+            "response": true
+          },
+          "required": [
+            "resolution"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "resolution": {
+              "type": "string",
+              "const": "expired"
+            }
+          },
+          "required": [
+            "resolution"
+          ]
+        }
+      ]
+    },
+    "PreparedComposerAttachment": {
+      "type": "object",
+      "properties": {
+        "artifact": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ArtifactRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "attachment": {
+          "$ref": "#/$defs/ComposerAttachment"
+        }
+      },
+      "required": [
+        "attachment"
+      ]
+    },
+    "PreparedVoiceComposerSnapshot": {
+      "type": "object",
+      "properties": {
+        "attachments": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PreparedComposerAttachment"
+          }
+        },
+        "context": {
+          "$ref": "#/$defs/VoiceTurnContext"
+        },
+        "locked_attachment_count": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "locked_capability_count": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "uploaded_attachment_artifacts": {
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ArtifactRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "required": [
+        "context",
+        "attachments",
+        "uploaded_attachment_artifacts",
+        "locked_attachment_count",
+        "locked_capability_count"
+      ]
+    },
+    "PrincipalId": {
+      "type": "string",
+      "maxLength": 21,
+      "minLength": 21,
+      "pattern": "^[A-Za-z0-9]{21}$"
+    },
     "ProviderFilter": {
       "type": "string",
       "enum": [
         "Api",
         "Connected",
         "Cli"
+      ]
+    },
+    "SandboxMode": {
+      "type": "string",
+      "enum": [
+        "FullAccess"
+      ]
+    },
+    "SandboxPolicy": {
+      "type": "object",
+      "properties": {
+        "mode": {
+          "$ref": "#/$defs/SandboxMode"
+        }
+      },
+      "required": [
+        "mode"
+      ]
+    },
+    "SelectableMcpCapability": {
+      "type": "object",
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "key": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "raw_tool_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "scope_kind": {
+          "$ref": "#/$defs/McpScopeKind"
+        },
+        "selectable": {
+          "type": "boolean"
+        },
+        "server_id": {
+          "type": "string"
+        },
+        "server_name": {
+          "type": "string"
+        },
+        "tools_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint",
+          "minimum": 0
+        },
+        "unavailable_reason": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/McpCapabilityUnavailableReason"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "key",
+        "label",
+        "description",
+        "server_id",
+        "server_name",
+        "scope_kind",
+        "selectable"
+      ]
+    },
+    "SelectablePackedSkillCapability": {
+      "type": "object",
+      "properties": {
+        "member_key": {
+          "type": "string"
+        },
+        "pack_id": {
+          "$ref": "#/$defs/SkillPackId"
+        },
+        "skill": {
+          "$ref": "#/$defs/SelectableSkillCapability"
+        }
+      },
+      "required": [
+        "pack_id",
+        "member_key",
+        "skill"
+      ]
+    },
+    "SelectableSkillCapability": {
+      "type": "object",
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "display_name": {
+          "type": "string"
+        },
+        "key": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "owner": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "selectable": {
+          "type": "boolean"
+        },
+        "skill_id": {
+          "$ref": "#/$defs/SkillId"
+        },
+        "slug": {
+          "type": "string"
+        },
+        "source_kind": {
+          "type": "string"
+        },
+        "unavailable_reason": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SkillCapabilityUnavailableReason"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "key",
+        "skill_id",
+        "label",
+        "display_name",
+        "description",
+        "slug",
+        "source_kind",
+        "selectable"
+      ]
+    },
+    "SelectableSkillPackCapability": {
+      "type": "object",
+      "properties": {
+        "children": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SelectablePackedSkillCapability"
+          }
+        },
+        "key": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "pack_id": {
+          "$ref": "#/$defs/SkillPackId"
+        },
+        "selectable": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "key",
+        "pack_id",
+        "label",
+        "children",
+        "selectable"
       ]
     },
     "SemanticDestination": {
@@ -959,7 +4444,43 @@
         "SelfImprovement"
       ]
     },
+    "SkillCapabilityUnavailableReason": {
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "DisabledByPolicy"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "Inactive": {
+              "type": "object",
+              "properties": {
+                "status_reason": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              }
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "Inactive"
+          ]
+        }
+      ]
+    },
     "SkillId": {
+      "type": "string",
+      "maxLength": 21,
+      "minLength": 21,
+      "pattern": "^[A-Za-z0-9]{21}$"
+    },
+    "SkillPackId": {
       "type": "string",
       "maxLength": 21,
       "minLength": 21,
@@ -1109,6 +4630,74 @@
         }
       ]
     },
+    "TaskReviewAction": {
+      "type": "string",
+      "enum": [
+        "Accept",
+        "Revise",
+        "Cancel"
+      ]
+    },
+    "TaskReviewIntent": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "candidate_id": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "observe"
+            },
+            "thread_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "thread_id",
+            "candidate_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "$ref": "#/$defs/TaskReviewAction"
+            },
+            "candidate_id": {
+              "type": "string"
+            },
+            "feedback": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "kind": {
+              "type": "string",
+              "const": "perform"
+            },
+            "reason": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "thread_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "thread_id",
+            "candidate_id",
+            "action"
+          ]
+        }
+      ]
+    },
     "TaskThreadLineage": {
       "type": "object",
       "properties": {
@@ -1130,6 +4719,732 @@
         "child_thread_id",
         "workspace_id",
         "title"
+      ]
+    },
+    "TextElement": {
+      "type": "object",
+      "properties": {
+        "byte_range": {
+          "$ref": "#/$defs/ByteRange"
+        },
+        "placeholder": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "byte_range"
+      ]
+    },
+    "ThreadCapabilityIntent": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "observe"
+            },
+            "thread_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "thread_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "retry"
+            },
+            "thread_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "thread_id"
+          ]
+        }
+      ]
+    },
+    "ThreadMemberIntent": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "observe"
+            },
+            "thread_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "thread_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "retry"
+            },
+            "thread_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "thread_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "$ref": "#/$defs/ThreadScopeAction"
+            },
+            "kind": {
+              "type": "string",
+              "const": "perform"
+            },
+            "thread_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "thread_id",
+            "action"
+          ]
+        }
+      ]
+    },
+    "ThreadMode": {
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "Message",
+            "Agent"
+          ]
+        },
+        {
+          "description": "Compatibility default for pre-Epic-6 persisted and wire values. New\nuser-thread creation selects `Message` explicitly.",
+          "type": "string",
+          "const": "Chat"
+        }
+      ]
+    },
+    "ThreadScopeAction": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "list_participants"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "add_participant"
+            },
+            "principal_id": {
+              "$ref": "#/$defs/PrincipalId"
+            }
+          },
+          "required": [
+            "kind",
+            "principal_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "remove_participant"
+            },
+            "principal_id": {
+              "$ref": "#/$defs/PrincipalId"
+            }
+          },
+          "required": [
+            "kind",
+            "principal_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "update_visibility"
+            },
+            "visibility": {
+              "$ref": "#/$defs/ThreadVisibility"
+            }
+          },
+          "required": [
+            "kind",
+            "visibility"
+          ]
+        }
+      ]
+    },
+    "ThreadVisibility": {
+      "description": "User-selectable visibility for ordinary user threads.\n\nInternal task/system threads deliberately have no public selectable value.",
+      "type": "string",
+      "enum": [
+        "private",
+        "workspace"
+      ]
+    },
+    "TurnCLIRuntimeOptions": {
+      "type": "object",
+      "properties": {
+        "effort": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "personality": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "sandbox": true,
+        "steer_if_active": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "summary": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "TurnCancellationIntent": {
+      "type": "object",
+      "properties": {
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "thread_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "thread_id"
+      ]
+    },
+    "TurnCapability": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/TurnCapabilityKind"
+        },
+        "label": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "kind"
+      ]
+    },
+    "TurnCapabilityKind": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "packId": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/SkillPackId"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "skillId": {
+              "$ref": "#/$defs/SkillId"
+            },
+            "type": {
+              "type": "string",
+              "const": "skill"
+            }
+          },
+          "required": [
+            "type",
+            "skillId"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "packId": {
+              "$ref": "#/$defs/SkillPackId"
+            },
+            "type": {
+              "type": "string",
+              "const": "skillPack"
+            }
+          },
+          "required": [
+            "type",
+            "packId"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "scopeKind": {
+              "$ref": "#/$defs/McpScopeKind"
+            },
+            "type": {
+              "type": "string",
+              "const": "mcpServer"
+            }
+          },
+          "required": [
+            "type",
+            "name",
+            "scopeKind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "rawToolName": {
+              "type": "string"
+            },
+            "scopeKind": {
+              "$ref": "#/$defs/McpScopeKind"
+            },
+            "serverName": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "const": "mcpTool"
+            }
+          },
+          "required": [
+            "type",
+            "serverName",
+            "rawToolName",
+            "scopeKind"
+          ]
+        }
+      ]
+    },
+    "TurnPermissionMode": {
+      "type": "string",
+      "enum": [
+        "full_access",
+        "auto_accept_edits",
+        "supervised"
+      ]
+    },
+    "TurnPermissionProfileSelection": {
+      "type": "object",
+      "properties": {
+        "mode": {
+          "$ref": "#/$defs/TurnPermissionMode"
+        }
+      },
+      "required": [
+        "mode"
+      ]
+    },
+    "TurnReasoningSelection": {
+      "type": "object",
+      "properties": {
+        "effort": {
+          "description": "String-valued because CLI runtimes may advertise efforts newer than\nPioneer API-provider adapters understand.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "effort"
+      ]
+    },
+    "UserInput": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "text": {
+              "type": "string"
+            },
+            "textElements": {
+              "type": "array",
+              "default": [],
+              "items": {
+                "$ref": "#/$defs/TextElement"
+              }
+            },
+            "type": {
+              "type": "string",
+              "const": "text"
+            }
+          },
+          "required": [
+            "type",
+            "text"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "image"
+            },
+            "url": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "url"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "const": "localImage"
+            }
+          },
+          "required": [
+            "type",
+            "path"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "file"
+            },
+            "url": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "url"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "const": "localFile"
+            }
+          },
+          "required": [
+            "type",
+            "path"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "audio"
+            },
+            "url": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "url"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "const": "localAudio"
+            }
+          },
+          "required": [
+            "type",
+            "path"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "video"
+            },
+            "url": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "url"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "const": "localVideo"
+            }
+          },
+          "required": [
+            "type",
+            "path"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "artifactId": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "const": "artifact"
+            },
+            "versionId": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "type",
+            "artifactId"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "path": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "const": "mention"
+            }
+          },
+          "required": [
+            "type",
+            "name",
+            "path"
+          ]
+        }
+      ]
+    },
+    "VoiceSessionFinalizeResponse": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "$ref": "#/$defs/VoiceStatus"
+        }
+      },
+      "required": [
+        "status"
+      ]
+    },
+    "VoiceStatus": {
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "disabled",
+            "unavailable",
+            "model_loading",
+            "ready",
+            "busy",
+            "recording",
+            "transcribing",
+            "error"
+          ]
+        },
+        {
+          "description": "Model download is happening in the gateway background. First pass UI\nshould not infer or require detailed progress from this status.",
+          "type": "string",
+          "const": "model_downloading"
+        }
+      ]
+    },
+    "VoiceTurnContext": {
+      "description": "Frozen non-audio composer context for voice turn materialization.\n\n`prepared_input` is for existing prepared `UserInput` references such as\nartifacts/local attachment references. It must not contain the future voice\ntranscript; the gateway prepends the transcript as `UserInput::Text` after\nsuccessful transcription.",
+      "type": "object",
+      "properties": {
+        "capabilities": {
+          "description": "Selected skills, MCP tools/servers and related turn capabilities.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TurnCapability"
+          }
+        },
+        "cli_runtime_options": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TurnCLIRuntimeOptions"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "execution_backend": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AgentExecutionBackend"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "mode": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ThreadMode"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "model": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "model_provider": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "permission_profile": {
+          "description": "Agent permission profile for the eventual turn.\n\nThis is not the platform microphone permission. Microphone permission\nstays client/platform-local and is reported through voice status/errors.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TurnPermissionProfileSelection"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "prepared_input": {
+          "description": "Existing prepared composer inputs such as artifact/file references.\n\nThis vector must not contain audio bytes or the future transcript. On\ncancel, dropping this context must not create a turn; already completed\nupload/cache side effects are handled by the existing attachment flow.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/UserInput"
+          }
+        },
+        "reasoning": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TurnReasoningSelection"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "sandbox_policy": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SandboxPolicy"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "thread_id": {
+          "description": "Thread that receives the gateway-created turn after transcription.",
+          "type": "string"
+        },
+        "turn_id": {
+          "description": "Client-planned turn id reserved before any audio chunk is accepted.",
+          "type": "string"
+        },
+        "workspace_id": {
+          "description": "Workspace active when the voice session starts.\n\n`TurnStartParams` is still thread-scoped; the gateway keeps the\nworkspace here to validate/session-route the frozen voice context.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "workspace_id",
+        "thread_id",
+        "turn_id"
       ]
     },
     "WorkspaceIntent": {

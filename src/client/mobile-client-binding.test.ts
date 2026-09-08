@@ -58,10 +58,21 @@ const bridgeFixture = (initial: ClientScopedSnapshotDto | null) => {
 };
 
 describe('MobileClientBinding', () => {
-    test('avatar and task scopes release protected snapshots and remount with a newer demand', () => {
+    test('scoped consumers release protected snapshots and remount with a newer demand', () => {
         for (const scope of [
             { kind: 'avatar', principal_id: 'avatar-key' },
             { kind: 'task_inbox', workspace_id: 'a' },
+            { kind: 'task_review', thread_id: 'a', candidate_id: 'candidate' },
+            { kind: 'thread_capability', thread_id: 'a' },
+            { kind: 'thread_member', thread_id: 'a' },
+            { kind: 'artifact', thread_id: 'a' },
+            { kind: 'composer', thread_id: 'a' },
+            { kind: 'composer_catalog', thread_id: 'a' },
+            { kind: 'composer_model_picker', thread_id: 'a' },
+            { kind: 'approval_action', thread_id: 'a', request_id: 'request' },
+            { kind: 'message_deletion', thread_id: 'a' },
+            { kind: 'message_revisions', thread_id: 'a' },
+            { kind: 'turn_cancellation', thread_id: 'a' },
         ] as ClientScope[]) {
             const fixture = bridgeFixture(snapshot(1, [], scope));
             const generations: number[] = [];

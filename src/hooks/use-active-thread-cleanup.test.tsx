@@ -4,7 +4,6 @@ import renderer, { act, type ReactTestRenderer } from 'react-test-renderer';
 
 const mockClearActiveThread = jest.fn<() => Promise<void>>();
 const mockResetActiveThread = jest.fn();
-const mockResetDefaultComposerModelSelection = jest.fn();
 const mockResetThreadTree = jest.fn();
 const mockQueryClient = { id: 'pioneer-query-client' };
 const mockClearThreadQueryCache = jest.fn<(client: typeof mockQueryClient) => Promise<void>>();
@@ -25,7 +24,6 @@ jest.mock('@/stores/active-thread', () => ({
     useActiveThreadStore: {
         getState: () => ({
             reset: mockResetActiveThread,
-            resetDefaultComposerModelSelection: mockResetDefaultComposerModelSelection,
         }),
     },
 }));
@@ -67,9 +65,9 @@ describe('useActiveThreadCleanup', () => {
         });
 
         expect(mockClearThreadQueryCache).toHaveBeenCalledWith(mockQueryClient);
+        expect(mockClearActiveThread).toHaveBeenCalledTimes(1);
         expect(mockResetActiveThread).toHaveBeenCalledTimes(1);
-        expect(mockResetDefaultComposerModelSelection).toHaveBeenCalledTimes(1);
-        expect(mockResetThreadTree).toHaveBeenCalledTimes(1);
+        expect(mockResetThreadTree).not.toHaveBeenCalled();
 
         await act(async () => {
             tree!.unmount();

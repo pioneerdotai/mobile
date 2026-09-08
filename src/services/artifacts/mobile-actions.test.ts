@@ -1,24 +1,15 @@
 import { describe, expect, it, jest } from '@jest/globals';
-import {
-    PioneerClientNativeError,
-    type ClientArtifactDownloadProgressResult,
-    type ClientArtifactDownloadResult,
-} from '@/client';
-
+import { PioneerClientNativeError, type ClientArtifactDownloadResult } from '@/client';
 import {
     cancelMobileArtifactDownload,
     downloadAndShareMobileArtifact,
-    mobileArtifactActionKey,
     openMobileArtifact,
-    reduceMobileArtifactAction,
-    type MobileArtifactActionEvent,
     type MobileArtifactActionPorts,
 } from './mobile-actions';
 
 jest.mock('@/client', () => ({
-    PioneerClientNativeError: class PioneerClientNativeError extends Error {
+    PioneerClientNativeError: class extends Error {
         readonly code?: string | null;
-
         constructor(message: string, code?: string | null) {
             super(message);
             this.code = code;
@@ -26,15 +17,28 @@ jest.mock('@/client', () => ({
     },
     pioneerClient: {},
 }));
-
+jest.mock('@/client/artifact-actions', () => ({
+    beginArtifactAction: jest.fn(),
+    dispatchArtifact: jest.fn(),
+}));
 jest.mock('@/services/gateway/session', () => ({
     activeGatewayConnectionGeneration: jest.fn(() => null),
     refreshActiveGatewaySessionAfterUnauthorized: jest.fn(async () => undefined),
 }));
 
-const target = { workspaceId: 'workspace-1', artifactId: 'artifact-1', versionId: 'version-1' };
-
-const verifiedDownload: ClientArtifactDownloadResult = {
+const target = {
+    threadId: 'thread',
+    workspaceId: 'workspace-1',
+    artifactId: 'artifact-1',
+    versionId: 'version-1',
+};
+const identity = {
+    thread_id: 'thread',
+    artifact_id: 'artifact-1',
+    version_id: 'version-1',
+    generation: 7,
+};
+const verified: ClientArtifactDownloadResult = {
     operation_id: 'operation-1',
     local_file_path: '/native/verified/artifact.txt',
     display_name: 'artifact.txt',
@@ -43,24 +47,13 @@ const verifiedDownload: ClientArtifactDownloadResult = {
     size_bytes: 12,
     sha256: 'a'.repeat(64),
 };
-
-const progress: ClientArtifactDownloadProgressResult = {
-    operation_id: 'operation-1',
-    state: 'downloading',
-    downloaded_bytes: 6,
-    total_bytes: 12,
-    resumed_from_bytes: 2,
-};
-
 const fakePorts = (): MobileArtifactActionPorts => ({
     native: {
         open: jest.fn(async () => ({
             view_url: 'https://gateway.test/storage/views/opaque',
             expires_at: 200,
         })),
-        download: jest.fn(async () => verifiedDownload),
-        progress: jest.fn(async () => progress),
-        cancel: jest.fn(async () => true),
+        download: jest.fn(async () => verified),
     },
     viewer: { openUrl: jest.fn(async () => undefined) },
     share: { shareVerifiedFile: jest.fn(async () => undefined) },
@@ -68,241 +61,155 @@ const fakePorts = (): MobileArtifactActionPorts => ({
         currentConnectionGeneration: jest.fn(() => 7),
         refreshAfterUnauthorized: jest.fn(async () => undefined),
     },
-    isForeground: () => true,
-    delay: async () => undefined,
-    nowUnixSeconds: () => 100,
+    workflow: {
+        begin: jest.fn(() => identity),
+        claim: jest.fn(() => true),
+        complete: jest.fn(),
+        fail: jest.fn(),
+        cancel: jest.fn(() => true),
+    },
 });
 
-describe('mobile artifact native actions', () => {
-    it('opens only the ephemeral native view result and does not download', async () => {
+describe('mobile artifact native adapter', () => {
+    it('passes the Client identity into preparation and claims the browser handoff', async () => {
         const ports = fakePorts();
-        const events: MobileArtifactActionEvent[] = [];
-
-        await openMobileArtifact(target, (event) => events.push(event), ports);
-
+        await openMobileArtifact(target, ports);
+        expect(ports.workflow.begin).toHaveBeenCalledWith(target, 'open');
         expect(ports.native.open).toHaveBeenCalledWith({
+            identity,
             workspace_id: 'workspace-1',
             artifact_id: 'artifact-1',
             version_id: 'version-1',
         });
         expect(ports.native.download).not.toHaveBeenCalled();
+        expect(ports.workflow.claim).toHaveBeenCalledWith(identity);
         expect(ports.viewer.openUrl).toHaveBeenCalledTimes(1);
-        expect(events).toEqual([{ type: 'open-started' }, { type: 'completed' }]);
+        expect(ports.workflow.complete).toHaveBeenCalledWith(identity, null);
     });
-
-    it('does not retry the non-idempotent view-grant mint', async () => {
-        const basePorts = fakePorts();
-        const open = jest.fn<MobileArtifactActionPorts['native']['open']>(() =>
-            Promise.reject(
-                new PioneerClientNativeError('access expired', 'artifact_authentication_required'),
-            ),
-        );
-        const ports: MobileArtifactActionPorts = {
-            ...basePorts,
-            native: { ...basePorts.native, open },
-        };
-        const events: MobileArtifactActionEvent[] = [];
-
-        await openMobileArtifact(target, (event) => events.push(event), ports);
-
-        expect(open).toHaveBeenCalledTimes(1);
-        expect(ports.session.refreshAfterUnauthorized).not.toHaveBeenCalled();
-        expect(events.at(-1)).toEqual({ type: 'failed', code: 'authentication_required' });
+    it('does not execute a duplicate action rejected by Client', async () => {
+        const base = fakePorts();
+        const ports = { ...base, workflow: { ...base.workflow, begin: jest.fn(() => null) } };
+        await openMobileArtifact(target, ports);
+        await downloadAndShareMobileArtifact(target, 'operation-1', ports);
+        expect(ports.native.open).not.toHaveBeenCalled();
+        expect(ports.native.download).not.toHaveBeenCalled();
     });
-
-    it('shares only the verified native result and resumes polling in foreground', async () => {
-        const ports = fakePorts();
-        const events: MobileArtifactActionEvent[] = [];
-
-        await downloadAndShareMobileArtifact(
-            target,
-            'operation-1',
-            (event) => events.push(event),
-            ports,
-        );
-
-        expect(ports.share.shareVerifiedFile).toHaveBeenCalledWith(verifiedDownload);
-        expect(events.at(-1)).toEqual({ type: 'completed' });
+    it('never opens a stale, cancelled or expired prepared grant rejected by Client', async () => {
+        const base = fakePorts();
+        const ports = { ...base, workflow: { ...base.workflow, claim: jest.fn(() => false) } };
+        await openMobileArtifact(target, ports);
+        expect(ports.viewer.openUrl).not.toHaveBeenCalled();
+        expect(ports.workflow.complete).not.toHaveBeenCalled();
     });
-
-    it('keeps native download alive in background and resumes progress polling', async () => {
-        let resolveDownload: (result: ClientArtifactDownloadResult) => void = () => undefined;
-        let foreground = false;
-        let delays = 0;
-        const basePorts = fakePorts();
-        const download = new Promise<ClientArtifactDownloadResult>((resolve) => {
-            resolveDownload = resolve;
-        });
-        const ports: MobileArtifactActionPorts = {
-            ...basePorts,
+    it('does not retry a non-idempotent view grant', async () => {
+        const base = fakePorts();
+        const ports = {
+            ...base,
             native: {
-                ...basePorts.native,
-                download: jest.fn(() => download),
-            },
-            isForeground: () => foreground,
-            delay: async () => {
-                delays += 1;
-                if (delays === 1) {
-                    foreground = true;
-                } else {
-                    resolveDownload(verifiedDownload);
-                    await Promise.resolve();
-                }
-            },
-        };
-
-        await downloadAndShareMobileArtifact(target, 'operation-1', () => undefined, ports);
-
-        expect(ports.native.progress).toHaveBeenCalled();
-        expect(ports.share.shareVerifiedFile).toHaveBeenCalledWith(verifiedDownload);
-    });
-
-    it('never shares an incomplete native result', async () => {
-        const basePorts = fakePorts();
-        const ports: MobileArtifactActionPorts = {
-            ...basePorts,
-            native: {
-                ...basePorts.native,
-                download: jest.fn(async () => ({
-                    ...verifiedDownload,
-                    sha256: '',
-                })),
-            },
-        };
-        const events: MobileArtifactActionEvent[] = [];
-
-        await downloadAndShareMobileArtifact(
-            target,
-            'operation-1',
-            (event) => events.push(event),
-            ports,
-        );
-
-        expect(ports.share.shareVerifiedFile).not.toHaveBeenCalled();
-        expect(events.at(-1)).toEqual({ type: 'failed', code: 'integrity_failed' });
-    });
-
-    it('cancels the same native operation deterministically', async () => {
-        const ports = fakePorts();
-        const events: MobileArtifactActionEvent[] = [];
-
-        await expect(
-            cancelMobileArtifactDownload('operation-1', (event) => events.push(event), ports),
-        ).resolves.toBe(true);
-
-        expect(ports.native.cancel).toHaveBeenCalledWith('operation-1');
-        expect(events).toEqual([{ type: 'failed', code: 'cancelled' }]);
-    });
-
-    it('keeps the active download authoritative when native cancellation fails', async () => {
-        const basePorts = fakePorts();
-        const ports: MobileArtifactActionPorts = {
-            ...basePorts,
-            native: {
-                ...basePorts.native,
-                cancel: jest.fn(async () => {
-                    throw new Error('cancel failed');
+                ...base.native,
+                open: jest.fn(async () => {
+                    throw new PioneerClientNativeError(
+                        'expired',
+                        'artifact_authentication_required',
+                    );
                 }),
             },
         };
-        const events: MobileArtifactActionEvent[] = [];
-
-        await expect(
-            cancelMobileArtifactDownload('operation-1', (event) => events.push(event), ports),
-        ).resolves.toBe(false);
-
-        expect(events).toEqual([]);
+        await openMobileArtifact(target, ports);
+        expect(ports.native.open).toHaveBeenCalledTimes(1);
+        expect(ports.session.refreshAfterUnauthorized).not.toHaveBeenCalled();
+        expect(ports.workflow.fail).toHaveBeenCalledWith(
+            identity,
+            'artifact_authentication_required',
+        );
     });
-
-    it('does not overwrite a native terminal result when cancellation is too late', async () => {
-        const basePorts = fakePorts();
-        const ports: MobileArtifactActionPorts = {
-            ...basePorts,
-            native: {
-                ...basePorts.native,
-                cancel: jest.fn(async () => false),
+    it('reports a native viewer failure to the same Client operation', async () => {
+        const base = fakePorts();
+        const ports = {
+            ...base,
+            viewer: {
+                openUrl: jest.fn(async () => {
+                    throw new Error('native failure');
+                }),
             },
         };
-        const events: MobileArtifactActionEvent[] = [];
-
-        await expect(
-            cancelMobileArtifactDownload('operation-1', (event) => events.push(event), ports),
-        ).resolves.toBe(false);
-
-        expect(events).toEqual([]);
+        await openMobileArtifact(target, ports);
+        expect(ports.workflow.complete).toHaveBeenCalledWith(identity, 'viewer_failed');
     });
-
-    it('keeps reducer state secret-free', () => {
-        const state = reduceMobileArtifactAction(
-            { kind: 'idle' },
-            { type: 'download-progress', progress },
-        );
-
-        expect(state).toEqual({
-            kind: 'downloading',
-            operationId: 'operation-1',
-            downloadedBytes: 6,
-            totalBytes: 12,
+    it('waits for the verified native result, then claims the share handoff', async () => {
+        let complete!: (result: ClientArtifactDownloadResult) => void;
+        const waiting = new Promise<ClientArtifactDownloadResult>((resolve) => {
+            complete = resolve;
         });
-        expect(JSON.stringify(state)).not.toContain('Authorization');
-        expect(JSON.stringify(state)).not.toContain('/storage/views/');
+        const base = fakePorts();
+        const ports = { ...base, native: { ...base.native, download: jest.fn(() => waiting) } };
+        const task = downloadAndShareMobileArtifact(target, 'operation-1', ports);
+        await Promise.resolve();
+        expect(ports.share.shareVerifiedFile).not.toHaveBeenCalled();
+        complete(verified);
+        await task;
+        expect(ports.native.download).toHaveBeenCalledWith({
+            identity,
+            thread_id: 'thread',
+            workspace_id: 'workspace-1',
+            artifact_id: 'artifact-1',
+            version_id: 'version-1',
+            operation_id: 'operation-1',
+        });
+        expect(ports.share.shareVerifiedFile).toHaveBeenCalledWith(verified);
+        expect(ports.workflow.complete).toHaveBeenCalledWith(identity, null);
     });
-
-    it('keys concurrent actions by exact artifact version', () => {
-        expect(mobileArtifactActionKey('workspace-1', 'artifact-1', 'version-1')).not.toBe(
-            mobileArtifactActionKey('workspace-1', 'artifact-1', 'version-2'),
-        );
-        expect(mobileArtifactActionKey('workspace-1', 'artifact-1', 'version-1')).not.toBe(
-            mobileArtifactActionKey('workspace-2', 'artifact-1', 'version-1'),
-        );
+    it('does not share a late download after Client retires its route', async () => {
+        const base = fakePorts();
+        const ports = { ...base, workflow: { ...base.workflow, claim: jest.fn(() => false) } };
+        await downloadAndShareMobileArtifact(target, 'operation-1', ports);
+        expect(ports.share.shareVerifiedFile).not.toHaveBeenCalled();
     });
-
-    it('refreshes through the shared session coordinator and retries an idempotent download once', async () => {
-        const basePorts = fakePorts();
+    it('reports integrity failure without invoking a native share', async () => {
+        const base = fakePorts();
+        const ports = {
+            ...base,
+            native: {
+                ...base.native,
+                download: jest.fn(async () => {
+                    throw new PioneerClientNativeError('verification failed', 'integrity_failed');
+                }),
+            },
+        };
+        await downloadAndShareMobileArtifact(target, 'operation-1', ports);
+        expect(ports.share.shareVerifiedFile).not.toHaveBeenCalled();
+        expect(ports.workflow.fail).toHaveBeenCalledWith(identity, 'integrity_failed');
+    });
+    it('reports native Share failure without reducing domain state in JavaScript', async () => {
+        const base = fakePorts();
+        const ports = {
+            ...base,
+            share: {
+                shareVerifiedFile: jest.fn(async () => {
+                    throw new Error('native failure');
+                }),
+            },
+        };
+        await downloadAndShareMobileArtifact(target, 'operation-1', ports);
+        expect(ports.workflow.complete).toHaveBeenCalledWith(identity, 'share_failed');
+    });
+    it('uses the existing session coordinator for one authenticated transfer retry', async () => {
+        const base = fakePorts();
         const download = jest
             .fn<MobileArtifactActionPorts['native']['download']>()
             .mockRejectedValueOnce(
-                new PioneerClientNativeError('access expired', 'artifact_authentication_required'),
+                new PioneerClientNativeError('expired', 'artifact_authentication_required'),
             )
-            .mockResolvedValueOnce(verifiedDownload);
-        const ports: MobileArtifactActionPorts = {
-            ...basePorts,
-            native: { ...basePorts.native, download },
-        };
-        const events: MobileArtifactActionEvent[] = [];
-
-        await downloadAndShareMobileArtifact(
-            target,
-            'operation-1',
-            (event) => events.push(event),
-            ports,
-        );
-
+            .mockResolvedValueOnce(verified);
+        const ports = { ...base, native: { ...base.native, download } };
+        await downloadAndShareMobileArtifact(target, 'operation-1', ports);
         expect(ports.session.refreshAfterUnauthorized).toHaveBeenCalledWith(7);
         expect(download).toHaveBeenCalledTimes(2);
-        expect(events.at(-1)).toEqual({ type: 'completed' });
+        expect(ports.share.shareVerifiedFile).toHaveBeenCalledTimes(1);
     });
-
-    it('does not retry a non-authentication download failure', async () => {
-        const basePorts = fakePorts();
-        const download = jest.fn<MobileArtifactActionPorts['native']['download']>(() =>
-            Promise.reject(new PioneerClientNativeError('disk full', 'disk_full')),
-        );
-        const ports: MobileArtifactActionPorts = {
-            ...basePorts,
-            native: { ...basePorts.native, download },
-        };
-        const events: MobileArtifactActionEvent[] = [];
-
-        await downloadAndShareMobileArtifact(
-            target,
-            'operation-1',
-            (event) => events.push(event),
-            ports,
-        );
-
-        expect(ports.session.refreshAfterUnauthorized).not.toHaveBeenCalled();
-        expect(download).toHaveBeenCalledTimes(1);
-        expect(events.at(-1)).toEqual({ type: 'failed', code: 'disk_full' });
+    it('cancels the captured action identity through Client', () => {
+        const ports = fakePorts();
+        expect(cancelMobileArtifactDownload(identity, ports)).toBe(true);
+        expect(ports.workflow.cancel).toHaveBeenCalledWith(identity);
     });
 });

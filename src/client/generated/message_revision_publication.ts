@@ -1,0 +1,57 @@
+/* eslint-disable */
+
+export type TurnMessageRevisionChangeKind = 'edit' | 'delete';
+export type PersistedActorRef =
+  | {
+      id: PrincipalId;
+      kind: 'principal';
+      [k: string]: unknown;
+    }
+  | {
+      id: AgentExecutionId;
+      kind: 'agent_execution';
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'system';
+      [k: string]: unknown;
+    };
+export type PrincipalId = string;
+export type AgentExecutionId = string;
+export type MessageRevisionReadState = 'loading' | 'ready' | 'failed' | 'cancelled';
+
+export interface MessageRevisionPublication {
+  identity: MessageRevisionIdentity;
+  page?: MessageRevisionPagePresentation | null;
+  request_generation: number;
+  revision: number;
+  state: MessageRevisionReadState;
+  [k: string]: unknown;
+}
+export interface MessageRevisionIdentity {
+  generation: number;
+  thread_id: string;
+  turn_id: string;
+  [k: string]: unknown;
+}
+export interface MessageRevisionPagePresentation {
+  next_cursor?: string | null;
+  revisions: MessageRevisionPresentation[];
+  thread_id: string;
+  turn_id: string;
+  workspace_id: string;
+}
+export interface MessageRevisionPresentation {
+  change_kind: TurnMessageRevisionChangeKind;
+  changed_by: PersistedActorRef;
+  content_redacted: boolean;
+  created_at: number;
+  mentions?: TurnMention[];
+  revision: number;
+  text?: string | null;
+}
+export interface TurnMention {
+  nickname: string;
+  principal_id: PrincipalId;
+  [k: string]: unknown;
+}

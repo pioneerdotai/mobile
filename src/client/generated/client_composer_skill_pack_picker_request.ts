@@ -1,6 +1,7 @@
 /* eslint-disable */
 
 export interface ClientComposerSkillPackPickerRequest {
+  draft_id: number;
   query?: string;
-  workspace_id: string;
+  thread_id: string;
 }

@@ -94,18 +94,15 @@ char* pioneer_client_ffi_provider_list(PioneerClientFfi* client, const char* inp
 char* pioneer_client_ffi_cli_runtime_list(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_cli_runtime_refresh(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_cli_runtime_list_models(PioneerClientFfi* client, const char* input_json);
-char* pioneer_client_ffi_cli_runtime_thread_binding_get(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_cli_runtime_thread_compact(PioneerClientFfi* client, const char* input_json);
-char* pioneer_client_ffi_cli_runtime_turn_steer(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_cli_runtime_review_start(PioneerClientFfi* client, const char* input_json);
-char* pioneer_client_ffi_cli_runtime_request_respond(PioneerClientFfi* client, const char* input_json);
-char* pioneer_client_ffi_turn_permission_request_respond(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_task_accept(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_task_revise(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_task_cancel(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_task_user_notification_list(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_task_user_notification_acknowledge(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_voice_status(PioneerClientFfi* client, const char* input_json);
+char* pioneer_client_ffi_composer_voice_capture_plan(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_voice_session_start(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_voice_audio_chunk(PioneerClientFfi* client, const char* input_json, const uint8_t* pcm_ptr, size_t pcm_len);
 char* pioneer_client_ffi_voice_session_finalize(PioneerClientFfi* client, const char* input_json);
@@ -132,8 +129,6 @@ char* pioneer_client_ffi_invitation_list_row(PioneerClientFfi* client, const cha
 char* pioneer_client_ffi_administration_conflict_refetch(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_composer_attachment_from_path(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_composer_attachments_update(PioneerClientFfi* client, const char* input_json);
-char* pioneer_client_ffi_composer_skill_picker_rows(PioneerClientFfi* client, const char* input_json);
-char* pioneer_client_ffi_composer_mcp_picker_rows(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_composer_skill_pack_picker(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_composer_skill_selection_toggle(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_composer_skill_chips(PioneerClientFfi* client, const char* input_json);
@@ -153,9 +148,6 @@ char* pioneer_client_ffi_composer_filter_mcp_rows(PioneerClientFfi* client, cons
 char* pioneer_client_ffi_thread_tree_refresh(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_thread_tree_level(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_thread_timeline_page(PioneerClientFfi* client, const char* input_json);
-char* pioneer_client_ffi_turn_message_edit(PioneerClientFfi* client, const char* input_json);
-char* pioneer_client_ffi_turn_message_delete(PioneerClientFfi* client, const char* input_json);
-char* pioneer_client_ffi_turn_message_revisions_page(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_message_revision_page_presentation(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_thread_read(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_turn_work_page(PioneerClientFfi* client, const char* input_json);
@@ -171,7 +163,6 @@ char* pioneer_client_ffi_active_thread_snapshot(PioneerClientFfi* client, const 
 char* pioneer_client_ffi_active_thread_apply_event(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_active_thread_send_text(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_prepare_voice_composer_snapshot(PioneerClientFfi* client, const char* input_json);
-char* pioneer_client_ffi_active_thread_cancel_turn(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_active_thread_unsubscribe_or_close(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_active_thread_clear(PioneerClientFfi* client);
 void pioneer_client_ffi_string_destroy(char* value);

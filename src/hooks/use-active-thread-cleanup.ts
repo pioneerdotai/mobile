@@ -14,7 +14,6 @@ export const useActiveThreadCleanup = () => {
         } finally {
             await clearThreadQueryCache(pioneerQueryClient);
             useActiveThreadStore.getState().reset();
-            useActiveThreadStore.getState().resetDefaultComposerModelSelection();
         }
     }, []);
 };

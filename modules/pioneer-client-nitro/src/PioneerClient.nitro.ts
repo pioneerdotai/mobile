@@ -83,18 +83,15 @@ export interface PioneerClient extends HybridObject<{ ios: 'c++'; android: 'c++'
     cliRuntimeListJson(inputJson: string): Promise<string>;
     cliRuntimeRefreshJson(inputJson: string): Promise<string>;
     cliRuntimeListModelsJson(inputJson: string): Promise<string>;
-    cliRuntimeThreadBindingGetJson(inputJson: string): Promise<string>;
     cliRuntimeThreadCompactJson(inputJson: string): Promise<string>;
-    cliRuntimeTurnSteerJson(inputJson: string): Promise<string>;
     cliRuntimeReviewStartJson(inputJson: string): Promise<string>;
-    cliRuntimeRequestRespondJson(inputJson: string): Promise<string>;
-    turnPermissionRequestRespondJson(inputJson: string): Promise<string>;
     taskAcceptJson(inputJson: string): Promise<string>;
     taskReviseJson(inputJson: string): Promise<string>;
     taskCancelJson(inputJson: string): Promise<string>;
     taskUserNotificationListJson(inputJson: string): Promise<string>;
     taskUserNotificationAcknowledgeJson(inputJson: string): Promise<string>;
     voiceStatusJson(inputJson: string): Promise<string>;
+    composerVoiceCapturePlanJson(inputJson: string): Promise<string>;
     voiceSessionStartJson(inputJson: string): Promise<string>;
     voiceAudioChunkJson(inputJson: string, pcmChunk: ArrayBuffer): string;
     voiceSessionFinalizeJson(inputJson: string): Promise<string>;
@@ -121,9 +118,7 @@ export interface PioneerClient extends HybridObject<{ ios: 'c++'; android: 'c++'
     administrationConflictRefetchJson(inputJson: string): string;
     composerAttachmentFromPathJson(inputJson: string): string;
     composerAttachmentsUpdateJson(inputJson: string): string;
-    composerSkillPickerRowsJson(inputJson: string): Promise<string>;
-    composerMcpPickerRowsJson(inputJson: string): Promise<string>;
-    composerSkillPackPickerJson(inputJson: string): Promise<string>;
+    composerSkillPackPickerJson(inputJson: string): string;
     composerSkillSelectionToggleJson(inputJson: string): string;
     composerSkillChipsJson(inputJson: string): string;
     composerCapabilitiesUpdateJson(inputJson: string): string;
@@ -142,9 +137,6 @@ export interface PioneerClient extends HybridObject<{ ios: 'c++'; android: 'c++'
     threadTreeRefreshJson(inputJson: string): Promise<string>;
     threadTreeLevelJson(inputJson: string): string;
     threadTimelinePageJson(inputJson: string): Promise<string>;
-    turnMessageEditJson(inputJson: string): Promise<string>;
-    turnMessageDeleteJson(inputJson: string): Promise<string>;
-    turnMessageRevisionsPageJson(inputJson: string): Promise<string>;
     messageRevisionPagePresentationJson(inputJson: string): string;
     threadReadJson(inputJson: string): Promise<string>;
     turnWorkPageJson(inputJson: string): Promise<string>;
@@ -160,7 +152,6 @@ export interface PioneerClient extends HybridObject<{ ios: 'c++'; android: 'c++'
     activeThreadApplyEventJson(inputJson: string): Promise<string>;
     activeThreadSendTextJson(inputJson: string): Promise<string>;
     prepareVoiceComposerSnapshotJson(inputJson: string): Promise<string>;
-    activeThreadCancelTurnJson(inputJson: string): Promise<string>;
     activeThreadUnsubscribeOrCloseJson(inputJson: string): Promise<string>;
     activeThreadClearJson(): Promise<string>;
 }

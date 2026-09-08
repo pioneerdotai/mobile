@@ -1,25 +1,22 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { useShallow } from 'zustand/react/shallow';
 
-import type {
-    AuthorizationExecutionDraftPolicyProjection,
-    ClientActiveThreadSnapshot,
-    ComposerSkillPickerProjection,
-    Thread,
-} from '@/client';
+import type { ClientActiveThreadSnapshot, Thread } from '@/client';
+import {
+    requestTurnCancellation,
+    useTurnCancellationPublication,
+} from '@/client/turn-cancellation';
 import { mobileClientBinding } from '@/client/mobile-client-binding';
+import { beginComposerOperation } from '@/client/composer';
 import { withGatewayTransportLease } from '@/services/gateway/transport-coordinator';
 import {
     activeThreadSnapshot,
-    cancelActiveThreadTurn,
     openActiveThread,
     openActiveThreadById,
     sendActiveThreadText,
 } from '@/services/threads/active';
-import { selectedReasoningEffortRequestFields } from '@/services/threads/reasoning-effort';
-import { skillSelectionRequestFields } from '@/services/threads/skill-selection-request';
 import {
     cacheActiveThreadSnapshot,
     cachedActiveThreadSnapshot,
@@ -28,7 +25,6 @@ import {
     removeTimelineQueriesForThread,
     timelineQueryKeys,
 } from '@/services/threads/timeline-query';
-import { composerSubmissionPlanForProvider } from '@/services/providers/cli-runtime';
 import { invalidateMaterializedThreadAuthorization } from '@/services/administration/query';
 import { useActiveThreadSnapshotQuery } from '@/hooks/use-active-thread-snapshot-query';
 import { useActiveThreadStore } from '@/stores/active-thread';
@@ -59,7 +55,8 @@ export const useActiveThread = (
     const {
         sending,
         composerText,
-        composerError,
+        nativeComposerError,
+        dismissedTurnCancellationGeneration,
         composerAttachments,
         composerCapabilities,
         composerSkillSelections,
@@ -74,22 +71,18 @@ export const useActiveThread = (
         defaultComposerSelectionLoading,
         composerModelManuallySelected,
         activateComposerThread,
-        setSending,
         setComposerText,
         setComposerError,
         setComposerAttachments,
         setComposerCapabilities,
         setComposerSkillSelections,
-        markComposerAttachmentsUploading,
-        markComposerAttachmentsFailed,
-        clearComposerPayload,
-        retainComposerAfterSendFailure,
         setExpandedKeys,
     } = useActiveThreadStore(
         useShallow((state) => ({
             sending: state.sending,
             composerText: state.composerText,
-            composerError: state.composerError,
+            nativeComposerError: state.composerError,
+            dismissedTurnCancellationGeneration: state.dismissedTurnCancellationGeneration,
             composerAttachments: state.composerAttachments,
             composerCapabilities: state.composerCapabilities,
             composerSkillSelections: state.composerSkillSelections,
@@ -104,16 +97,11 @@ export const useActiveThread = (
             defaultComposerSelectionLoading: state.defaultComposerSelectionLoading,
             composerModelManuallySelected: state.composerModelManuallySelected,
             activateComposerThread: state.activateComposerThread,
-            setSending: state.setSending,
             setComposerText: state.setComposerText,
             setComposerError: state.setComposerError,
             setComposerAttachments: state.setComposerAttachments,
             setComposerCapabilities: state.setComposerCapabilities,
             setComposerSkillSelections: state.setComposerSkillSelections,
-            markComposerAttachmentsUploading: state.markComposerAttachmentsUploading,
-            markComposerAttachmentsFailed: state.markComposerAttachmentsFailed,
-            clearComposerPayload: state.clearComposerPayload,
-            retainComposerAfterSendFailure: state.retainComposerAfterSendFailure,
             setExpandedKeys: state.setExpandedKeys,
         })),
     );
@@ -128,17 +116,14 @@ export const useActiveThread = (
 
     const activeThreadIdRef = useRef<string | null | undefined>(undefined);
     const threadRef = useRef<Thread | null>(null);
-    const [turnCancelling, setTurnCancelling] = useState(false);
-    const { mutateAsync: sendActiveThreadTextAsync } = useMutation({
-        mutationFn: sendActiveThreadText,
-    });
-    const { mutateAsync: cancelActiveThreadTurnAsync } = useMutation({
-        mutationFn: cancelActiveThreadTurn,
-        onSuccess: (result) => {
-            void invalidateTimelineQueriesForThread(queryClient, result.snapshot.thread_id);
-        },
-    });
-
+    const cancellation = useTurnCancellationPublication(threadId);
+    const turnCancelling = cancellation?.state.kind === 'pending';
+    const composerError =
+        nativeComposerError ??
+        (cancellation?.state.kind === 'failed' &&
+        cancellation.identity.generation !== dismissedTurnCancellationGeneration
+            ? cancellation.state.message
+            : null);
     const connected = connectionState === 'Connected' && connectionId !== null;
     const snapshotThreadId = snapshot?.thread_id ?? null;
     const subscribedThreadId = threadId ?? snapshotThreadId;
@@ -279,266 +264,99 @@ export const useActiveThread = (
         [queryClient, setExpandedKeys],
     );
 
-    const sendText = useCallback(
-        async (
-            text: string,
-            skillPicker: ComposerSkillPickerProjection,
-            executionDraftPolicy: AuthorizationExecutionDraftPolicyProjection | null,
-        ): Promise<boolean> => {
-            const normalizedText = text.trim();
-            if (!active) {
-                return false;
-            }
-
-            if (!executionDraftPolicy) {
-                setComposerError(t('sendFailed'));
-                return false;
-            }
-            const reconciliation = useActiveThreadStore
-                .getState()
-                .reconcileComposerAuthorization(executionDraftPolicy);
-            if (reconciliation?.reasons?.some((reason) => reason.kind !== 'policy_generation')) {
-                setComposerError(t('composerAuthorizationSelectionsUpdated'));
-                return false;
-            }
-            const storeState = useActiveThreadStore.getState();
-            const currentSnapshot = cachedActiveThreadSnapshot(queryClient, threadId);
-            const messageMode = storeState.composerSelectedMode === 'Message';
-            const hasCompleteComposerModelSelection = Boolean(
-                storeState.composerSelectedProvider && storeState.composerSelectedModel,
-            );
-            const selectedProviderForSend =
-                !messageMode && hasCompleteComposerModelSelection
-                    ? storeState.composerSelectedProvider
-                    : null;
-            const selectedModelForSend =
-                !messageMode && hasCompleteComposerModelSelection
-                    ? storeState.composerSelectedModel
-                    : null;
-            const selectedReasoningEffortForSend =
-                !messageMode && hasCompleteComposerModelSelection
-                    ? storeState.composerSelectedReasoningEffort
-                    : null;
-            const attachments = storeState.composerAttachments;
-            const submissionPlan = composerSubmissionPlanForProvider(
-                selectedProviderForSend,
-                normalizedText,
-                attachments.length > 0,
-                messageMode ? [] : storeState.composerCapabilities,
-            );
+    useEffect(() => {
+        if (!subscribedThreadId) return;
+        const store = mobileClientBinding.scope({
+            kind: 'composer',
+            thread_id: subscribedThreadId,
+        });
+        const receive = () => {
+            const publication = store.getSnapshot()?.payload as
+                import('@/client/generated/composer_publication').ComposerPublication | null;
             if (
-                (!thread && !workspaceId) ||
-                !connected ||
-                connectionId === null ||
-                (!submissionPlan.has_composer_payload &&
-                    (messageMode || storeState.composerSkillSelections.length === 0))
+                publication?.operation?.kind === 'send' &&
+                publication.operation.status.kind === 'failed'
             ) {
-                return false;
-            }
-
-            if (
-                !messageMode &&
-                storeState.composerModelManuallySelected &&
-                (!storeState.composerSelectedProvider || !storeState.composerSelectedModel)
-            ) {
-                setComposerError(t('modelSelectionRequired'));
-                return false;
-            }
-
-            const requestThreadId = threadId ?? currentSnapshot?.thread_id ?? null;
-            const requestWorkspaceId =
-                workspaceId ??
-                thread?.workspace_id ??
-                currentSnapshot?.thread?.workspace_id ??
-                currentSnapshot?.workspace_id ??
-                null;
-            if (!requestThreadId) {
                 setComposerError(t('sendFailed'));
-                return false;
             }
-            if (!requestWorkspaceId) {
-                setComposerError(t('sendFailed'));
-                return false;
-            }
-            const materializingDraft = currentSnapshot?.draft_thread_id === requestThreadId;
-            const requestThreadClosed =
-                thread?.status === 'Closed' || currentSnapshot?.thread?.status === 'Closed';
-            if (
-                storeState.sending ||
-                (!messageMode && currentSnapshot?.projection.composer_locked) ||
-                requestThreadClosed
-            ) {
-                return false;
-            }
+        };
+        const unsubscribe = store.subscribe(receive);
+        receive();
+        return unsubscribe;
+    }, [subscribedThreadId, setComposerError, t]);
 
-            setSending(true);
-            setComposerError(null);
-            const attachmentsForSend =
-                attachments.length > 0 ? markComposerAttachmentsUploading() : attachments;
-
-            try {
-                const result = await withGatewayTransportLease(() =>
-                    sendActiveThreadTextAsync({
-                        thread_id: requestThreadId,
-                        workspace_id: requestWorkspaceId,
-                        text,
-                        selected_model: selectedModelForSend,
-                        selected_provider: selectedProviderForSend,
-                        ...selectedReasoningEffortRequestFields(selectedReasoningEffortForSend),
-                        selected_mode: storeState.composerSelectedMode,
-                        permission_mode: storeState.composerSelectedPermissionMode,
-                        reply_to_turn_id: storeState.composerReplyTarget?.turn_id ?? null,
-                        mentioned_principal_ids: Array.from(
-                            new Set(
-                                storeState.composerSelectedMentions.map(
-                                    (mention) => mention.principal_id,
-                                ),
-                            ),
-                        ),
-                        attachments: attachmentsForSend,
-                        capabilities: submissionPlan.capabilities,
-                        ...skillSelectionRequestFields(
-                            messageMode ? [] : storeState.composerSkillSelections,
-                            skillPicker,
-                        ),
-                        expanded_keys: useActiveThreadStore.getState().expandedKeys,
-                    }),
-                );
-
-                if (
-                    useGatewayStore.getState().connectionId !== connectionId ||
-                    activeThreadIdRef.current !== requestThreadId
-                ) {
-                    return false;
-                }
-
-                activeThreadIdRef.current = result.thread_id;
-                void invalidateTimelineQueriesForThread(queryClient, result.thread_id);
-                cacheActiveThreadSnapshot(queryClient, result.snapshot);
-                if (materializingDraft && connectionGatewayId !== null) {
-                    void invalidateMaterializedThreadAuthorization(
-                        queryClient,
-                        { gatewayId: connectionGatewayId, connectionId },
-                        requestWorkspaceId,
-                        result.thread_id,
-                    );
-                }
-                clearComposerPayload();
-                return true;
-            } catch {
-                if (
-                    useGatewayStore.getState().connectionId === connectionId &&
-                    activeThreadIdRef.current === requestThreadId
-                ) {
-                    const message = t('sendFailed');
-                    retainComposerAfterSendFailure();
-                    if (attachmentsForSend.length > 0) {
-                        markComposerAttachmentsFailed(message);
-                    }
-                    setComposerError(message);
-                    try {
-                        const rejectedSnapshot = activeThreadSnapshot({
-                            expanded_keys: useActiveThreadStore.getState().expandedKeys,
-                        });
-                        if (rejectedSnapshot.thread_id) {
-                            activeThreadIdRef.current = rejectedSnapshot.thread_id;
-                        }
-                        cacheActiveThreadSnapshot(queryClient, rejectedSnapshot);
-                    } catch {
-                        // The native error is already surfaced through composerError.
-                    }
-                }
-                return false;
-            } finally {
-                if (
-                    useGatewayStore.getState().connectionId === connectionId &&
-                    activeThreadIdRef.current === requestThreadId
-                ) {
-                    setSending(false);
-                }
-            }
-        },
-        [
-            connected,
-            connectionGatewayId,
-            connectionId,
-            setComposerError,
-            clearComposerPayload,
-            retainComposerAfterSendFailure,
-            markComposerAttachmentsFailed,
-            markComposerAttachmentsUploading,
-            setSending,
-            t,
-            queryClient,
-            sendActiveThreadTextAsync,
-            workspaceId,
-            thread,
-            threadId,
-            active,
-        ],
-    );
-
-    const stopTurn = useCallback(async (): Promise<boolean> => {
-        if (!active || !connected || connectionId === null || turnCancelling) {
-            return false;
-        }
-
+    const sendText = useCallback(async (): Promise<boolean> => {
+        if (!active || !connected) return false;
         const currentSnapshot = cachedActiveThreadSnapshot(queryClient, threadId);
-        const turnId = currentSnapshot?.projection.in_flight_turn_id;
-        if (!turnId) {
+        const requestThreadId = threadId ?? currentSnapshot?.thread_id ?? null;
+        const requestWorkspaceId =
+            workspaceId ??
+            thread?.workspace_id ??
+            currentSnapshot?.thread?.workspace_id ??
+            currentSnapshot?.workspace_id ??
+            null;
+        if (!requestThreadId) {
+            setComposerError(t('sendFailed'));
             return false;
         }
-
-        setTurnCancelling(true);
+        if (!requestWorkspaceId) {
+            setComposerError(t('sendFailed'));
+            return false;
+        }
+        const materializingDraft = currentSnapshot?.draft_thread_id === requestThreadId;
+        const operation = beginComposerOperation(requestThreadId, 'send');
+        if (!operation) return false;
         setComposerError(null);
 
         try {
-            const result = await cancelActiveThreadTurnAsync({
-                reason: t('stopReason'),
-                expanded_keys: useActiveThreadStore.getState().expandedKeys,
-            });
+            const result = await withGatewayTransportLease(() =>
+                sendActiveThreadText({
+                    operation: operation.identity,
+                    workspace_id: requestWorkspaceId,
+                    expanded_keys: useActiveThreadStore.getState().expandedKeys,
+                }),
+            );
 
-            if (useGatewayStore.getState().connectionId !== connectionId) {
+            if (
+                useGatewayStore.getState().connectionId !== connectionId ||
+                activeThreadIdRef.current !== requestThreadId
+            ) {
                 return false;
             }
 
-            if (result.snapshot.thread_id) {
-                activeThreadIdRef.current = result.snapshot.thread_id;
-            }
+            activeThreadIdRef.current = result.thread_id;
+            void invalidateTimelineQueriesForThread(queryClient, result.thread_id);
             cacheActiveThreadSnapshot(queryClient, result.snapshot);
-
-            return result.cancelled;
-        } catch (caught) {
-            if (useGatewayStore.getState().connectionId === connectionId) {
-                setComposerError(errorMessage(caught, t('stopFailed')));
-                try {
-                    const rejectedSnapshot = activeThreadSnapshot({
-                        expanded_keys: useActiveThreadStore.getState().expandedKeys,
-                    });
-                    if (rejectedSnapshot.thread_id) {
-                        activeThreadIdRef.current = rejectedSnapshot.thread_id;
-                    }
-                    cacheActiveThreadSnapshot(queryClient, rejectedSnapshot);
-                } catch {
-                    // The native error is already surfaced through composerError.
-                }
+            if (materializingDraft && connectionGatewayId !== null) {
+                void invalidateMaterializedThreadAuthorization(
+                    queryClient,
+                    { gatewayId: connectionGatewayId, connectionId },
+                    requestWorkspaceId,
+                    result.thread_id,
+                );
             }
-
+            return true;
+        } catch {
             return false;
-        } finally {
-            setTurnCancelling(false);
         }
     }, [
-        active,
-        cancelActiveThreadTurnAsync,
         connected,
+        connectionGatewayId,
         connectionId,
-        queryClient,
         setComposerError,
         t,
+        queryClient,
+        workspaceId,
+        thread,
         threadId,
-        turnCancelling,
+        active,
     ]);
+
+    const stopTurn = useCallback(async (): Promise<boolean> => {
+        if (!active || !connected || !threadId || turnCancelling) return false;
+        setComposerError(null);
+        return requestTurnCancellation(threadId, t('stopReason')).outcome === 'changed';
+    }, [active, connected, threadId, turnCancelling, setComposerError, t]);
 
     const snapshotThreadClosed = snapshot?.thread?.status === 'Closed';
     const hasInFlightTurn = Boolean(snapshot?.projection.in_flight_turn_id);

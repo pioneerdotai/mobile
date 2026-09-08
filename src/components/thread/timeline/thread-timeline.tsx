@@ -833,7 +833,13 @@ const TimelineRowRenderer = ({
         case 'running':
             return <RunningRow row={row} showDino={!presentationContext?.taskChildThread} />;
         case 'pending-request':
-            return <PendingRequestCard entry={row.entry} canRespond={canRespondToAgentRequests} />;
+            return (
+                <PendingRequestCard
+                    threadId={threadId}
+                    entry={row.entry}
+                    canRespond={canRespondToAgentRequests}
+                />
+            );
         case 'artifact':
             return (
                 <ArtifactRow

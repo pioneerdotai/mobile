@@ -116,7 +116,6 @@ export const applyPublishedMobilePolicyChange = async (
                 return;
             }
             activeThreadState.reset();
-            useActiveThreadStore.getState().resetDefaultComposerModelSelection();
         }
     }
     return;

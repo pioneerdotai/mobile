@@ -151,6 +151,158 @@
       "properties": {
         "kind": {
           "type": "string",
+          "const": "thread_member"
+        },
+        "thread_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "thread_id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "thread_capability"
+        },
+        "thread_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "thread_id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "turn_cancellation"
+        },
+        "thread_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "thread_id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "composer_model_picker"
+        },
+        "thread_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "thread_id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "composer_catalog"
+        },
+        "thread_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "thread_id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "message_deletion"
+        },
+        "thread_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "thread_id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "message_revisions"
+        },
+        "thread_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "thread_id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "approval_action"
+        },
+        "request_id": {
+          "type": "string"
+        },
+        "thread_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "thread_id",
+        "request_id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "candidate_id": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string",
+          "const": "task_review"
+        },
+        "thread_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "thread_id",
+        "candidate_id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
           "const": "pending_request"
         },
         "thread_id": {

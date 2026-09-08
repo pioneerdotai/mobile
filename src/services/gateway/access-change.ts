@@ -24,7 +24,6 @@ type AccessChangedNotification = Extract<
 
 const clearProtectedMobileProjections = (queryClient: QueryClient) => {
     useActiveThreadStore.getState().reset();
-    useActiveThreadStore.getState().resetDefaultComposerModelSelection();
     void queryClient.cancelQueries({ queryKey: timelineQueryKeys.all });
     queryClient.removeQueries({ queryKey: timelineQueryKeys.all });
     clearThreadScopeQueries(queryClient);
@@ -75,7 +74,6 @@ export const applyMobileAccessChangedLifecycle = (
     if (activeWorkspaceLost || lifecycle.active_thread_cleared) {
         const activeThreadState = useActiveThreadStore.getState();
         activeThreadState.reset();
-        useActiveThreadStore.getState().resetDefaultComposerModelSelection();
     }
 
     if (!accessRevoked) {

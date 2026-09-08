@@ -1,21 +1,16 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { FlashList, type ListRenderItem } from '@shopify/flash-list';
 import { ChevronDown, ChevronUp } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { useUnistyles } from 'react-native-unistyles';
-import { useShallow } from 'zustand/react/shallow';
 
-import {
-    pioneerClient,
-    type ClientComposerMcpToggleResult,
-    type ComposerCapability,
-    type SelectableMcpCapability,
-} from '@/client';
+import { pioneerClient, type SelectableMcpCapability } from '@/client';
 import { HStack } from '@/components/primitives/hstack';
 import { Pressable } from '@/components/primitives/pressable';
 import { Text } from '@/components/primitives/text';
 import { VStack } from '@/components/primitives/vstack';
-import { composerTargetThreadIsActive } from '@/services/threads/composer-target';
+import { composerSnapshot, useComposerPublication } from '@/client/composer';
+import { dispatchComposerCatalog, useComposerPicker } from '@/client/composer-catalog';
 import { useActiveThreadStore } from '@/stores/active-thread';
 import { useWorkspaceStore } from '@/stores/workspace';
 import { useAdministrationCapabilities } from '@/hooks/use-administration-capabilities';
@@ -38,101 +33,46 @@ type McpCapabilityDisplayRow =
 type McpDisplayRow =
     { type: 'section'; id: 'servers' | 'tools'; title: string } | McpCapabilityDisplayRow;
 
-const mcpKeyExtractor = (row: McpDisplayRow): string =>
+export const mcpKeyExtractor = (row: McpDisplayRow): string =>
     row.type === 'section' ? `section:${row.id}` : `${row.type}:${row.row.key}`;
 
-export const toggleMcpComposerCapabilitySelection = (
-    capabilities: readonly ComposerCapability[],
-    selectedKeys: readonly string[],
-    serverRows: readonly SelectableMcpCapability[],
-    toolRows: readonly SelectableMcpCapability[],
-    row: SelectableMcpCapability,
-): ClientComposerMcpToggleResult =>
-    pioneerClient.composerMcpToggle({
-        capabilities: [...capabilities],
-        selected_keys: [...selectedKeys],
-        server_rows: [...serverRows],
-        tool_rows: [...toolRows],
-        row,
-    });
+const EMPTY_CAPABILITIES: NonNullable<
+    ReturnType<typeof composerSnapshot>
+>['draft']['domain']['capabilities'] = [];
+const EMPTY_ROWS: SelectableMcpCapability[] = [];
 
 export const ComposerMcpCapabilitiesScreen = () => {
     const { t } = useTranslation('threads');
-    const targetThreadIdRef = useRef(useActiveThreadStore.getState().activeComposerThreadId);
-
+    const [target] = useState(() => {
+        const thread = useActiveThreadStore.getState().activeComposerThreadId;
+        return { thread, draft: composerSnapshot(thread)?.draft_id ?? null };
+    });
+    const activeThread = useActiveThreadStore((state) => state.activeComposerThreadId);
     const activeWorkspaceId = useWorkspaceStore((state) => state.activeWorkspaceId);
     const capabilities = useAdministrationCapabilities();
-    const canUseMcp = capabilities.data?.can_use_mcp === true;
-
-    const { composerCapabilities, setComposerCapabilities } = useActiveThreadStore(
-        useShallow((state) => ({
-            composerCapabilities: state.composerCapabilities,
-            setComposerCapabilities: state.setComposerCapabilities,
-        })),
-    );
-
+    const enabled = capabilities.data?.can_use_mcp === true && target.thread === activeThread;
+    const { input, identity } = useComposerPicker(target.thread, target.draft, 'mcp', enabled);
+    const composer = useComposerPublication(target.thread);
+    const composerCapabilities = composer?.draft.domain.capabilities ?? EMPTY_CAPABILITIES;
     const [query, setQuery] = useState('');
-    const [serverRows, setServerRows] = useState<SelectableMcpCapability[]>([]);
-    const [toolRows, setToolRows] = useState<SelectableMcpCapability[]>([]);
     const [activeServerId, setActiveServerId] = useState<string | null>(null);
-    const [state, setState] = useState<LoadState>({ loading: false, error: null });
-
-    useEffect(() => {
-        let cancelled = false;
-        const timeout = setTimeout(() => {
-            if (!canUseMcp) {
-                setServerRows([]);
-                setToolRows([]);
-                setState({ loading: capabilities.isPending, error: null });
-                return;
-            }
-            if (!activeWorkspaceId) {
-                setServerRows([]);
-                setToolRows([]);
-                setState({ loading: false, error: t('modelSelectorNoWorkspace') });
-                return;
-            }
-
-            setState({ loading: true, error: null });
-
-            void pioneerClient
-                .composerMcpPickerRows({
-                    workspace_id: activeWorkspaceId,
-                    query: '',
-                })
-                .then((result) => {
-                    if (
-                        !cancelled &&
-                        composerTargetThreadIsActive(
-                            targetThreadIdRef.current,
-                            useActiveThreadStore.getState().activeComposerThreadId,
-                        )
-                    ) {
-                        setServerRows(result.server_rows);
-                        setToolRows(result.tool_rows);
-                        setState({ loading: false, error: null });
-                    }
-                })
-                .catch(() => {
-                    if (
-                        !cancelled &&
-                        composerTargetThreadIsActive(
-                            targetThreadIdRef.current,
-                            useActiveThreadStore.getState().activeComposerThreadId,
-                        )
-                    ) {
-                        setServerRows([]);
-                        setToolRows([]);
-                        setState({ loading: false, error: t('composerMcpFailed') });
-                    }
-                });
-        }, 0);
-
-        return () => {
-            cancelled = true;
-            clearTimeout(timeout);
-        };
-    }, [activeWorkspaceId, canUseMcp, capabilities.isPending, t]);
+    const serverRows = input?.mcp_servers ?? EMPTY_ROWS;
+    const toolRows = input?.mcp_tools ?? EMPTY_ROWS;
+    const state: LoadState = {
+        loading:
+            capabilities.isPending ||
+            (enabled &&
+                (!input ||
+                    input.mcp_request.state.kind === 'loading' ||
+                    Object.values(input.tool_requests).some(
+                        (request) => request.state.kind === 'loading',
+                    ))),
+        error: !activeWorkspaceId
+            ? t('modelSelectorNoWorkspace')
+            : input?.mcp_request.state.kind === 'failed'
+              ? t('composerMcpFailed')
+              : null,
+    };
 
     const selectedKeys = useMemo(
         () => selectedCapabilityKeys(composerCapabilities),
@@ -191,31 +131,17 @@ export const ComposerMcpCapabilitiesScreen = () => {
 
     const toggleCapability = useCallback(
         (row: SelectableMcpCapability) => {
+            if (!identity || !row.selectable) return;
+            dispatchComposerCatalog({ kind: 'toggle_mcp', identity, key: row.key });
             if (
-                !row.selectable ||
-                !composerTargetThreadIsActive(
-                    targetThreadIdRef.current,
-                    useActiveThreadStore.getState().activeComposerThreadId,
+                row.raw_tool_name == null &&
+                composerSnapshot(identity.thread_id)?.draft.domain.capabilities?.some(
+                    (capability) => capability.id === row.key,
                 )
-            ) {
-                return;
-            }
-
-            const currentCapabilities = useActiveThreadStore.getState().composerCapabilities;
-            const result = toggleMcpComposerCapabilitySelection(
-                currentCapabilities,
-                selectedKeys,
-                serverRows,
-                toolRows,
-                row,
-            );
-            setComposerCapabilities(result.capabilities);
-
-            if (result.collapse_active_server) {
+            )
                 setActiveServerId(null);
-            }
         },
-        [selectedKeys, serverRows, setComposerCapabilities, toolRows],
+        [identity],
     );
 
     const toggleServerTools = useCallback((serverId: string) => {

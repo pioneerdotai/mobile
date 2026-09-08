@@ -1,3 +1,10 @@
+import type {
+    ComposerOperationIdentity,
+    ComposerOperationPlan,
+} from './generated/composer_publication';
+import type { ComposerVoiceStartRequest } from './generated/composer_voice_start_request';
+import type { ComposerVoiceFinalizeRequest } from './generated/composer_voice_finalize_request';
+import type { ComposerVoiceCancelRequest } from './generated/composer_voice_cancel_request';
 import type { ClientAccessChangePlanRequestDto } from './generated/client_access_change_plan_request_dto';
 import type { AccessChangedPlan } from './generated/access_changed_plan';
 import type { ClientTransportReserveRequestDto } from './generated/client_transport_reserve_request_dto';
@@ -43,17 +50,13 @@ import type { ClientThreadFileViewOpenResult } from './generated/client_thread_f
 import type { ArtifactPresentationPolicy } from './generated/artifact_presentation_policy';
 import type { ClientAuthorizationProjectionAcceptRequest } from './generated/client_authorization_projection_accept_request';
 import type { ClientAuthorizationProjectionAcceptResult } from './generated/client_authorization_projection_accept_result';
-import type { ClientActiveThreadCancelTurnRequest } from './generated/client_active_thread_cancel_turn_request';
-import type { ClientActiveThreadCancelTurnResult } from './generated/client_active_thread_cancel_turn_result';
 import type { ClientActiveThreadClearResult } from './generated/client_active_thread_clear_result';
 import type { ClientActiveThreadEventRequest } from './generated/client_active_thread_event_request';
 import type { ClientActiveThreadEventResult } from './generated/client_active_thread_event_result';
 import type { ClientActiveThreadOpenByIdRequest } from './generated/client_active_thread_open_by_id_request';
 import type { ClientActiveThreadOpenRequest } from './generated/client_active_thread_open_request';
-import type {
-    ClientActiveThreadSendTextRequest,
-    ThreadMode,
-} from './generated/client_active_thread_send_text_request';
+import type { ClientActiveThreadSendTextRequest } from './generated/client_active_thread_send_text_request';
+import type { ThreadMode } from './generated/client_intent';
 import type { ClientActiveThreadSendTextResult } from './generated/client_active_thread_send_text_result';
 import type { ClientActiveThreadSnapshot } from './generated/client_active_thread_snapshot';
 import type { ClientActiveThreadSnapshotRequest } from './generated/client_active_thread_snapshot_request';
@@ -70,8 +73,6 @@ import type { ClientComposerFilterMcpRowsRequest } from './generated/client_comp
 import type { ClientComposerFilterMcpRowsResult } from './generated/client_composer_filter_mcp_rows_result';
 import type { ClientComposerFilterSkillRowsRequest } from './generated/client_composer_filter_skill_rows_request';
 import type { ClientComposerMcpCapabilityFromRowRequest } from './generated/client_composer_mcp_capability_from_row_request';
-import type { ClientComposerMcpPickerRowsRequest } from './generated/client_composer_mcp_picker_rows_request';
-import type { ClientComposerMcpPickerRowsResult } from './generated/client_composer_mcp_picker_rows_result';
 import type { ClientComposerMcpToggleRequest } from './generated/client_composer_mcp_toggle_request';
 import type { ClientComposerMcpToggleResult } from './generated/client_composer_mcp_toggle_result';
 import type { ClientPendingRequestResponsePlanRequest } from './generated/client_pending_request_response_plan_request';
@@ -82,7 +83,6 @@ import type { ClientPrepareVoiceComposerSnapshotRequest } from './generated/clie
 import type { ClientComposerSkillCapabilityFromRowRequest } from './generated/client_composer_skill_capability_from_row_request';
 import type { ClientComposerSkillChipsRequest } from './generated/client_composer_skill_chips_request';
 import type { ClientComposerSkillPackPickerRequest } from './generated/client_composer_skill_pack_picker_request';
-import type { ClientComposerSkillPickerRowsRequest } from './generated/client_composer_skill_picker_rows_request';
 import type { ClientComposerSkillSelectionToggleRequest } from './generated/client_composer_skill_selection_toggle_request';
 import type { ClientComposerSkillToggleRequest } from './generated/client_composer_skill_toggle_request';
 import type { ClientComposerSkillToggleResult } from './generated/client_composer_skill_toggle_result';
@@ -132,16 +132,10 @@ import type { CLIRuntimeListParams } from './generated/cli_runtime_list_params';
 import type { CLIRuntimeListResponse } from './generated/cli_runtime_list_response';
 import type { CLIRuntimeRefreshParams } from './generated/cli_runtime_refresh_params';
 import type { CLIRuntimeRefreshResponse } from './generated/cli_runtime_refresh_response';
-import type { CLIRuntimeRequestRespondParams } from './generated/cli_runtime_request_respond_params';
-import type { CLIRuntimeRequestRespondResponse } from './generated/cli_runtime_request_respond_response';
 import type { CLIRuntimeReviewStartParams } from './generated/cli_runtime_review_start_params';
 import type { CLIRuntimeReviewStartResponse } from './generated/cli_runtime_review_start_response';
-import type { CLIRuntimeThreadBindingGetParams } from './generated/cli_runtime_thread_binding_get_params';
-import type { CLIRuntimeThreadBindingGetResponse } from './generated/cli_runtime_thread_binding_get_response';
 import type { CLIRuntimeThreadCompactParams } from './generated/cli_runtime_thread_compact_params';
 import type { CLIRuntimeThreadCompactResponse } from './generated/cli_runtime_thread_compact_response';
-import type { CLIRuntimeTurnSteerParams } from './generated/cli_runtime_turn_steer_params';
-import type { CLIRuntimeTurnSteerResponse } from './generated/cli_runtime_turn_steer_response';
 import type { ComposerAttachment } from './generated/composer_attachment';
 import type { ComposerCapability } from './generated/composer_capability';
 import type { ComposerCapabilityMenuVisibility } from './generated/composer_capability_menu_visibility';
@@ -242,24 +236,14 @@ import type { ThreadAgentsDocSaveParams } from './generated/thread_agents_doc_sa
 import type { ThreadAgentsDocSaveResponse } from './generated/thread_agents_doc_save_response';
 import type { TurnWorkItemsGetParams } from './generated/turn_work_items_get_params';
 import type { TurnWorkItemsGetResponse } from './generated/turn_work_items_get_response';
-import type { TurnMessageDeleteParams } from './generated/turn_message_delete_params';
-import type { TurnMessageDeleteResponse } from './generated/turn_message_delete_response';
-import type { TurnMessageEditParams } from './generated/turn_message_edit_params';
-import type { TurnMessageEditResponse } from './generated/turn_message_edit_response';
-import type { TurnMessageRevisionsPageParams } from './generated/turn_message_revisions_page_params';
 import type { TurnMessageRevisionsPageResponse } from './generated/turn_message_revisions_page_response';
 import type { MessageRevisionPagePresentation } from './generated/message_revision_page_presentation';
 import type { TurnWorkPageParams } from './generated/turn_work_page_params';
 import type { TurnWorkPageResponse } from './generated/turn_work_page_response';
-import type { TurnPermissionRequestRespondParams } from './generated/turn_permission_request_respond_params';
-import type { TurnPermissionRequestRespondResponse } from './generated/turn_permission_request_respond_response';
 import type { UpdateRemoteGatewayRegistryPlan } from './generated/update_remote_gateway_registry_plan';
 import type { VoiceAudioFormat } from './generated/voice_audio_format';
-import type { VoiceSessionCancelParams } from './generated/voice_session_cancel_params';
 import type { VoiceSessionCancelResponse } from './generated/voice_session_cancel_response';
-import type { VoiceSessionFinalizeParams } from './generated/voice_session_finalize_params';
 import type { VoiceSessionFinalizeResponse } from './generated/voice_session_finalize_response';
-import type { VoiceSessionStartParams } from './generated/voice_session_start_params';
 import type { VoiceSessionStartResponse } from './generated/voice_session_start_response';
 import type { VoiceStatusParams } from './generated/voice_status_params';
 import type { VoiceStatusResponse } from './generated/voice_status_response';
@@ -311,15 +295,13 @@ export type { ClientThreadFileViewOpenRequest } from './generated/client_thread_
 export type { ClientThreadFileViewOpenResult } from './generated/client_thread_file_view_open_result';
 export type { ClientAuthorizationProjectionAcceptRequest } from './generated/client_authorization_projection_accept_request';
 export type { ClientAuthorizationProjectionAcceptResult } from './generated/client_authorization_projection_accept_result';
-export type { ClientActiveThreadCancelTurnRequest } from './generated/client_active_thread_cancel_turn_request';
-export type { ClientActiveThreadCancelTurnResult } from './generated/client_active_thread_cancel_turn_result';
 export type { ClientActiveThreadClearResult } from './generated/client_active_thread_clear_result';
 export type { ClientActiveThreadEventRequest } from './generated/client_active_thread_event_request';
 export type { ClientActiveThreadEventResult } from './generated/client_active_thread_event_result';
 export type { ClientActiveThreadOpenByIdRequest } from './generated/client_active_thread_open_by_id_request';
 export type { ClientActiveThreadOpenRequest } from './generated/client_active_thread_open_request';
 export type { ClientActiveThreadSendTextRequest } from './generated/client_active_thread_send_text_request';
-export type { ThreadMode } from './generated/client_active_thread_send_text_request';
+export type { ThreadMode } from './generated/client_intent';
 export type { ClientActiveThreadSendTextResult } from './generated/client_active_thread_send_text_result';
 export type { ClientActiveThreadSnapshot } from './generated/client_active_thread_snapshot';
 export type { ClientActiveThreadSnapshotRequest } from './generated/client_active_thread_snapshot_request';
@@ -334,8 +316,6 @@ export type { ClientComposerFilterMcpRowsRequest } from './generated/client_comp
 export type { ClientComposerFilterMcpRowsResult } from './generated/client_composer_filter_mcp_rows_result';
 export type { ClientComposerFilterSkillRowsRequest } from './generated/client_composer_filter_skill_rows_request';
 export type { ClientComposerMcpCapabilityFromRowRequest } from './generated/client_composer_mcp_capability_from_row_request';
-export type { ClientComposerMcpPickerRowsRequest } from './generated/client_composer_mcp_picker_rows_request';
-export type { ClientComposerMcpPickerRowsResult } from './generated/client_composer_mcp_picker_rows_result';
 export type { ClientComposerMcpToggleRequest } from './generated/client_composer_mcp_toggle_request';
 export type { ClientComposerMcpToggleResult } from './generated/client_composer_mcp_toggle_result';
 export type { ClientPendingRequestResponseAction } from './generated/client_pending_request_response_action';
@@ -347,7 +327,6 @@ export type { ClientPrepareVoiceComposerSnapshotRequest } from './generated/clie
 export type { ClientComposerSkillCapabilityFromRowRequest } from './generated/client_composer_skill_capability_from_row_request';
 export type { ClientComposerSkillChipsRequest } from './generated/client_composer_skill_chips_request';
 export type { ClientComposerSkillPackPickerRequest } from './generated/client_composer_skill_pack_picker_request';
-export type { ClientComposerSkillPickerRowsRequest } from './generated/client_composer_skill_picker_rows_request';
 export type { ClientComposerSkillSelectionToggleRequest } from './generated/client_composer_skill_selection_toggle_request';
 export type { ClientComposerSkillToggleRequest } from './generated/client_composer_skill_toggle_request';
 export type { ClientComposerSkillToggleResult } from './generated/client_composer_skill_toggle_result';
@@ -388,8 +367,6 @@ export type { CLIRuntimeRequestRespondResponse } from './generated/cli_runtime_r
 export type { CLIRuntimeReviewStartParams } from './generated/cli_runtime_review_start_params';
 export type { CLIRuntimeReviewStartResponse } from './generated/cli_runtime_review_start_response';
 export type { CLIRuntimeThreadBinding } from './generated/cli_runtime_thread_binding';
-export type { CLIRuntimeThreadBindingGetParams } from './generated/cli_runtime_thread_binding_get_params';
-export type { CLIRuntimeThreadBindingGetResponse } from './generated/cli_runtime_thread_binding_get_response';
 export type { CLIRuntimeThreadCompactParams } from './generated/cli_runtime_thread_compact_params';
 export type { CLIRuntimeThreadCompactResponse } from './generated/cli_runtime_thread_compact_response';
 export type { CLIRuntimeTurnSteerParams } from './generated/cli_runtime_turn_steer_params';
@@ -576,12 +553,7 @@ export type { TurnWorkItem } from './generated/turn_work_item';
 export type { TurnWorkItemStatus } from './generated/turn_work_item_status';
 export type { TurnWorkItemsGetParams } from './generated/turn_work_items_get_params';
 export type { TurnWorkItemsGetResponse } from './generated/turn_work_items_get_response';
-export type { TurnMessageDeleteParams } from './generated/turn_message_delete_params';
-export type { TurnMessageDeleteResponse } from './generated/turn_message_delete_response';
-export type { TurnMessageEditParams } from './generated/turn_message_edit_params';
-export type { UserInput } from './generated/turn_message_edit_params';
-export type { TurnMessageEditResponse } from './generated/turn_message_edit_response';
-export type { TurnMessageRevisionsPageParams } from './generated/turn_message_revisions_page_params';
+export type { UserInput } from './generated/composer_publication';
 export type { TurnMessageRevisionsPageResponse } from './generated/turn_message_revisions_page_response';
 export type { MessageRevisionPagePresentation } from './generated/message_revision_page_presentation';
 export type { TurnWorkPageParams } from './generated/turn_work_page_params';
@@ -680,6 +652,7 @@ export type MobileStartupRecordResult = {
 };
 
 export type VoiceAudioChunkParams = {
+    operation: ComposerOperationIdentity;
     session_id: string;
     sequence: number;
     audio_format: VoiceAudioFormat;
@@ -1299,14 +1272,6 @@ export const pioneerClient = {
         );
     },
 
-    async cliRuntimeThreadBindingGet(
-        input: CLIRuntimeThreadBindingGetParams,
-    ): Promise<CLIRuntimeThreadBindingGetResponse> {
-        return parsePioneerClientResponse<CLIRuntimeThreadBindingGetResponse>(
-            await getPioneerClientNitro().cliRuntimeThreadBindingGetJson(JSON.stringify(input)),
-        );
-    },
-
     async cliRuntimeThreadCompact(
         input: CLIRuntimeThreadCompactParams,
     ): Promise<CLIRuntimeThreadCompactResponse> {
@@ -1315,35 +1280,11 @@ export const pioneerClient = {
         );
     },
 
-    async cliRuntimeTurnSteer(
-        input: CLIRuntimeTurnSteerParams,
-    ): Promise<CLIRuntimeTurnSteerResponse> {
-        return parsePioneerClientResponse<CLIRuntimeTurnSteerResponse>(
-            await getPioneerClientNitro().cliRuntimeTurnSteerJson(JSON.stringify(input)),
-        );
-    },
-
     async cliRuntimeReviewStart(
         input: CLIRuntimeReviewStartParams,
     ): Promise<CLIRuntimeReviewStartResponse> {
         return parsePioneerClientResponse<CLIRuntimeReviewStartResponse>(
             await getPioneerClientNitro().cliRuntimeReviewStartJson(JSON.stringify(input)),
-        );
-    },
-
-    async cliRuntimeRequestRespond(
-        input: CLIRuntimeRequestRespondParams,
-    ): Promise<CLIRuntimeRequestRespondResponse> {
-        return parsePioneerClientResponse<CLIRuntimeRequestRespondResponse>(
-            await getPioneerClientNitro().cliRuntimeRequestRespondJson(JSON.stringify(input)),
-        );
-    },
-
-    async turnPermissionRequestRespond(
-        input: TurnPermissionRequestRespondParams,
-    ): Promise<TurnPermissionRequestRespondResponse> {
-        return parsePioneerClientResponse<TurnPermissionRequestRespondResponse>(
-            await getPioneerClientNitro().turnPermissionRequestRespondJson(JSON.stringify(input)),
         );
     },
 
@@ -1389,7 +1330,14 @@ export const pioneerClient = {
         );
     },
 
-    async voiceSessionStart(input: VoiceSessionStartParams): Promise<VoiceSessionStartResponse> {
+    async composerVoiceCapturePlan(
+        identity: ComposerOperationIdentity,
+    ): Promise<ComposerOperationPlan> {
+        return parsePioneerClientResponse<ComposerOperationPlan>(
+            await getPioneerClientNitro().composerVoiceCapturePlanJson(JSON.stringify(identity)),
+        );
+    },
+    async voiceSessionStart(input: ComposerVoiceStartRequest): Promise<VoiceSessionStartResponse> {
         return parsePioneerClientResponse<VoiceSessionStartResponse>(
             await getPioneerClientNitro().voiceSessionStartJson(JSON.stringify(input)),
         );
@@ -1402,14 +1350,16 @@ export const pioneerClient = {
     },
 
     async voiceSessionFinalize(
-        input: VoiceSessionFinalizeParams,
+        input: ComposerVoiceFinalizeRequest,
     ): Promise<VoiceSessionFinalizeResponse> {
         return parsePioneerClientResponse<VoiceSessionFinalizeResponse>(
             await getPioneerClientNitro().voiceSessionFinalizeJson(JSON.stringify(input)),
         );
     },
 
-    async voiceSessionCancel(input: VoiceSessionCancelParams): Promise<VoiceSessionCancelResponse> {
+    async voiceSessionCancel(
+        input: ComposerVoiceCancelRequest,
+    ): Promise<VoiceSessionCancelResponse> {
         return parsePioneerClientResponse<VoiceSessionCancelResponse>(
             await getPioneerClientNitro().voiceSessionCancelJson(JSON.stringify(input)),
         );
@@ -1569,27 +1519,11 @@ export const pioneerClient = {
         );
     },
 
-    async composerSkillPickerRows(
-        input: ClientComposerSkillPickerRowsRequest,
-    ): Promise<SelectableSkillCapability[]> {
-        return parsePioneerClientResponse<SelectableSkillCapability[]>(
-            await getPioneerClientNitro().composerSkillPickerRowsJson(JSON.stringify(input)),
-        );
-    },
-
-    async composerMcpPickerRows(
-        input: ClientComposerMcpPickerRowsRequest,
-    ): Promise<ClientComposerMcpPickerRowsResult> {
-        return parsePioneerClientResponse<ClientComposerMcpPickerRowsResult>(
-            await getPioneerClientNitro().composerMcpPickerRowsJson(JSON.stringify(input)),
-        );
-    },
-
-    async composerSkillPackPicker(
+    composerSkillPackPicker(
         input: ClientComposerSkillPackPickerRequest,
-    ): Promise<ComposerSkillPickerProjection> {
+    ): ComposerSkillPickerProjection {
         return parsePioneerClientResponse<ComposerSkillPickerProjection>(
-            await getPioneerClientNitro().composerSkillPackPickerJson(JSON.stringify(input)),
+            getPioneerClientNitro().composerSkillPackPickerJson(JSON.stringify(input)),
         );
     },
 
@@ -1723,26 +1657,6 @@ export const pioneerClient = {
         );
     },
 
-    async turnMessageEdit(input: TurnMessageEditParams): Promise<TurnMessageEditResponse> {
-        return parsePioneerClientResponse<TurnMessageEditResponse>(
-            await getPioneerClientNitro().turnMessageEditJson(JSON.stringify(input)),
-        );
-    },
-
-    async turnMessageDelete(input: TurnMessageDeleteParams): Promise<TurnMessageDeleteResponse> {
-        return parsePioneerClientResponse<TurnMessageDeleteResponse>(
-            await getPioneerClientNitro().turnMessageDeleteJson(JSON.stringify(input)),
-        );
-    },
-
-    async turnMessageRevisionsPage(
-        input: TurnMessageRevisionsPageParams,
-    ): Promise<TurnMessageRevisionsPageResponse> {
-        return parsePioneerClientResponse<TurnMessageRevisionsPageResponse>(
-            await getPioneerClientNitro().turnMessageRevisionsPageJson(JSON.stringify(input)),
-        );
-    },
-
     messageRevisionPagePresentation(
         input: TurnMessageRevisionsPageResponse,
     ): MessageRevisionPagePresentation {
@@ -1850,14 +1764,6 @@ export const pioneerClient = {
     ): Promise<PreparedVoiceComposerSnapshot> {
         return parsePioneerClientResponse<PreparedVoiceComposerSnapshot>(
             await getPioneerClientNitro().prepareVoiceComposerSnapshotJson(JSON.stringify(input)),
-        );
-    },
-
-    async activeThreadCancelTurn(
-        input: ClientActiveThreadCancelTurnRequest,
-    ): Promise<ClientActiveThreadCancelTurnResult> {
-        return parsePioneerClientResponse<ClientActiveThreadCancelTurnResult>(
-            await getPioneerClientNitro().activeThreadCancelTurnJson(JSON.stringify(input)),
         );
     },
 

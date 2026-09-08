@@ -60,6 +60,53 @@ export type ClientScope =
       [k: string]: unknown;
     }
   | {
+      kind: 'thread_member';
+      thread_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'thread_capability';
+      thread_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'turn_cancellation';
+      thread_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'composer_model_picker';
+      thread_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'composer_catalog';
+      thread_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'message_deletion';
+      thread_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'message_revisions';
+      thread_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'approval_action';
+      request_id: string;
+      thread_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      candidate_id: string;
+      kind: 'task_review';
+      thread_id: string;
+      [k: string]: unknown;
+    }
+  | {
       kind: 'pending_request';
       thread_id?: string | null;
       workspace_id?: string | null;

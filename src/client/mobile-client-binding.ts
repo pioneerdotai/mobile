@@ -61,9 +61,20 @@ const scopeKey = (scope: ClientScope): string => {
             return `${scope.kind}:${optionalIdentity(scope.workspace_id)}`;
         case 'task':
             return `${scope.kind}:${optionalIdentity(scope.task_id)}`;
+        case 'approval_action':
+            return `${scope.kind}:${JSON.stringify([scope.thread_id, scope.request_id])}`;
+        case 'task_review':
+            return `${scope.kind}:${JSON.stringify([scope.thread_id, scope.candidate_id])}`;
         case 'thread':
         case 'timeline':
         case 'composer':
+        case 'turn_cancellation':
+        case 'composer_model_picker':
+        case 'composer_catalog':
+        case 'message_deletion':
+        case 'message_revisions':
+        case 'thread_capability':
+        case 'thread_member':
         case 'artifact':
             return `${scope.kind}:${JSON.stringify(scope.thread_id)}`;
         case 'pending_request':
@@ -540,6 +551,17 @@ export class MobileClientBinding {
             state.scope.kind !== 'timeline' &&
             state.scope.kind !== 'avatar' &&
             state.scope.kind !== 'task_inbox' &&
+            state.scope.kind !== 'task_review' &&
+            state.scope.kind !== 'composer' &&
+            state.scope.kind !== 'composer_catalog' &&
+            state.scope.kind !== 'composer_model_picker' &&
+            state.scope.kind !== 'approval_action' &&
+            state.scope.kind !== 'message_deletion' &&
+            state.scope.kind !== 'message_revisions' &&
+            state.scope.kind !== 'turn_cancellation' &&
+            state.scope.kind !== 'thread_capability' &&
+            state.scope.kind !== 'thread_member' &&
+            state.scope.kind !== 'artifact' &&
             state.scope.kind !== 'workspace_tree'
         )
             return;
@@ -601,7 +623,21 @@ export class MobileClientBinding {
                     state.listeners.delete(registration);
                     if (state.listeners.size === 0) {
                         this.#setScopeDemand(state, 'suspended');
-                        if (state.scope.kind === 'avatar' || state.scope.kind === 'task_inbox') {
+                        if (
+                            state.scope.kind === 'avatar' ||
+                            state.scope.kind === 'task_inbox' ||
+                            state.scope.kind === 'task_review' ||
+                            state.scope.kind === 'composer' ||
+                            state.scope.kind === 'composer_catalog' ||
+                            state.scope.kind === 'composer_model_picker' ||
+                            state.scope.kind === 'approval_action' ||
+                            state.scope.kind === 'message_deletion' ||
+                            state.scope.kind === 'message_revisions' ||
+                            state.scope.kind === 'turn_cancellation' ||
+                            state.scope.kind === 'thread_capability' ||
+                            state.scope.kind === 'thread_member' ||
+                            state.scope.kind === 'artifact'
+                        ) {
                             state.snapshot = null;
                             state.rows.clear();
                             this.#scopes.delete(key);

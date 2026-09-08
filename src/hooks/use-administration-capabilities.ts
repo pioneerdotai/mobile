@@ -75,12 +75,6 @@ export const useAdministrationCapabilities = () => {
     };
 };
 
-/** Resource-scoped operational capabilities for an active thread. Internal
- * task/subagent threads are resolved by the Gateway through persisted root
- * lineage; the client never infers that inheritance locally. */
-export const useThreadAuthorizationCapabilities = (threadId: string | null) =>
-    useAuthorizationCapabilitySnapshot(threadId);
-
 export const useCurrentPrincipalPresentation = () => {
     const principal = useAdministrationPrincipal();
     const capabilitySnapshot = useAuthorizationCapabilitySnapshot();

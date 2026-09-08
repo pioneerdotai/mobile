@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 
 import { CollapseButton } from '@/components/buttons/collapse';
 import { useScreen } from '@/hooks/use-screen';
+import { ComposerModelPickerProvider } from '@/client/composer-model-picker';
 
 export default function ModelSelectorStackLayout() {
     const { t } = useTranslation('threads');
@@ -18,45 +19,47 @@ export default function ModelSelectorStackLayout() {
     };
 
     return (
-        <Stack
-            screenOptions={{
-                ...options,
-                headerShown: true,
-                headerMode: 'screen',
-                headerTransparent: true,
-                headerStyle: {
-                    ...options.headerStyle,
-                    backgroundColor: 'transparent',
-                },
-                animation: 'slide_from_right',
-                animationTypeForReplace: 'pop',
-            }}
-        >
-            <Stack.Screen
-                name="index"
-                options={{
-                    title: t('modelSelectorTitle'),
-                    headerLeft: () => <CollapseButton onPressHandler={close} />,
+        <ComposerModelPickerProvider>
+            <Stack
+                screenOptions={{
+                    ...options,
+                    headerShown: true,
+                    headerMode: 'screen',
+                    headerTransparent: true,
+                    headerStyle: {
+                        ...options.headerStyle,
+                        backgroundColor: 'transparent',
+                    },
+                    animation: 'slide_from_right',
+                    animationTypeForReplace: 'pop',
                 }}
-            />
-            <Stack.Screen
-                name="provider"
-                options={{
-                    title: t('modelSelectorProviderTitle'),
-                }}
-            />
-            <Stack.Screen
-                name="model"
-                options={{
-                    title: t('modelSelectorModelTitle'),
-                }}
-            />
-            <Stack.Screen
-                name="reasoning-effort"
-                options={{
-                    title: t('modelSelectorReasoningTitle'),
-                }}
-            />
-        </Stack>
+            >
+                <Stack.Screen
+                    name="index"
+                    options={{
+                        title: t('modelSelectorTitle'),
+                        headerLeft: () => <CollapseButton onPressHandler={close} />,
+                    }}
+                />
+                <Stack.Screen
+                    name="provider"
+                    options={{
+                        title: t('modelSelectorProviderTitle'),
+                    }}
+                />
+                <Stack.Screen
+                    name="model"
+                    options={{
+                        title: t('modelSelectorModelTitle'),
+                    }}
+                />
+                <Stack.Screen
+                    name="reasoning-effort"
+                    options={{
+                        title: t('modelSelectorReasoningTitle'),
+                    }}
+                />
+            </Stack>
+        </ComposerModelPickerProvider>
     );
 }

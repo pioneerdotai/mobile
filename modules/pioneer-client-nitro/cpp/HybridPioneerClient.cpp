@@ -481,33 +481,13 @@ HybridPioneerClient::cliRuntimeListModelsJson(const std::string& inputJson) {
 }
 
 std::shared_ptr<margelo::nitro::Promise<std::string>>
-HybridPioneerClient::cliRuntimeThreadBindingGetJson(const std::string& inputJson) {
-  return callWithClientAsync(pioneer_client_ffi_cli_runtime_thread_binding_get, inputJson);
-}
-
-std::shared_ptr<margelo::nitro::Promise<std::string>>
 HybridPioneerClient::cliRuntimeThreadCompactJson(const std::string& inputJson) {
   return callWithClientAsync(pioneer_client_ffi_cli_runtime_thread_compact, inputJson);
 }
 
 std::shared_ptr<margelo::nitro::Promise<std::string>>
-HybridPioneerClient::cliRuntimeTurnSteerJson(const std::string& inputJson) {
-  return callWithClientAsync(pioneer_client_ffi_cli_runtime_turn_steer, inputJson);
-}
-
-std::shared_ptr<margelo::nitro::Promise<std::string>>
 HybridPioneerClient::cliRuntimeReviewStartJson(const std::string& inputJson) {
   return callWithClientAsync(pioneer_client_ffi_cli_runtime_review_start, inputJson);
-}
-
-std::shared_ptr<margelo::nitro::Promise<std::string>>
-HybridPioneerClient::cliRuntimeRequestRespondJson(const std::string& inputJson) {
-  return callWithClientAsync(pioneer_client_ffi_cli_runtime_request_respond, inputJson);
-}
-
-std::shared_ptr<margelo::nitro::Promise<std::string>>
-HybridPioneerClient::turnPermissionRequestRespondJson(const std::string& inputJson) {
-  return callWithClientAsync(pioneer_client_ffi_turn_permission_request_respond, inputJson);
 }
 
 std::shared_ptr<margelo::nitro::Promise<std::string>>
@@ -538,6 +518,11 @@ HybridPioneerClient::taskUserNotificationAcknowledgeJson(const std::string& inpu
 std::shared_ptr<margelo::nitro::Promise<std::string>>
 HybridPioneerClient::voiceStatusJson(const std::string& inputJson) {
   return callWithClientAsync(pioneer_client_ffi_voice_status, inputJson);
+}
+
+std::shared_ptr<margelo::nitro::Promise<std::string>>
+HybridPioneerClient::composerVoiceCapturePlanJson(const std::string& inputJson) {
+  return callWithClientAsync(pioneer_client_ffi_composer_voice_capture_plan, inputJson);
 }
 
 std::shared_ptr<margelo::nitro::Promise<std::string>>
@@ -676,19 +661,8 @@ std::string HybridPioneerClient::composerAttachmentsUpdateJson(const std::string
   return callWithClient(pioneer_client_ffi_composer_attachments_update, inputJson);
 }
 
-std::shared_ptr<margelo::nitro::Promise<std::string>>
-HybridPioneerClient::composerSkillPickerRowsJson(const std::string& inputJson) {
-  return callWithClientAsync(pioneer_client_ffi_composer_skill_picker_rows, inputJson);
-}
-
-std::shared_ptr<margelo::nitro::Promise<std::string>>
-HybridPioneerClient::composerMcpPickerRowsJson(const std::string& inputJson) {
-  return callWithClientAsync(pioneer_client_ffi_composer_mcp_picker_rows, inputJson);
-}
-
-std::shared_ptr<margelo::nitro::Promise<std::string>>
-HybridPioneerClient::composerSkillPackPickerJson(const std::string& inputJson) {
-  return callWithClientAsync(pioneer_client_ffi_composer_skill_pack_picker, inputJson);
+std::string HybridPioneerClient::composerSkillPackPickerJson(const std::string& inputJson) {
+  return callWithClient(pioneer_client_ffi_composer_skill_pack_picker, inputJson);
 }
 
 std::string HybridPioneerClient::composerSkillSelectionToggleJson(
@@ -767,21 +741,6 @@ HybridPioneerClient::threadTimelinePageJson(const std::string& inputJson) {
   return callWithClientAsync(pioneer_client_ffi_thread_timeline_page, inputJson);
 }
 
-std::shared_ptr<margelo::nitro::Promise<std::string>>
-HybridPioneerClient::turnMessageEditJson(const std::string& inputJson) {
-  return callWithClientAsync(pioneer_client_ffi_turn_message_edit, inputJson);
-}
-
-std::shared_ptr<margelo::nitro::Promise<std::string>>
-HybridPioneerClient::turnMessageDeleteJson(const std::string& inputJson) {
-  return callWithClientAsync(pioneer_client_ffi_turn_message_delete, inputJson);
-}
-
-std::shared_ptr<margelo::nitro::Promise<std::string>>
-HybridPioneerClient::turnMessageRevisionsPageJson(const std::string& inputJson) {
-  return callWithClientAsync(pioneer_client_ffi_turn_message_revisions_page, inputJson);
-}
-
 std::string HybridPioneerClient::messageRevisionPagePresentationJson(
     const std::string& inputJson) {
   return callWithClient(pioneer_client_ffi_message_revision_page_presentation, inputJson);
@@ -854,11 +813,6 @@ HybridPioneerClient::activeThreadSendTextJson(const std::string& inputJson) {
 std::shared_ptr<margelo::nitro::Promise<std::string>>
 HybridPioneerClient::prepareVoiceComposerSnapshotJson(const std::string& inputJson) {
   return callWithClientAsync(pioneer_client_ffi_prepare_voice_composer_snapshot, inputJson);
-}
-
-std::shared_ptr<margelo::nitro::Promise<std::string>>
-HybridPioneerClient::activeThreadCancelTurnJson(const std::string& inputJson) {
-  return callWithClientAsync(pioneer_client_ffi_active_thread_cancel_turn, inputJson);
 }
 
 std::shared_ptr<margelo::nitro::Promise<std::string>>

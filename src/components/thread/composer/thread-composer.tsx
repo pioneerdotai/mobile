@@ -122,8 +122,8 @@ type ThreadComposerProps = {
     onRemoveMention: (principalId: string) => void;
     onOpenModelSelector: () => void;
     onOpenPermissionModeSelector: () => void;
-    onRemoveAttachment: (index: number) => void;
-    onRemoveCapability: (index: number) => void;
+    onRemoveAttachment: (path: string) => void;
+    onRemoveCapability: (id: string) => void;
     onRemoveSkillChip: (chip: ComposerSkillChip) => void;
     onHeightChange?: (height: number) => void;
     voiceVisible: boolean;
@@ -884,8 +884,8 @@ type ComposerChipRailProps = {
     capabilities: ComposerCapability[];
     skillChips: ComposerSkillChip[];
     disabled: boolean;
-    onRemoveAttachment: (index: number) => void;
-    onRemoveCapability: (index: number) => void;
+    onRemoveAttachment: (path: string) => void;
+    onRemoveCapability: (id: string) => void;
     onRemoveSkillChip: (chip: ComposerSkillChip) => void;
 };
 
@@ -906,20 +906,20 @@ const ComposerChipRail = ({
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.chipRail}
         >
-            {attachments.map((attachment, index) => (
+            {attachments.map((attachment) => (
                 <ComposerAttachmentChip
-                    key={`${attachment.path}:${index}`}
+                    key={attachment.path}
                     attachment={attachment}
                     disabled={disabled}
-                    onRemove={() => onRemoveAttachment(index)}
+                    onRemove={() => onRemoveAttachment(attachment.path)}
                 />
             ))}
-            {capabilities.map((capability, index) => (
+            {capabilities.map((capability) => (
                 <ComposerCapabilityChip
                     key={capability.id}
                     capability={capability}
                     disabled={disabled}
-                    onRemove={() => onRemoveCapability(index)}
+                    onRemove={() => onRemoveCapability(capability.id)}
                 />
             ))}
             {skillChips.map((chip) => (

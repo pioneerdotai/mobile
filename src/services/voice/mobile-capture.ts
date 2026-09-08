@@ -1,10 +1,10 @@
+import type { ComposerOperationIdentity } from '@/client/generated/composer_publication';
 import { AudioManager, AudioRecorder, type AudioEventSubscription } from 'react-native-audio-api';
 
 import {
     pioneerClient,
     type VoiceAudioFormat,
     type VoiceSessionStartContext,
-    type VoiceStatus,
     type VoiceTurnContext,
 } from '@/client';
 import { acquireGatewayTransportLease } from '@/services/gateway/transport-coordinator';
@@ -55,50 +55,33 @@ export type MobileVoiceCaptureCallbacks = {
 };
 
 export type StartMobileVoiceCaptureParams = {
-    workspaceId: string;
-    startContext: VoiceSessionStartContext;
+    operation: ComposerOperationIdentity;
     callbacks?: MobileVoiceCaptureCallbacks;
 };
 
-export const canUseVoiceStatus = (status: VoiceStatus | null | undefined): boolean =>
-    status === 'ready';
-
-export const voiceStatusUnavailableMessage = (status: VoiceStatus | null | undefined): string => {
-    switch (status) {
-        case 'model_downloading':
-            return 'Voice model is still downloading.';
-        case 'model_loading':
-            return 'Voice model is still loading.';
-        case 'busy':
-        case 'recording':
-        case 'transcribing':
-            return 'Voice input is busy.';
-        case 'error':
-            return 'Voice input is unavailable.';
-        case 'unavailable':
-            return 'Voice input is unavailable.';
-        case 'ready':
-            return '';
-        default:
-            return 'Voice input is not ready.';
-    }
-};
-
 export const startMobileVoiceCapture = async ({
-    workspaceId,
-    startContext,
+    operation,
     callbacks,
 }: StartMobileVoiceCaptureParams): Promise<MobileVoiceCaptureSession> => {
     const releaseTransportLease = await acquireGatewayTransportLease();
     let sessionOwnsTransportLease = false;
     try {
-        const status = await pioneerClient.voiceStatus({ workspace_id: workspaceId });
-        if (!canUseVoiceStatus(status.status)) {
+        let plan;
+        try {
+            plan = await pioneerClient.composerVoiceCapturePlan(operation);
+        } catch (error) {
             throw new MobileVoiceCaptureError(
                 'voice_not_ready',
-                status.error?.message || voiceStatusUnavailableMessage(status.status),
+                errorMessage(error),
+                errorOptions(error),
             );
         }
+        const startContext = plan.voice_start;
+        if (!startContext)
+            throw new MobileVoiceCaptureError(
+                'session_start_failed',
+                'Voice requires an opened thread',
+            );
 
         await ensureRecordingPermission();
         await ensureInputDevice();
@@ -107,7 +90,7 @@ export const startMobileVoiceCapture = async ({
         let sessionId: string;
         try {
             const response = await pioneerClient.voiceSessionStart({
-                context: startContext,
+                operation,
                 audio_format: MOBILE_VOICE_AUDIO_FORMAT,
             });
             sessionId = response.session_id;
@@ -124,14 +107,24 @@ export const startMobileVoiceCapture = async ({
             sessionId,
             startContext,
             releaseTransportLease,
+            operation,
             callbacks,
         );
         sessionOwnsTransportLease = true;
         try {
             await session.start();
         } catch (error) {
+            const captureError =
+                error instanceof MobileVoiceCaptureError
+                    ? error
+                    : new MobileVoiceCaptureError(
+                          'recorder_start_failed',
+                          errorMessage(error),
+                          errorOptions(error),
+                      );
+            callbacks?.onError?.(captureError);
             await session.cancel('mobile_capture_start_failed').catch(() => null);
-            throw error;
+            throw captureError;
         }
 
         return session;
@@ -144,6 +137,7 @@ export const startMobileVoiceCapture = async ({
 
 export class MobileVoiceCaptureSession {
     readonly sessionId: string;
+    readonly operation: ComposerOperationIdentity;
     readonly startContext: VoiceSessionStartContext;
     readonly turnId: string;
     private readonly releaseTransportLease: () => void;
@@ -162,9 +156,11 @@ export class MobileVoiceCaptureSession {
         sessionId: string,
         startContext: VoiceSessionStartContext,
         releaseTransportLease: () => void,
+        operation: ComposerOperationIdentity,
         callbacks?: MobileVoiceCaptureCallbacks,
     ) {
         this.sessionId = sessionId;
+        this.operation = operation;
         this.startContext = { ...startContext };
         this.turnId = startContext.turn_id;
         this.releaseTransportLease = releaseTransportLease;
@@ -295,9 +291,8 @@ export class MobileVoiceCaptureSession {
                 throw chunkError;
             }
 
-            let context: VoiceTurnContext;
             try {
-                context = await prepareContext();
+                await prepareContext();
             } catch (error) {
                 await this.cancelGatewaySession('mobile_prepare_failed').catch(() => null);
                 throw error;
@@ -305,8 +300,7 @@ export class MobileVoiceCaptureSession {
 
             try {
                 await pioneerClient.voiceSessionFinalize({
-                    session_id: this.sessionId,
-                    context,
+                    operation: this.operation,
                 });
             } catch (error) {
                 throw new MobileVoiceCaptureError(
@@ -383,6 +377,7 @@ export class MobileVoiceCaptureSession {
         try {
             pioneerClient.voiceAudioChunk(
                 {
+                    operation: this.operation,
                     session_id: this.sessionId,
                     sequence,
                     audio_format: MOBILE_VOICE_AUDIO_FORMAT,
@@ -450,6 +445,7 @@ export class MobileVoiceCaptureSession {
     private async cancelGatewaySession(reason: string): Promise<void> {
         try {
             await pioneerClient.voiceSessionCancel({
+                operation: this.operation,
                 session_id: this.sessionId,
                 reason,
             });

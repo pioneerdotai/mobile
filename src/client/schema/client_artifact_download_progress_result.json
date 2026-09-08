@@ -14,6 +14,11 @@
         "null"
       ]
     },
+    "generation": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0
+    },
     "operation_id": {
       "type": "string"
     },
@@ -33,6 +38,7 @@
   },
   "required": [
     "operation_id",
+    "generation",
     "state",
     "downloaded_bytes",
     "total_bytes",
