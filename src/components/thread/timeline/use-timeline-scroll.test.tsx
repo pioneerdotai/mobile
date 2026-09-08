@@ -77,7 +77,6 @@ describe('mobile timeline scroll coordination', () => {
         const view = await mount();
         view.scroll.markScrollIntent();
         view.scroll.prepareExpansion(worked, true, view.rows, view.ref.current);
-        expect(view.scroll.consumeViewportScrollIntent(view.rows)).toBe(false);
         await view.publish(
             view.rows.map((row) =>
                 row.key === worked.key ? ({ ...worked, expanded: true } as TimelineRow) : row,
@@ -99,26 +98,16 @@ describe('mobile timeline scroll coordination', () => {
         expect(5 * 40 - view.offset).toBe(80); // The answer stays at the same viewport position.
         await view.publish([...view.rows]);
         expect(view.scrollToOffset).toHaveBeenCalledTimes(1);
-        expect(view.scroll.consumeViewportScrollIntent(view.rows)).toBe(false);
         await view.unmount();
     });
 
-    it('does not turn a gesture received during loading into another page request', async () => {
+    it('reports gesture generations without making request decisions', async () => {
         const view = await mount();
+        const generation = view.scroll.scrollGeneration();
         view.scroll.markScrollIntent();
-        expect(view.scroll.consumeViewportScrollIntent(view.rows)).toBe(true);
-        view.scroll.markScrollIntent();
-        const next = [item('older'), ...view.rows];
-        // LegendList can report viewability before the parent's layout effect.
-        expect(view.scroll.consumeViewportScrollIntent(next)).toBe(false);
-        await view.publish(next);
-        for (let i = 0; i < 3; i++) {
-            expect(view.scroll.consumeViewportScrollIntent(next)).toBe(false);
-        }
-        view.scroll.markScrollIntent();
-        expect(view.scroll.consumeViewportScrollIntent(next)).toBe(true);
-        expect(view.scrollToIndex).not.toHaveBeenCalled();
-        expect(view.scrollToOffset).not.toHaveBeenCalled();
+        expect(view.scroll.scrollGeneration()).toBe(generation + 1);
+        await view.publish([item('older'), ...view.rows]);
+        expect(view.scroll.scrollGeneration()).toBe(generation + 1);
         await view.unmount();
     });
 
@@ -139,7 +128,6 @@ describe('mobile timeline scroll coordination', () => {
         await view.publish([item('message'), worked, item('work-1'), item('answer')], 'b');
         expect(view.scrollToIndex).not.toHaveBeenCalled();
         expect(view.scrollToOffset).not.toHaveBeenCalled();
-        expect(view.scroll.consumeViewportScrollIntent(view.rows)).toBe(false);
         await view.unmount();
     });
 });

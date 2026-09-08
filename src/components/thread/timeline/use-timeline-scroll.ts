@@ -29,17 +29,12 @@ type ExpansionAnchor = {
 class TimelineScrollController {
     private previousRows: readonly TimelineRow[] = [];
     private generation = 0;
-    private consumedGeneration = 0;
     private expansion: ExpansionAnchor | null = null;
 
     constructor(readonly identity: string) {}
 
     private synchronizeRows(nextRows: readonly TimelineRow[]) {
         if (nextRows === this.previousRows) return;
-        const previousKeys = new Set(this.previousRows.map((row) => row.key));
-        if (nextRows.some((row) => !previousKeys.has(row.key))) {
-            this.consumedGeneration = this.generation;
-        }
         this.previousRows = nextRows;
     }
 
@@ -48,13 +43,7 @@ class TimelineScrollController {
         this.generation += 1;
     };
 
-    consumeViewportScrollIntent(nextRows: readonly TimelineRow[]) {
-        // Viewability may run before the parent's layout effect.
-        this.synchronizeRows(nextRows);
-        if (this.expansion || this.generation <= this.consumedGeneration) return false;
-        this.consumedGeneration = this.generation;
-        return true;
-    }
+    scrollGeneration = () => this.generation;
 
     prepareExpansion(
         row: TimelineRow,
@@ -62,7 +51,6 @@ class TimelineScrollController {
         currentRows: readonly TimelineRow[],
         list: LegendListRef | null,
     ) {
-        this.consumedGeneration = this.generation;
         this.expansion = null;
         if (row.type !== 'work-group' || !expanded) return;
         const index = currentRows.findIndex((item) => item.key === row.key);

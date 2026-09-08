@@ -85,15 +85,8 @@ export type ClientIntent =
       [k: string]: unknown;
     }
   | {
-      after: boolean;
-      before: boolean;
-      kind: 'timeline_viewport';
-      presented_rows: boolean;
-      row_ids: string[];
-      source_revision: number;
-      thread_id: string;
-      threshold: number;
-      work: boolean;
+      intent: TimelineIntent;
+      kind: 'timeline';
       [k: string]: unknown;
     }
   | {
@@ -1203,6 +1196,34 @@ export type SemanticDestination =
       route: SettingsRoute;
       [k: string]: unknown;
     };
+export type TimelineIntent =
+  | {
+      consumer_id: string;
+      generation: number;
+      kind: 'consume_scroll';
+      scroll_generation: number;
+      thread_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      demand: TimelineDemand;
+      kind: 'update';
+      [k: string]: unknown;
+    }
+  | {
+      consumer_id: string;
+      generation: number;
+      kind: 'exit';
+      thread_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      consumer_id: string;
+      generation: number;
+      kind: 'retry';
+      thread_id: string;
+      [k: string]: unknown;
+    };
 export type ClientDemand = 'suspended' | 'visible' | 'prefetch';
 export type ClientScope =
   | {
@@ -1630,5 +1651,24 @@ export interface TaskThreadLineage {
   parent_thread_id: string;
   title: string;
   workspace_id: string;
+  [k: string]: unknown;
+}
+export interface TimelineDemand {
+  after: boolean;
+  before: boolean;
+  boundary_request_limit: number;
+  consumer_id: string;
+  generation: number;
+  latest_user_turn_id?: string | null;
+  prefetch_on_visibility: boolean;
+  presented_rows: boolean;
+  read_requires_unread?: boolean;
+  row_ids: string[];
+  scroll_generation: number;
+  source_revision: number;
+  thread_id: string;
+  threshold: number;
+  viewed_through_turn_id?: string | null;
+  work: boolean;
   [k: string]: unknown;
 }

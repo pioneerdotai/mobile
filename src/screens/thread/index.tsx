@@ -15,7 +15,7 @@ import { dispatchNavigation, navigationSnapshot } from '@/client/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { router, useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { AppState, type AppStateStatus, type LayoutChangeEvent, Text, View } from 'react-native';
+import { type LayoutChangeEvent, Text, View } from 'react-native';
 import { KeyboardGestureArea, KeyboardStickyView } from 'react-native-keyboard-controller';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useKeyboardChatComposerInset } from '@legendapp/list/keyboard';
@@ -103,10 +103,8 @@ const ThreadScreen = ({
     const { theme, rt } = useUnistyles();
 
     const [focused, setFocused] = useState(false);
-    const [appState, setAppState] = useState<AppStateStatus>(AppState.currentState);
     const [messageMutationTarget, setMessageMutationTarget] =
         useState<MessageMutationTarget | null>(null);
-    const requestedReadThroughRef = useRef(new Set<string>());
 
     const treeSnapshot = useThreadTreeStore((state) => state.snapshot);
     const currentPrincipalId = useGatewayStore((state) => state.sessionPrincipalId);
@@ -327,13 +325,6 @@ const ThreadScreen = ({
             }),
         [canAttachArtifacts, canReadArtifacts, connected],
     );
-    useEffect(() => {
-        const subscription = AppState.addEventListener('change', setAppState);
-        return () => subscription.remove();
-    }, []);
-    useEffect(() => {
-        requestedReadThroughRef.current.clear();
-    }, [visibleThreadId]);
 
     const handleOpenMessageRevisions = useCallback(
         (turnId: string) => {
@@ -367,30 +358,6 @@ const ThreadScreen = ({
         [visibleThreadId],
     );
 
-    const handleViewedThroughUserTurn = useCallback(
-        (turnId: string) => {
-            if (!focused || !connected || appState !== 'active' || !visibleSnapshot) return;
-            const authoritativeUnread = useThreadTreeStore
-                .getState()
-                .snapshot?.unread.find(
-                    (entry) => entry.thread_id === visibleThreadId,
-                )?.unread_count;
-            if (!authoritativeUnread || authoritativeUnread <= 0) return;
-            const requestKey = `${visibleThreadId}:${turnId}`;
-            if (requestedReadThroughRef.current.has(requestKey)) return;
-            requestedReadThroughRef.current.add(requestKey);
-
-            void pioneerClient
-                .threadRead({
-                    thread_id: visibleThreadId,
-                    through_turn_id: turnId,
-                })
-                .catch(() => {
-                    requestedReadThroughRef.current.delete(requestKey);
-                });
-        },
-        [appState, connected, focused, visibleSnapshot, visibleThreadId],
-    );
     const artifactInput = useThreadArtifacts(
         visibleThreadId,
         focused,
@@ -1216,7 +1183,6 @@ const ThreadScreen = ({
                             onReplyToMessage={handleReplyToMessage}
                             onEditMessage={handleEditMessage}
                             onDeleteMessage={handleDeleteMessage}
-                            onViewedThroughUserTurn={handleViewedThroughUserTurn}
                             onRefresh={refreshThreadTimeline}
                         />
                     ) : (

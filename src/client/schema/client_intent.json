@@ -283,52 +283,17 @@
     {
       "type": "object",
       "properties": {
-        "after": {
-          "type": "boolean"
-        },
-        "before": {
-          "type": "boolean"
+        "intent": {
+          "$ref": "#/$defs/TimelineIntent"
         },
         "kind": {
           "type": "string",
-          "const": "timeline_viewport"
-        },
-        "presented_rows": {
-          "type": "boolean"
-        },
-        "row_ids": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "source_revision": {
-          "type": "integer",
-          "format": "uint64",
-          "minimum": 0
-        },
-        "thread_id": {
-          "type": "string"
-        },
-        "threshold": {
-          "type": "integer",
-          "format": "uint",
-          "minimum": 0
-        },
-        "work": {
-          "type": "boolean"
+          "const": "timeline"
         }
       },
       "required": [
         "kind",
-        "thread_id",
-        "row_ids",
-        "source_revision",
-        "threshold",
-        "before",
-        "after",
-        "work",
-        "presented_rows"
+        "intent"
       ]
     },
     {
@@ -4916,6 +4881,198 @@
       "enum": [
         "private",
         "workspace"
+      ]
+    },
+    "TimelineDemand": {
+      "type": "object",
+      "properties": {
+        "after": {
+          "type": "boolean"
+        },
+        "before": {
+          "type": "boolean"
+        },
+        "boundary_request_limit": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "consumer_id": {
+          "type": "string"
+        },
+        "generation": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "latest_user_turn_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "prefetch_on_visibility": {
+          "type": "boolean"
+        },
+        "presented_rows": {
+          "type": "boolean"
+        },
+        "read_requires_unread": {
+          "type": "boolean",
+          "default": false
+        },
+        "row_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "scroll_generation": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "source_revision": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "thread_id": {
+          "type": "string"
+        },
+        "threshold": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "viewed_through_turn_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "work": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "thread_id",
+        "consumer_id",
+        "generation",
+        "source_revision",
+        "row_ids",
+        "threshold",
+        "before",
+        "after",
+        "work",
+        "presented_rows",
+        "scroll_generation",
+        "prefetch_on_visibility",
+        "boundary_request_limit"
+      ]
+    },
+    "TimelineIntent": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "consumer_id": {
+              "type": "string"
+            },
+            "generation": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "kind": {
+              "type": "string",
+              "const": "consume_scroll"
+            },
+            "scroll_generation": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "thread_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "thread_id",
+            "consumer_id",
+            "generation",
+            "scroll_generation"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "demand": {
+              "$ref": "#/$defs/TimelineDemand"
+            },
+            "kind": {
+              "type": "string",
+              "const": "update"
+            }
+          },
+          "required": [
+            "kind",
+            "demand"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "consumer_id": {
+              "type": "string"
+            },
+            "generation": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "kind": {
+              "type": "string",
+              "const": "exit"
+            },
+            "thread_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "thread_id",
+            "consumer_id",
+            "generation"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "consumer_id": {
+              "type": "string"
+            },
+            "generation": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "kind": {
+              "type": "string",
+              "const": "retry"
+            },
+            "thread_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "thread_id",
+            "consumer_id",
+            "generation"
+          ]
+        }
       ]
     },
     "TurnCLIRuntimeOptions": {

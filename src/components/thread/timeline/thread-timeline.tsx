@@ -1,3 +1,4 @@
+import { useTimelineDemand } from '@/client/timeline-demand';
 import { mobileClientBinding } from '@/client/mobile-client-binding';
 import { useThreadPresentation } from '@/hooks/use-thread-presentation';
 import {
@@ -106,7 +107,6 @@ type ThreadTimelineProps = {
     onReplyToMessage?: (row: Extract<TimelineRow, { type: 'user-message' }>) => void;
     onEditMessage?: (row: Extract<TimelineRow, { type: 'user-message' }>) => void;
     onDeleteMessage?: (row: Extract<TimelineRow, { type: 'user-message' }>) => void;
-    onViewedThroughUserTurn?: (turnId: string) => void;
     onOpenMcpServer?: (serverId: string) => void;
     onOpenTaskThread?: (row: Extract<TimelineRow, { type: 'task-anchor' }>) => void;
     onExpandedKeysChange: (keys: string[]) => void;
@@ -172,7 +172,6 @@ const ThreadTimelineContent = ({
     onReplyToMessage,
     onEditMessage,
     onDeleteMessage,
-    onViewedThroughUserTurn,
     onOpenMcpServer,
     onOpenTaskThread,
     onExpandedKeysChange,
@@ -221,6 +220,10 @@ const ThreadTimelineContent = ({
     const { rows: publishedRows, snapshot: timelineSnapshot } = useThreadPresentation(
         conversation.thread_id,
         presentationActive,
+    );
+    const publishTimelineDemand = useTimelineDemand(
+        timelineSnapshot,
+        presentationActive && connected,
     );
     const timelineScroll = useTimelineScroll(
         timelineIdentityKey,
@@ -315,6 +318,7 @@ const ThreadTimelineContent = ({
     const toggleExpandedRow = useCallback(
         (row: TimelineRow) => {
             const expanded = !(expandedRows[row.key] ?? defaultTimelineRowExpanded(row));
+            publishTimelineDemand.consumeScroll(timelineScroll.scrollGeneration());
             timelineScroll.prepareExpansion(
                 row,
                 expanded,
@@ -323,7 +327,7 @@ const ThreadTimelineContent = ({
             );
             setExpandedRows((current) => ({ ...current, [row.key]: expanded }));
         },
-        [expandedRows, publishedRows, timelineScroll],
+        [expandedRows, publishedRows, timelineScroll, publishTimelineDemand],
     );
 
     const listExtraData = useMemo(
@@ -437,38 +441,17 @@ const ThreadTimelineContent = ({
                 .filter((index) => index >= 0 && index < rows.length);
             updateVisibleAvatarGroups(visibleIndices);
             const viewedThroughTurnId = viewedThroughLatestUserTurn(rows, visibleIndices);
-            if (viewedThroughTurnId) {
-                onViewedThroughUserTurn?.(viewedThroughTurnId);
-            }
-
-            if (!presentationActive || !timelineSnapshot) return;
-            if (!timelineScroll.consumeViewportScrollIntent(publishedRows)) return;
             const indices = visibleIndices.length ? visibleIndices : [info.start, info.end];
             const rowIds = indices.flatMap((index) => (rows[index] ? [rows[index].key] : []));
-            mobileClientBinding.dispatch({
-                schema_version: 1,
-                intent: {
-                    kind: 'timeline_viewport',
-                    thread_id: timelineSnapshot.thread_id,
-                    row_ids: rowIds,
-                    source_revision: timelineSnapshot.source_revision,
-                    threshold: 6,
-                    before: true,
-                    after: true,
-                    work: true,
-                    presented_rows: true,
-                },
-            });
+            const latest = [...rows].reverse().find((row) => row.type === 'user-message');
+            publishTimelineDemand.update(
+                rowIds,
+                latest?.type === 'user-message' ? latest.turnId : null,
+                viewedThroughTurnId,
+                timelineScroll.scrollGeneration(),
+            );
         },
-        [
-            onViewedThroughUserTurn,
-            presentationActive,
-            timelineSnapshot,
-            rows,
-            publishedRows,
-            timelineScroll,
-            updateVisibleAvatarGroups,
-        ],
+        [publishTimelineDemand, rows, timelineScroll, updateVisibleAvatarGroups],
     );
 
     return (
