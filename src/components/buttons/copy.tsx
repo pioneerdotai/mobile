@@ -7,6 +7,7 @@ import { Pressable } from '@/components/primitives/pressable';
 
 type CopyButtonProps = {
     value: string;
+    onCopy?: (value: string) => Promise<void>;
     accessibilityLabel: string;
     copiedAccessibilityLabel: string;
     iconSize?: number;
@@ -17,6 +18,7 @@ const COPIED_RESET_MS = 1_400;
 
 export const CopyButton = ({
     value,
+    onCopy,
     accessibilityLabel,
     copiedAccessibilityLabel,
     iconSize,
@@ -48,12 +50,13 @@ export const CopyButton = ({
         }
 
         try {
-            await Clipboard.setStringAsync(value);
+            if (onCopy) await onCopy(value);
+            else await Clipboard.setStringAsync(value);
             setCopied(true);
         } catch {
             // Keep the copy icon when the platform clipboard rejects the write.
         }
-    }, [disabled, value]);
+    }, [disabled, value, onCopy]);
 
     return (
         <Pressable

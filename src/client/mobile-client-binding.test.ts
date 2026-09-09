@@ -58,6 +58,76 @@ const bridgeFixture = (initial: ClientScopedSnapshotDto | null) => {
 };
 
 describe('MobileClientBinding', () => {
+    test('provider scope identity is semantic and scoped row reuse survives reordering and deletion', () => {
+        const scope: ClientScope = {
+            kind: 'provider_collection',
+            key: {
+                workspace_id: 'workspace',
+                collection: { kind: 'models', provider: 'openai', purpose: 'chat' },
+            },
+        };
+        const reorderedScope: ClientScope = {
+            kind: 'provider_collection',
+            key: {
+                collection: { purpose: 'chat', provider: 'openai', kind: 'models' },
+                workspace_id: 'workspace',
+            },
+        };
+        const initial = {
+            ...snapshot(1, [], scope),
+            payload: {
+                models: [
+                    { id: 'a', revision: 1 },
+                    { id: 'b', revision: 1 },
+                ],
+            },
+        };
+        const fixture = bridgeFixture(initial);
+        const binding = new MobileClientBinding({
+            ...fixture.bridge,
+            snapshot: (requested) =>
+                requested.kind === 'provider_collection' &&
+                requested.key.workspace_id === 'workspace'
+                    ? initial
+                    : null,
+        });
+        const store = binding.scope(scope);
+        expect(binding.scope(reorderedScope)).toBe(store);
+        const before = store.getSnapshot()!.payload as { models: MobileClientRow[] };
+        fixture.batches.push({
+            schema_version: 1,
+            changes: [
+                {
+                    kind: 'publication',
+                    predecessor: 1,
+                    sequence: 2,
+                    snapshot: {
+                        ...snapshot(2, [], reorderedScope),
+                        payload: {
+                            models: [
+                                { id: 'b', revision: 1 },
+                                { id: 'new', revision: 1 },
+                                { id: 'a', revision: 1 },
+                            ],
+                        },
+                    },
+                },
+            ],
+        });
+        binding.drain(scope);
+        const after = store.getSnapshot()!.payload as { models: MobileClientRow[] };
+        expect(after.models[0]).toBe(before.models[1]);
+        expect(after.models[2]).toBe(before.models[0]);
+        const other = binding.scope({
+            kind: 'provider_collection',
+            key: {
+                workspace_id: 'other',
+                collection: { kind: 'models', provider: 'openai', purpose: 'chat' },
+            },
+        });
+        expect(other).not.toBe(store);
+    });
+
     test('scoped consumers release protected snapshots and remount with a newer demand', () => {
         for (const scope of [
             { kind: 'avatar', principal_id: 'avatar-key' },

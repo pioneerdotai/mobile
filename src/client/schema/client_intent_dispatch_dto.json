@@ -18,6 +18,333 @@
     "intent"
   ],
   "$defs": {
+    "AdministrationCommand": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "create_invitation"
+            },
+            "params": {
+              "$ref": "#/$defs/InvitationCreateParams"
+            }
+          },
+          "required": [
+            "kind",
+            "params"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "revoke_invitation"
+            },
+            "params": {
+              "$ref": "#/$defs/InvitationRevokeParams"
+            }
+          },
+          "required": [
+            "kind",
+            "params"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "suspend_member"
+            },
+            "params": {
+              "$ref": "#/$defs/MemberSuspendParams"
+            }
+          },
+          "required": [
+            "kind",
+            "params"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "restore_member"
+            },
+            "params": {
+              "$ref": "#/$defs/MemberRestoreParams"
+            }
+          },
+          "required": [
+            "kind",
+            "params"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "remove_member"
+            },
+            "params": {
+              "$ref": "#/$defs/MemberRemoveParams"
+            }
+          },
+          "required": [
+            "kind",
+            "params"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "create_recovery_device"
+            },
+            "params": {
+              "$ref": "#/$defs/MemberDeviceCreateParams"
+            }
+          },
+          "required": [
+            "kind",
+            "params"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "add_workspace_member"
+            },
+            "params": {
+              "$ref": "#/$defs/WorkspaceMemberAddParams"
+            }
+          },
+          "required": [
+            "kind",
+            "params"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "remove_workspace_member"
+            },
+            "params": {
+              "$ref": "#/$defs/WorkspaceMemberRemoveParams"
+            }
+          },
+          "required": [
+            "kind",
+            "params"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "set_member_workspaces"
+            },
+            "params": {
+              "type": "object",
+              "properties": {
+                "principal_id": {
+                  "$ref": "#/$defs/PrincipalId"
+                },
+                "selected": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/WorkspaceId"
+                  }
+                }
+              },
+              "required": [
+                "principal_id",
+                "selected"
+              ]
+            }
+          },
+          "required": [
+            "kind",
+            "params"
+          ]
+        }
+      ]
+    },
+    "AdministrationPage": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "members"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "member_directory"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "invitations"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "workspace_members"
+            },
+            "workspace_id": {
+              "$ref": "#/$defs/WorkspaceId"
+            }
+          },
+          "required": [
+            "kind",
+            "workspace_id"
+          ]
+        }
+      ]
+    },
+    "AdministrationPageIntent": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "observe"
+            },
+            "page": {
+              "$ref": "#/$defs/AdministrationPage"
+            }
+          },
+          "required": [
+            "kind",
+            "page"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "release"
+            },
+            "page": {
+              "$ref": "#/$defs/AdministrationPage"
+            }
+          },
+          "required": [
+            "kind",
+            "page"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "refresh"
+            },
+            "page": {
+              "$ref": "#/$defs/AdministrationPage"
+            }
+          },
+          "required": [
+            "kind",
+            "page"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "next"
+            },
+            "page": {
+              "$ref": "#/$defs/AdministrationPage"
+            }
+          },
+          "required": [
+            "kind",
+            "page"
+          ]
+        }
+      ]
+    },
+    "AdministrationPresentationIntent": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "generation": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "kind": {
+              "type": "string",
+              "const": "copy_activation"
+            }
+          },
+          "required": [
+            "kind",
+            "generation"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "generation": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "kind": {
+              "type": "string",
+              "const": "dismiss_activation"
+            }
+          },
+          "required": [
+            "kind",
+            "generation"
+          ]
+        }
+      ]
+    },
     "AdministrationRoute": {
       "type": "string",
       "enum": [
@@ -533,6 +860,160 @@
         "claude"
       ]
     },
+    "CLIRuntimeLoginStartParams": {
+      "type": "object",
+      "properties": {
+        "login_type": {
+          "$ref": "#/$defs/CLIRuntimeLoginStartType",
+          "default": "chatgptDeviceCode"
+        },
+        "runtime_id": {
+          "type": "string"
+        },
+        "workspace_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "workspace_id",
+        "runtime_id"
+      ]
+    },
+    "CLIRuntimeLoginStartType": {
+      "type": "string",
+      "enum": [
+        "chatgptDeviceCode",
+        "chatgpt"
+      ]
+    },
+    "CLIRuntimeProviderDraft": {
+      "type": "object",
+      "properties": {
+        "binary_path": {
+          "type": "string"
+        },
+        "display_name": {
+          "type": "string"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "home_path": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/CLIAgentRuntimeKind"
+        },
+        "mode": {
+          "$ref": "#/$defs/CLIRuntimeProviderDraftMode"
+        },
+        "nickname": {
+          "description": "Stable agent presentation nickname.  The UI does not expose this\nfield yet, but edits must preserve the gateway-owned value.",
+          "type": "string",
+          "default": ""
+        },
+        "shadow_home_path": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "mode",
+        "kind",
+        "id",
+        "display_name",
+        "enabled",
+        "binary_path",
+        "home_path",
+        "shadow_home_path"
+      ]
+    },
+    "CLIRuntimeProviderDraftMode": {
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "Create"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "Edit": {
+              "type": "object",
+              "properties": {
+                "original_id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "original_id"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "Edit"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "Duplicate": {
+              "type": "object",
+              "properties": {
+                "source_id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "source_id"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "Duplicate"
+          ]
+        }
+      ]
+    },
+    "CLIRuntimeProxyDeleteParams": {
+      "type": "object",
+      "properties": {
+        "runtime_id": {
+          "type": "string"
+        },
+        "workspace_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "workspace_id",
+        "runtime_id"
+      ]
+    },
+    "CLIRuntimeProxySetParams": {
+      "type": "object",
+      "properties": {
+        "proxy_url": {
+          "type": "string"
+        },
+        "runtime_id": {
+          "type": "string"
+        },
+        "workspace_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "workspace_id",
+        "runtime_id",
+        "proxy_url"
+      ]
+    },
     "ClientDemand": {
       "type": "string",
       "enum": [
@@ -543,6 +1024,118 @@
     },
     "ClientIntent": {
       "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "intent": {
+              "$ref": "#/$defs/AdministrationPresentationIntent"
+            },
+            "kind": {
+              "type": "string",
+              "const": "administration_presentation"
+            }
+          },
+          "required": [
+            "kind",
+            "intent"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "command": {
+              "$ref": "#/$defs/AdministrationCommand"
+            },
+            "kind": {
+              "type": "string",
+              "const": "administration_command"
+            }
+          },
+          "required": [
+            "kind",
+            "command"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "intent": {
+              "$ref": "#/$defs/AdministrationPageIntent"
+            },
+            "kind": {
+              "type": "string",
+              "const": "administration_page"
+            }
+          },
+          "required": [
+            "kind",
+            "intent"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "intent": {
+              "$ref": "#/$defs/ProviderPresentationIntent"
+            },
+            "kind": {
+              "type": "string",
+              "const": "provider_presentation"
+            }
+          },
+          "required": [
+            "kind",
+            "intent"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "command": {
+              "$ref": "#/$defs/ProviderCommand"
+            },
+            "kind": {
+              "type": "string",
+              "const": "provider_command"
+            }
+          },
+          "required": [
+            "kind",
+            "command"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "intent": {
+              "$ref": "#/$defs/ProviderCollectionIntent"
+            },
+            "kind": {
+              "type": "string",
+              "const": "provider_collection"
+            }
+          },
+          "required": [
+            "kind",
+            "intent"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "intent": {
+              "$ref": "#/$defs/ProviderRuntimeIntent"
+            },
+            "kind": {
+              "type": "string",
+              "const": "provider_runtime"
+            }
+          },
+          "required": [
+            "kind",
+            "intent"
+          ]
+        },
         {
           "type": "object",
           "properties": {
@@ -1224,11 +1817,87 @@
           "properties": {
             "kind": {
               "type": "string",
+              "const": "administration_operation"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "administration_page"
+            },
+            "page": {
+              "$ref": "#/$defs/AdministrationPage"
+            }
+          },
+          "required": [
+            "kind",
+            "page"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
               "const": "provider"
             }
           },
           "required": [
             "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "provider_operation"
+            },
+            "workspace_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "workspace_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "key": {
+              "$ref": "#/$defs/ProviderCollectionKey"
+            },
+            "kind": {
+              "type": "string",
+              "const": "provider_collection"
+            }
+          },
+          "required": [
+            "kind",
+            "key"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "provider_runtime"
+            },
+            "workspace_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "workspace_id"
           ]
         },
         {
@@ -3482,6 +4151,45 @@
         "while_visible"
       ]
     },
+    "InvitationCreateParams": {
+      "type": "object",
+      "properties": {
+        "role_key": {
+          "$ref": "#/$defs/RoleKey"
+        },
+        "workspace_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/WorkspaceId"
+          },
+          "maxItems": 64,
+          "minItems": 1
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "role_key",
+        "workspace_ids"
+      ]
+    },
+    "InvitationId": {
+      "type": "string",
+      "maxLength": 21,
+      "minLength": 21,
+      "pattern": "^[A-Za-z0-9]{21}$"
+    },
+    "InvitationRevokeParams": {
+      "type": "object",
+      "properties": {
+        "invitation_id": {
+          "$ref": "#/$defs/InvitationId"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "invitation_id"
+      ]
+    },
     "McpCapabilityUnavailableReason": {
       "type": "string",
       "enum": [
@@ -3496,6 +4204,84 @@
       "enum": [
         "workspace",
         "user"
+      ]
+    },
+    "MemberDeviceCreateParams": {
+      "type": "object",
+      "properties": {
+        "principal_id": {
+          "$ref": "#/$defs/PrincipalId"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "principal_id"
+      ]
+    },
+    "MemberRemoveParams": {
+      "type": "object",
+      "properties": {
+        "expected_status": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PrincipalStatus"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "principal_id": {
+          "$ref": "#/$defs/PrincipalId"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "principal_id"
+      ]
+    },
+    "MemberRestoreParams": {
+      "type": "object",
+      "properties": {
+        "expected_status": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PrincipalStatus"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "principal_id": {
+          "$ref": "#/$defs/PrincipalId"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "principal_id"
+      ]
+    },
+    "MemberSuspendParams": {
+      "type": "object",
+      "properties": {
+        "expected_status": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PrincipalStatus"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "principal_id": {
+          "$ref": "#/$defs/PrincipalId"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "principal_id"
       ]
     },
     "MessageDeletionIdentity": {
@@ -4114,6 +4900,307 @@
       "minLength": 21,
       "pattern": "^[A-Za-z0-9]{21}$"
     },
+    "PrincipalStatus": {
+      "type": "string",
+      "enum": [
+        "active",
+        "suspended",
+        "removed"
+      ]
+    },
+    "ProviderCollection": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "catalog"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "models"
+            },
+            "provider": {
+              "type": "string"
+            },
+            "purpose": {
+              "$ref": "#/$defs/ProviderModelKind"
+            }
+          },
+          "required": [
+            "kind",
+            "provider",
+            "purpose"
+          ]
+        }
+      ]
+    },
+    "ProviderCollectionIntent": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "key": {
+              "$ref": "#/$defs/ProviderCollectionKey"
+            },
+            "kind": {
+              "type": "string",
+              "const": "observe"
+            }
+          },
+          "required": [
+            "kind",
+            "key"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "key": {
+              "$ref": "#/$defs/ProviderCollectionKey"
+            },
+            "kind": {
+              "type": "string",
+              "const": "release"
+            }
+          },
+          "required": [
+            "kind",
+            "key"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "key": {
+              "$ref": "#/$defs/ProviderCollectionKey"
+            },
+            "kind": {
+              "type": "string",
+              "const": "refresh"
+            }
+          },
+          "required": [
+            "kind",
+            "key"
+          ]
+        }
+      ]
+    },
+    "ProviderCollectionKey": {
+      "type": "object",
+      "properties": {
+        "collection": {
+          "$ref": "#/$defs/ProviderCollection"
+        },
+        "workspace_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "workspace_id",
+        "collection"
+      ]
+    },
+    "ProviderCommand": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "configure"
+            },
+            "params": {
+              "$ref": "#/$defs/ProviderConfigureParams"
+            }
+          },
+          "required": [
+            "kind",
+            "params"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "disconnect"
+            },
+            "params": {
+              "$ref": "#/$defs/ProviderDeleteApiKeyParams"
+            }
+          },
+          "required": [
+            "kind",
+            "params"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "connect"
+            },
+            "params": {
+              "$ref": "#/$defs/CLIRuntimeLoginStartParams"
+            }
+          },
+          "required": [
+            "kind",
+            "params"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "set_runtime_proxy"
+            },
+            "params": {
+              "$ref": "#/$defs/CLIRuntimeProxySetParams"
+            }
+          },
+          "required": [
+            "kind",
+            "params"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "remove_runtime_proxy"
+            },
+            "params": {
+              "$ref": "#/$defs/CLIRuntimeProxyDeleteParams"
+            }
+          },
+          "required": [
+            "kind",
+            "params"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "save_runtime"
+            },
+            "params": {
+              "type": "object",
+              "properties": {
+                "draft": {
+                  "$ref": "#/$defs/CLIRuntimeProviderDraft"
+                },
+                "workspace_id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "workspace_id",
+                "draft"
+              ]
+            }
+          },
+          "required": [
+            "kind",
+            "params"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "set_runtime_enabled"
+            },
+            "params": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                },
+                "runtime_id": {
+                  "type": "string"
+                },
+                "workspace_id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "workspace_id",
+                "runtime_id",
+                "enabled"
+              ]
+            }
+          },
+          "required": [
+            "kind",
+            "params"
+          ]
+        }
+      ]
+    },
+    "ProviderConfigureParams": {
+      "type": "object",
+      "properties": {
+        "api_key": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "clear_proxy": {
+          "type": "boolean",
+          "default": false
+        },
+        "provider": {
+          "type": "string"
+        },
+        "proxy_url": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "workspace_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "workspace_id",
+        "provider"
+      ]
+    },
+    "ProviderDeleteApiKeyParams": {
+      "type": "object",
+      "properties": {
+        "provider": {
+          "type": "string"
+        },
+        "workspace_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "workspace_id",
+        "provider"
+      ]
+    },
     "ProviderFilter": {
       "type": "string",
       "enum": [
@@ -4121,6 +5208,116 @@
         "Connected",
         "Cli"
       ]
+    },
+    "ProviderModelKind": {
+      "type": "string",
+      "enum": [
+        "chat",
+        "embeddings",
+        "transcription"
+      ]
+    },
+    "ProviderPresentationIntent": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "copy_diagnostics"
+            },
+            "runtime_id": {
+              "type": "string"
+            },
+            "workspace_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "workspace_id",
+            "runtime_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "open_path"
+            },
+            "path": {
+              "type": "string"
+            },
+            "workspace_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "workspace_id",
+            "path"
+          ]
+        }
+      ]
+    },
+    "ProviderRuntimeIntent": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "observe"
+            },
+            "workspace_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "workspace_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "release"
+            },
+            "workspace_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "workspace_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "refresh"
+            },
+            "workspace_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "workspace_id"
+          ]
+        }
+      ]
+    },
+    "RoleKey": {
+      "type": "string",
+      "maxLength": 32,
+      "minLength": 1,
+      "pattern": "^[a-z][a-z0-9_-]{0,31}$"
     },
     "SandboxMode": {
       "type": "string",
@@ -5622,6 +6819,12 @@
         "turn_id"
       ]
     },
+    "WorkspaceId": {
+      "type": "string",
+      "maxLength": 21,
+      "minLength": 21,
+      "pattern": "^[A-Za-z0-9]{21}$"
+    },
     "WorkspaceIntent": {
       "oneOf": [
         {
@@ -5894,6 +7097,38 @@
             "workspace_id"
           ]
         }
+      ]
+    },
+    "WorkspaceMemberAddParams": {
+      "type": "object",
+      "properties": {
+        "principal_id": {
+          "$ref": "#/$defs/PrincipalId"
+        },
+        "workspace_id": {
+          "$ref": "#/$defs/WorkspaceId"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "workspace_id",
+        "principal_id"
+      ]
+    },
+    "WorkspaceMemberRemoveParams": {
+      "type": "object",
+      "properties": {
+        "principal_id": {
+          "$ref": "#/$defs/PrincipalId"
+        },
+        "workspace_id": {
+          "$ref": "#/$defs/WorkspaceId"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "workspace_id",
+        "principal_id"
       ]
     }
   }

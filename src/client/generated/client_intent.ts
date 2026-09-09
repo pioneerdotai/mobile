@@ -2,6 +2,41 @@
 
 export type ClientIntent =
   | {
+      intent: AdministrationPresentationIntent;
+      kind: 'administration_presentation';
+      [k: string]: unknown;
+    }
+  | {
+      command: AdministrationCommand;
+      kind: 'administration_command';
+      [k: string]: unknown;
+    }
+  | {
+      intent: AdministrationPageIntent;
+      kind: 'administration_page';
+      [k: string]: unknown;
+    }
+  | {
+      intent: ProviderPresentationIntent;
+      kind: 'provider_presentation';
+      [k: string]: unknown;
+    }
+  | {
+      command: ProviderCommand;
+      kind: 'provider_command';
+      [k: string]: unknown;
+    }
+  | {
+      intent: ProviderCollectionIntent;
+      kind: 'provider_collection';
+      [k: string]: unknown;
+    }
+  | {
+      intent: ProviderRuntimeIntent;
+      kind: 'provider_runtime';
+      [k: string]: unknown;
+    }
+  | {
       intent: ArtifactIntent;
       kind: 'artifact';
       [k: string]: unknown;
@@ -96,6 +131,228 @@ export type ClientIntent =
       scope: ClientScope;
       [k: string]: unknown;
     };
+export type AdministrationPresentationIntent =
+  | {
+      generation: number;
+      kind: 'copy_activation';
+      [k: string]: unknown;
+    }
+  | {
+      generation: number;
+      kind: 'dismiss_activation';
+      [k: string]: unknown;
+    };
+export type AdministrationCommand =
+  | {
+      kind: 'create_invitation';
+      params: InvitationCreateParams;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'revoke_invitation';
+      params: InvitationRevokeParams;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'suspend_member';
+      params: MemberSuspendParams;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'restore_member';
+      params: MemberRestoreParams;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'remove_member';
+      params: MemberRemoveParams;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'create_recovery_device';
+      params: MemberDeviceCreateParams;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'add_workspace_member';
+      params: WorkspaceMemberAddParams;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'remove_workspace_member';
+      params: WorkspaceMemberRemoveParams;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'set_member_workspaces';
+      params: {
+        principal_id: PrincipalId;
+        selected: WorkspaceId[];
+        [k: string]: unknown;
+      };
+      [k: string]: unknown;
+    };
+export type RoleKey = string;
+export type WorkspaceId = string;
+export type InvitationId = string;
+export type PrincipalStatus = 'active' | 'suspended' | 'removed';
+export type PrincipalId = string;
+export type AdministrationPageIntent =
+  | {
+      kind: 'observe';
+      page: AdministrationPage;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'release';
+      page: AdministrationPage;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'refresh';
+      page: AdministrationPage;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'next';
+      page: AdministrationPage;
+      [k: string]: unknown;
+    };
+export type AdministrationPage =
+  | {
+      kind: 'members';
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'member_directory';
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'invitations';
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'workspace_members';
+      workspace_id: WorkspaceId;
+      [k: string]: unknown;
+    };
+export type ProviderPresentationIntent =
+  | {
+      kind: 'copy_diagnostics';
+      runtime_id: string;
+      workspace_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'open_path';
+      path: string;
+      workspace_id: string;
+      [k: string]: unknown;
+    };
+export type ProviderCommand =
+  | {
+      kind: 'configure';
+      params: ProviderConfigureParams;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'disconnect';
+      params: ProviderDeleteApiKeyParams;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'connect';
+      params: CLIRuntimeLoginStartParams;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'set_runtime_proxy';
+      params: CLIRuntimeProxySetParams;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'remove_runtime_proxy';
+      params: CLIRuntimeProxyDeleteParams;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'save_runtime';
+      params: {
+        draft: CLIRuntimeProviderDraft;
+        workspace_id: string;
+        [k: string]: unknown;
+      };
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'set_runtime_enabled';
+      params: {
+        enabled: boolean;
+        runtime_id: string;
+        workspace_id: string;
+        [k: string]: unknown;
+      };
+      [k: string]: unknown;
+    };
+export type CLIAgentRuntimeKind = 'codex' | 'claude';
+export type CLIRuntimeProviderDraftMode =
+  | 'Create'
+  | {
+      Edit: {
+        original_id: string;
+        [k: string]: unknown;
+      };
+    }
+  | {
+      Duplicate: {
+        source_id: string;
+        [k: string]: unknown;
+      };
+    };
+export type ProviderCollectionIntent =
+  | {
+      key: ProviderCollectionKey;
+      kind: 'observe';
+      [k: string]: unknown;
+    }
+  | {
+      key: ProviderCollectionKey;
+      kind: 'release';
+      [k: string]: unknown;
+    }
+  | {
+      key: ProviderCollectionKey;
+      kind: 'refresh';
+      [k: string]: unknown;
+    };
+export type ProviderCollection =
+  | {
+      kind: 'catalog';
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'models';
+      provider: string;
+      purpose: ProviderModelKind;
+      [k: string]: unknown;
+    };
+export type ProviderModelKind = 'chat' | 'embeddings' | 'transcription';
+export type ProviderRuntimeIntent =
+  | {
+      kind: 'observe';
+      workspace_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'release';
+      workspace_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'refresh';
+      workspace_id: string;
+      [k: string]: unknown;
+    };
 export type ArtifactIntent =
   | {
       kind: 'observe';
@@ -175,7 +432,6 @@ export type ThreadScopeAction =
       visibility: ThreadVisibility;
       [k: string]: unknown;
     };
-export type PrincipalId = string;
 /**
  * User-selectable visibility for ordinary user threads.
  *
@@ -669,7 +925,6 @@ export type AgentExecutionBackend =
       type: 'acpAgentRuntime';
       [k: string]: unknown;
     };
-export type CLIAgentRuntimeKind = 'codex' | 'claude';
 export type ThreadMode = ('Message' | 'Agent') | 'Chat';
 export type TurnPermissionMode = 'full_access' | 'auto_accept_edits' | 'supervised';
 export type UserInput =
@@ -1334,7 +1589,31 @@ export type ClientScope =
       [k: string]: unknown;
     }
   | {
+      kind: 'administration_operation';
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'administration_page';
+      page: AdministrationPage;
+      [k: string]: unknown;
+    }
+  | {
       kind: 'provider';
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'provider_operation';
+      workspace_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      key: ProviderCollectionKey;
+      kind: 'provider_collection';
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'provider_runtime';
+      workspace_id: string;
       [k: string]: unknown;
     }
   | {
@@ -1366,6 +1645,91 @@ export type ClientScope =
       [k: string]: unknown;
     };
 
+export interface InvitationCreateParams {
+  role_key: RoleKey;
+  /**
+   * @minItems 1
+   * @maxItems 64
+   */
+  workspace_ids: [WorkspaceId, ...WorkspaceId[]];
+}
+export interface InvitationRevokeParams {
+  invitation_id: InvitationId;
+}
+export interface MemberSuspendParams {
+  expected_status?: PrincipalStatus | null;
+  principal_id: PrincipalId;
+}
+export interface MemberRestoreParams {
+  expected_status?: PrincipalStatus | null;
+  principal_id: PrincipalId;
+}
+export interface MemberRemoveParams {
+  expected_status?: PrincipalStatus | null;
+  principal_id: PrincipalId;
+}
+export interface MemberDeviceCreateParams {
+  principal_id: PrincipalId;
+}
+export interface WorkspaceMemberAddParams {
+  principal_id: PrincipalId;
+  workspace_id: WorkspaceId;
+}
+export interface WorkspaceMemberRemoveParams {
+  principal_id: PrincipalId;
+  workspace_id: WorkspaceId;
+}
+export interface ProviderConfigureParams {
+  api_key?: string | null;
+  clear_proxy?: boolean;
+  provider: string;
+  proxy_url?: string | null;
+  workspace_id: string;
+  [k: string]: unknown;
+}
+export interface ProviderDeleteApiKeyParams {
+  provider: string;
+  workspace_id: string;
+  [k: string]: unknown;
+}
+export interface CLIRuntimeLoginStartParams {
+  login_type?: 'chatgptDeviceCode' | 'chatgpt';
+  runtime_id: string;
+  workspace_id: string;
+  [k: string]: unknown;
+}
+export interface CLIRuntimeProxySetParams {
+  proxy_url: string;
+  runtime_id: string;
+  workspace_id: string;
+  [k: string]: unknown;
+}
+export interface CLIRuntimeProxyDeleteParams {
+  runtime_id: string;
+  workspace_id: string;
+  [k: string]: unknown;
+}
+export interface CLIRuntimeProviderDraft {
+  binary_path: string;
+  display_name: string;
+  enabled: boolean;
+  home_path: string;
+  id: string;
+  kind: CLIAgentRuntimeKind;
+  mode: CLIRuntimeProviderDraftMode;
+  /**
+   * Stable agent presentation nickname.  The UI does not expose this
+   * field yet, but edits must preserve the gateway-owned value.
+   */
+  nickname?: string;
+  shadow_home_path: string;
+  [k: string]: unknown;
+}
+export interface ProviderCollectionKey {
+  collection: ProviderCollection;
+  workspace_id: string;
+  [k: string]: unknown;
+}
 export interface ArtifactActionIdentity {
   artifact_id: string;
   generation: number;

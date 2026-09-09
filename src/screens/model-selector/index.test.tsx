@@ -14,10 +14,6 @@ jest.mock('@/client', () => ({}));
 jest.mock('lucide-react-native', () => ({
     ChevronRight: () => null,
 }));
-jest.mock('@/hooks/use-provider-model-display-name', () => ({
-    useProviderDisplayName: () => ({ label: null, loading: false }),
-    useProviderModelDisplayName: () => ({ label: null, loading: false }),
-}));
 
 const provider = (reason: CliRuntimeMcpReadinessReason | null): ModelSelectorProvider => ({
     id: 'cli_runtime:codex',

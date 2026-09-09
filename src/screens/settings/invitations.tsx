@@ -1,18 +1,16 @@
+import type { AdministrationInvitationPresentation } from '@/services/administration/invitations';
+import {
+    copyAdministrationActivation,
+    dismissAdministrationActivation,
+} from '@/services/administration/operations';
 import { BottomSheetModal, BottomSheetScrollView } from '@gorhom/bottom-sheet';
-import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigation } from 'expo-router';
 import { Trash2 } from 'lucide-react-native';
-import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Alert, RefreshControl } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 
-import {
-    pioneerClient,
-    type ClientInvitationPresentationResult,
-    type InvitationListResponse,
-    type InvitationListRow,
-} from '@/client';
 import { Button } from '@/components/buttons/base';
 import { CreateButton } from '@/components/buttons/create';
 import { CredentialPresentation } from '@/components/credential-presentation';
@@ -35,22 +33,15 @@ import {
 } from '@/hooks/use-administration-capabilities';
 import {
     createInvitationPresentation,
-    loadInvitationPage,
     revokeInvitation,
 } from '@/services/administration/invitations';
-import {
-    administrationConflictRefetch,
-    administrationMutationKey,
-    administrationQueryKeys,
-    invalidateAdministrationTargets,
-} from '@/services/administration/query';
+import { useAdministrationPage } from '@/services/administration/pages';
+import { useAdministrationAction } from '@/hooks/use-administration-action';
+import type { AdministrationPagePublication } from '@/client/generated/administration_page_publication';
+import { useGatewayStore } from '@/stores/gateway';
 import { useWorkspaceStore } from '@/stores/workspace';
 
-type Invitation = InvitationListResponse['invitations'][number];
-type PresentedInvitation = {
-    invitation: Invitation;
-    row: InvitationListRow;
-};
+type PresentedInvitation = AdministrationPagePublication['invitations'][number];
 
 const EMPTY_INVITATIONS: PresentedInvitation[] = [];
 
@@ -58,7 +49,9 @@ const InvitationsSettingsScreen = () => {
     const { t } = useTranslation(['settings', 'common', 'gateway']);
     const { theme, rt } = useUnistyles();
     const navigation = useNavigation();
-    const queryClient = useQueryClient();
+    const listInstance = useId();
+    const endpointId = useGatewayStore((state) => state.connectionGatewayId);
+    const rowScope = JSON.stringify([listInstance, endpointId]);
     const capabilities = useAdministrationCapabilities();
     const principal = useAdministrationPrincipal();
     const invitationRoleOptions = useMemo(
@@ -71,77 +64,59 @@ const InvitationsSettingsScreen = () => {
         () => new Set(),
     );
     const [selectedRoleKey, setSelectedRoleKey] = useState<string | null>(null);
-    const [presentation, setPresentation] = useState<ClientInvitationPresentationResult | null>(
+    const [presentation, setPresentation] = useState<AdministrationInvitationPresentation | null>(
         null,
+    );
+    useEffect(
+        () => () => {
+            if (presentation) dismissAdministrationActivation(presentation.operationGeneration);
+        },
+        [presentation],
     );
     const [selectedInvitation, setSelectedInvitation] = useState<PresentedInvitation | null>(null);
     const [manualRefreshing, setManualRefreshing] = useState(false);
 
-    const invitationsQuery = useInfiniteQuery({
-        queryKey: administrationQueryKeys.invitations(),
-        queryFn: ({ pageParam }) => loadInvitationPage(pageParam),
-        initialPageParam: null as string | null,
-        getNextPageParam: (lastPage) => lastPage.next_cursor ?? undefined,
-        enabled: capabilities.data?.can_view_invitations === true,
-        refetchOnMount: 'always',
-        refetchOnReconnect: true,
-    });
-    const invitations = useMemo(() => {
-        const seen = new Set<string>();
-        return (invitationsQuery.data?.pages ?? []).flatMap((page) =>
-            page.invitations.filter((invitation) => {
-                if (seen.has(invitation.invitation_id)) return false;
-                seen.add(invitation.invitation_id);
-                return true;
-            }),
-        );
-    }, [invitationsQuery.data?.pages]);
-    const rows = useMemo(() => {
-        const capabilitySnapshot = capabilities.capabilitySnapshot;
-        if (!principal.data || !capabilitySnapshot) return EMPTY_INVITATIONS;
-        return invitations.map((invitation) => ({
-            invitation,
-            row: pioneerClient.invitationListRow({
-                auth: principal.data,
-                capability_snapshot: capabilitySnapshot,
-                invitation,
-            }),
-        }));
-    }, [capabilities.capabilitySnapshot, invitations, principal.data]);
+    const invitationsQuery = useAdministrationPage(
+        { kind: 'invitations' },
+        capabilities.data?.can_view_invitations === true,
+    );
+    const rows = invitationsQuery.snapshot?.invitations ?? EMPTY_INVITATIONS;
 
-    const createMutation = useMutation({
-        mutationKey: administrationMutationKey,
+    const createMutation = useAdministrationAction({
         mutationFn: ({ workspaceIds, roleKey }: { workspaceIds: string[]; roleKey: string }) =>
             createInvitationPresentation(workspaceIds, roleKey),
+        onDiscard: (result) => dismissAdministrationActivation(result.operationGeneration),
         onSuccess: (result) => {
             setPresentation(result);
             setSelectedWorkspaceIds(new Set());
-            void queryClient.invalidateQueries({
-                queryKey: administrationQueryKeys.invitations(),
-            });
-        },
-        onError: async () => {
-            const targets = administrationConflictRefetch({ kind: 'create_invitation' });
-            await invalidateAdministrationTargets(queryClient, targets);
         },
     });
-    const revokeMutation = useMutation({
-        mutationKey: administrationMutationKey,
+    const revokeMutation = useAdministrationAction({
         mutationFn: (invitationId: string) => revokeInvitation(invitationId),
-        onSuccess: async () => {
-            await queryClient.invalidateQueries({
-                queryKey: administrationQueryKeys.invitations(),
-            });
-        },
-        onError: async (_error, invitationId) => {
-            const targets = administrationConflictRefetch({
-                kind: 'revoke_invitation',
-                invitation_id: invitationId,
-            });
-            await invalidateAdministrationTargets(queryClient, targets);
+        onError: () => {
             Alert.alert(t('invitations.actionFailed'));
         },
     });
+    const presentationScope = JSON.stringify([
+        endpointId,
+        principal.data?.principal.id,
+        capabilities.capabilitySnapshot?.authorization_revision,
+    ]);
+    const previousPresentationScope = useRef(presentationScope);
+    const resetCreationScope = createMutation.reset;
+    const resetRevoke = revokeMutation.reset;
+    useEffect(() => {
+        if (previousPresentationScope.current === presentationScope) return;
+        previousPresentationScope.current = presentationScope;
+        resetCreationScope();
+        resetRevoke();
+        setSelectedInvitation(null);
+        setPresentation(null);
+        setSelectedWorkspaceIds(new Set());
+        setSelectedRoleKey(null);
+        creationSheetRef.current?.dismiss();
+    }, [presentationScope, resetCreationScope, resetRevoke]);
+
     const {
         isError: createError,
         isPending: createPending,
@@ -209,7 +184,7 @@ const InvitationsSettingsScreen = () => {
 
     const confirmRevoke = useCallback(() => {
         if (!selectedInvitation || revokePending) return;
-        const invitationId = selectedInvitation.row.invitation_id;
+        const invitationId = selectedInvitation.presentation.invitation_id;
         setSelectedInvitation(null);
         Alert.alert(t('invitations.revokeTitle'), t('invitations.revokeDescription'), [
             { text: t('cancel', { ns: 'common' }), style: 'cancel' },
@@ -223,23 +198,26 @@ const InvitationsSettingsScreen = () => {
 
     const renderInvitation = useCallback(
         (item: PresentedInvitation, index: number) => (
-            <VStack key={item.row.invitation_id}>
+            <VStack key={`${rowScope}:invitations:${item.id}:row`}>
                 {index > 0 ? <Box style={styles.divider} /> : null}
                 <Pressable
-                    accessibilityLabel={`${item.row.workspace_names.join(', ')}, ${t(`invitations.status.${item.row.status}`)}`}
+                    accessibilityLabel={`${item.presentation.workspace_names.join(', ')}, ${t(`invitations.status.${item.presentation.status}`)}`}
                     delayLongPress={350}
                     onLongPress={
-                        item.row.can_revoke ? () => setSelectedInvitation(item) : undefined
+                        item.presentation.can_revoke ? () => setSelectedInvitation(item) : undefined
                     }
                 >
                     <VStack
                         style={[styles.invitationRow, index > 0 ? styles.rowWithDivider : null]}
                     >
                         <HStack style={styles.badges}>
-                            {item.row.workspace_names.map((name) => (
-                                <Box key={name} style={styles.badge}>
+                            {item.invitation.workspaces.map((workspace) => (
+                                <Box
+                                    key={`${rowScope}:invitations:${item.id}:workspace:${workspace.workspace_id}`}
+                                    style={styles.badge}
+                                >
                                     <Text numberOfLines={1} style={styles.badgeText}>
-                                        {name}
+                                        {workspace.name}
                                     </Text>
                                 </Box>
                             ))}
@@ -247,27 +225,27 @@ const InvitationsSettingsScreen = () => {
                         <Text
                             style={[
                                 styles.invitationMeta,
-                                item.row.status === 'accepted'
+                                item.presentation.status === 'accepted'
                                     ? styles.statusAccepted
-                                    : item.row.status === 'pending'
+                                    : item.presentation.status === 'pending'
                                       ? styles.statusPending
-                                      : item.row.status === 'revoked' ||
-                                          item.row.status === 'expired'
+                                      : item.presentation.status === 'revoked' ||
+                                          item.presentation.status === 'expired'
                                         ? styles.statusTerminal
                                         : null,
                             ]}
                         >
-                            {t(`invitations.status.${item.row.status}`)}
+                            {t(`invitations.status.${item.presentation.status}`)}
                         </Text>
                         <Text style={styles.invitationMeta}>
-                            {new Date(item.row.created_at_unix * 1000).toLocaleString()} —{' '}
-                            {new Date(item.row.expires_at_unix * 1000).toLocaleString()}
+                            {new Date(item.presentation.created_at_unix * 1000).toLocaleString()} —{' '}
+                            {new Date(item.presentation.expires_at_unix * 1000).toLocaleString()}
                         </Text>
                     </VStack>
                 </Pressable>
             </VStack>
         ),
-        [t],
+        [rowScope, t],
     );
 
     const dismissCreation = useCallback(() => {
@@ -381,6 +359,12 @@ const InvitationsSettingsScreen = () => {
                     {presentation ? (
                         <VStack style={styles.presentation}>
                             <CredentialPresentation
+                                onCopy={(value) =>
+                                    copyAdministrationActivation(
+                                        presentation.operationGeneration,
+                                        value,
+                                    )
+                                }
                                 qrModules={presentation.qr_modules}
                                 qrWidth={presentation.qr_width}
                                 qrAccessibilityLabel={t('invitations.qrLabel')}

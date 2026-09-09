@@ -30,9 +30,7 @@ const mockResetActiveThread = jest.fn(() => {
 });
 const mockBeginMobileAuthorizationEpoch = jest.fn();
 const mockRevalidateMobileAuthorizationProjections = jest.fn();
-const mockClearCliRuntimeSummaries = jest.fn();
 const mockLoadCliRuntimeSummariesInBackground = jest.fn();
-const mockApplyCliRuntimeSummaryUpdate = jest.fn();
 const mockMobileStartupBegin = jest.fn();
 const mockMobileStartupSucceed = jest.fn();
 const mockMobileStartupFail = jest.fn();
@@ -202,8 +200,6 @@ jest.mock('@/stores/workspace', () => ({
 }));
 
 jest.mock('@/services/providers/cli-runtime-snapshot', () => ({
-    applyCliRuntimeSummaryUpdate: mockApplyCliRuntimeSummaryUpdate,
-    clearCliRuntimeSummaries: mockClearCliRuntimeSummaries,
     loadCliRuntimeSummariesInBackground: mockLoadCliRuntimeSummariesInBackground,
 }));
 
@@ -559,7 +555,6 @@ describe('useGatewaySession', () => {
         expect(mockSetConnectionId).not.toHaveBeenCalledWith(2);
         expect(mockSetConnectionState).not.toHaveBeenCalledWith('Connecting');
         expect(mockSetConnectionState).toHaveBeenLastCalledWith('Connected');
-        expect(mockClearCliRuntimeSummaries).toHaveBeenCalled();
         expect(mockLoadCliRuntimeSummariesInBackground).toHaveBeenCalledWith('workspace-1');
     });
 

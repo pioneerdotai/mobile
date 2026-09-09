@@ -201,22 +201,13 @@ describe('administration realtime invalidation', () => {
         queryClient.clear();
     });
 
-    it('uses native revision filtering and invalidates only returned targets', async () => {
+    it('does not replay administration events through the thread reducer', async () => {
         const queryClient = new QueryClient();
-        queryClient.setQueryData(administrationQueryKeys.invitations(), ['invite']);
-        queryClient.setQueryData(administrationQueryKeys.members(), ['member']);
-        jest.mocked(applyActiveThreadEvent).mockResolvedValue({
-            administration_refetch: [{ kind: 'member_directory' }],
-        } as never);
-
-        await applyMobileAdministrationEvent(event('member_changed'), queryClient);
-
-        expect(queryClient.getQueryState(administrationQueryKeys.members())?.isInvalidated).toBe(
-            true,
-        );
-        expect(
-            queryClient.getQueryState(administrationQueryKeys.invitations())?.isInvalidated,
-        ).toBe(false);
+        for (const kind of ['member_changed', 'invitation_changed', 'workspace_members_changed']) {
+            await applyMobileAdministrationEvent(event(kind), queryClient);
+        }
+        expect(applyActiveThreadEvent).not.toHaveBeenCalled();
+        expect(queryClient.getQueryCache().getAll()).toEqual([]);
         queryClient.clear();
     });
 

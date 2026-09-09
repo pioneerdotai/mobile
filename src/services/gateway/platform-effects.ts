@@ -42,6 +42,16 @@ export class MobileSessionStorageAdapter {
             }
         }
         for (const plan of plans) {
+            if (
+                typeof plan.effect === 'object' &&
+                'kind' in plan.effect &&
+                [
+                    'copy_administration_activation',
+                    'copy_provider_diagnostics',
+                    'open_provider_path',
+                ].includes(plan.effect.kind)
+            )
+                continue;
             const key = `${plan.operation_id}:${plan.generation}`;
             if (this.#pending.has(key) || this.#completed.has(key)) {
                 continue;
@@ -78,14 +88,22 @@ export class MobileSessionStorageAdapter {
     async #execute(plan: ClientEffectPlan): Promise<ClientEffectResult> {
         try {
             const effect = plan.effect;
-            if (typeof effect === 'object' && 'ReadGatewaySession' in effect) {
+            if (
+                typeof effect === 'object' &&
+                !('kind' in effect) &&
+                'ReadGatewaySession' in effect
+            ) {
                 const reference = effect.ReadGatewaySession.endpoint.session_ref;
                 return {
                     kind: 'gateway_session_envelope_loaded',
                     envelope: reference ? await readMobileGatewaySession(reference) : null,
                 };
             }
-            if (typeof effect === 'object' && 'PersistGatewaySession' in effect) {
+            if (
+                typeof effect === 'object' &&
+                !('kind' in effect) &&
+                'PersistGatewaySession' in effect
+            ) {
                 const { endpoint, envelope } = effect.PersistGatewaySession;
                 if (!endpoint.session_ref) {
                     throw new MobileGatewaySessionStorageError('corrupted');

@@ -46,11 +46,7 @@ import { useActiveThreadStore } from '@/stores/active-thread';
 import { useGatewayStore } from '@/stores/gateway';
 import { useWorkspaceStore } from '@/stores/workspace';
 import { mobileStartup } from '@/services/telemetry/mobile-startup';
-import {
-    applyCliRuntimeSummaryUpdate,
-    clearCliRuntimeSummaries,
-    loadCliRuntimeSummariesInBackground,
-} from '@/services/providers/cli-runtime-snapshot';
+import { loadCliRuntimeSummariesInBackground } from '@/services/providers/cli-runtime-snapshot';
 
 const errorMessage = (error: unknown, fallback: string): string => {
     if (error instanceof Error) {
@@ -112,7 +108,6 @@ export const useGatewaySession = (
 
         const beginAuthorizationEpoch = (): void => {
             beginMobileAuthorizationEpoch(queryClient);
-            clearCliRuntimeSummaries();
         };
 
         const clearRefreshTimer = () => {
@@ -285,12 +280,11 @@ export const useGatewaySession = (
                 if (replacingSilently) {
                     // Snapshot revisions are monotonic only within one
                     // Gateway process. A transparent reconnect may land on a
-                    // restarted process with a lower revision, so begin a new
-                    // cache epoch and immediately rehydrate the active scope.
+                    // restarted process with a lower revision, so refresh the
+                    // Client request epoch and immediately rehydrate the active scope.
                     const workspaceId =
                         useWorkspaceStore.getState().activeWorkspaceId ??
                         sessionGateway.workspace_id;
-                    clearCliRuntimeSummaries();
                     if (workspaceId) {
                         loadCliRuntimeSummariesInBackground(workspaceId);
                     }
@@ -533,9 +527,7 @@ export const useGatewaySession = (
                 !cancelled &&
                 acceptedConnectionGeneration === generation &&
                 acceptedAccessSequence === sequence;
-            if (change?.change === 'workspace_membership') {
-                clearCliRuntimeSummaries(change.workspace_id);
-            }
+
             let publishedLifecycle = null;
             try {
                 publishedLifecycle = change
@@ -600,22 +592,7 @@ export const useGatewaySession = (
                 }
             }
             setLastEvent(event, sessionGateway.id, activeConnectionId);
-            if ('GatewayNotification' in event) {
-                const notification = event.GatewayNotification;
-                if (notification.kind === 'cli_runtime_status_changed') {
-                    applyCliRuntimeSummaryUpdate(
-                        notification.params.workspace_id,
-                        notification.params.revision ?? 0,
-                        notification.params.runtime,
-                        notification.params.removed ?? false,
-                    );
-                } else if (
-                    notification.kind === 'cli_runtime_account_updated' ||
-                    notification.kind === 'cli_runtime_apps_changed'
-                ) {
-                    loadCliRuntimeSummariesInBackground(notification.params.workspace_id);
-                }
-            }
+
             const nextSessionError = sessionErrorFromClientEvent(event);
             if (nextSessionError !== undefined) {
                 setSessionError(nextSessionError);

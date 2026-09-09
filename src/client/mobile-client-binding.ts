@@ -53,6 +53,12 @@ const optionalIdentity = (value: string | null | undefined): string =>
 
 const scopeKey = (scope: ClientScope): string => {
     switch (scope.kind) {
+        case 'administration_page':
+            return `${scope.kind}:${scope.page.kind}:${scope.page.kind === 'workspace_members' ? JSON.stringify(scope.page.workspace_id) : ''}`;
+        case 'provider_collection':
+            return `${scope.kind}:${JSON.stringify([scope.key.workspace_id, scope.key.collection.kind, ...(scope.key.collection.kind === 'models' ? [scope.key.collection.provider, scope.key.collection.purpose] : [])])}`;
+        case 'provider_operation':
+        case 'provider_runtime':
         case 'task_inbox':
         case 'workspace_tree':
         case 'administration':
@@ -89,6 +95,7 @@ const scopeKey = (scope: ClientScope): string => {
         case 'navigation':
         case 'provider':
         case 'settings':
+        case 'administration_operation':
         case 'onboarding_invitation':
             return scope.kind;
     }
@@ -128,26 +135,33 @@ const isMobileClientRow = (value: unknown): value is MobileClientRow => {
 const memoizeRows = (
     payload: unknown,
     previousRows: Map<string, MobileClientRow>,
+    previousPayload: unknown,
 ): { payload: unknown; rows: Map<string, MobileClientRow> } => {
-    if (typeof payload !== 'object' || payload === null || !('rows' in payload)) {
+    if (typeof payload !== 'object' || payload === null) {
         return { payload, rows: new Map() };
     }
     const record = payload as Record<string, unknown>;
-    if (!Array.isArray(record.rows) || !record.rows.every(isMobileClientRow)) {
-        return { payload, rows: new Map() };
-    }
-
+    const previous = previousPayload as Record<string, unknown> | null;
     const rows = new Map<string, MobileClientRow>();
-    const memoized = record.rows.map((row) => {
-        const key = `${row.id}:${row.revision}`;
-        const stable = previousRows.get(key) ?? freezeSnapshotValue(row);
-        rows.set(key, stable);
-        return stable;
-    });
-    return {
-        payload: { ...record, rows: memoized },
-        rows,
-    };
+    const next = { ...record };
+    for (const field of ['rows', 'members', 'invitations', 'runtimes', 'providers', 'models']) {
+        const values = record[field];
+        if (!Array.isArray(values) || !values.every(isMobileClientRow)) continue;
+        const memoized = values.map((row) => {
+            const key = JSON.stringify([field, row.id, row.revision]);
+            const stable = previousRows.get(key) ?? freezeSnapshotValue(row);
+            rows.set(key, stable);
+            return stable;
+        });
+        const old = previous?.[field];
+        next[field] =
+            Array.isArray(old) &&
+            old.length === memoized.length &&
+            old.every((row, i) => row === memoized[i])
+                ? old
+                : memoized;
+    }
+    return { payload: next, rows };
 };
 
 type TimelineValue = { revision: number; generation: number; rows: MobileClientRow[] };
@@ -692,6 +706,7 @@ export class MobileClientBinding {
         const memoized = memoizeRows(
             snapshot.payload,
             previousGeneration === incomingGeneration ? state.rows : new Map(),
+            previousGeneration === incomingGeneration ? state.snapshot?.payload : null,
         );
         state.rows = memoized.rows;
         state.snapshot = freezeSnapshotValue({

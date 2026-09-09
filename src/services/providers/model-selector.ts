@@ -1,21 +1,5 @@
-import { pioneerClient } from '@/client';
-import type {
-    ProviderListModelsResponse,
-    ProviderModelInfo,
-    ReasoningEffortRow,
-    RuntimeStatus,
-    RuntimeSummary,
-} from '@/client';
-import {
-    NATIVE_COMPOSER_CAPABILITY_POLICY,
-    cliRuntimeMcpReadinessReason,
-    cliRuntimeProviderKey,
-    composerCapabilityTargetForProvider,
-    isCliRuntimeProvider,
-    type ComposerCapabilityPolicy,
-    type CliRuntimeMcpReadinessReason,
-} from './cli-runtime';
-import { cliRuntimeSummariesSnapshot } from './cli-runtime-snapshot';
+import type { ProviderModelInfo } from '@/client';
+import type { ComposerCapabilityPolicy, CliRuntimeMcpReadinessReason } from './cli-runtime';
 
 export type ModelSelectorProvider = {
     id: string;
@@ -23,117 +7,6 @@ export type ModelSelectorProvider = {
     kind: 'api' | 'cliRuntime';
     capabilityTarget: ComposerCapabilityPolicy;
     mcpReadinessReason: CliRuntimeMcpReadinessReason | null;
-};
-
-export const listProviders = async (
-    workspaceId: string,
-    cliRuntimes: readonly RuntimeSummary[] = cliRuntimeSummariesSnapshot(workspaceId),
-): Promise<ModelSelectorProvider[]> => {
-    let apiProviderError: unknown = null;
-    let rows: ModelSelectorProvider[] = [];
-
-    try {
-        const response = await pioneerClient.providerList({ workspace_id: workspaceId });
-        rows = response.providers
-            .filter((provider) => provider.name !== 'local')
-            .map((provider) => ({
-                id: provider.name,
-                label: provider.name,
-                kind: 'api',
-                capabilityTarget: NATIVE_COMPOSER_CAPABILITY_POLICY,
-                mcpReadinessReason: null,
-            }));
-    } catch (error) {
-        apiProviderError = error;
-    }
-
-    const cliRows = cliRuntimes.filter(cliRuntimeVisibleInModelSelector).map((runtime) => ({
-        id: cliRuntimeProviderKey(runtime.runtime_id),
-        label: runtime.display_name,
-        kind: 'cliRuntime' as const,
-        capabilityTarget: composerCapabilityTargetForProvider(
-            cliRuntimeProviderKey(runtime.runtime_id),
-            cliRuntimes,
-        ),
-        mcpReadinessReason: cliRuntimeMcpReadinessReason(runtime),
-    }));
-    rows.push(...cliRows);
-
-    if (apiProviderError && cliRows.length === 0) {
-        throw apiProviderError;
-    }
-
-    return rows;
-};
-
-export const providerDisplayName = async (
-    workspaceId: string,
-    providerId: string,
-): Promise<string | null> => {
-    const rows = await listProviders(workspaceId);
-    return rows.find((provider) => provider.id === providerId)?.label ?? null;
-};
-
-export const providerReadyForModelSelector = (
-    providerId: string | null | undefined,
-    cliRuntimes: readonly RuntimeSummary[],
-): boolean => {
-    if (!isCliRuntimeProvider(providerId)) {
-        return true;
-    }
-
-    return cliRuntimes.some(
-        (runtime) =>
-            cliRuntimeProviderKey(runtime.runtime_id) === providerId &&
-            cliRuntimeVisibleInModelSelector(runtime),
-    );
-};
-
-export const listProviderModels = async (
-    workspaceId: string,
-    provider: string,
-): Promise<ProviderListModelsResponse> => {
-    return pioneerClient.providerListModels({ workspace_id: workspaceId, provider });
-};
-
-export const resolveSelectedProviderModel = (
-    models: ProviderModelInfo[],
-    provider: string | null,
-    model: string | null,
-): ProviderModelInfo | null => {
-    if (!provider || !model) {
-        return null;
-    }
-
-    return models.find((row) => row.provider === provider && row.id === model) ?? null;
-};
-
-export const reasoningEffortRowsForModel = (
-    model: ProviderModelInfo | null | undefined,
-    selectedEffort: string | null,
-): ReasoningEffortRow[] => {
-    if (!model) {
-        return [];
-    }
-
-    return pioneerClient.reasoningEffortRows({
-        model,
-        selected_effort: selectedEffort,
-    }).rows;
-};
-
-export const reasoningEffortDisplayLabelForModel = (
-    model: ProviderModelInfo | null | undefined,
-    selectedEffort: string | null,
-): string | null => {
-    if (!selectedEffort?.trim()) {
-        return null;
-    }
-
-    return (
-        reasoningEffortRowsForModel(model, selectedEffort).find((row) => row.selected)?.label ??
-        null
-    );
 };
 
 const normalizeQuery = (query: string): string => query.trim().toLowerCase();
@@ -199,18 +72,3 @@ const nonEmptyTrimmed = (value: string | null | undefined): string | null => {
 
     return trimmed ? trimmed : null;
 };
-
-const cliRuntimeVisibleInModelSelector = (runtime: RuntimeSummary): boolean => {
-    return (
-        runtime.enabled &&
-        runtime.capabilities.supports_threads &&
-        runtime.capabilities.supports_model_list &&
-        runtimeReadyForModelSelector(runtime.status)
-    );
-};
-
-const runtimeReadyForModelSelector = (status: RuntimeStatus): boolean => {
-    return status.state === 'ready';
-};
-
-export { isCliRuntimeProvider };

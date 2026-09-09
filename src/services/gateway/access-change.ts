@@ -5,7 +5,6 @@ import type { ClientActiveThreadEventResult, ClientEvent } from '@/client';
 import { pioneerClient } from '@/client';
 import {
     clearAdministrationQueries,
-    invalidateAdministrationTargets,
     resetAuthorizationCapabilityQueries,
 } from '@/services/administration/query';
 import { applyActiveThreadEvent } from '@/services/threads/active';
@@ -202,7 +201,6 @@ export const applyPublishedMobileAccessChange = async (
     }
     const lifecycle =
         publishedLifecycle === undefined ? (result.access_changed ?? null) : publishedLifecycle;
-    await invalidateAdministrationTargets(queryClient, result.administration_refetch ?? []);
     if (!isCurrent()) {
         return null;
     }

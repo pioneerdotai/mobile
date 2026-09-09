@@ -12,9 +12,11 @@ type CredentialValue = {
     copyAccessibilityLabel: string;
     copiedAccessibilityLabel: string;
     kind: 'code' | 'link';
+    onCopy?: (value: string) => Promise<void>;
 };
 
 type CredentialPresentationProps = {
+    onCopy?: (value: string) => Promise<void>;
     qrModules: boolean[];
     qrWidth: number;
     qrAccessibilityLabel: string;
@@ -28,6 +30,7 @@ const CredentialPresentation = ({
     qrWidth,
     qrAccessibilityLabel,
     description,
+    onCopy,
     code,
     link,
 }: CredentialPresentationProps) => (
@@ -38,8 +41,8 @@ const CredentialPresentation = ({
             width={qrWidth}
             accessibilityLabel={qrAccessibilityLabel}
         />
-        {code ? <CredentialPresentationValue {...code} /> : null}
-        <CredentialPresentationValue {...link} />
+        {code ? <CredentialPresentationValue {...code} onCopy={onCopy} /> : null}
+        <CredentialPresentationValue {...link} onCopy={onCopy} />
     </VStack>
 );
 
@@ -49,6 +52,7 @@ const CredentialPresentationValue = ({
     copyAccessibilityLabel,
     copiedAccessibilityLabel,
     kind,
+    onCopy,
 }: CredentialValue) => {
     const { theme } = useUnistyles();
 
@@ -66,6 +70,7 @@ const CredentialPresentationValue = ({
                 <Box style={styles.copyButtonContainer}>
                     <CopyButton
                         value={value}
+                        onCopy={onCopy}
                         accessibilityLabel={copyAccessibilityLabel}
                         copiedAccessibilityLabel={copiedAccessibilityLabel}
                         iconSize={theme.space(4)}

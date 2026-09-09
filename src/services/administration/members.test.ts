@@ -4,14 +4,12 @@ import { join } from 'node:path';
 
 import type { AuthMeResponse, AuthorizationCapabilitySnapshot, MemberSummary } from '@/client';
 import { pioneerClient } from '@/client';
-
-import {
-    createRecoveryDevicePresentation,
-    loadAllMembers,
-    loadAllWorkspaceMembers,
-    presentMember,
-    removeMember,
-} from './members';
+import { performAdministrationCommand, prepareAdministrationCommand } from './operations';
+import { createRecoveryDevicePresentation, presentMember, removeMember } from './members';
+jest.mock('./operations', () => ({
+    performAdministrationCommand: jest.fn(),
+    prepareAdministrationCommand: jest.fn(() => 12),
+}));
 
 jest.mock('@/client', () => ({
     pioneerClient: {
@@ -44,53 +42,6 @@ describe('mobile member administration', () => {
         jest.clearAllMocks();
     });
 
-    it('loads every workspace page without duplicating overlapping members', async () => {
-        jest.mocked(pioneerClient.workspaceMemberList)
-            .mockResolvedValueOnce({
-                workspace_id: 'workspace-a',
-                members: [member],
-                next_cursor: 'next',
-            })
-            .mockResolvedValueOnce({
-                workspace_id: 'workspace-a',
-                members: [member],
-                next_cursor: null,
-            });
-        const result = await loadAllWorkspaceMembers('workspace-a');
-        expect(result.members).toEqual([member]);
-        expect(pioneerClient.workspaceMemberList).toHaveBeenNthCalledWith(2, {
-            workspace_id: 'workspace-a',
-            cursor: 'next',
-            limit: 100,
-        });
-    });
-
-    it('loads every ACL-scoped member-directory page for mention candidates', async () => {
-        jest.mocked(pioneerClient.memberList)
-            .mockResolvedValueOnce({ members: [member], next_cursor: 'next' })
-            .mockResolvedValueOnce({ members: [member], next_cursor: null });
-
-        await expect(loadAllMembers()).resolves.toEqual({ members: [member], next_cursor: null });
-        expect(pioneerClient.memberList).toHaveBeenNthCalledWith(2, {
-            cursor: 'next',
-            limit: 50,
-        });
-    });
-
-    it('accepts a single terminal workspace page', async () => {
-        jest.mocked(pioneerClient.workspaceMemberList).mockResolvedValueOnce({
-            workspace_id: 'workspace-a',
-            members: [member],
-            next_cursor: null,
-        });
-
-        await expect(loadAllWorkspaceMembers('workspace-a')).resolves.toEqual({
-            workspace_id: 'workspace-a',
-            members: [member],
-            next_cursor: null,
-        });
-    });
-
     it('delegates row action policy and optimistic concurrency to shared/native owners', async () => {
         const auth = {} as AuthMeResponse;
         const capabilitySnapshot = {} as AuthorizationCapabilitySnapshot;
@@ -103,9 +54,12 @@ describe('mobile member administration', () => {
             is_workspace_member: true,
         });
         await removeMember(member);
-        expect(pioneerClient.memberRemove).toHaveBeenCalledWith({
-            principal_id: member.principal_id,
-            expected_status: 'active',
+        expect(performAdministrationCommand).toHaveBeenCalledWith({
+            kind: 'remove_member',
+            params: {
+                principal_id: member.principal_id,
+                expected_status: 'active',
+            },
         });
     });
 
@@ -120,6 +74,14 @@ describe('mobile member administration', () => {
             session_id: 'session-secret',
         } as never);
         await createRecoveryDevicePresentation(endpoint, member.principal_id);
+        expect(prepareAdministrationCommand).toHaveBeenCalledWith({
+            kind: 'create_recovery_device',
+            params: { principal_id: member.principal_id },
+        });
+        expect(pioneerClient.memberDeviceCreate).toHaveBeenCalledWith({
+            schema_version: 1,
+            generation: 12,
+        });
         expect(pioneerClient.gatewayDeviceActivationPresentation).toHaveBeenCalledWith({
             gateway_base_url: 'https://gateway.test/',
             created_device: activation,
@@ -141,7 +103,7 @@ describe('mobile member administration', () => {
         expect(screen).not.toContain('MMKV');
         expect(screen).not.toContain('content_base64');
         expect(screen).not.toContain('console.');
-        expect(screen).toContain('administrationConflictRefetch');
-        expect(screen).toContain('invalidateAdministrationTargets');
+        expect(screen).not.toContain('useMutation');
+        expect(screen).not.toContain('useInfiniteQuery');
     });
 });

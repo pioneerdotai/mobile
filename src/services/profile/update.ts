@@ -66,13 +66,4 @@ export const applyCurrentProfileUpdate = async (
         { queryKey: administrationQueryKeys.currentPrincipal() },
         (current) => (current?.principal.id === auth.principal.id ? auth : current),
     );
-
-    await Promise.all([
-        queryClient.invalidateQueries({ queryKey: administrationQueryKeys.members() }),
-        queryClient.invalidateQueries({
-            predicate: (query) =>
-                query.queryKey[0] === administrationQueryKeys.all[0] &&
-                query.queryKey[1] === 'workspace-members',
-        }),
-    ]);
 };

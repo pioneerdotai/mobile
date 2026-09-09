@@ -21,6 +21,22 @@
     "effect"
   ],
   "$defs": {
+    "AdministrationPresentationEffect": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "copy_administration_activation"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        }
+      ]
+    },
     "AuthSessionId": {
       "type": "string",
       "maxLength": 21,
@@ -68,6 +84,12 @@
       "anyOf": [
         {
           "$ref": "#/$defs/ClientEffect"
+        },
+        {
+          "$ref": "#/$defs/AdministrationPresentationEffect"
+        },
+        {
+          "$ref": "#/$defs/ProviderPresentationEffect"
         },
         {
           "$ref": "#/$defs/GatewaySessionStorageEffect"
@@ -259,6 +281,42 @@
       "maxLength": 21,
       "minLength": 21,
       "pattern": "^[A-Za-z0-9]{21}$"
+    },
+    "ProviderPresentationEffect": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "copy_provider_diagnostics"
+            },
+            "value": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "value"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "open_provider_path"
+            },
+            "path": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "path"
+          ]
+        }
+      ]
     },
     "TokenFamilyId": {
       "type": "string",

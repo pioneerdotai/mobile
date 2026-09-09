@@ -2,12 +2,10 @@ import type {
     AuthMeResponse,
     AuthorizationCapabilitySnapshot,
     ClientInvitationPresentationResult,
-    InvitationListResponse,
 } from '@/client';
 import { pioneerClient, mobileClientBinding } from '@/client';
+import { prepareAdministrationCommand, performAdministrationCommand } from './operations';
 import type { IdentityAuthorizationPublication } from '@/client/generated/identity_authorization_publication';
-
-export const INVITATION_PAGE_LIMIT = 50;
 
 export const currentAdministrationPrincipalSnapshot = (): AuthMeResponse | null => {
     const publication = mobileClientBinding
@@ -36,27 +34,31 @@ export const loadAuthorizationCapabilitySnapshot = (
         thread_id: threadId,
     });
 
-export const loadInvitationPage = (cursor: string | null): Promise<InvitationListResponse> =>
-    pioneerClient.invitationList({
-        cursor,
-        limit: INVITATION_PAGE_LIMIT,
-    });
+export type AdministrationInvitationPresentation = ClientInvitationPresentationResult & {
+    operationGeneration: number;
+};
 
 export const createInvitationPresentation = async (
     workspaceIds: readonly string[],
     roleKey: string,
-): Promise<ClientInvitationPresentationResult> => {
-    const unique = [...new Set(workspaceIds)].sort();
-    if (unique.length === 0 || unique.length > 64 || !roleKey.trim()) {
-        throw new Error('invalid_invitation_workspace_selection');
-    }
-    const response = await pioneerClient.invitationCreate({
-        role_key: roleKey,
-        workspace_ids: unique as [string, ...string[]],
+): Promise<AdministrationInvitationPresentation> => {
+    const generation = prepareAdministrationCommand({
+        kind: 'create_invitation',
+        params: {
+            role_key: roleKey,
+            workspace_ids: [...workspaceIds] as [string, ...string[]],
+        },
     });
-    return pioneerClient.invitationPresentation({ uri: response.presentation.deep_link });
+    const response = await pioneerClient.invitationCreate({ schema_version: 1, generation });
+    return {
+        ...(await pioneerClient.invitationPresentation({ uri: response.presentation.deep_link })),
+        operationGeneration: generation,
+    };
 };
 
 export const revokeInvitation = async (invitationId: string): Promise<void> => {
-    await pioneerClient.invitationRevoke({ invitation_id: invitationId });
+    await performAdministrationCommand({
+        kind: 'revoke_invitation',
+        params: { invitation_id: invitationId },
+    });
 };

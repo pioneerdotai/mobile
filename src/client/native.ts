@@ -1,3 +1,4 @@
+import type { AdministrationActivationRequest } from './generated/administration_activation_request';
 import type {
     ComposerOperationIdentity,
     ComposerOperationPlan,
@@ -911,7 +912,9 @@ export const pioneerClient = {
         );
     },
 
-    async invitationCreate(input: InvitationCreateParams): Promise<InvitationCreateResponse> {
+    async invitationCreate(
+        input: InvitationCreateParams | AdministrationActivationRequest,
+    ): Promise<InvitationCreateResponse> {
         return parsePioneerClientResponse<InvitationCreateResponse>(
             await getPioneerClientNitro().invitationCreateJson(JSON.stringify(input)),
         );
@@ -969,7 +972,9 @@ export const pioneerClient = {
         );
     },
 
-    async memberDeviceCreate(input: MemberDeviceCreateParams): Promise<MemberDeviceCreateResponse> {
+    async memberDeviceCreate(
+        input: MemberDeviceCreateParams | AdministrationActivationRequest,
+    ): Promise<MemberDeviceCreateResponse> {
         return parsePioneerClientResponse<MemberDeviceCreateResponse>(
             await getPioneerClientNitro().memberDeviceCreateJson(JSON.stringify(input)),
         );

@@ -50,3 +50,36 @@ export type AdministrationAction =
 export type PrincipalId = string;
 export type InvitationId = string;
 export type WorkspaceId = string;
+export type AdministrationLoadState =
+  | {
+      kind: 'idle';
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'loading';
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'ready';
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'failed';
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'forbidden';
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'cancelled';
+      [k: string]: unknown;
+    };
+
+export interface AdministrationOperationPublication {
+  action?: AdministrationAction | null;
+  generation: number;
+  request: AdministrationLoadState;
+  revision: number;
+  [k: string]: unknown;
+}

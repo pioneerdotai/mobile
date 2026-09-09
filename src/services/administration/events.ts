@@ -3,7 +3,6 @@ import type { QueryClient } from '@tanstack/react-query';
 import type { AuthMeResponse, ClientEvent } from '@/client';
 import {
     administrationQueryKeys,
-    invalidateAdministrationTargets,
     resetAuthorizationCapabilityQueries,
 } from '@/services/administration/query';
 import { applyActiveThreadEvent, openActiveThreadById } from '@/services/threads/active';
@@ -32,17 +31,7 @@ export const applyMobileAdministrationEvent = async (
     ) {
         return applyPublishedMobilePolicyChange(event.GatewayNotification.params, queryClient);
     }
-    const result = await applyActiveThreadEvent({
-        event,
-        expanded_keys: useActiveThreadStore.getState().expandedKeys,
-    });
-    await invalidateAdministrationTargets(queryClient, result.administration_refetch ?? []);
-
-    if (
-        'GatewayNotification' in event &&
-        event.GatewayNotification.kind === 'member_changed' &&
-        (result.administration_refetch ?? []).some((target) => target.kind === 'member_directory')
-    ) {
+    if ('GatewayNotification' in event && event.GatewayNotification.kind === 'member_changed') {
         const currentPrincipalId = event.GatewayNotification.params.principal_id;
         const currentPrincipalChanged = queryClient
             .getQueriesData<AuthMeResponse>({

@@ -5,6 +5,8 @@ import renderer, { act, type ReactTestRenderer } from 'react-test-renderer';
 
 import type { AuthMeResponse, AuthorizationCapabilitySnapshot } from '@/client';
 
+let mockPublication: Record<string, unknown> | null = null;
+const mockSynchronize = jest.fn(async () => undefined);
 const mockGatewayAuthMe = jest.fn<() => Promise<AuthMeResponse>>();
 const mockGatewayAuthorizationCapabilities =
     jest.fn<(workspaceId: string | null) => Promise<AuthorizationCapabilitySnapshot>>();
@@ -30,6 +32,10 @@ const mockWorkspaceState: {
 };
 
 jest.mock('@/client', () => ({
+    mobileClientBinding: {
+        synchronize: mockSynchronize,
+        scope: () => ({ getSnapshot: () => ({ payload: mockPublication }) }),
+    },
     pioneerClient: {
         gatewayAuthMe: mockGatewayAuthMe,
         gatewayAuthorizationCapabilities: ({ workspace_id }: { workspace_id: string | null }) =>
@@ -103,6 +109,17 @@ describe('mobile administration capability lifecycle', () => {
         jest.clearAllMocks();
         mockWorkspaceState.activeWorkspaceId = 'workspace-a';
         mockWorkspaceState.bootstrappedConnectionId = 7;
+        mockPublication = {
+            endpoint_id: 'gateway-a',
+            connection_id: 7,
+            current_auth: auth,
+            capabilities: {
+                accepted_revision: 9,
+                manifest: capabilitySnapshot,
+                workspaces: { 'workspace-a': { workspace_id: 'workspace-a', capabilities: {} } },
+                threads: {},
+            },
+        };
         mockGatewayAuthMe.mockResolvedValue(auth);
         mockGatewayAuthorizationCapabilities.mockResolvedValue(capabilitySnapshot);
         mockPrincipalPresentationCapabilities.mockReturnValue(capabilityPresentation);
@@ -190,14 +207,8 @@ describe('mobile administration capability lifecycle', () => {
 
         expect(mockGatewayAuthorizationCapabilities).toHaveBeenCalledTimes(1);
         expect(mockGatewayAuthMe).toHaveBeenCalledTimes(1);
-        expect(mockAuthorizationProjectionAccept).toHaveBeenCalledWith(
-            expect.objectContaining({
-                gateway_id: 'gateway-a',
-                connection_id: 7,
-                expected_principal_id: auth.principal.id,
-                workspace_id: 'workspace-a',
-            }),
-        );
+        expect(mockSynchronize).toHaveBeenCalled();
+        expect(mockAuthorizationProjectionAccept).not.toHaveBeenCalled();
         expect(renders.at(-1)).toEqual({
             capabilityData: capabilityPresentation,
             principalData: principalPresentation,

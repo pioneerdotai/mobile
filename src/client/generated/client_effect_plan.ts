@@ -1,6 +1,7 @@
 /* eslint-disable */
 
-export type ClientPlannedEffect = ClientEffect | GatewaySessionStorageEffect;
+export type ClientPlannedEffect =
+  ClientEffect | AdministrationPresentationEffect | ProviderPresentationEffect | GatewaySessionStorageEffect;
 export type ClientEffect =
   | (
       | 'RefreshWorkspaceList'
@@ -14,6 +15,21 @@ export type ClientEffect =
         thread_ids: string[];
         [k: string]: unknown;
       };
+    };
+export type AdministrationPresentationEffect = {
+  kind: 'copy_administration_activation';
+  [k: string]: unknown;
+};
+export type ProviderPresentationEffect =
+  | {
+      kind: 'copy_provider_diagnostics';
+      value: string;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'open_provider_path';
+      path: string;
+      [k: string]: unknown;
     };
 export type GatewaySessionStorageEffect =
   | {

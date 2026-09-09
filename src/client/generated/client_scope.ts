@@ -109,7 +109,31 @@ export type ClientScope =
       [k: string]: unknown;
     }
   | {
+      kind: 'administration_operation';
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'administration_page';
+      page: AdministrationPage;
+      [k: string]: unknown;
+    }
+  | {
       kind: 'provider';
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'provider_operation';
+      workspace_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      key: ProviderCollectionKey;
+      kind: 'provider_collection';
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'provider_runtime';
+      workspace_id: string;
       [k: string]: unknown;
     }
   | {
@@ -140,3 +164,40 @@ export type ClientScope =
       workspace_id: string;
       [k: string]: unknown;
     };
+export type AdministrationPage =
+  | {
+      kind: 'members';
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'member_directory';
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'invitations';
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'workspace_members';
+      workspace_id: WorkspaceId;
+      [k: string]: unknown;
+    };
+export type WorkspaceId = string;
+export type ProviderCollection =
+  | {
+      kind: 'catalog';
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'models';
+      provider: string;
+      purpose: ProviderModelKind;
+      [k: string]: unknown;
+    };
+export type ProviderModelKind = 'chat' | 'embeddings' | 'transcription';
+
+export interface ProviderCollectionKey {
+  collection: ProviderCollection;
+  workspace_id: string;
+  [k: string]: unknown;
+}

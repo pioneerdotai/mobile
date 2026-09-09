@@ -1,160 +1,95 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
-import { pioneerClient } from '@/client';
-
+import { mobileClientBinding } from '@/client/mobile-client-binding';
 import {
-    applyCliRuntimeSummaryUpdate,
-    clearCliRuntimeSummaries,
     cliRuntimeSummariesSnapshot,
-    loadCliRuntimeSummaries,
+    loadCliRuntimeSummariesInBackground,
     subscribeCliRuntimeSummaries,
 } from './cli-runtime-snapshot';
 
-jest.mock('@/client', () => ({
-    pioneerClient: {
-        cliRuntimeList: jest.fn(),
+let mockPublication: unknown = null;
+const mockUnsubscribe = jest.fn();
+const mockSubscribe = jest.fn(() => mockUnsubscribe);
+jest.mock('@/client/mobile-client-binding', () => ({
+    mobileClientBinding: {
+        scope: jest.fn(() => ({
+            getSnapshot: () => ({ payload: mockPublication }),
+            subscribe: mockSubscribe,
+        })),
+        dispatch: jest.fn(),
+        drain: jest.fn(),
     },
 }));
 
-describe('Gateway-owned CLI runtime snapshots', () => {
+describe('Client runtime snapshot adapter', () => {
     beforeEach(() => {
+        mockPublication = null;
         jest.clearAllMocks();
-        clearCliRuntimeSummaries();
     });
-
-    it('reads the snapshot endpoint and never asks Mobile to probe providers', async () => {
-        const runtimes = [{ runtime_id: 'codex' }];
-        jest.mocked(pioneerClient.cliRuntimeList).mockResolvedValue({
-            revision: 1,
-            runtimes,
-        } as never);
-
-        await expect(loadCliRuntimeSummaries(' workspace-readiness ')).resolves.toBe(runtimes);
-        expect(pioneerClient.cliRuntimeList).toHaveBeenCalledWith({
-            workspace_id: 'workspace-readiness',
-        });
+    it('returns the immutable Client array without creating a second snapshot', () => {
+        const runtimes = [{ runtime_id: 'synthetic', id: 'synthetic', revision: 1 }];
+        mockPublication = { workspace_id: 'workspace', runtimes };
+        expect(cliRuntimeSummariesSnapshot('workspace')).toBe(runtimes);
+        expect(cliRuntimeSummariesSnapshot('workspace')).toBe(runtimes);
+        expect(mobileClientBinding.dispatch).not.toHaveBeenCalled();
     });
-
-    it('deduplicates concurrent snapshot reads for one workspace', async () => {
-        let resolveLoad: ((value: { runtimes: never[] }) => void) | undefined;
-        jest.mocked(pioneerClient.cliRuntimeList).mockImplementation(
-            () =>
-                new Promise((resolve) => {
-                    resolveLoad = resolve;
-                }) as never,
-        );
-
-        const first = loadCliRuntimeSummaries('workspace-concurrent');
-        const second = loadCliRuntimeSummaries('workspace-concurrent');
-
-        expect(pioneerClient.cliRuntimeList).toHaveBeenCalledTimes(1);
-        resolveLoad?.({ revision: 1, runtimes: [] } as never);
-        await expect(Promise.all([first, second])).resolves.toEqual([[], []]);
-    });
-
-    it('applies contiguous Gateway status notifications without another RPC', async () => {
-        const initial = { runtime_id: 'claude', status: { state: 'initializing' } };
-        jest.mocked(pioneerClient.cliRuntimeList).mockResolvedValue({
-            revision: 1,
-            runtimes: [initial],
-        } as never);
-        await loadCliRuntimeSummaries('workspace-listener');
-
+    it('retains and releases exactly one demand for each subscription', () => {
         const listener = jest.fn();
-        const unsubscribe = subscribeCliRuntimeSummaries('workspace-listener', listener);
-        const runtime = { runtime_id: 'claude', status: { state: 'ready' } };
-
-        applyCliRuntimeSummaryUpdate('workspace-listener', 2, runtime as never, false);
-        applyCliRuntimeSummaryUpdate('workspace-listener', 2, initial as never, false);
-
-        expect(cliRuntimeSummariesSnapshot('workspace-listener')).toEqual([runtime]);
-        expect(listener).toHaveBeenCalledTimes(1);
-        expect(pioneerClient.cliRuntimeList).toHaveBeenCalledTimes(1);
-        unsubscribe();
-    });
-
-    it('does not repopulate an authorization-cleared cache from an old response', async () => {
-        let resolveLoad: ((value: { runtimes: never[] }) => void) | undefined;
-        jest.mocked(pioneerClient.cliRuntimeList).mockImplementation(
-            () =>
-                new Promise((resolve) => {
-                    resolveLoad = resolve;
-                }) as never,
-        );
-        const load = loadCliRuntimeSummaries('workspace-revoked');
-
-        clearCliRuntimeSummaries('workspace-revoked');
-        resolveLoad?.({
-            revision: 1,
-            runtimes: [{ runtime_id: 'codex-secret' }] as never[],
-        } as never);
-        await expect(load).resolves.toEqual([]);
-
-        expect(cliRuntimeSummariesSnapshot('workspace-revoked')).toEqual([]);
-    });
-
-    it('does not let an older list response overwrite a newer notification', async () => {
-        const initializing = { runtime_id: 'codex', status: { state: 'initializing' } };
-        jest.mocked(pioneerClient.cliRuntimeList).mockResolvedValueOnce({
-            revision: 1,
-            runtimes: [initializing],
-        } as never);
-        await loadCliRuntimeSummaries('workspace-race');
-
-        let resolveLoad: ((value: { revision: number; runtimes: never[] }) => void) | undefined;
-        jest.mocked(pioneerClient.cliRuntimeList).mockImplementation(
-            () =>
-                new Promise((resolve) => {
-                    resolveLoad = resolve;
-                }) as never,
-        );
-        const load = loadCliRuntimeSummaries('workspace-race');
-        const ready = { runtime_id: 'codex', status: { state: 'ready' } };
-
-        applyCliRuntimeSummaryUpdate('workspace-race', 2, ready as never, false);
-        resolveLoad?.({
-            revision: 1,
-            runtimes: [initializing] as never[],
+        const release = subscribeCliRuntimeSummaries(' workspace ', listener);
+        expect(mockSubscribe).toHaveBeenCalledWith(listener);
+        expect(mobileClientBinding.dispatch).toHaveBeenNthCalledWith(1, {
+            schema_version: 1,
+            intent: {
+                kind: 'provider_runtime',
+                intent: { kind: 'observe', workspace_id: 'workspace' },
+            },
         });
-
-        await expect(load).resolves.toEqual([ready]);
-        expect(cliRuntimeSummariesSnapshot('workspace-race')).toEqual([ready]);
+        release();
+        release();
+        expect(mockUnsubscribe).toHaveBeenCalledTimes(1);
+        expect(mobileClientBinding.dispatch).toHaveBeenCalledTimes(2);
+        expect(mobileClientBinding.dispatch).toHaveBeenLastCalledWith({
+            schema_version: 1,
+            intent: {
+                kind: 'provider_runtime',
+                intent: { kind: 'release', workspace_id: 'workspace' },
+            },
+        });
     });
-
-    it('removes a runtime when Gateway deletes it from the catalog', async () => {
-        const runtime = { runtime_id: 'claude', status: { state: 'ready' } };
-        jest.mocked(pioneerClient.cliRuntimeList).mockResolvedValue({
-            revision: 1,
-            runtimes: [runtime],
-        } as never);
-        await loadCliRuntimeSummaries('workspace-removal');
-
-        applyCliRuntimeSummaryUpdate('workspace-removal', 2, runtime as never, true);
-
-        expect(cliRuntimeSummariesSnapshot('workspace-removal')).toEqual([]);
+    it('requests prefetch through the typed Client path without a JS retry loop', () => {
+        loadCliRuntimeSummariesInBackground('workspace');
+        expect(mobileClientBinding.dispatch).toHaveBeenCalledWith({
+            schema_version: 1,
+            intent: {
+                kind: 'provider_runtime',
+                intent: { kind: 'refresh', workspace_id: 'workspace' },
+            },
+        });
+        expect(mobileClientBinding.drain).toHaveBeenCalledWith({
+            kind: 'provider_runtime',
+            workspace_id: 'workspace',
+        });
     });
-
-    it('reloads the complete snapshot when a notification revision has a gap', async () => {
-        const codex = { runtime_id: 'codex', status: { state: 'initializing' } };
-        const claude = { runtime_id: 'claude', status: { state: 'ready' } };
-        jest.mocked(pioneerClient.cliRuntimeList)
-            .mockResolvedValueOnce({ revision: 1, runtimes: [codex, claude] } as never)
-            .mockResolvedValueOnce({
-                revision: 3,
-                runtimes: [{ ...codex, status: { state: 'ready' } }],
-            } as never);
-        await loadCliRuntimeSummaries('workspace-gap');
-
-        applyCliRuntimeSummaryUpdate(
-            'workspace-gap',
-            3,
-            { ...codex, status: { state: 'ready' } } as never,
-            false,
+    it('uses a stable empty snapshot and does not request an empty workspace', () => {
+        expect(cliRuntimeSummariesSnapshot('')).toBe(cliRuntimeSummariesSnapshot(''));
+        subscribeCliRuntimeSummaries('', jest.fn())();
+        loadCliRuntimeSummariesInBackground('  ');
+        expect(mobileClientBinding.dispatch).not.toHaveBeenCalled();
+    });
+    it('unsubscribes if starting Client demand fails during subscription', () => {
+        jest.mocked(mobileClientBinding.dispatch).mockImplementationOnce(() => {
+            throw new Error('bridge unavailable');
+        });
+        expect(() => subscribeCliRuntimeSummaries('workspace', jest.fn())).toThrow(
+            'bridge unavailable',
         );
-
-        await loadCliRuntimeSummaries('workspace-gap');
-        expect(cliRuntimeSummariesSnapshot('workspace-gap')).toEqual([
-            { ...codex, status: { state: 'ready' } },
-        ]);
-        expect(pioneerClient.cliRuntimeList).toHaveBeenCalledTimes(2);
+        expect(mockUnsubscribe).toHaveBeenCalledTimes(1);
+    });
+    it('propagates bridge errors instead of converting failure into ready', () => {
+        jest.mocked(mobileClientBinding.dispatch).mockImplementationOnce(() => {
+            throw new Error('bridge unavailable');
+        });
+        expect(() => loadCliRuntimeSummariesInBackground('workspace')).toThrow(
+            'bridge unavailable',
+        );
     });
 });

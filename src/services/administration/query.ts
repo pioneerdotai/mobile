@@ -1,13 +1,7 @@
 import type { IdentityAuthorizationPublication } from '@/client/generated/identity_authorization_publication';
 import { queryOptions, type QueryClient, type QueryKey } from '@tanstack/react-query';
 
-import {
-    pioneerClient,
-    mobileClientBinding,
-    type AdministrationAction,
-    type AdministrationRefetch,
-    type AuthorizationCapabilitySnapshot,
-} from '@/client';
+import { mobileClientBinding, type AuthorizationCapabilitySnapshot } from '@/client';
 import {
     loadAuthorizationCapabilitySnapshot,
     loadCurrentAdministrationPrincipal,
@@ -41,12 +35,6 @@ export const administrationQueryKeys = {
             authorizationEpochKey(epoch),
             { workspaceId, threadId },
         ] as const,
-    invitations: () => [...administrationQueryKeys.all, 'invitations'] as const,
-    members: () => [...administrationQueryKeys.all, 'members'] as const,
-    member: (principalId: string) =>
-        [...administrationQueryKeys.members(), { principalId }] as const,
-    workspaceMembers: (workspaceId: string) =>
-        [...administrationQueryKeys.all, 'workspace-members', { workspaceId }] as const,
 };
 
 const AUTHORIZATION_QUERY_MAX_RETRIES = 4;
@@ -265,38 +253,6 @@ export const resetAuthorizationCapabilityQueries = async (
         predicate: capabilities,
     });
     await Promise.all([cancellation, reset]);
-};
-
-/** One mutation lane prevents two destructive administration actions from
- * racing in different screens. Gateway preconditions remain authoritative. */
-export const administrationMutationKey = ['administration', 'action'] as const;
-
-export const administrationConflictRefetch = (
-    action: AdministrationAction,
-): AdministrationRefetch[] => pioneerClient.administrationConflictRefetch(action);
-
-export const invalidateAdministrationTargets = async (
-    queryClient: QueryClient,
-    targets: readonly AdministrationRefetch[],
-): Promise<void> => {
-    await Promise.all(
-        targets.map((target) => {
-            switch (target.kind) {
-                case 'invitation_list':
-                    return queryClient.invalidateQueries({
-                        queryKey: administrationQueryKeys.invitations(),
-                    });
-                case 'member_directory':
-                    return queryClient.invalidateQueries({
-                        queryKey: administrationQueryKeys.members(),
-                    });
-                case 'workspace_members':
-                    return queryClient.invalidateQueries({
-                        queryKey: administrationQueryKeys.workspaceMembers(target.workspace_id),
-                    });
-            }
-        }),
-    );
 };
 
 export const clearAdministrationQueries = async (queryClient: QueryClient): Promise<void> => {
