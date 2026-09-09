@@ -1627,6 +1627,36 @@ export type ClientScope =
       [k: string]: unknown;
     }
   | {
+      kind: 'skills_details';
+      skill_id: SkillId;
+      workspace_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'mcp_action';
+      target: string;
+      workspace_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'skills_action';
+      target: string;
+      workspace_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'skills_upload';
+      operation_id: number;
+      workspace_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'mcp_details';
+      server_id: string;
+      workspace_id: string;
+      [k: string]: unknown;
+    }
+  | {
       kind: 'skills';
       workspace_id?: string | null;
       [k: string]: unknown;

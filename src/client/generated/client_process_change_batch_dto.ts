@@ -147,6 +147,36 @@ export type ClientScope =
       [k: string]: unknown;
     }
   | {
+      kind: 'skills_details';
+      skill_id: SkillId;
+      workspace_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'mcp_action';
+      target: string;
+      workspace_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'skills_action';
+      target: string;
+      workspace_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'skills_upload';
+      operation_id: number;
+      workspace_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'mcp_details';
+      server_id: string;
+      workspace_id: string;
+      [k: string]: unknown;
+    }
+  | {
       kind: 'skills';
       workspace_id?: string | null;
       [k: string]: unknown;
@@ -195,6 +225,7 @@ export type ProviderCollection =
       [k: string]: unknown;
     };
 export type ProviderModelKind = 'chat' | 'embeddings' | 'transcription';
+export type SkillId = string;
 export type ArtifactKind =
   | 'file'
   | 'text'
@@ -565,7 +596,6 @@ export type UserMessageAttachment =
       [k: string]: unknown;
     };
 export type SkillPackId = string;
-export type SkillId = string;
 export type McpScopeKind = 'workspace' | 'user';
 export type AgentMessagePhase = 'final_answer' | 'commentary';
 export type TaskExecutorKind = 'agent' | 'tool' | 'workflow' | 'webhook' | 'system';

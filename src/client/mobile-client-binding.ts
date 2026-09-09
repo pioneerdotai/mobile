@@ -57,6 +57,15 @@ const scopeKey = (scope: ClientScope): string => {
             return `${scope.kind}:${scope.page.kind}:${scope.page.kind === 'workspace_members' ? JSON.stringify(scope.page.workspace_id) : ''}`;
         case 'provider_collection':
             return `${scope.kind}:${JSON.stringify([scope.key.workspace_id, scope.key.collection.kind, ...(scope.key.collection.kind === 'models' ? [scope.key.collection.provider, scope.key.collection.purpose] : [])])}`;
+        case 'mcp_details':
+            return `${scope.kind}:${JSON.stringify([scope.workspace_id, scope.server_id])}`;
+        case 'skills_details':
+            return `${scope.kind}:${JSON.stringify([scope.workspace_id, scope.skill_id])}`;
+        case 'mcp_action':
+        case 'skills_action':
+            return `${scope.kind}:${JSON.stringify([scope.workspace_id, scope.target])}`;
+        case 'skills_upload':
+            return `${scope.kind}:${JSON.stringify([scope.workspace_id, scope.operation_id])}`;
         case 'provider_operation':
         case 'provider_runtime':
         case 'task_inbox':
@@ -576,7 +585,14 @@ export class MobileClientBinding {
             state.scope.kind !== 'thread_capability' &&
             state.scope.kind !== 'thread_member' &&
             state.scope.kind !== 'artifact' &&
-            state.scope.kind !== 'workspace_tree'
+            state.scope.kind !== 'workspace_tree' &&
+            state.scope.kind !== 'mcp' &&
+            state.scope.kind !== 'mcp_details' &&
+            state.scope.kind !== 'mcp_action' &&
+            state.scope.kind !== 'skills' &&
+            state.scope.kind !== 'skills_details' &&
+            state.scope.kind !== 'skills_action' &&
+            state.scope.kind !== 'skills_upload'
         )
             return;
         this.dispatch({
@@ -650,7 +666,14 @@ export class MobileClientBinding {
                             state.scope.kind === 'turn_cancellation' ||
                             state.scope.kind === 'thread_capability' ||
                             state.scope.kind === 'thread_member' ||
-                            state.scope.kind === 'artifact'
+                            state.scope.kind === 'artifact' ||
+                            state.scope.kind === 'mcp' ||
+                            state.scope.kind === 'mcp_details' ||
+                            state.scope.kind === 'mcp_action' ||
+                            state.scope.kind === 'skills' ||
+                            state.scope.kind === 'skills_details' ||
+                            state.scope.kind === 'skills_action' ||
+                            state.scope.kind === 'skills_upload'
                         ) {
                             state.snapshot = null;
                             state.rows.clear();

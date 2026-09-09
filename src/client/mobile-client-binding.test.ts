@@ -130,6 +130,17 @@ describe('MobileClientBinding', () => {
 
     test('scoped consumers release protected snapshots and remount with a newer demand', () => {
         for (const scope of [
+            { kind: 'mcp', workspace_id: 'workspace' },
+            { kind: 'mcp_details', workspace_id: 'workspace', server_id: 'a' },
+            { kind: 'mcp_action', workspace_id: 'workspace', target: 'a' },
+            { kind: 'skills', workspace_id: 'workspace' },
+            {
+                kind: 'skills_details',
+                workspace_id: 'workspace',
+                skill_id: 'AAAAAAAAAAAAAAAAAAAAA',
+            },
+            { kind: 'skills_action', workspace_id: 'workspace', target: 'a' },
+            { kind: 'skills_upload', workspace_id: 'workspace', operation_id: 7 },
             { kind: 'avatar', principal_id: 'avatar-key' },
             { kind: 'task_inbox', workspace_id: 'a' },
             { kind: 'task_review', thread_id: 'a', candidate_id: 'candidate' },
@@ -621,4 +632,87 @@ test('process shutdown closes native delivery and clears every retained scope be
     });
     expect(store.getSnapshot()).toBeNull();
     expect(() => binding.attachPlatformEffects(() => {})).toThrow('closed');
+});
+
+test('catalog detail and upload publications isolate operations and recover a scoped sequence gap', () => {
+    const scopes: ClientScope[] = [
+        { kind: 'mcp', workspace_id: 'workspace' },
+        { kind: 'mcp_details', workspace_id: 'workspace', server_id: 'a' },
+        { kind: 'mcp_details', workspace_id: 'workspace', server_id: 'b' },
+        { kind: 'skills', workspace_id: 'workspace' },
+        { kind: 'skills_details', workspace_id: 'workspace', skill_id: 'AAAAAAAAAAAAAAAAAAAAA' },
+        { kind: 'skills_upload', workspace_id: 'workspace', operation_id: 7 },
+        { kind: 'skills_upload', workspace_id: 'workspace', operation_id: 8 },
+        { kind: 'composer_catalog', thread_id: 'thread' },
+        settingsScope,
+    ];
+    const initial = scopes.map((scope) => snapshot(1, [], scope));
+    const fixture = bridgeFixture(null);
+    const demands: unknown[] = [];
+    const recovered: ClientScope[] = [];
+    const binding = new MobileClientBinding({
+        ...fixture.bridge,
+        snapshot: (scope) =>
+            initial.find((p) => JSON.stringify(p.scope) === JSON.stringify(scope)) ?? null,
+        dispatch: (request) => {
+            demands.push(request.intent);
+            return { schema_version: 1, sequence: demands.length, outcome: 'changed', effects: [] };
+        },
+        resnapshot: (scope) => {
+            recovered.push(scope);
+            return {
+                ...snapshot(5, [], scope),
+                payload: { operation_id: 7, state: 'cancelled', sent_bytes: 2 },
+            };
+        },
+    });
+    const stores = scopes.map((scope) => binding.scope(scope));
+    const notifications = scopes.map(() => 0);
+    const releases = stores.map((store, index) => store.subscribe(() => notifications[index]++));
+    const before = stores.map((store) => store.getSnapshot());
+    fixture.batches.push({
+        schema_version: 1,
+        changes: [
+            {
+                kind: 'publication',
+                predecessor: 1,
+                sequence: 2,
+                snapshot: {
+                    ...snapshot(2, [], scopes[5]),
+                    payload: { operation_id: 7, state: 'uploading', sent_bytes: 2 },
+                },
+            },
+        ],
+    });
+    binding.drain(scopes[5]);
+    expect(notifications).toEqual([0, 0, 0, 0, 0, 1, 0, 0, 0]);
+    stores.forEach((store, index) => {
+        if (index !== 5) expect(store.getSnapshot()).toBe(before[index]);
+    });
+    fixture.batches.push({
+        schema_version: 1,
+        changes: [
+            {
+                kind: 'publication',
+                predecessor: 4,
+                sequence: 5,
+                snapshot: snapshot(5, [], scopes[5]),
+            },
+        ],
+    });
+    binding.drain(scopes[5]);
+    expect(recovered).toEqual([scopes[5]]);
+    expect(stores[5].getSnapshot()?.payload).toEqual({
+        operation_id: 7,
+        state: 'cancelled',
+        sent_bytes: 2,
+    });
+    expect(
+        binding.scope({ operation_id: 7, workspace_id: 'workspace', kind: 'skills_upload' }),
+    ).toBe(stores[5]);
+    expect(
+        binding.scope({ operation_id: 7, workspace_id: 'other', kind: 'skills_upload' }),
+    ).not.toBe(stores[5]);
+    releases.forEach((release) => release());
+    expect(stores[5].getSnapshot()).toBeNull();
 });
