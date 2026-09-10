@@ -214,3 +214,63 @@ describe('native session storage effects', () => {
         await adapter.close();
     });
 });
+
+it('bounds slow native effects, retains deferred plans and cancels once after detach', async () => {
+    const resolvers: (() => void)[] = [];
+    jest.mocked(readMobileGatewaySession).mockImplementation(
+        () => new Promise((resolve) => resolvers.push(() => resolve(null))),
+    );
+    const { complete, adapter, deliver } = fixture();
+    const plans = Array.from({ length: 70 }, (_, i) => ({ ...plan, operation_id: `storage/${i}` }));
+    deliver(plans);
+    expect(readMobileGatewaySession).toHaveBeenCalledTimes(64);
+    deliver(plans);
+    expect(readMobileGatewaySession).toHaveBeenCalledTimes(64);
+    resolvers.splice(0).forEach((resolve) => resolve());
+    await flush();
+    deliver(plans);
+    expect(readMobileGatewaySession).toHaveBeenCalledTimes(70);
+    const closing = adapter.close();
+    void adapter.close();
+    resolvers.splice(0).forEach((resolve) => resolve());
+    await closing;
+    expect(complete).toHaveBeenCalledTimes(70);
+    deliver(plans);
+    expect(readMobileGatewaySession).toHaveBeenCalledTimes(70);
+});
+
+it('completes unsupported provider effects explicitly while preserving the administration clipboard adapter', async () => {
+    const { complete, adapter, deliver } = fixture();
+    deliver([
+        {
+            operation_id: 'provider/open',
+            generation: 1,
+            effect: { kind: 'open_provider_path', path: '/synthetic/provider' },
+        },
+        {
+            operation_id: 'provider/copy',
+            generation: 1,
+            effect: { kind: 'copy_provider_diagnostics', value: 'synthetic' },
+        },
+        {
+            operation_id: 'administration/copy',
+            generation: 1,
+            effect: { kind: 'copy_administration_activation' },
+        },
+    ]);
+    await flush();
+    expect(complete.mock.calls.map(([request]) => request.completion)).toEqual([
+        {
+            operation_id: 'provider/open',
+            generation: 1,
+            result: { kind: 'failed', code: 'unsupported_native_effect' },
+        },
+        {
+            operation_id: 'provider/copy',
+            generation: 1,
+            result: { kind: 'failed', code: 'unsupported_native_effect' },
+        },
+    ]);
+    expect(readMobileGatewaySession).not.toHaveBeenCalled();
+    await adapter.close();
+});

@@ -33,7 +33,7 @@ import { TerminalGatewaySessionNavigation } from '@/components/gateway/session-t
 import { initializeSentry, isSentryEnabled, Sentry } from '@/services/sentry';
 import { pioneerQueryClient } from '@/services/query/client';
 import { hideAppSplash, preventAppSplashAutoHide } from '@/services/app-splash';
-import { useVoiceInputGatewayQueryLifecycle } from '@/services/voice-input/data-source';
+import { useVoiceInputGatewayLifecycle } from '@/services/voice-input/data-source';
 import { TaskUserNotificationController } from '@/services/tasks/user-notifications';
 import { mobileStartup } from '@/services/telemetry/mobile-startup';
 import { mobileStartupReadinessOutcome } from '@/services/telemetry/mobile-startup-readiness';
@@ -167,7 +167,7 @@ const AppSystemBars = () => {
 
 const RootContent = () => {
     const { registry, bootstrapped, connectionId, connectionState, sessionRevision } = useGateway();
-    useVoiceInputGatewayQueryLifecycle();
+    useVoiceInputGatewayLifecycle();
 
     const remotes = registry.remotes ?? [];
     const activeGateway = bootstrapped
@@ -299,40 +299,25 @@ const WorkspaceBootstrapController = ({
     connectionId: number | null;
     connectionState: GatewayConnectionState;
 }) => {
-    const { bootstrappedConnectionId, bootstrapGatewayWorkspace, resetConnectionBootstrap } =
-        useWorkspace();
-    const pendingConnectionIdRef = useRef<number | null>(null);
-
+    const { bootstrappedConnectionId, bootstrapGatewayWorkspace, loading, error } = useWorkspace();
     useEffect(() => {
-        if (connectionState !== 'Connected' || connectionId === null) {
-            pendingConnectionIdRef.current = null;
-            resetConnectionBootstrap();
-            return;
-        }
-
         if (
-            bootstrappedConnectionId === connectionId ||
-            pendingConnectionIdRef.current === connectionId
-        ) {
+            connectionState !== 'Connected' ||
+            connectionId === null ||
+            loading ||
+            error ||
+            bootstrappedConnectionId === connectionId
+        )
             return;
-        }
-
-        pendingConnectionIdRef.current = connectionId;
-
-        void bootstrapGatewayWorkspace(activeGateway, connectionId)
-            .catch(() => {})
-            .finally(() => {
-                if (pendingConnectionIdRef.current === connectionId) {
-                    pendingConnectionIdRef.current = null;
-                }
-            });
+        void bootstrapGatewayWorkspace(activeGateway, connectionId).catch(() => {});
     }, [
         activeGateway,
         bootstrappedConnectionId,
         bootstrapGatewayWorkspace,
         connectionId,
         connectionState,
-        resetConnectionBootstrap,
+        loading,
+        error,
     ]);
 
     return null;

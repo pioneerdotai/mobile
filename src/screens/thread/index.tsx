@@ -42,9 +42,7 @@ import {
 } from '@/components/thread/timeline/timeline-grouping';
 import { useActiveThread } from '@/hooks/use-active-thread';
 import { useGateway } from '@/hooks/use-gateway';
-import { useTimelineReconnectInvalidation } from '@/hooks/use-timeline-reconnect-invalidation';
 import { useThreadTimelineBlocksQuery } from '@/hooks/use-thread-timeline-blocks-query';
-import { useTimelineQueryCancellation } from '@/hooks/use-timeline-query-cancellation';
 import { composerSubmissionPlanForProvider } from '@/services/providers/cli-runtime';
 import { useThreadPresentation } from '@/hooks/use-thread-presentation';
 import { projectAgentActionCapabilities } from '@/services/threads/agent-capabilities';
@@ -415,8 +413,6 @@ const ThreadScreen = ({
         composerMeasurement?.threadId === visibleThreadId && composerMeasurement.measured;
     const timelineIdentityKey = visibleThreadId;
     const visibleTurnId = visibleSnapshot?.projection.in_flight_turn_id ?? null;
-    useTimelineQueryCancellation(visibleThreadId, focused);
-    useTimelineReconnectInvalidation(visibleThreadId, focused);
 
     const threadTimelineBlocksQuery = useThreadTimelineBlocksQuery({
         threadId: visibleThreadId,

@@ -1,17 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { LegendList, type LegendListRenderItemProps } from '@legendapp/list/react-native';
-import { useQueryClient } from '@tanstack/react-query';
 import { dispatchThreadMember, useThreadMembers } from '@/client/thread-members';
 import { Alert } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Trash } from 'lucide-react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 
-import type {
-    ClientActiveThreadSnapshot,
-    ComposerMentionCandidate,
-    ThreadScopePresentation,
-} from '@/client';
+import type { ComposerMentionCandidate, ThreadScopePresentation } from '@/client';
 import { MemberAvatar } from '@/components/member-avatar';
 import { ActionsSheet } from '@/components/overlays/actions';
 import { MenuItem } from '@/components/overlays/actions/menu-item';
@@ -22,7 +17,7 @@ import { HStack } from '@/components/primitives/hstack';
 import { Pressable } from '@/components/primitives/pressable';
 import { Text } from '@/components/primitives/text';
 import { VStack } from '@/components/primitives/vstack';
-import { timelineQueryKeys } from '@/services/threads/timeline-query';
+import { useActiveThreadSnapshotQuery } from '@/hooks/use-active-thread-snapshot-query';
 import { useThreadTreeStore } from '@/stores/thread-tree';
 
 type ThreadMembersScreenProps = {
@@ -47,11 +42,8 @@ const ThreadMembersScreen = ({
 }: ThreadMembersScreenProps) => {
     const { t } = useTranslation('threads');
     const { theme } = useUnistyles();
-    const queryClient = useQueryClient();
     const treeSnapshot = useThreadTreeStore((state) => state.snapshot);
-    const cachedSnapshot = queryClient.getQueryData<ClientActiveThreadSnapshot>(
-        timelineQueryKeys.threadSnapshot(threadId),
-    );
+    const cachedSnapshot = useActiveThreadSnapshotQuery(threadId).data;
     const thread = treeSnapshot?.threads_by_id[threadId] ?? cachedSnapshot?.thread ?? null;
     const publication = useThreadMembers(threadId, true, thread?.workspace_id ?? null);
     const presentation = publication?.presentation;

@@ -158,6 +158,7 @@ describe('MobileClientBinding', () => {
         });
         const store = binding.scope(scope);
         expect(binding.scope(reorderedScope)).toBe(store);
+        store.subscribe(() => {});
         const before = store.getSnapshot()!.payload as { models: MobileClientRow[] };
         fixture.batches.push({
             schema_version: 1,
@@ -438,6 +439,7 @@ describe('MobileClientBinding', () => {
         const fixture = bridgeFixture(snapshot(1, [{ id: 'a', revision: 1 }]));
         const binding = new MobileClientBinding(fixture.bridge);
         const store = binding.scope(settingsScope);
+        store.subscribe(() => {});
         const first = store.getSnapshot();
         expect(store.getSnapshot()).toBe(first);
         expect(Object.isFrozen(first)).toBe(true);
@@ -605,7 +607,7 @@ describe('MobileClientBinding', () => {
     test('fails closed on an unsupported response schema version', () => {
         const fixture = bridgeFixture(snapshot(1, []));
         const binding = new MobileClientBinding(fixture.bridge);
-        binding.scope(settingsScope);
+        binding.scope(settingsScope).subscribe(() => {});
         fixture.batches.push({ schema_version: 2, changes: [] });
         expect(() => binding.drain(settingsScope)).toThrow('Unsupported Mobile Client schema');
     });
@@ -841,4 +843,281 @@ test('settings and onboarding scopes retain isolated snapshots and recover only 
         effects: [],
     });
     expect(binding.isClosed()).toBe(true);
+});
+
+test('access retirement is atomic across thread, navigation and capability scopes and stale delivery cannot revive it', () => {
+    const scopes: ClientScope[] = [
+        { kind: 'thread', thread_id: 'private' },
+        { kind: 'navigation' },
+        { kind: 'administration', workspace_id: null },
+    ];
+    const fixture = bridgeFixture(null);
+    const binding = new MobileClientBinding({
+        ...fixture.bridge,
+        dispatch: () => ({ schema_version: 1, sequence: 1, outcome: 'noop', effects: [] }),
+        snapshot: (scope) => ({ ...snapshot(1, [], scope), payload: { protected: 'old' } }),
+    });
+    const stores = scopes.map((scope) => binding.scope(scope));
+    const observed: unknown[] = [];
+    const releases = stores.map((store) =>
+        store.subscribe(() => observed.push(stores.map((value) => value.getSnapshot()?.payload))),
+    );
+    const retired = scopes.map((scope) => ({ ...snapshot(2, [], scope), payload: null }));
+    binding.applyProcessBatch({
+        schema_version: 1,
+        sequence: 2,
+        closed: false,
+        effects: [],
+        resnapshot: true,
+        changes: [{ sequence: 2, predecessor: 0, snapshots: retired }],
+    });
+    expect(observed).toEqual([
+        [null, null, null],
+        [null, null, null],
+        [null, null, null],
+    ]);
+    const before = stores.map((store) => store.getSnapshot());
+    binding.applyProcessBatch({
+        schema_version: 1,
+        sequence: 1,
+        closed: false,
+        effects: [],
+        resnapshot: false,
+        changes: [
+            {
+                sequence: 1,
+                predecessor: 0,
+                snapshots: scopes.map((scope) => ({
+                    ...snapshot(1, [], scope),
+                    payload: { protected: 'late' },
+                })),
+            },
+        ],
+    });
+    expect(stores.map((store) => store.getSnapshot())).toEqual(before);
+    releases.forEach((release) => release());
+    expect(stores.every((store) => store.getSnapshot() === null)).toBe(true);
+});
+
+test('inactive scope memory and native registrations are bounded and an evicted handle can subscribe again', () => {
+    const fixture = bridgeFixture(null);
+    const released: ClientScope[] = [];
+    const acquired: ClientScope[] = [];
+    const binding = new MobileClientBinding({
+        ...fixture.bridge,
+        dispatch: () => ({ schema_version: 1, sequence: 1, outcome: 'noop', effects: [] }),
+        snapshot: (scope) => snapshot(1, [], scope),
+        releaseScope: (scope) => released.push(scope),
+        acquireScope: (scope) => acquired.push(scope),
+    });
+    const first = binding.scope({ kind: 'thread', thread_id: '0' });
+    for (let index = 1; index < 140; index++)
+        binding.scope({ kind: 'thread', thread_id: `${index}` });
+    expect(released.length).toBe(12);
+    expect(first.getSnapshot()).toBeNull();
+    const dispose = first.subscribe(() => {});
+    expect(acquired.at(-1)).toEqual({ kind: 'thread', thread_id: '0' });
+    expect(first.getSnapshot()?.scope).toEqual({ kind: 'thread', thread_id: '0' });
+    dispose();
+    expect(first.getSnapshot()).toBeNull();
+});
+
+test('one native await survives StrictMode replacement and close disposes effects and ignores its late result', async () => {
+    const fixture = bridgeFixture(snapshot(1, []));
+    let resolve!: (
+        value: import('./generated/client_process_change_batch_dto').ClientProcessChangeBatchDto,
+    ) => void;
+    let waits = 0,
+        shutdowns = 0,
+        effectCloses = 0,
+        deliveries = 0;
+    const binding = new MobileClientBinding({
+        ...fixture.bridge,
+        shutdown: () => {
+            shutdowns++;
+        },
+        waitForPublications: () => {
+            waits++;
+            return new Promise((next) => {
+                resolve = next;
+            });
+        },
+    });
+    const store = binding.scope(settingsScope);
+    const first = store.subscribe(() => {
+        deliveries++;
+    });
+    first();
+    const second = store.subscribe(() => {
+        deliveries++;
+    });
+    binding.attachPlatformEffects(
+        () => {
+            throw new Error('late effect delivered');
+        },
+        () => {
+            effectCloses++;
+        },
+    );
+    expect(waits).toBe(1);
+    binding.close();
+    binding.close();
+    second();
+    const closedDeliveries = deliveries;
+    resolve({
+        schema_version: 1,
+        sequence: 1,
+        effects: [],
+        closed: false,
+        resnapshot: false,
+        changes: [{ sequence: 1, predecessor: 0, snapshots: [snapshot(1, [])] }],
+    });
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(shutdowns).toBe(1);
+    expect(effectCloses).toBe(1);
+    expect(waits).toBe(1);
+    expect(deliveries).toBe(closedDeliveries);
+    expect(store.getSnapshot()).toBeNull();
+});
+
+test('released scopes stay retired through late batches, other drains and process gaps', () => {
+    const fixture = bridgeFixture(null);
+    const acquired: ClientScope[] = [];
+    const drained: ClientScope[] = [];
+    const released: ClientScope[] = [];
+    const binding = new MobileClientBinding({
+        ...fixture.bridge,
+        snapshot: (scope) => snapshot(1, [{ id: 'private', revision: 1 }], scope),
+        resnapshot: (scope) => snapshot(3, [], scope),
+        acquireScope: (scope) => {
+            acquired.push(scope);
+        },
+        releaseScope: (scope) => {
+            released.push(scope);
+        },
+        changes: (scope) => {
+            drained.push(scope);
+            return { schema_version: 1, changes: [] };
+        },
+    });
+    const retired = binding.scope(settingsScope);
+    const active = binding.scope(providerScope);
+    const release = retired.subscribe(() => {});
+    const releaseActive = active.subscribe(() => {});
+    release();
+    binding.drain(providerScope);
+    expect(drained).toEqual([providerScope]);
+    binding.applyProcessBatch({
+        schema_version: 1,
+        sequence: 2,
+        effects: [],
+        closed: false,
+        resnapshot: false,
+        changes: [
+            {
+                sequence: 2,
+                predecessor: 0,
+                snapshots: [snapshot(2, [{ id: 'late', revision: 2 }])],
+            },
+        ],
+    });
+    expect(retired.getSnapshot()).toBeNull();
+    binding.applyProcessBatch({
+        schema_version: 1,
+        sequence: 4,
+        effects: [],
+        closed: false,
+        resnapshot: false,
+        changes: [{ sequence: 4, predecessor: 3, snapshots: [] }],
+    });
+    expect(retired.getSnapshot()).toBeNull();
+    expect(acquired).toEqual([settingsScope, providerScope]);
+    expect(released).toEqual([settingsScope]);
+    releaseActive();
+});
+
+test('authoritative resnapshot clears omitted protected scopes atomically and fences old publications', () => {
+    const fixture = bridgeFixture(null);
+    const binding = new MobileClientBinding({
+        ...fixture.bridge,
+        snapshot: (scope) => snapshot(1, [{ id: 'private', revision: 1 }], scope),
+    });
+    const a = binding.scope(settingsScope),
+        b = binding.scope(providerScope);
+    const observed: unknown[] = [];
+    const releaseA = a.subscribe(() =>
+        observed.push([a.getSnapshot()?.sequence ?? null, b.getSnapshot()?.sequence ?? null]),
+    );
+    const releaseB = b.subscribe(() =>
+        observed.push([a.getSnapshot()?.sequence ?? null, b.getSnapshot()?.sequence ?? null]),
+    );
+    binding.applyProcessBatch({
+        schema_version: 1,
+        sequence: 5,
+        effects: [],
+        closed: false,
+        resnapshot: true,
+        changes: [{ sequence: 5, predecessor: null, snapshots: [snapshot(5, [], providerScope)] }],
+    });
+    expect(a.getSnapshot()).toBeNull();
+    expect(observed).toEqual([
+        [null, 5],
+        [null, 5],
+    ]);
+    binding.applyProcessBatch({
+        schema_version: 1,
+        sequence: 4,
+        effects: [],
+        closed: false,
+        resnapshot: false,
+        changes: [
+            {
+                sequence: 4,
+                predecessor: 3,
+                snapshots: [snapshot(4, [{ id: 'private', revision: 1 }])],
+            },
+        ],
+    });
+    expect(a.getSnapshot()).toBeNull();
+    releaseA();
+    releaseB();
+});
+
+test('failed demand release clears protected values and failed resnapshot stays retryable', () => {
+    const scope: ClientScope = { kind: 'thread', thread_id: 'thread' };
+    const fixture = bridgeFixture(null);
+    let failedRead = true;
+    let reads = 0;
+    let releases = 0;
+    const binding = new MobileClientBinding({
+        ...fixture.bridge,
+        snapshot: () => snapshot(1, [{ id: 'private', revision: 1 }], scope),
+        dispatch: (request) => {
+            if (request.intent.kind === 'set_scope_demand' && request.intent.demand === 'suspended')
+                throw new Error('bridge unavailable');
+            return { schema_version: 1, sequence: 1, outcome: 'noop', effects: [] };
+        },
+        releaseScope: () => {
+            releases++;
+        },
+        resnapshot: () => {
+            reads++;
+            if (failedRead) throw new Error('read unavailable');
+            return snapshot(2, [], scope);
+        },
+    });
+    const store = binding.scope(scope);
+    const release = store.subscribe(() => {});
+    expect(() => release()).toThrow('bridge unavailable');
+    expect(releases).toBe(1);
+    expect(store.getSnapshot()).toBeNull();
+    expect(() => store.subscribe(() => {})).toThrow('read unavailable');
+    failedRead = false;
+    const retry = store.subscribe(() => {});
+    expect(reads).toBe(2);
+    expect(store.getSnapshot()?.sequence).toBe(2);
+    binding.close();
+    retry();
 });

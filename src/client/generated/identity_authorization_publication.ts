@@ -99,11 +99,20 @@ export interface IdentityAuthorizationPublication {
   access_change?: AccessChangedNotification | null;
   authorization_change_sequence: number;
   capabilities: AuthorizationProjectionStore;
+  capability_reads: CapabilityReadState[];
   connection_generation: number;
   connection_id?: number | null;
   current_auth?: AuthMeResponse | null;
   endpoint_id?: string | null;
+  identity_error?: string | null;
+  identity_loading: boolean;
   policy_change?: AuthorizationProjectionChangedNotification | null;
+  thread_snapshots: {
+    [k: string]: AuthorizationCapabilitySnapshot;
+  };
+  workspace_snapshots: {
+    [k: string]: AuthorizationCapabilitySnapshot;
+  };
   [k: string]: unknown;
 }
 /**
@@ -365,6 +374,13 @@ export interface AuthorizationProviderModelGrant {
   model: string;
   provider: string;
 }
+export interface CapabilityReadState {
+  error?: string | null;
+  loading: boolean;
+  thread_id?: string | null;
+  workspace_id?: string | null;
+  [k: string]: unknown;
+}
 export interface AuthMeResponse {
   device: AuthDeviceSnapshot;
   gateway: AuthGatewaySnapshot;
@@ -407,4 +423,18 @@ export interface AuthorizationProjectionChangedNotification {
   change: AuthorizationChangeKind;
   policy_generation: PolicyGeneration;
   [k: string]: unknown;
+}
+export interface AuthorizationCapabilitySnapshot {
+  authorization_revision: number;
+  global: AuthorizationGlobalCapabilities;
+  principal_id: PrincipalId;
+  role: AuthorizationRolePresentation;
+  /**
+   * Stable built-in role identifier. Clients may display this value but
+   * must never derive permissions from it.
+   */
+  role_key: string;
+  schema_version: number;
+  thread?: AuthorizationThreadCapabilitySnapshot | null;
+  workspace?: AuthorizationWorkspaceCapabilitySnapshot | null;
 }

@@ -157,6 +157,15 @@
         "pending": {
           "type": "boolean"
         },
+        "presentation_connection_id": {
+          "description": "Stable accepted session identity across background suspension and token renewal.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0
+        },
         "refresh_requested": {
           "type": "boolean"
         },

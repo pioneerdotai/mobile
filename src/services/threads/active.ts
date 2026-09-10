@@ -1,47 +1,48 @@
-import { pioneerClient } from '@/client';
+import { threadSnapshot } from '@/hooks/use-active-thread-snapshot-query';
+import { pioneerClient, mobileClientBinding } from '@/client';
 import type {
     ClientActiveThreadClearResult,
-    ClientActiveThreadEventRequest,
-    ClientActiveThreadEventResult,
     ClientActiveThreadOpenByIdRequest,
     ClientActiveThreadOpenRequest,
     ClientActiveThreadSendTextRequest,
     ClientActiveThreadSendTextResult,
     ClientActiveThreadSnapshot,
-    ClientActiveThreadSnapshotRequest,
-    ClientActiveThreadUnsubscribeRequest,
-    ClientActiveThreadUnsubscribeResult,
     ClientEnsureWorkspaceDraftRequest,
 } from '@/client';
 
 export const openActiveThread = async (
     request: ClientActiveThreadOpenRequest,
 ): Promise<ClientActiveThreadSnapshot> => {
-    return pioneerClient.activeThreadOpen(request);
+    mobileClientBinding.scope({ kind: 'thread', thread_id: request.thread.id });
+    await pioneerClient.activeThreadOpen(request);
+    mobileClientBinding.drain({ kind: 'thread', thread_id: request.thread.id });
+    await mobileClientBinding.synchronize();
+    const snapshot = threadSnapshot(request.thread.id);
+    if (!snapshot) throw new Error('thread_open_stale');
+    return snapshot;
 };
 
 export const openActiveThreadById = async (
     request: ClientActiveThreadOpenByIdRequest,
 ): Promise<ClientActiveThreadSnapshot> => {
-    return pioneerClient.activeThreadOpenById(request);
-};
-
-export const ensureWorkspaceDraftThread = async (
-    request: ClientEnsureWorkspaceDraftRequest,
-): Promise<ClientActiveThreadSnapshot> => {
-    return pioneerClient.activeThreadEnsureWorkspaceDraft(request);
+    mobileClientBinding.scope({ kind: 'thread', thread_id: request.thread_id });
+    await pioneerClient.activeThreadOpenById(request);
+    mobileClientBinding.drain({ kind: 'thread', thread_id: request.thread_id });
+    await mobileClientBinding.synchronize();
+    const snapshot = threadSnapshot(request.thread_id);
+    if (!snapshot) throw new Error('thread_open_stale');
+    return snapshot;
 };
 
 export const openOrCreateNewThread = async (
     request: ClientEnsureWorkspaceDraftRequest,
 ): Promise<ClientActiveThreadSnapshot> => {
-    return pioneerClient.activeThreadOpenOrCreateNew(request);
-};
-
-export const activeThreadSnapshot = (
-    request: ClientActiveThreadSnapshotRequest,
-): ClientActiveThreadSnapshot => {
-    return pioneerClient.activeThreadSnapshot(request);
+    const id = await pioneerClient.activeThreadOpenOrCreateNew(request);
+    mobileClientBinding.drain({ kind: 'thread', thread_id: id });
+    await mobileClientBinding.synchronize();
+    const snapshot = threadSnapshot(id);
+    if (!snapshot) throw new Error('thread_open_stale');
+    return snapshot;
 };
 
 export const sendActiveThreadText = async (
@@ -50,17 +51,6 @@ export const sendActiveThreadText = async (
     return pioneerClient.activeThreadSendText(request);
 };
 
-export const unsubscribeOrCloseActiveThread = async (
-    request: ClientActiveThreadUnsubscribeRequest,
-): Promise<ClientActiveThreadUnsubscribeResult> => {
-    return pioneerClient.activeThreadUnsubscribeOrClose(request);
-};
-
 export const clearActiveThread = async (): Promise<ClientActiveThreadClearResult> => {
     return pioneerClient.activeThreadClear();
 };
-
-// Compatibility delivery for administration and authorization endpoints.
-export const applyActiveThreadEvent = async (
-    request: ClientActiveThreadEventRequest,
-): Promise<ClientActiveThreadEventResult> => pioneerClient.activeThreadApplyEvent(request);

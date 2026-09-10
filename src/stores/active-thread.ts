@@ -206,15 +206,6 @@ type Actions = Pick<
 >;
 const actions: Actions = {
     activateComposerThread(threadId) {
-        const previous = input();
-        if (previous && previous.thread_id !== threadId && previous.operation?.plan) {
-            dispatchComposer({
-                kind: 'complete_operation',
-                identity: previous.operation.identity,
-                completion: { kind: 'cancelled' },
-            });
-        }
-
         dispatchComposer({
             kind: 'activate',
             thread_id: threadId,

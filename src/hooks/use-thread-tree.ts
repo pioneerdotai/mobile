@@ -1,17 +1,13 @@
 import { useCallback, useEffect, useMemo } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
 import { useShallow } from 'zustand/react/shallow';
 
 import type { ClientThreadTreeLevel } from '@/client';
-import { cachedActiveThreadSnapshot } from '@/services/threads/timeline-query';
 import { refreshThreadTree, threadUnreadById, threadTreeLevel } from '@/services/threads/tree';
 import { useActiveThreadStore } from '@/stores/active-thread';
 import { useGatewayStore } from '@/stores/gateway';
 import { useThreadTreeStore } from '@/stores/thread-tree';
 import { useWorkspaceStore } from '@/stores/workspace';
 import { mobileStartup } from '@/services/telemetry/mobile-startup';
-
-let refreshSequence = 0;
 
 const EMPTY_LEVEL: ClientThreadTreeLevel = {
     folder_id: null,
@@ -23,69 +19,15 @@ const EMPTY_LEVEL: ClientThreadTreeLevel = {
     threads: [],
 };
 
-const useThreadTreeRefresh = () => {
-    const queryClient = useQueryClient();
-    return useCallback(async (): Promise<void> => {
-        const gatewayState = useGatewayStore.getState();
-        const workspaceState = useWorkspaceStore.getState();
-        const currentWorkspaceId = workspaceState.activeWorkspaceId;
-
-        if (gatewayState.connectionState !== 'Connected' || gatewayState.connectionId === null) {
-            return;
-        }
-
-        if (!currentWorkspaceId) {
-            return;
-        }
-
-        const activeThreadState = useActiveThreadStore.getState();
-        const activeThreadSnapshot = cachedActiveThreadSnapshot(
-            queryClient,
-            activeThreadState.activeComposerThreadId,
-        );
-        const requestConnectionId = gatewayState.connectionId;
-        const requestWorkspaceId = currentWorkspaceId;
-        const activeThreadWorkspaceId =
-            activeThreadSnapshot?.workspace_id ??
-            activeThreadSnapshot?.thread?.workspace_id ??
-            null;
-        const activeThreadMatchesWorkspace = activeThreadWorkspaceId === requestWorkspaceId;
-        const sequence = refreshSequence + 1;
-        refreshSequence = sequence;
-
+const useThreadTreeRefresh = () =>
+    useCallback(async (): Promise<void> => {
+        const workspace = useWorkspaceStore.getState().activeWorkspaceId;
+        if (!workspace || useGatewayStore.getState().connectionState !== 'Connected') return;
         mobileStartup.begin('thread_tree.load');
         mobileStartup.begin('thread_tree.request');
-
         try {
-            await refreshThreadTree({
-                workspace_id: requestWorkspaceId,
-                active_thread_id: activeThreadMatchesWorkspace
-                    ? (activeThreadSnapshot?.thread_id ?? null)
-                    : null,
-                existing_draft_thread_id: activeThreadMatchesWorkspace
-                    ? (activeThreadSnapshot?.draft_thread_id ?? null)
-                    : null,
-                existing_draft_thread_workspace_id: activeThreadMatchesWorkspace
-                    ? (activeThreadSnapshot?.draft_workspace_id ??
-                      activeThreadSnapshot?.workspace_id ??
-                      null)
-                    : null,
-                has_known_threads_for_workspace:
-                    useThreadTreeStore.getState().workspaceId === requestWorkspaceId,
-            });
+            await refreshThreadTree({ workspace_id: workspace });
             mobileStartup.succeed('thread_tree.request');
-            const latestGatewayState = useGatewayStore.getState();
-            const latestWorkspaceState = useWorkspaceStore.getState();
-
-            if (
-                refreshSequence !== sequence ||
-                latestGatewayState.connectionId !== requestConnectionId ||
-                latestGatewayState.connectionState !== 'Connected' ||
-                latestWorkspaceState.activeWorkspaceId !== requestWorkspaceId
-            ) {
-                return;
-            }
-
             mobileStartup.begin('thread_tree.response.apply');
             mobileStartup.succeed('thread_tree.response.apply');
             mobileStartup.succeed('thread_tree.load');
@@ -93,24 +35,10 @@ const useThreadTreeRefresh = () => {
             useActiveThreadStore.getState().syncComposerModelSelection();
             mobileStartup.succeed('composer.prepare');
         } catch {
-            const latestGatewayState = useGatewayStore.getState();
-            const latestWorkspaceState = useWorkspaceStore.getState();
-
-            if (
-                refreshSequence !== sequence ||
-                latestGatewayState.connectionId !== requestConnectionId ||
-                latestWorkspaceState.activeWorkspaceId !== requestWorkspaceId
-            ) {
-                return;
-            }
-
             mobileStartup.fail('thread_tree.request');
-            mobileStartup.fail('thread_tree.response.apply');
             mobileStartup.fail('thread_tree.load');
-            mobileStartup.fail('composer.prepare');
         }
-    }, [queryClient]);
-};
+    }, []);
 
 export const useThreadTreeController = () => {
     const { connectionId, connectionState } = useGatewayStore(

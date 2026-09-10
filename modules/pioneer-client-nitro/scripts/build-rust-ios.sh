@@ -39,6 +39,8 @@ case "$RUST_MODE" in
     ;;
 esac
 
+PIONEER_RUST_ROOT="$RUST_ROOT" node "$MODULE_ROOT/scripts/boundary-integrity.mjs" check-source
+
 if ! command -v cargo >/dev/null 2>&1; then
   echo "cargo is required to build pioneer-client-ffi for iOS" >&2
   exit 1
@@ -55,8 +57,8 @@ cp "$MODULE_ROOT/cpp/pioneer_client_ffi.h" "$HEADER_DIR/pioneer_client_ffi.h"
 cd "$RUST_ROOT"
 
 rustup target add aarch64-apple-ios aarch64-apple-ios-sim >/dev/null
-cargo build -p pioneer-client-ffi --release --target aarch64-apple-ios
-cargo build -p pioneer-client-ffi --release --target aarch64-apple-ios-sim
+cargo build --locked -p pioneer-client-ffi --release --target aarch64-apple-ios
+cargo build --locked -p pioneer-client-ffi --release --target aarch64-apple-ios-sim
 
 rm -rf "$FRAMEWORK_PATH"
 xcodebuild -create-xcframework \
@@ -65,3 +67,5 @@ xcodebuild -create-xcframework \
   -library "$RUST_ROOT/target/aarch64-apple-ios-sim/release/libpioneer_client_ffi.a" \
   -headers "$HEADER_DIR" \
   -output "$FRAMEWORK_PATH"
+
+PIONEER_RUST_ROOT="$RUST_ROOT" node "$MODULE_ROOT/scripts/boundary-integrity.mjs" seal ios

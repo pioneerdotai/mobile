@@ -1252,6 +1252,22 @@
         {
           "type": "object",
           "properties": {
+            "demand": {
+              "$ref": "#/$defs/SessionDemand"
+            },
+            "kind": {
+              "type": "string",
+              "const": "session_demand"
+            }
+          },
+          "required": [
+            "kind",
+            "demand"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
             "intent": {
               "$ref": "#/$defs/SettingsModelPickerIntent"
             },
@@ -7588,6 +7604,42 @@
             "route"
           ]
         }
+      ]
+    },
+    "SessionDemand": {
+      "type": "object",
+      "properties": {
+        "endpoint_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "generation": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "network_available": {
+          "type": "boolean"
+        },
+        "visibility": {
+          "$ref": "#/$defs/SessionVisibility"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "visibility",
+        "network_available",
+        "generation"
+      ]
+    },
+    "SessionVisibility": {
+      "type": "string",
+      "enum": [
+        "foreground",
+        "inactive",
+        "background"
       ]
     },
     "SettingsIntent": {

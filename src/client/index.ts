@@ -6,6 +6,15 @@ import {
 import { pioneerClient } from './native';
 
 const nativeMobileClientBridge: MobileClientBridge = {
+    acquireScope: (scope) => {
+        pioneerClient.clientScopeAcquire(scope);
+    },
+    releaseScope: (scope) => {
+        pioneerClient.clientScopeRelease(scope);
+    },
+    shutdown: () => {
+        void pioneerClient.clientShutdown().catch(() => console.warn('Client shutdown failed'));
+    },
     waitForPublications: (sequence) => pioneerClient.clientWaitPublications(sequence),
     dispatch: (request) => pioneerClient.clientIntentDispatch(request),
     snapshot: (scope, afterRevision) =>

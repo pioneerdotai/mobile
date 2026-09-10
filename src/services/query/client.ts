@@ -1,7 +1,5 @@
 import { QueryClient } from '@tanstack/react-query';
 
-import { installTimelineQueryDefaults } from '@/services/threads/timeline-query';
-
 export const pioneerQueryClient = new QueryClient({
     defaultOptions: {
         queries: {
@@ -15,5 +13,3 @@ export const pioneerQueryClient = new QueryClient({
         },
     },
 });
-
-installTimelineQueryDefaults(pioneerQueryClient);

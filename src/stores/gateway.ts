@@ -1,141 +1,121 @@
+import { useSyncExternalStore } from 'react';
 import { create } from 'zustand';
-
-import type {
-    ClientEvent,
-    GatewayConnectionState,
-    GatewayRegistry,
-    SessionTerminalReason,
-} from '@/client';
+import { mobileClientBinding } from '@/client/mobile-client-binding';
+import type { GatewayRegistry, GatewayConnectionState } from '@/client';
 import type { GatewayDestinationsPublication } from '@/client/generated/gateway_destinations_publication';
+import type { GatewaySessionPublication } from '@/client/generated/gateway_session_publication';
+import { mobileSessionProjection } from '@/services/gateway/session-coordinator';
 import type { GatewayOperationErrorCode } from '@/services/gateway/registry';
-import type {
-    MobileSessionLifecyclePhase,
-    MobileSessionProjection,
-} from '@/services/gateway/session-coordinator';
 
-type GatewayStoreState = {
-    registry: GatewayRegistry;
-    applyOnboardingProjection: (value: GatewayDestinationsPublication) => void;
-    bootstrapped: boolean;
-    busy: boolean;
-    error: GatewayOperationErrorCode | null;
-    connectionId: number | null;
-    connectionGatewayId: string | null;
-    connectionState: GatewayConnectionState;
-    lastEvent: ClientEvent | null;
-    lastEventSerial: number;
-    lastEventGatewayId: string | null;
-    lastEventConnectionId: number | null;
-    sessionError: string | null;
-    sessionRevision: number;
-    sessionLifecyclePhase: MobileSessionLifecyclePhase;
-    sessionPrincipalId: string | null;
-    sessionDeviceId: string | null;
-    sessionId: string | null;
-    sessionAccessExpiresAtUnix: number | null;
-    sessionTerminalReason: SessionTerminalReason | null;
-    sessionConnectionGeneration: number | null;
+const presentation = create<{
     showGatewaySwitcher: boolean;
-    setConnectionId: (connectionId: number | null) => void;
-    setConnectionGatewayId: (gatewayId: string | null) => void;
-    setConnectionState: (connectionState: GatewayConnectionState) => void;
-    setLastEvent: (
-        event: ClientEvent | null,
-        gatewayId?: string | null,
-        connectionId?: number | null,
-    ) => void;
-    setSessionError: (error: string | null) => void;
-    setSessionProjection: (projection: MobileSessionProjection) => void;
     setGatewaySwitcherOpen: (open: boolean) => void;
-};
-
-export const useGatewayStore = create<GatewayStoreState>((set) => ({
-    registry: {
-        version: 3,
-        installation_id: null,
-        active_gateway_id: null,
-        local: null,
-        remotes: [],
-    },
-    bootstrapped: false,
-    busy: false,
-    error: null,
-    connectionId: null,
-    connectionGatewayId: null,
-    connectionState: 'Idle',
-    lastEvent: null,
-    lastEventSerial: 0,
-    lastEventGatewayId: null,
-    lastEventConnectionId: null,
-    sessionError: null,
-    sessionRevision: 0,
-    sessionLifecyclePhase: 'needs_authentication',
-    sessionPrincipalId: null,
-    sessionDeviceId: null,
-    sessionId: null,
-    sessionAccessExpiresAtUnix: null,
-    sessionTerminalReason: null,
-    sessionConnectionGeneration: null,
+}>((set) => ({
     showGatewaySwitcher: false,
-
-    applyOnboardingProjection: (value) =>
-        set((state) => {
-            const registry: GatewayRegistry = {
-                version: 3,
-                installation_id: value.installation_id ?? null,
-                active_gateway_id: value.selected_endpoint ?? null,
-                local: value.endpoints.find((endpoint) => endpoint.kind === 'local') ?? null,
-                remotes: value.endpoints.filter((endpoint) => endpoint.kind === 'remote'),
-            };
-            return {
-                registry:
-                    JSON.stringify(state.registry) === JSON.stringify(registry)
-                        ? state.registry
-                        : registry,
-                bootstrapped: Boolean(value.installation_id),
-                busy: value.loading || Boolean(value.pending_endpoint),
-                error: value.error ? 'operationFailed' : null,
-            };
-        }),
-
-    setConnectionId: (connectionId) => {
-        set({ connectionId });
-    },
-
-    setConnectionGatewayId: (connectionGatewayId) => {
-        set({ connectionGatewayId });
-    },
-
-    setConnectionState: (connectionState) => {
-        set({ connectionState });
-    },
-
-    setLastEvent: (event, lastEventGatewayId = null, lastEventConnectionId = null) => {
-        set((state) => ({
-            lastEvent: event,
-            lastEventGatewayId,
-            lastEventConnectionId,
-            lastEventSerial: state.lastEventSerial + 1,
-        }));
-    },
-
-    setSessionError: (error) => {
-        set({ sessionError: error });
-    },
-
-    setSessionProjection: (projection) => {
-        set({
-            sessionLifecyclePhase: projection.phase,
-            sessionPrincipalId: projection.principalId,
-            sessionDeviceId: projection.deviceId,
-            sessionId: projection.sessionId,
-            sessionAccessExpiresAtUnix: projection.accessExpiresAtUnix,
-            sessionTerminalReason: projection.terminalReason,
-            sessionConnectionGeneration: projection.connectionGeneration,
-        });
-    },
-
-    setGatewaySwitcherOpen: (open) => {
-        set({ showGatewaySwitcher: open });
-    },
+    setGatewaySwitcherOpen: (showGatewaySwitcher) => set({ showGatewaySwitcher }),
 }));
+const emptyRegistry: GatewayRegistry = {
+    version: 3,
+    installation_id: null,
+    active_gateway_id: null,
+    local: null,
+    remotes: [],
+};
+const registryMemo = new WeakMap<GatewayDestinationsPublication, GatewayRegistry>();
+const registryFor = (value: GatewayDestinationsPublication | null): GatewayRegistry => {
+    if (!value) return emptyRegistry;
+    const previous = registryMemo.get(value);
+    if (previous) return previous;
+    const registry: GatewayRegistry = {
+        version: 3,
+        installation_id: value.installation_id,
+        active_gateway_id: value.selected_endpoint,
+        local: value.endpoints.find((endpoint) => endpoint.kind === 'local') ?? null,
+        remotes: value.endpoints.filter((endpoint) => endpoint.kind === 'remote'),
+    };
+    registryMemo.set(value, registry);
+    return registry;
+};
+const view = () => {
+    const destinations = mobileClientBinding.scope({ kind: 'gateway_destinations' }).getSnapshot()
+        ?.payload as GatewayDestinationsPublication | null;
+    const session = mobileClientBinding.scope({ kind: 'session' }).getSnapshot()
+        ?.payload as GatewaySessionPublication | null;
+    const id = destinations?.selected_endpoint ?? null;
+    const projection = mobileSessionProjection(id ?? '');
+    const connection = id ? session?.connections[id] : null;
+    const connectionId = projection.terminalReason
+        ? null
+        : (connection?.presentation_connection_id ?? connection?.connected?.connection_id ?? null);
+    const connectionState: GatewayConnectionState =
+        connectionId !== null
+            ? 'Connected'
+            : connection?.pending
+              ? 'Connecting'
+              : connection?.failure
+                ? 'Disconnected'
+                : 'Idle';
+    return {
+        ...presentation.getState(),
+        registry: registryFor(destinations),
+        bootstrapped: Boolean(destinations?.installation_id),
+        busy: Boolean(destinations?.loading || destinations?.pending_endpoint),
+        error: (destinations?.error ? 'operationFailed' : null) as GatewayOperationErrorCode | null,
+        connectionId,
+        connectionGatewayId: connectionId !== null ? id : null,
+        connectionState: connectionState as GatewayConnectionState,
+        sessionError: session?.gateway_error ?? projection.terminalReason,
+        sessionRevision: 0,
+        sessionLifecyclePhase: projection.phase,
+        sessionPrincipalId: projection.principalId,
+        sessionDeviceId: projection.deviceId,
+        sessionId: projection.sessionId,
+        sessionAccessExpiresAtUnix: projection.accessExpiresAtUnix,
+        sessionTerminalReason: projection.terminalReason,
+        sessionConnectionGeneration: projection.connectionGeneration,
+    };
+};
+export const useGatewayStore = Object.assign(
+    <T>(selector: (state: ReturnType<typeof view>) => T): T => {
+        for (const scope of [
+            { kind: 'gateway_destinations' },
+            { kind: 'session' },
+            { kind: 'administration', workspace_id: null },
+        ] as const) {
+            const store = mobileClientBinding.scope(scope);
+            // eslint-disable-next-line react-hooks/rules-of-hooks -- fixed scoped selector tuple
+            useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot);
+        }
+        presentation();
+        return selector(view());
+    },
+    {
+        getState: view,
+        subscribe: (
+            listener: (state: ReturnType<typeof view>, previous: ReturnType<typeof view>) => void,
+        ) => {
+            let previous = view();
+            const notify = () => {
+                const state = view();
+                if (
+                    (Object.keys(state) as (keyof typeof state)[]).every((key) =>
+                        Object.is(state[key], previous[key]),
+                    )
+                )
+                    return;
+                const before = previous;
+                previous = state;
+                listener(state, before);
+            };
+            const releases = [
+                mobileClientBinding.scope({ kind: 'gateway_destinations' }).subscribe(notify),
+                mobileClientBinding.scope({ kind: 'session' }).subscribe(notify),
+                mobileClientBinding
+                    .scope({ kind: 'administration', workspace_id: null })
+                    .subscribe(notify),
+                presentation.subscribe(notify),
+            ];
+            return () => releases.forEach((release) => release());
+        },
+    },
+);

@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useQueryClient } from '@tanstack/react-query';
 import { useShallow } from 'zustand/react/shallow';
 
-import type { ClientActiveThreadSnapshot, Thread } from '@/client';
+import type { Thread } from '@/client';
 import {
     requestTurnCancellation,
     useTurnCancellationPublication,
@@ -12,21 +11,14 @@ import { mobileClientBinding } from '@/client/mobile-client-binding';
 import { beginComposerOperation } from '@/client/composer';
 import { withGatewayTransportLease } from '@/services/gateway/transport-coordinator';
 import {
-    activeThreadSnapshot,
     openActiveThread,
     openActiveThreadById,
     sendActiveThreadText,
 } from '@/services/threads/active';
 import {
-    cacheActiveThreadSnapshot,
-    cachedActiveThreadSnapshot,
-    invalidateTimelineQueriesForThread,
-    newestActiveThreadSnapshot,
-    removeTimelineQueriesForThread,
-    timelineQueryKeys,
-} from '@/services/threads/timeline-query';
-import { invalidateMaterializedThreadAuthorization } from '@/services/administration/query';
-import { useActiveThreadSnapshotQuery } from '@/hooks/use-active-thread-snapshot-query';
+    useActiveThreadSnapshotQuery,
+    threadSnapshot,
+} from '@/hooks/use-active-thread-snapshot-query';
 import { useActiveThreadStore } from '@/stores/active-thread';
 import { useGatewayStore } from '@/stores/gateway';
 
@@ -45,7 +37,6 @@ export const useActiveThread = (
     requestedThreadId: string | null = thread?.id ?? null,
 ) => {
     const { t } = useTranslation('threads');
-    const queryClient = useQueryClient();
     const threadId = requestedThreadId ?? thread?.id ?? null;
     const snapshotQuery = useActiveThreadSnapshotQuery(threadId);
     const snapshot = snapshotQuery.data ?? null;
@@ -106,9 +97,8 @@ export const useActiveThread = (
         })),
     );
 
-    const { connectionGatewayId, connectionId, connectionState } = useGatewayStore(
+    const { connectionId, connectionState } = useGatewayStore(
         useShallow((state) => ({
-            connectionGatewayId: state.connectionGatewayId,
             connectionId: state.connectionId,
             connectionState: state.connectionState,
         })),
@@ -134,54 +124,17 @@ export const useActiveThread = (
 
     const open = useCallback(
         async (threadToOpen: Thread) => {
-            if (!active || !connected) {
-                return;
-            }
-
-            await queryClient
-                .fetchQuery<ClientActiveThreadSnapshot>({
-                    queryKey: timelineQueryKeys.threadSnapshot(threadToOpen.id),
-                    staleTime: 0,
-                    queryFn: () =>
-                        openActiveThread({
-                            thread: threadToOpen,
-                            expanded_keys: useActiveThreadStore.getState().expandedKeys,
-                        }),
-                    structuralSharing: (current, incoming) =>
-                        newestActiveThreadSnapshot(
-                            current as ClientActiveThreadSnapshot | null | undefined,
-                            incoming as ClientActiveThreadSnapshot,
-                        ),
-                })
-                .catch(() => undefined);
+            if (active && connected)
+                await openActiveThread({ thread: threadToOpen }).catch(() => undefined);
         },
-        [active, connected, queryClient],
+        [active, connected],
     );
-
     const openById = useCallback(
-        async (threadIdToOpen: string) => {
-            if (!active || !connected) {
-                return;
-            }
-
-            await queryClient
-                .fetchQuery<ClientActiveThreadSnapshot>({
-                    queryKey: timelineQueryKeys.threadSnapshot(threadIdToOpen),
-                    staleTime: 0,
-                    queryFn: () =>
-                        openActiveThreadById({
-                            thread_id: threadIdToOpen,
-                            expanded_keys: useActiveThreadStore.getState().expandedKeys,
-                        }),
-                    structuralSharing: (current, incoming) =>
-                        newestActiveThreadSnapshot(
-                            current as ClientActiveThreadSnapshot | null | undefined,
-                            incoming as ClientActiveThreadSnapshot,
-                        ),
-                })
-                .catch(() => undefined);
+        async (id: string) => {
+            if (active && connected)
+                await openActiveThreadById({ thread_id: id }).catch(() => undefined);
         },
-        [active, connected, queryClient],
+        [active, connected],
     );
 
     const refresh = useCallback(async () => {
@@ -224,44 +177,9 @@ export const useActiveThread = (
         void refresh();
     }, [active, connected, connectionId, refresh, threadId]);
 
-    useEffect(() => {
-        if (!active || !subscribedThreadId || !connected || connectionId === null) {
-            return;
-        }
-
-        const store = mobileClientBinding.scope({ kind: 'thread', thread_id: subscribedThreadId });
-        let revision: number | null = null;
-        const receive = () => {
-            const publication = store.getSnapshot();
-            if (
-                !publication ||
-                (revision !== null && publication.revisions.scoped <= revision) ||
-                useGatewayStore.getState().connectionId !== connectionId
-            ) {
-                return;
-            }
-            revision = publication.revisions.scoped;
-            if (publication.payload === null) {
-                removeTimelineQueriesForThread(queryClient, subscribedThreadId);
-                return;
-            }
-            const current = activeThreadSnapshot({
-                thread_id: subscribedThreadId,
-                expanded_keys: useActiveThreadStore.getState().expandedKeys,
-            });
-            cacheActiveThreadSnapshot(queryClient, current);
-        };
-        const unsubscribe = store.subscribe(receive);
-        receive();
-        return unsubscribe;
-    }, [active, connected, connectionId, queryClient, subscribedThreadId]);
-
     const updateExpandedKeys = useCallback(
-        (keys: string[]) => {
-            setExpandedKeys(keys);
-            cacheActiveThreadSnapshot(queryClient, activeThreadSnapshot({ expanded_keys: keys }));
-        },
-        [queryClient, setExpandedKeys],
+        (keys: string[]) => setExpandedKeys(keys),
+        [setExpandedKeys],
     );
 
     useEffect(() => {
@@ -287,7 +205,7 @@ export const useActiveThread = (
 
     const sendText = useCallback(async (): Promise<boolean> => {
         if (!active || !connected) return false;
-        const currentSnapshot = cachedActiveThreadSnapshot(queryClient, threadId);
+        const currentSnapshot = threadSnapshot(threadId);
         const requestThreadId = threadId ?? currentSnapshot?.thread_id ?? null;
         const requestWorkspaceId =
             workspaceId ??
@@ -303,7 +221,6 @@ export const useActiveThread = (
             setComposerError(t('sendFailed'));
             return false;
         }
-        const materializingDraft = currentSnapshot?.draft_thread_id === requestThreadId;
         const operation = beginComposerOperation(requestThreadId, 'send');
         if (!operation) return false;
         setComposerError(null);
@@ -325,32 +242,11 @@ export const useActiveThread = (
             }
 
             activeThreadIdRef.current = result.thread_id;
-            void invalidateTimelineQueriesForThread(queryClient, result.thread_id);
-            cacheActiveThreadSnapshot(queryClient, result.snapshot);
-            if (materializingDraft && connectionGatewayId !== null) {
-                void invalidateMaterializedThreadAuthorization(
-                    queryClient,
-                    { gatewayId: connectionGatewayId, connectionId },
-                    requestWorkspaceId,
-                    result.thread_id,
-                );
-            }
             return true;
         } catch {
             return false;
         }
-    }, [
-        connected,
-        connectionGatewayId,
-        connectionId,
-        setComposerError,
-        t,
-        queryClient,
-        workspaceId,
-        thread,
-        threadId,
-        active,
-    ]);
+    }, [connected, connectionId, setComposerError, t, workspaceId, thread, threadId, active]);
 
     const stopTurn = useCallback(async (): Promise<boolean> => {
         if (!active || !connected || !threadId || turnCancelling) return false;

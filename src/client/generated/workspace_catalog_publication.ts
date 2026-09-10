@@ -4,6 +4,7 @@ export type WorkspaceCatalogOperation = 'bootstrap' | 'select' | 'create' | 'ren
 
 export interface WorkspaceCatalogPublication {
   action_pending: boolean;
+  bootstrapped_connection_id?: number | null;
   error?: string | null;
   loading: boolean;
   operation?: WorkspaceCatalogOperation | null;

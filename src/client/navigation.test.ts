@@ -32,9 +32,9 @@ describe('process-local navigation binding', () => {
         const calls: unknown[] = [];
         const batches: ClientChangeBatchDto[] = [];
         const bridge: MobileClientBridge = {
-            snapshot: () => current,
+            snapshot: (scope) => (scope.kind === 'navigation' ? current : null),
             changes: () => batches.shift() ?? { schema_version: 1, changes: [] },
-            resnapshot: () => current,
+            resnapshot: (scope) => (scope.kind === 'navigation' ? current : null),
             dispatch: (request) => {
                 calls.push(request);
                 return { schema_version: 1, sequence: 2, outcome: 'changed', effects: [] };

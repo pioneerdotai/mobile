@@ -3,7 +3,6 @@ import { Text, View } from 'react-native';
 import Stack from 'expo-router/js-stack';
 import { router } from 'expo-router';
 import { StyleSheet } from 'react-native-unistyles';
-import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 
 import { pioneerClient, type Thread } from '@/client';
@@ -11,7 +10,6 @@ import { useAuthorizationCapabilitySnapshot } from '@/hooks/use-administration-c
 import ThreadScreen from '@/screens/thread';
 import { useThreadScreen } from '@/screens/thread/hooks';
 import { openOrCreateNewThread } from '@/services/threads/active';
-import { cacheActiveThreadSnapshot } from '@/services/threads/timeline-query';
 import { useActiveThreadStore } from '@/stores/active-thread';
 import { useGatewayStore } from '@/stores/gateway';
 import { useWorkspaceStore } from '@/stores/workspace';
@@ -33,7 +31,6 @@ const NewThreadDraftRoute = ({
     capabilitySnapshot,
 }: NewThreadDraftRouteProps) => {
     const { t } = useTranslation('threads');
-    const queryClient = useQueryClient();
     const connectionId = useGatewayStore((state) => state.connectionId);
     const connectionState = useGatewayStore((state) => state.connectionState);
     const workspaceError = useWorkspaceStore((state) => state.error);
@@ -114,7 +111,6 @@ const NewThreadDraftRoute = ({
                     throw new Error('draft thread id is required');
                 }
 
-                cacheActiveThreadSnapshot(queryClient, snapshot);
                 setError(null);
                 setDraft({
                     connectionId,
@@ -143,7 +139,6 @@ const NewThreadDraftRoute = ({
         connectionId,
         connectionState,
         draftReady,
-        queryClient,
         selectedVisibility,
         t,
         visibilityPlan,

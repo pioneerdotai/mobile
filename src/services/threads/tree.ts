@@ -2,7 +2,6 @@ import { pioneerClient } from '@/client';
 import { drainWorkspacePublications } from '@/client/workspaces';
 import type {
     ClientThreadTreeLevel,
-    ClientThreadTreeQueryData,
     ClientThreadTreeSnapshot,
     Thread,
     ThreadTreeRefreshRequest,
@@ -22,9 +21,7 @@ export const threadUnreadById = (
     return unread;
 };
 
-export const refreshThreadTree = async (
-    request: ThreadTreeRefreshRequest,
-): Promise<ClientThreadTreeQueryData> => {
+export const refreshThreadTree = async (request: ThreadTreeRefreshRequest): Promise<void> => {
     try {
         return await pioneerClient.threadTreeRefresh(request);
     } finally {

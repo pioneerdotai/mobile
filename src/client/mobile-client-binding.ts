@@ -27,6 +27,9 @@ export type MobileClientScopeStore = Readonly<{
 
 export type MobileClientBridge = Readonly<{
     waitForPublications?: (afterSequence: number) => Promise<ClientProcessChangeBatchDto>;
+    shutdown?: () => void;
+    releaseScope?: (scope: ClientScope) => void;
+    acquireScope?: (scope: ClientScope) => void;
     dispatch: (request: ClientIntentDispatchDto) => ClientTransitionDto;
     snapshot: (scope: ClientScope, afterRevision: number | null) => ClientScopedSnapshotDto | null;
     changes: (scope: ClientScope, maximumItems: number) => ClientChangeBatchDto;
@@ -41,6 +44,7 @@ export type MobileClientBridge = Readonly<{
 
 type ScopeState = {
     scope: ClientScope;
+    needsResnapshot: boolean;
     snapshot: ClientScopedSnapshotDto | null;
     rows: Map<string, MobileClientRow>;
     lastAppliedSequence: number | null;
@@ -165,9 +169,11 @@ const memoizeRows = (
     const previous = previousPayload as Record<string, unknown> | null;
     const rows = new Map<string, MobileClientRow>();
     const next = { ...record };
+    let rewritten = false;
     for (const field of ['rows', 'members', 'invitations', 'runtimes', 'providers', 'models']) {
         const values = record[field];
         if (!Array.isArray(values) || !values.every(isMobileClientRow)) continue;
+        rewritten = true;
         const memoized = values.map((row) => {
             const key = JSON.stringify([field, row.id, row.revision]);
             const stable = previousRows.get(key) ?? freezeSnapshotValue(row);
@@ -182,7 +188,7 @@ const memoizeRows = (
                 ? old
                 : memoized;
     }
-    return { payload: next, rows };
+    return { payload: rewritten ? next : payload, rows };
 };
 
 type TimelineValue = { revision: number; generation: number; rows: MobileClientRow[] };
@@ -245,6 +251,9 @@ const timelineReplacementRows = (
 let processBridge: MobileClientBridge | null = null;
 
 const configuredBridge: MobileClientBridge = {
+    releaseScope: (scope) => requireProcessBridge().releaseScope?.(scope),
+    acquireScope: (scope) => requireProcessBridge().acquireScope?.(scope),
+    shutdown: () => requireProcessBridge().shutdown?.(),
     waitForPublications: (sequence) => {
         const wait = requireProcessBridge().waitForPublications;
         if (!wait) {
@@ -301,10 +310,34 @@ export class MobileClientBinding {
             if (this.#effects === deliver) {
                 this.#effects = null;
                 this.#closeEffects = null;
+                close?.();
             }
         };
     }
     #delivery: Promise<void> | null = null;
+    #pendingBatch: Promise<ClientProcessChangeBatchDto> | null = null;
+    #waitForBatch(): Promise<ClientProcessChangeBatchDto> {
+        if (this.#pendingBatch) return this.#pendingBatch;
+        const wait = this.#bridge.waitForPublications;
+        if (!wait) throw new Error('Mobile publication wait is unavailable');
+        const pending = wait(this.#processSequence).finally(() => {
+            if (this.#pendingBatch === pending) this.#pendingBatch = null;
+        });
+        this.#pendingBatch = pending;
+        return pending;
+    }
+    close(): void {
+        if (this.#closed) return;
+        this.applyProcessBatch({
+            schema_version: CLIENT_BINDING_SCHEMA_VERSION,
+            sequence: this.#processSequence,
+            changes: [],
+            effects: [],
+            closed: true,
+            resnapshot: false,
+        });
+        this.#bridge.shutdown?.();
+    }
 
     isClosed(): boolean {
         return this.#closed;
@@ -366,19 +399,21 @@ export class MobileClientBinding {
         }
         if (sequenceGap) {
             // Recover each retained scope from Client; install all values before observers run.
-            const replacements = [...this.#scopes.values()].map((state) => {
-                const snapshot = this.#bridge.resnapshot(
-                    state.scope,
-                    batch.changes[0]?.predecessor ?? null,
-                    state.lastAppliedSequence,
-                );
-                if (snapshot) {
-                    assertSchemaVersion(snapshot);
-                    if (scopeKey(snapshot.scope) !== scopeKey(state.scope))
-                        throw new Error('Client resnapshot scope mismatch');
-                }
-                return { state, snapshot };
-            });
+            const replacements = [...this.#scopes.values()]
+                .filter((state) => !state.needsResnapshot)
+                .map((state) => {
+                    const snapshot = this.#bridge.resnapshot(
+                        state.scope,
+                        batch.changes[0]?.predecessor ?? null,
+                        state.lastAppliedSequence,
+                    );
+                    if (snapshot) {
+                        assertSchemaVersion(snapshot);
+                        if (scopeKey(snapshot.scope) !== scopeKey(state.scope))
+                            throw new Error('Client resnapshot scope mismatch');
+                    }
+                    return { state, snapshot };
+                });
             const changed = new Set<ScopeState>();
             for (const { state, snapshot } of replacements) {
                 const previous = state.snapshot;
@@ -400,6 +435,25 @@ export class MobileClientBinding {
             return;
         }
         const changed = new Set<ScopeState>();
+        if (batch.resnapshot) {
+            const present = new Set(
+                batch.changes.flatMap((change) =>
+                    change.snapshots.map((snapshot) => scopeKey(snapshot.scope)),
+                ),
+            );
+            for (const state of this.#scopes.values()) {
+                if (
+                    state.needsResnapshot ||
+                    present.has(scopeKey(state.scope)) ||
+                    (state.lastAppliedSequence ?? 0) > batch.sequence
+                )
+                    continue;
+                if (state.snapshot !== null) changed.add(state);
+                state.snapshot = null;
+                state.rows.clear();
+                state.lastAppliedSequence = batch.sequence;
+            }
+        }
         let predecessor = this.#processSequence;
         for (const change of batch.changes) {
             if (!batch.resnapshot && (change.predecessor ?? 0) !== predecessor) {
@@ -408,7 +462,7 @@ export class MobileClientBinding {
             for (const snapshot of change.snapshots) {
                 assertSchemaVersion(snapshot);
                 const state = this.#scopes.get(scopeKey(snapshot.scope));
-                if (!state) {
+                if (!state || state.needsResnapshot) {
                     continue;
                 }
                 const before = state.snapshot;
@@ -462,9 +516,7 @@ export class MobileClientBinding {
         this.#effects?.(batch.effects ?? []);
         // Every affected immutable value is installed before any observer runs.
         for (const state of changed) {
-            for (const listener of [...state.listeners]) {
-                listener();
-            }
+            this.#notify([...state.listeners]);
         }
     }
 
@@ -479,7 +531,7 @@ export class MobileClientBinding {
                     [...this.#scopes.values()].some((scope) => scope.listeners.size > 0))
             ) {
                 try {
-                    const batch = await this.#bridge.waitForPublications!(this.#processSequence);
+                    const batch = await this.#waitForBatch();
                     this.applyProcessBatch(batch);
                 } catch {
                     // A failed bridge call did not advance the applied watermark.
@@ -490,6 +542,12 @@ export class MobileClientBinding {
         };
         this.#delivery = deliver().finally(() => {
             this.#delivery = null;
+            if (
+                !this.#closed &&
+                (this.#effects ||
+                    [...this.#scopes.values()].some((state) => state.listeners.size > 0))
+            )
+                this.#startDelivery();
         });
     }
 
@@ -506,6 +564,7 @@ export class MobileClientBinding {
         }
         let targetSequence = this.#processSequence;
         for (const state of this.#scopes.values()) {
+            if (state.needsResnapshot) continue;
             const snapshot = this.#bridge.snapshot(state.scope, null);
             if (snapshot) {
                 assertSchemaVersion(snapshot);
@@ -516,7 +575,7 @@ export class MobileClientBinding {
             }
         }
         if (targetSequence > this.#processSequence) {
-            this.applyProcessBatch(await this.#bridge.waitForPublications(this.#processSequence));
+            this.applyProcessBatch(await this.#waitForBatch());
         }
     }
 
@@ -545,11 +604,38 @@ export class MobileClientBinding {
         return transition;
     }
 
+    #deferredListeners: Set<Listener> | null = null;
+    #notify(listeners: Iterable<Listener>): void {
+        for (const listener of listeners) {
+            if (this.#deferredListeners) this.#deferredListeners.add(listener);
+            else listener();
+        }
+    }
     drain(scope: ClientScope, maximumItems = 64): void {
+        if (this.#closed) return;
+        this.#scopeState(scope);
+        if (this.#deferredListeners) return;
+        const listeners = new Set<Listener>();
+        this.#deferredListeners = listeners;
+        try {
+            this.#drainScope(scope, maximumItems);
+            for (const state of this.#scopes.values())
+                if (state.listeners.size > 0 && scopeKey(state.scope) !== scopeKey(scope))
+                    this.#drainScope(state.scope, maximumItems);
+        } finally {
+            this.#deferredListeners = null;
+        }
+        for (const listener of listeners) listener();
+    }
+    #drainScope(scope: ClientScope, maximumItems: number): void {
         if (!Number.isInteger(maximumItems) || maximumItems < 1 || maximumItems > 256) {
             throw new Error('Mobile Client change batch size must be between 1 and 256');
         }
         const state = this.#scopeState(scope);
+        if (state.listeners.size === 0) {
+            this.#resnapshot(scope, state, null, state.lastAppliedSequence ?? 0);
+            return;
+        }
         const batch = this.#bridge.changes(scope, maximumItems);
         assertSchemaVersion(batch);
         for (const change of batch.changes) {
@@ -638,8 +724,20 @@ export class MobileClientBinding {
             return existing;
         }
 
+        if (this.#scopes.size >= 128) {
+            const entry = [...this.#scopes.entries()].find(
+                ([, value]) => value.listeners.size === 0,
+            );
+            if (!entry) throw new Error('Mobile Client scope capacity exceeded');
+            const [retiredKey, retired] = entry;
+            this.#bridge.releaseScope?.(retired.scope);
+            retired.snapshot = null;
+            retired.rows.clear();
+            this.#scopes.delete(retiredKey);
+        }
         const state = {} as ScopeState;
         state.scope = scope;
+        state.needsResnapshot = false;
         const initialSnapshot = this.#closed ? null : this.#bridge.snapshot(scope, null);
         if (initialSnapshot) {
             assertSchemaVersion(initialSnapshot);
@@ -653,6 +751,8 @@ export class MobileClientBinding {
         state.listeners = new Set();
         state.store = {
             subscribe: (listener) => {
+                if (this.#scopes.get(key) !== state)
+                    return this.#scopeState(scope).store.subscribe(listener);
                 if (this.#closed) {
                     return () => {};
                 }
@@ -663,12 +763,26 @@ export class MobileClientBinding {
                     }
                 };
                 const first = state.listeners.size === 0;
-                if (first && !this.#scopes.has(key)) {
-                    this.#scopes.set(key, state);
+                if (first && state.needsResnapshot) {
                     this.#resnapshot(state.scope, state, null, state.lastAppliedSequence ?? 0);
+                    state.needsResnapshot = false;
                 }
                 state.listeners.add(registration);
-                if (first) this.#setScopeDemand(state, 'visible');
+                if (first) {
+                    let acquired = false;
+                    try {
+                        this.#bridge.acquireScope?.(state.scope);
+                        acquired = true;
+                        this.#setScopeDemand(state, 'visible');
+                    } catch (error) {
+                        state.listeners.delete(registration);
+                        state.snapshot = null;
+                        state.rows.clear();
+                        state.needsResnapshot = true;
+                        if (acquired) this.#bridge.releaseScope?.(state.scope);
+                        throw error;
+                    }
+                }
                 this.#startDelivery();
                 return () => {
                     if (!subscribed) {
@@ -676,47 +790,24 @@ export class MobileClientBinding {
                     }
                     subscribed = false;
                     state.listeners.delete(registration);
+                    if (this.#closed) return;
                     if (state.listeners.size === 0) {
-                        this.#setScopeDemand(state, 'suspended');
-                        if (
-                            state.scope.kind === 'avatar' ||
-                            state.scope.kind === 'task_inbox' ||
-                            state.scope.kind === 'task_review' ||
-                            state.scope.kind === 'composer' ||
-                            state.scope.kind === 'composer_catalog' ||
-                            state.scope.kind === 'composer_model_picker' ||
-                            state.scope.kind === 'approval_action' ||
-                            state.scope.kind === 'message_deletion' ||
-                            state.scope.kind === 'message_revisions' ||
-                            state.scope.kind === 'turn_cancellation' ||
-                            state.scope.kind === 'thread_capability' ||
-                            state.scope.kind === 'thread_member' ||
-                            state.scope.kind === 'artifact' ||
-                            state.scope.kind === 'mcp' ||
-                            state.scope.kind === 'mcp_details' ||
-                            state.scope.kind === 'mcp_action' ||
-                            state.scope.kind === 'skills' ||
-                            state.scope.kind === 'skills_details' ||
-                            state.scope.kind === 'skills_action' ||
-                            state.scope.kind === 'settings_model_picker' ||
-                            state.scope.kind === 'agents_document_content' ||
-                            state.scope.kind === 'gateway_setup' ||
-                            state.scope.kind === 'gateway_destinations' ||
-                            state.scope.kind === 'onboarding_invitation' ||
-                            state.scope.kind === 'auth_sessions' ||
-                            state.scope.kind === 'profile' ||
-                            state.scope.kind === 'device_activation' ||
-                            state.scope.kind === 'settings_page' ||
-                            state.scope.kind === 'skills_upload'
-                        ) {
-                            state.snapshot = null;
-                            state.rows.clear();
-                            this.#scopes.delete(key);
+                        try {
+                            this.#setScopeDemand(state, 'suspended');
+                        } finally {
+                            try {
+                                this.#bridge.releaseScope?.(state.scope);
+                            } finally {
+                                state.snapshot = null;
+                                state.rows.clear();
+                                state.lastAppliedSequence = null;
+                                state.needsResnapshot = true;
+                            }
                         }
                     }
                 };
             },
-            getSnapshot: () => state.snapshot,
+            getSnapshot: () => this.#scopes.get(key)?.snapshot ?? null,
         };
         if (initialSnapshot) {
             this.#applySnapshot(state, initialSnapshot, false);
@@ -746,14 +837,13 @@ export class MobileClientBinding {
             if (state.snapshot) {
                 state.snapshot = null;
                 state.rows = new Map();
-                for (const listener of [...state.listeners]) {
-                    listener();
-                }
+                this.#notify([...state.listeners]);
             }
         }
     }
 
     #applySnapshot(state: ScopeState, snapshot: ClientScopedSnapshotDto, notify = true): void {
+        if ((state.lastAppliedSequence ?? 0) > snapshot.sequence) return;
         if (state.snapshot && scopedRevision(state.snapshot) >= scopedRevision(snapshot)) {
             return;
         }
@@ -771,9 +861,7 @@ export class MobileClientBinding {
             payload: memoized.payload,
         });
         if (notify) {
-            for (const listener of [...state.listeners]) {
-                listener();
-            }
+            this.#notify([...state.listeners]);
         }
     }
 }

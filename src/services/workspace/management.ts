@@ -2,7 +2,6 @@ import { drainWorkspacePublications } from '@/client/workspaces';
 import { PioneerClientNativeError, pioneerClient } from '@/client';
 import type {
     GatewayEndpoint,
-    Workspace,
     WorkspaceCreateResult,
     WorkspaceRenameResult,
     WorkspaceSwitchResult,
@@ -36,8 +35,6 @@ export class WorkspaceOperationError extends Error {
 export type SwitchWorkspaceInput = {
     activeGateway: GatewayEndpoint;
     workspaceId: string;
-    currentWorkspaceId: string | null;
-    workspaces: Workspace[];
 };
 
 export type SwitchWorkspaceResult = {
@@ -46,13 +43,12 @@ export type SwitchWorkspaceResult = {
 
 export type CreateWorkspaceInput = {
     name: string;
-    workspaces: Workspace[];
+    activeGateway: GatewayEndpoint;
 };
 
 export type RenameWorkspaceInput = {
     workspaceId: string;
     name: string;
-    workspaces: Workspace[];
 };
 
 export const switchActiveGatewayWorkspace = async (
@@ -62,9 +58,6 @@ export const switchActiveGatewayWorkspace = async (
         return await runGatewayTransportTransition(async () => {
             const result = await pioneerClient.workspaceSwitch({
                 workspace_id: input.workspaceId,
-                current_workspace_id: input.currentWorkspaceId,
-                workspaces: input.workspaces,
-                action_in_progress: false,
             });
 
             if (result.status !== 'switched') {
@@ -93,10 +86,15 @@ export const createWorkspace = async (
     input: CreateWorkspaceInput,
 ): Promise<WorkspaceCreateResult> => {
     try {
-        return await pioneerClient.workspaceCreate({
-            name: input.name,
-            workspaces: input.workspaces,
-            action_in_progress: false,
+        return await runGatewayTransportTransition(async () => {
+            const result = await pioneerClient.workspaceCreate({ name: input.name });
+            if (result.status === 'created') {
+                await persistGatewayWorkspace(
+                    input.activeGateway.id,
+                    result.reduction.switch_workspace_id,
+                );
+            }
+            return result;
         });
     } catch (error) {
         throw normalizeWorkspaceOperationError(error, 'createFailed');
@@ -112,8 +110,6 @@ export const renameWorkspace = async (
         return await pioneerClient.workspaceRename({
             workspace_id: input.workspaceId,
             name: input.name,
-            workspaces: input.workspaces,
-            action_in_progress: false,
         });
     } catch (error) {
         throw normalizeWorkspaceOperationError(error, 'renameFailed');

@@ -1,0 +1,28 @@
+{
+  "boundary_version": 2,
+  "binding_schema_version": 1,
+  "rust_packages": [
+    "pioneer-client",
+    "pioneer-client-ffi",
+    "pioneer-observability",
+    "pioneer-protocol",
+    "pioneer-skills"
+  ],
+  "rust_source_sha256": "d1f6361c695cd77708469ec2403c0fc995ec552ac023f658fbc6f98ba2be5244",
+  "mobile_boundary_sha256": "79d212d23a30f2493b3df7aa7978c6a3818709e4dac7ad8a175253a69cc75501",
+  "platforms": {
+    "ios": [
+      "PioneerClientFfi.xcframework/Info.plist",
+      "PioneerClientFfi.xcframework/ios-arm64/libpioneer_client_ffi.a",
+      "PioneerClientFfi.xcframework/ios-arm64/Headers/pioneer_client_ffi.h",
+      "PioneerClientFfi.xcframework/ios-arm64-simulator/libpioneer_client_ffi.a",
+      "PioneerClientFfi.xcframework/ios-arm64-simulator/Headers/pioneer_client_ffi.h"
+    ],
+    "android": [
+      "armeabi-v7a/libpioneer_client_ffi.so",
+      "arm64-v8a/libpioneer_client_ffi.so",
+      "x86/libpioneer_client_ffi.so",
+      "x86_64/libpioneer_client_ffi.so"
+    ]
+  }
+}

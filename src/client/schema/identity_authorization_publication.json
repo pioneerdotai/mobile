@@ -21,6 +21,12 @@
     "capabilities": {
       "$ref": "#/$defs/AuthorizationProjectionStore"
     },
+    "capability_reads": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/CapabilityReadState"
+      }
+    },
     "connection_generation": {
       "type": "integer",
       "format": "uint64",
@@ -50,6 +56,15 @@
         "null"
       ]
     },
+    "identity_error": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "identity_loading": {
+      "type": "boolean"
+    },
     "policy_change": {
       "anyOf": [
         {
@@ -59,12 +74,28 @@
           "type": "null"
         }
       ]
+    },
+    "thread_snapshots": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/AuthorizationCapabilitySnapshot"
+      }
+    },
+    "workspace_snapshots": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/AuthorizationCapabilitySnapshot"
+      }
     }
   },
   "required": [
     "connection_generation",
     "authorization_change_sequence",
-    "capabilities"
+    "capabilities",
+    "capability_reads",
+    "identity_loading",
+    "workspace_snapshots",
+    "thread_snapshots"
   ],
   "$defs": {
     "AccessChangeKind": {
@@ -302,6 +333,63 @@
         "description",
         "mode",
         "effective_policy"
+      ]
+    },
+    "AuthorizationCapabilitySnapshot": {
+      "type": "object",
+      "properties": {
+        "authorization_revision": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "global": {
+          "$ref": "#/$defs/AuthorizationGlobalCapabilities"
+        },
+        "principal_id": {
+          "$ref": "#/$defs/PrincipalId"
+        },
+        "role": {
+          "$ref": "#/$defs/AuthorizationRolePresentation"
+        },
+        "role_key": {
+          "description": "Stable built-in role identifier. Clients may display this value but\nmust never derive permissions from it.",
+          "type": "string"
+        },
+        "schema_version": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "thread": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AuthorizationThreadCapabilitySnapshot"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "workspace": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AuthorizationWorkspaceCapabilitySnapshot"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "authorization_revision",
+        "principal_id",
+        "role_key",
+        "role",
+        "global"
       ]
     },
     "AuthorizationChangeKind": {
@@ -1084,6 +1172,35 @@
         "capabilities",
         "operational_resources",
         "execution_draft_policy"
+      ]
+    },
+    "CapabilityReadState": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "loading": {
+          "type": "boolean"
+        },
+        "thread_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "workspace_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "loading"
       ]
     },
     "ClientKind": {

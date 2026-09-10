@@ -6,6 +6,14 @@
     "action_pending": {
       "type": "boolean"
     },
+    "bootstrapped_connection_id": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "uint64",
+      "minimum": 0
+    },
     "error": {
       "type": [
         "string",

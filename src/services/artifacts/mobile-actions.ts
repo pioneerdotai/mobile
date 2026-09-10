@@ -14,10 +14,6 @@ import {
     type ClientArtifactTargetRequest,
     type ClientArtifactViewOpenResult,
 } from '@/client';
-import {
-    activeGatewayConnectionGeneration,
-    refreshActiveGatewaySessionAfterUnauthorized,
-} from '@/services/gateway/session';
 import type { MobileArtifactTarget } from './mobile-action-state';
 
 export { mobileArtifactActionKey } from './mobile-action-state';
@@ -40,16 +36,10 @@ export type MobileArtifactSharePort = Readonly<{
     shareVerifiedFile(result: ClientArtifactDownloadResult): Promise<void>;
 }>;
 
-export type MobileArtifactSessionPort = Readonly<{
-    currentConnectionGeneration(): number | null;
-    refreshAfterUnauthorized(rejectedConnectionGeneration: number): Promise<void>;
-}>;
-
 export type MobileArtifactActionPorts = Readonly<{
     native: MobileArtifactNativePort;
     viewer: MobileArtifactViewerPort;
     share: MobileArtifactSharePort;
-    session: MobileArtifactSessionPort;
     workflow: Readonly<{
         begin(
             target: MobileArtifactTarget,
@@ -80,10 +70,7 @@ export const mobileArtifactActionPorts: MobileArtifactActionPorts = {
             });
         },
     },
-    session: {
-        currentConnectionGeneration: activeGatewayConnectionGeneration,
-        refreshAfterUnauthorized: refreshActiveGatewaySessionAfterUnauthorized,
-    },
+
     workflow: {
         begin: (target, action) =>
             target.threadId
@@ -136,15 +123,11 @@ export const downloadAndShareMobileArtifact = async (
     if (!identity) return;
     let result: ClientArtifactDownloadResult;
     try {
-        result = await withCoordinatedAuthenticationRetry(
-            () =>
-                ports.native.download({
-                    ...nativeTarget(target, identity),
-                    operation_id: operationId,
-                    thread_id: identity.thread_id,
-                }),
-            ports.session,
-        );
+        result = await ports.native.download({
+            ...nativeTarget(target, identity),
+            operation_id: operationId,
+            thread_id: identity.thread_id,
+        });
     } catch (error) {
         ports.workflow.fail(identity, nativeErrorCode(error, 'download_failed'));
         return;
@@ -185,31 +168,4 @@ const localFileUrl = (path: string): string => {
         .map((segment) => encodeURIComponent(segment))
         .join('/');
     return `file://${encodedPath}`;
-};
-
-const withCoordinatedAuthenticationRetry = async <T>(
-    operation: () => Promise<T>,
-    session: MobileArtifactSessionPort,
-): Promise<T> => {
-    const rejectedConnectionGeneration = session.currentConnectionGeneration();
-    try {
-        return await operation();
-    } catch (error) {
-        if (
-            rejectedConnectionGeneration === null ||
-            !(error instanceof PioneerClientNativeError) ||
-            error.code !== 'artifact_authentication_required'
-        ) {
-            throw error;
-        }
-        try {
-            await session.refreshAfterUnauthorized(rejectedConnectionGeneration);
-        } catch {
-            // Preserve the typed authentication failure from the storage
-            // operation. Session lifecycle/UI receives the terminal refresh
-            // result independently from the shared coordinator projection.
-            throw error;
-        }
-        return operation();
-    }
 };

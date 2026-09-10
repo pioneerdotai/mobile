@@ -21,10 +21,6 @@ jest.mock('@/client/artifact-actions', () => ({
     beginArtifactAction: jest.fn(),
     dispatchArtifact: jest.fn(),
 }));
-jest.mock('@/services/gateway/session', () => ({
-    activeGatewayConnectionGeneration: jest.fn(() => null),
-    refreshActiveGatewaySessionAfterUnauthorized: jest.fn(async () => undefined),
-}));
 
 const target = {
     threadId: 'thread',
@@ -57,10 +53,6 @@ const fakePorts = (): MobileArtifactActionPorts => ({
     },
     viewer: { openUrl: jest.fn(async () => undefined) },
     share: { shareVerifiedFile: jest.fn(async () => undefined) },
-    session: {
-        currentConnectionGeneration: jest.fn(() => 7),
-        refreshAfterUnauthorized: jest.fn(async () => undefined),
-    },
     workflow: {
         begin: jest.fn(() => identity),
         claim: jest.fn(() => true),
@@ -117,7 +109,6 @@ describe('mobile artifact native adapter', () => {
         };
         await openMobileArtifact(target, ports);
         expect(ports.native.open).toHaveBeenCalledTimes(1);
-        expect(ports.session.refreshAfterUnauthorized).not.toHaveBeenCalled();
         expect(ports.workflow.fail).toHaveBeenCalledWith(
             identity,
             'artifact_authentication_required',
@@ -193,7 +184,7 @@ describe('mobile artifact native adapter', () => {
         await downloadAndShareMobileArtifact(target, 'operation-1', ports);
         expect(ports.workflow.complete).toHaveBeenCalledWith(identity, 'share_failed');
     });
-    it('uses the existing session coordinator for one authenticated transfer retry', async () => {
+    it('reports a final Client authentication failure without a shell retry', async () => {
         const base = fakePorts();
         const download = jest
             .fn<MobileArtifactActionPorts['native']['download']>()
@@ -203,9 +194,12 @@ describe('mobile artifact native adapter', () => {
             .mockResolvedValueOnce(verified);
         const ports = { ...base, native: { ...base.native, download } };
         await downloadAndShareMobileArtifact(target, 'operation-1', ports);
-        expect(ports.session.refreshAfterUnauthorized).toHaveBeenCalledWith(7);
-        expect(download).toHaveBeenCalledTimes(2);
-        expect(ports.share.shareVerifiedFile).toHaveBeenCalledTimes(1);
+        expect(download).toHaveBeenCalledTimes(1);
+        expect(ports.share.shareVerifiedFile).not.toHaveBeenCalled();
+        expect(ports.workflow.fail).toHaveBeenCalledWith(
+            identity,
+            'artifact_authentication_required',
+        );
     });
     it('cancels the captured action identity through Client', () => {
         const ports = fakePorts();

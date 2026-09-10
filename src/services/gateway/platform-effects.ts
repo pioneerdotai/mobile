@@ -15,6 +15,7 @@ import {
 /** Native resource lifetime only; session policy and completion validity belong to Rust. */
 export class MobileSessionStorageAdapter {
     readonly #binding: MobileClientBinding;
+    #closed = false;
     readonly #pending = new Map<string, Promise<void>>();
     readonly #completed = new Set<string>();
     readonly #results = new Map<
@@ -36,6 +37,7 @@ export class MobileSessionStorageAdapter {
     }
 
     #deliver(plans: readonly ClientEffectPlan[]): void {
+        if (this.#closed) return;
         const retained = new Set(plans.map((plan) => `${plan.operation_id}:${plan.generation}`));
         for (const key of this.#completed) {
             if (!retained.has(key)) {
@@ -52,17 +54,16 @@ export class MobileSessionStorageAdapter {
             if (
                 typeof plan.effect === 'object' &&
                 'kind' in plan.effect &&
-                [
-                    'copy_administration_activation',
-                    'copy_provider_diagnostics',
-                    'open_provider_path',
-                ].includes(plan.effect.kind)
+                plan.effect.kind === 'copy_administration_activation'
             )
                 continue;
             const key = `${plan.operation_id}:${plan.generation}`;
             if (this.#pending.has(key) || this.#completed.has(key)) {
                 continue;
             }
+            // Client retains undelivered plans; a later ordered batch retries
+            // them after a native operation completes.
+            if (this.#pending.size >= 64) break;
             const task = (async () => {
                 const result = this.#results.get(key)?.result ?? (await this.#execute(plan));
                 this.#results.set(key, {
@@ -200,10 +201,13 @@ export class MobileSessionStorageAdapter {
     }
 
     async close(cancel = true): Promise<void> {
+        if (this.#closed) return;
+        this.#closed = true;
         this.#releaseGatewayProjection?.();
         this.#releaseGatewayProjection = null;
-        this.#detach?.();
+        const detach = this.#detach;
         this.#detach = null;
+        detach?.();
         await Promise.allSettled(this.#pending.values());
         for (const { plan } of cancel ? this.#results.values() : []) {
             this.#binding.cancelEffect({

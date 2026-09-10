@@ -21,8 +21,6 @@ jest.mock('@/client', () => ({
         gatewayTransportReserve: jest.fn(() => 'lease'),
         gatewayTransportWait: jest.fn(async () => true),
         gatewayTransportRelease: jest.fn(),
-        gatewaySettingsUpdate: jest.fn(),
-        providerListTranscriptionModels: jest.fn(),
         voiceAudioChunk: jest.fn(),
         voiceSessionCancel: jest.fn(),
         voiceSessionFinalize: jest.fn(),
@@ -153,8 +151,6 @@ describe('mobile voice capture with fake native and Client ports', () => {
         expect(AudioManager.setAudioSessionActivity).toHaveBeenLastCalledWith(false);
 
         // Capture transports audio only; model catalog/download ownership stays on Gateway.
-        expect(pioneerClient.providerListTranscriptionModels).not.toHaveBeenCalled();
-        expect(pioneerClient.gatewaySettingsUpdate).not.toHaveBeenCalled();
     });
     it('cancels the captured session and detaches native callbacks once', async () => {
         const session = await startMobileVoiceCapture({

@@ -189,6 +189,10 @@ export interface GatewaySessionConnectionProjection {
   epoch: number;
   failure?: GatewaySessionConnectionFailure | null;
   pending: boolean;
+  /**
+   * Stable accepted session identity across background suspension and token renewal.
+   */
+  presentation_connection_id?: number | null;
   refresh_requested: boolean;
   retry_delay_ms?: number | null;
   [k: string]: unknown;

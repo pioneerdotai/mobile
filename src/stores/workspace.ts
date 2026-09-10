@@ -15,17 +15,20 @@ type WorkspaceStoreState = {
     showWorkspaceSwitcher: boolean;
     setActiveWorkspaceId: (workspaceId: string | null) => void;
     setPreferredWorkspaceId: (workspaceId: string | null) => void;
-    setBootstrappedConnectionId: (connectionId: number | null) => void;
     setWorkspaceSwitcherOpen: (open: boolean) => void;
     resetConnectionBootstrap: () => void;
 };
 
 type WorkspacePresentationState = Omit<
     WorkspaceStoreState,
-    'activeWorkspaceId' | 'preferredWorkspaceId' | 'workspaces' | 'loading' | 'error'
+    | 'activeWorkspaceId'
+    | 'preferredWorkspaceId'
+    | 'workspaces'
+    | 'loading'
+    | 'error'
+    | 'bootstrappedConnectionId'
 >;
 const useWorkspacePresentationStore = create<WorkspacePresentationState>((set) => ({
-    bootstrappedConnectionId: null,
     showWorkspaceSwitcher: false,
 
     setActiveWorkspaceId: (workspaceId) => {
@@ -36,19 +39,12 @@ const useWorkspacePresentationStore = create<WorkspacePresentationState>((set) =
         selectWorkspace(workspaceId);
     },
 
-    setBootstrappedConnectionId: (connectionId) => {
-        set({ bootstrappedConnectionId: connectionId });
-    },
-
     setWorkspaceSwitcherOpen: (open) => {
         set({ showWorkspaceSwitcher: open });
     },
 
     resetConnectionBootstrap: () => {
         selectWorkspace(null);
-        set({
-            bootstrappedConnectionId: null,
-        });
     },
 }));
 
@@ -61,6 +57,7 @@ export const useWorkspaceStore = Object.assign(
             selector({
                 ...state,
                 workspaces: catalog?.workspaces ?? [],
+                bootstrappedConnectionId: catalog?.bootstrapped_connection_id ?? null,
                 error: catalogError(catalog),
                 loading: (catalog?.loading || catalog?.action_pending) ?? false,
                 activeWorkspaceId: navigation?.workspace_id ?? null,
@@ -72,6 +69,7 @@ export const useWorkspaceStore = Object.assign(
         getState: (): WorkspaceStoreState => ({
             ...useWorkspacePresentationStore.getState(),
             workspaces: catalogSnapshot()?.workspaces ?? [],
+            bootstrappedConnectionId: catalogSnapshot()?.bootstrapped_connection_id ?? null,
             error: catalogError(catalogSnapshot()),
             loading: (catalogSnapshot()?.loading || catalogSnapshot()?.action_pending) ?? false,
             activeWorkspaceId: navigationSnapshot()?.workspace_id ?? null,

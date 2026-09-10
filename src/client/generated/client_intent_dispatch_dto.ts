@@ -2,6 +2,11 @@
 
 export type ClientIntent =
   | {
+      demand: SessionDemand;
+      kind: 'session_demand';
+      [k: string]: unknown;
+    }
+  | {
       intent: SettingsModelPickerIntent;
       kind: 'settings_model_picker';
       [k: string]: unknown;
@@ -156,6 +161,7 @@ export type ClientIntent =
       scope: ClientScope;
       [k: string]: unknown;
     };
+export type SessionVisibility = 'foreground' | 'inactive' | 'background';
 export type SettingsModelPickerIntent =
   | {
       kind: 'open';
@@ -2310,6 +2316,12 @@ export type SettingsPage = 'general' | 'remote_access' | 'voice' | 'memory' | 's
 export interface ClientIntentDispatchDto {
   intent: ClientIntent;
   schema_version: number;
+}
+export interface SessionDemand {
+  endpoint_id?: string | null;
+  generation: number;
+  network_available: boolean;
+  visibility: SessionVisibility;
 }
 export interface ModelSelectorSelection {
   model?: string | null;

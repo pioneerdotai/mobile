@@ -8,7 +8,6 @@ import type { GatewaySetupPublication } from './generated/gateway_setup_publicat
 import type { GatewayDestinationsPublication } from './generated/gateway_destinations_publication';
 import type { InvitationPublication } from './generated/invitation_publication';
 import { mobileClientBinding, type MobileClientBinding } from './mobile-client-binding';
-import { useGatewayStore } from '@/stores/gateway';
 
 const destinationsScope = { kind: 'gateway_destinations' } as const;
 const setupScope = { kind: 'gateway_setup' } as const;
@@ -44,13 +43,7 @@ export const useInvitation = () => {
 /** The process native adapter retains this mapping and releases it on close. */
 export const attachGatewayProjection = (binding: MobileClientBinding): (() => void) => {
     const store = binding.scope(destinationsScope);
-    const publish = () => {
-        const value = store.getSnapshot()?.payload as GatewayDestinationsPublication | null;
-        if (value) useGatewayStore.getState().applyOnboardingProjection(value);
-    };
-    const release = store.subscribe(publish);
-    publish();
-    return release;
+    return store.subscribe(() => {});
 };
 export const hydrateOnboarding = (): Promise<void> =>
     new Promise((resolve, reject) => {

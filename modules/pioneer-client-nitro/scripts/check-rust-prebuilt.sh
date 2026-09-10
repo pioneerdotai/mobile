@@ -52,3 +52,11 @@ if [[ "$MISSING" -ne 0 ]]; then
   echo "Run: bun run rust:build:prebuilt" >&2
   exit 1
 fi
+
+case "$PLATFORM" in
+  ios|android) node "$MODULE_ROOT/scripts/boundary-integrity.mjs" check "$PLATFORM" ;;
+  all)
+    node "$MODULE_ROOT/scripts/boundary-integrity.mjs" check ios
+    node "$MODULE_ROOT/scripts/boundary-integrity.mjs" check android
+    ;;
+esac

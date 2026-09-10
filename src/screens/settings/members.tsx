@@ -385,13 +385,14 @@ const MembersSettingsScreen = () => {
             ));
     const disabledWorkspaceIds = useMemo(() => {
         const capabilitySnapshot = capabilities.capabilitySnapshot;
-        if (!workspaceEditor || !principal.data || !capabilitySnapshot) return new Set<string>();
+        const auth = principal.data;
+        if (!workspaceEditor || !auth || !capabilitySnapshot) return new Set<string>();
         return new Set(
             workspaces
                 .filter((workspace) => {
                     const initiallySelected = workspaceEditor.initial.has(workspace.id);
                     const actions = presentMember(
-                        principal.data,
+                        auth,
                         capabilitySnapshot,
                         workspaceEditor.member,
                         initiallySelected,

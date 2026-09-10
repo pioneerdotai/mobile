@@ -25,6 +25,8 @@ case "$RUST_MODE" in
     ;;
 esac
 
+PIONEER_RUST_ROOT="$RUST_ROOT" node "$MODULE_ROOT/scripts/boundary-integrity.mjs" check-source
+
 if ! command -v cargo >/dev/null 2>&1; then
   echo "cargo is required to build pioneer-client-ffi for Android" >&2
   exit 1
@@ -56,7 +58,7 @@ cargo ndk \
   -t x86 \
   -t x86_64 \
   -o "$OUT_DIR" \
-  build -p pioneer-client-ffi --release
+  build --locked -p pioneer-client-ffi --release
 
 READELF_BIN=""
 if command -v llvm-readelf >/dev/null 2>&1; then
@@ -78,3 +80,5 @@ for abi in armeabi-v7a arm64-v8a x86 x86_64; do
     exit 1
   fi
 done
+
+PIONEER_RUST_ROOT="$RUST_ROOT" node "$MODULE_ROOT/scripts/boundary-integrity.mjs" seal android

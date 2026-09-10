@@ -16,10 +16,6 @@ jest.mock('@/services/threads/active', () => ({
     clearActiveThread: mockClearActiveThread,
 }));
 
-jest.mock('@/services/threads/timeline-query', () => ({
-    clearThreadQueryCache: mockClearThreadQueryCache,
-}));
-
 jest.mock('@/stores/active-thread', () => ({
     useActiveThreadStore: {
         getState: () => ({
@@ -47,7 +43,7 @@ describe('useActiveThreadCleanup', () => {
         mockClearThreadQueryCache.mockResolvedValue();
     });
 
-    it('works before QueryClientProvider is mounted and clears the shared query client', async () => {
+    it('works before QueryClientProvider is mounted and delegates session retirement to Client', async () => {
         let cleanup: (() => Promise<void>) | null = null;
         let tree: ReactTestRenderer | null = null;
 
@@ -64,7 +60,7 @@ describe('useActiveThreadCleanup', () => {
             await cleanup!();
         });
 
-        expect(mockClearThreadQueryCache).toHaveBeenCalledWith(mockQueryClient);
+        expect(mockClearThreadQueryCache).not.toHaveBeenCalled();
         expect(mockClearActiveThread).toHaveBeenCalledTimes(1);
         expect(mockResetActiveThread).toHaveBeenCalledTimes(1);
         expect(mockResetThreadTree).not.toHaveBeenCalled();

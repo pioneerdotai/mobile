@@ -23,14 +23,17 @@ export const parsePioneerClientResponse = <T>(json: string): T => {
     let response: PioneerClientResponse<T>;
     try {
         response = JSON.parse(json) as PioneerClientResponse<T>;
-    } catch (error) {
+    } catch {
         throw new PioneerClientNativeError(
-            error instanceof Error
-                ? `Invalid pioneer client response JSON: ${error.message}`
-                : 'Invalid pioneer client response JSON',
+            'Invalid pioneer client response JSON',
             'pioneer_client_invalid_response_json',
         );
     }
+    if (!response || typeof response !== 'object')
+        throw new PioneerClientNativeError(
+            'Invalid pioneer client response',
+            'pioneer_client_invalid_response_status',
+        );
 
     if (response.status === 'ok') {
         return response.value;
