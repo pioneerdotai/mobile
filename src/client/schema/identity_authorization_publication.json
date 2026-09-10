@@ -13,9 +13,6 @@
         }
       ]
     },
-    "auth_sessions": {
-      "$ref": "#/$defs/AuthSessionsStore"
-    },
     "authorization_change_sequence": {
       "type": "integer",
       "format": "uint64",
@@ -67,8 +64,7 @@
   "required": [
     "connection_generation",
     "authorization_change_sequence",
-    "capabilities",
-    "auth_sessions"
+    "capabilities"
   ],
   "$defs": {
     "AccessChangeKind": {
@@ -230,31 +226,6 @@
       "minLength": 21,
       "pattern": "^[A-Za-z0-9]{21}$"
     },
-    "AuthSessionListItem": {
-      "type": "object",
-      "properties": {
-        "current": {
-          "type": "boolean"
-        },
-        "device": {
-          "$ref": "#/$defs/AuthDeviceSnapshot"
-        },
-        "last_seen_at_unix": {
-          "type": "integer",
-          "format": "uint64",
-          "minimum": 0
-        },
-        "session": {
-          "$ref": "#/$defs/AuthSessionSnapshot"
-        }
-      },
-      "required": [
-        "device",
-        "session",
-        "current",
-        "last_seen_at_unix"
-      ]
-    },
     "AuthSessionSnapshot": {
       "type": "object",
       "properties": {
@@ -297,40 +268,6 @@
         "active",
         "revoked",
         "expired"
-      ]
-    },
-    "AuthSessionsStore": {
-      "type": "object",
-      "properties": {
-        "error": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "loading": {
-          "type": "boolean"
-        },
-        "revoking": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/AuthSessionId"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "sessions": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/AuthSessionListItem"
-          }
-        }
-      },
-      "required": [
-        "sessions",
-        "loading"
       ]
     },
     "AuthorizationAgentPermissionOption": {

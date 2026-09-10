@@ -123,6 +123,9 @@
         },
         {
           "$ref": "#/$defs/GatewaySessionStorageEffect"
+        },
+        {
+          "$ref": "#/$defs/OnboardingPlatformEffect"
         }
       ]
     },
@@ -207,6 +210,49 @@
       "minLength": 21,
       "pattern": "^[A-Za-z0-9]{21}$"
     },
+    "GatewayRegistry": {
+      "type": "object",
+      "properties": {
+        "active_gateway_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "installation_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "local": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/GatewayEndpoint"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "remotes": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/GatewayEndpoint"
+          }
+        },
+        "version": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "version"
+      ]
+    },
     "GatewaySessionEnvelope": {
       "type": "object",
       "properties": {
@@ -272,6 +318,26 @@
         {
           "type": "object",
           "properties": {
+            "DeleteGatewaySession": {
+              "type": "object",
+              "properties": {
+                "endpoint": {
+                  "$ref": "#/$defs/GatewayEndpoint"
+                }
+              },
+              "required": [
+                "endpoint"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "DeleteGatewaySession"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
             "ReadGatewaySession": {
               "type": "object",
               "properties": {
@@ -311,6 +377,100 @@
           "additionalProperties": false,
           "required": [
             "PersistGatewaySession"
+          ]
+        }
+      ]
+    },
+    "OnboardingPlatformEffect": {
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "LoadGatewayEnvironment"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "RemoveGatewayBindingJournal": {
+              "type": "object",
+              "properties": {
+                "gateway_id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "gateway_id"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "RemoveGatewayBindingJournal"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "PersistGatewayRegistry": {
+              "type": "object",
+              "properties": {
+                "registry": {
+                  "$ref": "#/$defs/GatewayRegistry"
+                }
+              },
+              "required": [
+                "registry"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "PersistGatewayRegistry"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "PrepareLocalGateway": {
+              "type": "object",
+              "properties": {
+                "endpoint": {
+                  "$ref": "#/$defs/GatewayEndpoint"
+                },
+                "recover": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "endpoint",
+                "recover"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "PrepareLocalGateway"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "CreateLocalDeviceActivation": {
+              "type": "object",
+              "properties": {
+                "endpoint_id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "endpoint_id"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "CreateLocalDeviceActivation"
           ]
         }
       ]

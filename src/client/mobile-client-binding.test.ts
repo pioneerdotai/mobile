@@ -57,6 +57,71 @@ const bridgeFixture = (initial: ClientScopedSnapshotDto | null) => {
     };
 };
 
+test('document subscriptions isolate folders and release only their own demand', () => {
+    const a: ClientScope = {
+        kind: 'agents_document_content',
+        workspace_id: 'workspace',
+        folder_id: null,
+    };
+    const b: ClientScope = {
+        kind: 'agents_document_content',
+        workspace_id: 'workspace',
+        folder_id: 'folder',
+    };
+    const demands: unknown[] = [];
+    const fixture = bridgeFixture(null);
+    const binding = new MobileClientBinding({
+        ...fixture.bridge,
+        dispatch: (request) => {
+            demands.push(request.intent);
+            return { schema_version: 1, sequence: demands.length, outcome: 'changed', effects: [] };
+        },
+        snapshot: (scope) => snapshot(1, [], scope),
+    });
+    const first = binding.scope(a);
+    const second = binding.scope(b);
+    let notifications = 0;
+    const releaseA = first.subscribe(() => notifications++);
+    const releaseB = second.subscribe(() => notifications++);
+    expect(first).not.toBe(second);
+    expect(
+        binding.scope({
+            folder_id: 'folder',
+            kind: 'agents_document_content',
+            workspace_id: 'workspace',
+        }),
+    ).toBe(second);
+    const beforeB = second.getSnapshot();
+    fixture.batches.push({
+        schema_version: 1,
+        changes: [
+            {
+                kind: 'publication',
+                predecessor: 1,
+                sequence: 2,
+                snapshot: {
+                    ...snapshot(2, [], a),
+                    payload: { content: 'draft', save: { kind: 'dirty' } },
+                },
+            },
+        ],
+    });
+    binding.drain(a);
+    expect(notifications).toBe(1);
+    expect(second.getSnapshot()).toBe(beforeB);
+    releaseA();
+    expect(first.getSnapshot()).toBeNull();
+    expect(second.getSnapshot()).toBe(beforeB);
+    releaseA();
+    releaseB();
+    expect(demands).toEqual([
+        { kind: 'set_scope_demand', scope: a, demand: 'visible', generation: 1 },
+        { kind: 'set_scope_demand', scope: b, demand: 'visible', generation: 2 },
+        { kind: 'set_scope_demand', scope: a, demand: 'suspended', generation: 3 },
+        { kind: 'set_scope_demand', scope: b, demand: 'suspended', generation: 4 },
+    ]);
+});
+
 describe('MobileClientBinding', () => {
     test('provider scope identity is semantic and scoped row reuse survives reordering and deletion', () => {
         const scope: ClientScope = {
@@ -715,4 +780,65 @@ test('catalog detail and upload publications isolate operations and recover a sc
     ).not.toBe(stores[5]);
     releases.forEach((release) => release());
     expect(stores[5].getSnapshot()).toBeNull();
+});
+
+test('settings and onboarding scopes retain isolated snapshots and recover only the gapped scope', () => {
+    const scopes: ClientScope[] = [
+        { kind: 'profile' },
+        { kind: 'auth_sessions' },
+        { kind: 'device_activation' },
+        { kind: 'gateway_setup' },
+        { kind: 'gateway_destinations' },
+        { kind: 'onboarding_invitation' },
+        { kind: 'settings_model_picker', picker_id: 'memory-model' },
+        { kind: 'settings_model_picker', picker_id: 'voice-model' },
+    ];
+    const fixture = bridgeFixture(null);
+    const recovered: ClientScope[] = [];
+    const binding = new MobileClientBinding({
+        ...fixture.bridge,
+        dispatch: () => ({ schema_version: 1, sequence: 1, outcome: 'changed', effects: [] }),
+        snapshot: (scope) => snapshot(1, [], scope),
+        resnapshot: (scope) => {
+            recovered.push(scope);
+            return { ...snapshot(4, [], scope), payload: { pending: false } };
+        },
+    });
+    const stores = scopes.map((scope) => binding.scope(scope));
+    expect(new Set(stores).size).toBe(scopes.length);
+    const counts = scopes.map(() => 0);
+    const release = stores.map((store, i) => store.subscribe(() => counts[i]++));
+    const before = stores.map((store) => store.getSnapshot());
+    fixture.batches.push({
+        schema_version: 1,
+        changes: [
+            {
+                kind: 'publication',
+                predecessor: 3,
+                sequence: 4,
+                snapshot: snapshot(4, [], scopes[3]),
+            },
+        ],
+    });
+    binding.drain(scopes[3]);
+    expect(recovered).toEqual([scopes[3]]);
+    expect(counts).toEqual([0, 0, 0, 1, 0, 0, 0, 0]);
+    stores.forEach((store, i) => {
+        if (i !== 3) expect(store.getSnapshot()).toBe(before[i]);
+    });
+    release[3]();
+    expect(stores[3].getSnapshot()).toBeNull();
+    expect(stores[0].getSnapshot()).toBe(before[0]);
+    release.forEach((dispose) => dispose());
+    expect(stores[6].getSnapshot()).toBeNull();
+    expect(stores[7].getSnapshot()).toBeNull();
+    binding.applyProcessBatch({
+        schema_version: 1,
+        closed: true,
+        sequence: 4,
+        resnapshot: false,
+        changes: [],
+        effects: [],
+    });
+    expect(binding.isClosed()).toBe(true);
 });

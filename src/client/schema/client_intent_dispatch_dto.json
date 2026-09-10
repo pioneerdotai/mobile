@@ -448,6 +448,216 @@
         }
       ]
     },
+    "AgentsDocumentAction": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "content": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "edit"
+            }
+          },
+          "required": [
+            "kind",
+            "content"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "save"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "reload"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "reload_remote"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "overwrite_remote"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "close"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        }
+      ]
+    },
+    "AgentsDocumentIntent": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "$ref": "#/$defs/AgentsDocumentAction"
+            },
+            "expected_owner": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "kind": {
+              "type": "string",
+              "const": "scoped"
+            },
+            "scope": {
+              "$ref": "#/$defs/AgentsDocEditorScope"
+            }
+          },
+          "required": [
+            "kind",
+            "scope",
+            "expected_owner",
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "content": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "edit"
+            },
+            "scope": {
+              "$ref": "#/$defs/AgentsDocEditorScope"
+            }
+          },
+          "required": [
+            "kind",
+            "scope",
+            "content"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "save"
+            },
+            "scope": {
+              "$ref": "#/$defs/AgentsDocEditorScope"
+            }
+          },
+          "required": [
+            "kind",
+            "scope"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "reload"
+            },
+            "scope": {
+              "$ref": "#/$defs/AgentsDocEditorScope"
+            }
+          },
+          "required": [
+            "kind",
+            "scope"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "reload_remote"
+            },
+            "scope": {
+              "$ref": "#/$defs/AgentsDocEditorScope"
+            }
+          },
+          "required": [
+            "kind",
+            "scope"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "overwrite_remote"
+            },
+            "scope": {
+              "$ref": "#/$defs/AgentsDocEditorScope"
+            }
+          },
+          "required": [
+            "kind",
+            "scope"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "close"
+            },
+            "scope": {
+              "$ref": "#/$defs/AgentsDocEditorScope"
+            }
+          },
+          "required": [
+            "kind",
+            "scope"
+          ]
+        }
+      ]
+    },
     "ApprovalActionIntent": {
       "oneOf": [
         {
@@ -834,6 +1044,21 @@
         "failed"
       ]
     },
+    "AuthSessionId": {
+      "type": "string",
+      "maxLength": 21,
+      "minLength": 21,
+      "pattern": "^[A-Za-z0-9]{21}$"
+    },
+    "AuthSessionStatus": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "active",
+        "revoked",
+        "expired"
+      ]
+    },
     "ByteRange": {
       "type": "object",
       "properties": {
@@ -1024,6 +1249,86 @@
     },
     "ClientIntent": {
       "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "intent": {
+              "$ref": "#/$defs/SettingsModelPickerIntent"
+            },
+            "kind": {
+              "type": "string",
+              "const": "settings_model_picker"
+            }
+          },
+          "required": [
+            "kind",
+            "intent"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "intent": {
+              "$ref": "#/$defs/OnboardingIntent"
+            },
+            "kind": {
+              "type": "string",
+              "const": "onboarding"
+            }
+          },
+          "required": [
+            "kind",
+            "intent"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "intent": {
+              "$ref": "#/$defs/SettingsIntent"
+            },
+            "kind": {
+              "type": "string",
+              "const": "settings"
+            }
+          },
+          "required": [
+            "kind",
+            "intent"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "intent": {
+              "$ref": "#/$defs/ProfileIntent"
+            },
+            "kind": {
+              "type": "string",
+              "const": "profile"
+            }
+          },
+          "required": [
+            "kind",
+            "intent"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "intent": {
+              "$ref": "#/$defs/AgentsDocumentIntent"
+            },
+            "kind": {
+              "type": "string",
+              "const": "agents_document"
+            }
+          },
+          "required": [
+            "kind",
+            "intent"
+          ]
+        },
         {
           "type": "object",
           "properties": {
@@ -2073,11 +2378,125 @@
           "properties": {
             "kind": {
               "type": "string",
+              "const": "auth_sessions"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "device_activation"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "profile"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "settings_model_picker"
+            },
+            "picker_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "picker_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "settings_page"
+            },
+            "page": {
+              "$ref": "#/$defs/SettingsPage"
+            }
+          },
+          "required": [
+            "kind",
+            "page"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
               "const": "onboarding_invitation"
             }
           },
           "required": [
             "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "gateway_setup"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "gateway_destinations"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "folder_id": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "kind": {
+              "type": "string",
+              "const": "agents_document_content"
+            },
+            "workspace_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "workspace_id"
           ]
         },
         {
@@ -4253,6 +4672,601 @@
         "while_visible"
       ]
     },
+    "GatewayId": {
+      "type": "string",
+      "maxLength": 21,
+      "minLength": 21,
+      "pattern": "^[A-Za-z0-9]{21}$"
+    },
+    "GatewayMemoryModelSelection": {
+      "type": "object",
+      "properties": {
+        "model": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "model_provider": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source": {
+          "$ref": "#/$defs/GatewayMemoryModelSelectionSource",
+          "default": "thread"
+        }
+      }
+    },
+    "GatewayMemoryModelSelectionSource": {
+      "type": "string",
+      "enum": [
+        "thread",
+        "custom"
+      ]
+    },
+    "GatewayMemorySettings": {
+      "type": "object",
+      "properties": {
+        "active_recall_enabled": {
+          "type": "boolean"
+        },
+        "background_extraction_enabled": {
+          "type": "boolean"
+        },
+        "debug_trace_enabled": {
+          "type": "boolean"
+        },
+        "deterministic_recall_enabled": {
+          "type": "boolean"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "proactive_writes_enabled": {
+          "type": "boolean"
+        },
+        "proactive_writes_model": {
+          "$ref": "#/$defs/GatewayMemoryModelSelection",
+          "default": {
+            "source": "thread"
+          }
+        },
+        "strict_diagnostics_enabled": {
+          "type": "boolean"
+        },
+        "tools_enabled": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "enabled",
+        "deterministic_recall_enabled",
+        "active_recall_enabled",
+        "tools_enabled",
+        "proactive_writes_enabled",
+        "background_extraction_enabled",
+        "debug_trace_enabled",
+        "strict_diagnostics_enabled"
+      ]
+    },
+    "GatewaySelfImprovementModelSelection": {
+      "type": "object",
+      "properties": {
+        "model": {
+          "type": "string"
+        },
+        "provider": {
+          "type": "string"
+        },
+        "reasoning_effort": {
+          "description": "None delegates to the provider; `none` explicitly disables reasoning.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "provider",
+        "model"
+      ]
+    },
+    "GatewaySelfImprovementSettings": {
+      "type": "object",
+      "properties": {
+        "default_model": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/GatewaySelfImprovementModelSelection"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "enabled": {
+          "type": "boolean",
+          "default": false
+        },
+        "reviewer_model": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/GatewaySelfImprovementModelSelection"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "GatewaySetupIntent": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "open"
+            },
+            "mode": {
+              "$ref": "#/$defs/GatewaySetupMode"
+            }
+          },
+          "required": [
+            "kind",
+            "mode"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "activation": {
+              "type": "string"
+            },
+            "address": {
+              "type": "string"
+            },
+            "gateway_id": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/GatewayId"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "kind": {
+              "type": "string",
+              "const": "prefill"
+            }
+          },
+          "required": [
+            "kind",
+            "address",
+            "activation"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "edit_name"
+            },
+            "value": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "value"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "edit_address"
+            },
+            "value": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "value"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "edit_activation"
+            },
+            "value": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "value"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "expected_owner": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "kind": {
+              "type": "string",
+              "const": "edit_name_for_owner"
+            },
+            "value": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "expected_owner",
+            "value"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "expected_owner": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "kind": {
+              "type": "string",
+              "const": "edit_address_for_owner"
+            },
+            "value": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "expected_owner",
+            "value"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "expected_owner": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "kind": {
+              "type": "string",
+              "const": "edit_activation_for_owner"
+            },
+            "value": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "expected_owner",
+            "value"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "expected_owner": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "kind": {
+              "type": "string",
+              "const": "delete_for_owner"
+            }
+          },
+          "required": [
+            "kind",
+            "expected_owner"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "expected_owner": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "kind": {
+              "type": "string",
+              "const": "submit_for_owner"
+            },
+            "local": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "kind",
+            "expected_owner",
+            "local"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "expected_owner": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "kind": {
+              "type": "string",
+              "const": "close"
+            }
+          },
+          "required": [
+            "kind",
+            "expected_owner"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "submit_remote"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "submit_local"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "delete"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "cancel"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        }
+      ]
+    },
+    "GatewaySetupMode": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "allow_local": {
+              "type": "boolean"
+            },
+            "kind": {
+              "type": "string",
+              "const": "initial"
+            }
+          },
+          "required": [
+            "kind",
+            "allow_local"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "allow_local": {
+              "type": "boolean"
+            },
+            "kind": {
+              "type": "string",
+              "const": "add_gateway"
+            }
+          },
+          "required": [
+            "kind",
+            "allow_local"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "endpoint_id": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "edit_gateway"
+            }
+          },
+          "required": [
+            "kind",
+            "endpoint_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "close_on_success": {
+              "type": "boolean"
+            },
+            "endpoint_id": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "reauthenticate_gateway"
+            }
+          },
+          "required": [
+            "kind",
+            "endpoint_id",
+            "close_on_success"
+          ]
+        }
+      ]
+    },
+    "GatewayThreadEpisodicVectorLocalModelStatus": {
+      "type": "string",
+      "enum": [
+        "not_selected",
+        "unknown",
+        "missing",
+        "downloading",
+        "installed",
+        "failed"
+      ]
+    },
+    "GatewayThreadEpisodicVectorProvider": {
+      "type": "string",
+      "enum": [
+        "openai",
+        "openrouter",
+        "local"
+      ]
+    },
+    "GatewayThreadEpisodicVectorProviderKeyStatus": {
+      "type": "object",
+      "properties": {
+        "present": {
+          "type": "boolean",
+          "default": false
+        },
+        "required": {
+          "type": "boolean",
+          "default": false
+        }
+      }
+    },
+    "GatewayThreadEpisodicVectorRefillStatus": {
+      "type": "string",
+      "enum": [
+        "disabled",
+        "unknown",
+        "required",
+        "running",
+        "complete",
+        "failed"
+      ]
+    },
+    "GatewayThreadEpisodicVectorSearchSettings": {
+      "type": "object",
+      "properties": {
+        "downloaded_bytes": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0
+        },
+        "embedding_dimension": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "minimum": 0
+        },
+        "embedding_normalized": {
+          "type": "boolean",
+          "default": true
+        },
+        "enabled": {
+          "type": "boolean",
+          "default": false
+        },
+        "local_model": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "local_model_status": {
+          "$ref": "#/$defs/GatewayThreadEpisodicVectorLocalModelStatus",
+          "default": "not_selected"
+        },
+        "model": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "provider": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/GatewayThreadEpisodicVectorProvider"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "provider_key": {
+          "$ref": "#/$defs/GatewayThreadEpisodicVectorProviderKeyStatus",
+          "default": {
+            "present": false,
+            "required": false
+          }
+        },
+        "refill_status": {
+          "$ref": "#/$defs/GatewayThreadEpisodicVectorRefillStatus",
+          "default": "disabled"
+        },
+        "total_bytes": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0
+        },
+        "use_search_instructions": {
+          "type": "boolean",
+          "default": false
+        }
+      }
+    },
     "InvitationCreateParams": {
       "type": "object",
       "properties": {
@@ -4279,6 +5293,342 @@
       "maxLength": 21,
       "minLength": 21,
       "pattern": "^[A-Za-z0-9]{21}$"
+    },
+    "InvitationIntent": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "expected_owner": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "kind": {
+              "type": "string",
+              "const": "remove_avatar_for_owner"
+            }
+          },
+          "required": [
+            "kind",
+            "expected_owner"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "expected_owner": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "kind": {
+              "type": "string",
+              "const": "preview_retry_for_owner"
+            }
+          },
+          "required": [
+            "kind",
+            "expected_owner"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "expected_owner": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "kind": {
+              "type": "string",
+              "const": "open_username_for_owner"
+            }
+          },
+          "required": [
+            "kind",
+            "expected_owner"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "expected_owner": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "kind": {
+              "type": "string",
+              "const": "accept_username_for_owner"
+            }
+          },
+          "required": [
+            "kind",
+            "expected_owner"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "expected_owner": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "kind": {
+              "type": "string",
+              "const": "cancel_username_for_owner"
+            }
+          },
+          "required": [
+            "kind",
+            "expected_owner"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "expected_owner": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "field": {
+              "$ref": "#/$defs/ProfileField"
+            },
+            "kind": {
+              "type": "string",
+              "const": "edit_field"
+            },
+            "value": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "expected_owner",
+            "field",
+            "value"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "open"
+            },
+            "uri": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "uri"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "first_name": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "edit_name"
+            },
+            "last_name": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "first_name",
+            "last_name"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "edit_nickname"
+            },
+            "nickname": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "nickname"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "avatar": {
+              "$ref": "#/$defs/ProfileAvatarInput"
+            },
+            "expected_owner": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "kind": {
+              "type": "string",
+              "const": "select_avatar"
+            },
+            "preview": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "expected_owner",
+            "preview",
+            "avatar"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "remove_avatar"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "expected_owner": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "kind": {
+              "type": "string",
+              "const": "avatar_failed"
+            }
+          },
+          "required": [
+            "kind",
+            "expected_owner"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "open_username"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "accept_username"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "cancel_username"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "preview_retry"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "expected_owner": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "kind": {
+              "type": "string",
+              "const": "submit_for_owner"
+            }
+          },
+          "required": [
+            "kind",
+            "expected_owner"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "expected_owner": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "kind": {
+              "type": "string",
+              "const": "close"
+            }
+          },
+          "required": [
+            "kind",
+            "expected_owner"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "submit"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "cancel"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        }
+      ]
     },
     "InvitationRevokeParams": {
       "type": "object",
@@ -4384,6 +5734,22 @@
       "additionalProperties": false,
       "required": [
         "principal_id"
+      ]
+    },
+    "MemoryModelSetting": {
+      "type": "string",
+      "enum": [
+        "PostTurnExtractor"
+      ]
+    },
+    "MemorySettingToggle": {
+      "type": "string",
+      "enum": [
+        "Enabled",
+        "ActiveRecall",
+        "ProactiveWrites",
+        "BackgroundExtraction",
+        "DebugTrace"
       ]
     },
     "MessageDeletionIdentity": {
@@ -4557,6 +5923,29 @@
           ]
         }
       ]
+    },
+    "ModelSelectorSelection": {
+      "type": "object",
+      "properties": {
+        "model": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "provider": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "selected_reasoning_effort": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
     },
     "NavigationIntent": {
       "oneOf": [
@@ -4836,6 +6225,168 @@
         }
       ]
     },
+    "OnboardingIntent": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "initialize"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "intent": {
+              "$ref": "#/$defs/InvitationIntent"
+            },
+            "kind": {
+              "type": "string",
+              "const": "invitation"
+            }
+          },
+          "required": [
+            "kind",
+            "intent"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "retry_initialization"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "intent": {
+              "$ref": "#/$defs/GatewaySetupIntent"
+            },
+            "kind": {
+              "type": "string",
+              "const": "setup"
+            }
+          },
+          "required": [
+            "kind",
+            "intent"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "endpoint_id": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "select_gateway"
+            }
+          },
+          "required": [
+            "kind",
+            "endpoint_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "endpoint_id": {
+              "type": "string"
+            },
+            "expected_registry_revision": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "kind": {
+              "type": "string",
+              "const": "delete_gateway"
+            }
+          },
+          "required": [
+            "kind",
+            "endpoint_id",
+            "expected_registry_revision"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "acknowledge_workspace_outcome"
+            },
+            "request_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "request_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "endpoint_id": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "set_workspace_for_request"
+            },
+            "request_id": {
+              "type": "string"
+            },
+            "workspace_id": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "kind",
+            "endpoint_id",
+            "request_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "endpoint_id": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "set_workspace"
+            },
+            "workspace_id": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "kind",
+            "endpoint_id"
+          ]
+        }
+      ]
+    },
     "PendingRequestResolution": {
       "oneOf": [
         {
@@ -5008,6 +6559,312 @@
         "active",
         "suspended",
         "removed"
+      ]
+    },
+    "ProfileAvatarInput": {
+      "type": "object",
+      "properties": {
+        "content_base64": {
+          "type": "string",
+          "maxLength": 349528,
+          "minLength": 1
+        },
+        "media_type": {
+          "$ref": "#/$defs/ProfileAvatarMediaType"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "media_type",
+        "content_base64"
+      ]
+    },
+    "ProfileAvatarMediaType": {
+      "type": "string",
+      "enum": [
+        "image/png",
+        "image/jpeg",
+        "image/webp"
+      ]
+    },
+    "ProfileEditorSection": {
+      "type": "string",
+      "enum": [
+        "account",
+        "profile",
+        "username"
+      ]
+    },
+    "ProfileField": {
+      "type": "string",
+      "enum": [
+        "first_name",
+        "last_name",
+        "nickname"
+      ]
+    },
+    "ProfileIntent": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "expected_owner": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "kind": {
+              "type": "string",
+              "const": "save_for_owner"
+            },
+            "section": {
+              "$ref": "#/$defs/ProfileEditorSection"
+            }
+          },
+          "required": [
+            "kind",
+            "expected_owner",
+            "section"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "expected_owner": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "kind": {
+              "type": "string",
+              "const": "close_for_owner"
+            },
+            "section": {
+              "$ref": "#/$defs/ProfileEditorSection"
+            }
+          },
+          "required": [
+            "kind",
+            "expected_owner",
+            "section"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "expected_owner": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "kind": {
+              "type": "string",
+              "const": "remove_avatar_for_owner"
+            }
+          },
+          "required": [
+            "kind",
+            "expected_owner"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "expected_owner": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "field": {
+              "$ref": "#/$defs/ProfileField"
+            },
+            "kind": {
+              "type": "string",
+              "const": "edit_field"
+            },
+            "value": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "expected_owner",
+            "field",
+            "value"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "open"
+            },
+            "section": {
+              "$ref": "#/$defs/ProfileEditorSection"
+            }
+          },
+          "required": [
+            "kind",
+            "section"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "first_name": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "edit_name"
+            },
+            "last_name": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "first_name",
+            "last_name"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "edit_nickname"
+            },
+            "nickname": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "nickname"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "avatar": {
+              "$ref": "#/$defs/ProfileAvatarInput"
+            },
+            "expected_owner": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "kind": {
+              "type": "string",
+              "const": "select_avatar"
+            },
+            "preview": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "expected_owner",
+            "preview",
+            "avatar"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "remove_avatar"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "begin_nickname_edit"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "cancel_nickname_edit"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "accept_nickname_edit"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "error": {
+              "type": "string"
+            },
+            "expected_owner": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "kind": {
+              "type": "string",
+              "const": "selection_failed"
+            }
+          },
+          "required": [
+            "kind",
+            "expected_owner",
+            "error"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "save"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "cancel"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        }
       ]
     },
     "ProviderCollection": {
@@ -5319,6 +7176,15 @@
         "transcription"
       ]
     },
+    "ProviderModelSelectorMode": {
+      "type": "string",
+      "enum": [
+        "Chat",
+        "SelfImprovement",
+        "Embeddings",
+        "Transcription"
+      ]
+    },
     "ProviderPresentationIntent": {
       "oneOf": [
         {
@@ -5601,6 +7467,13 @@
         "selectable"
       ]
     },
+    "SelfImprovementModelSetting": {
+      "type": "string",
+      "enum": [
+        "Default",
+        "Reviewer"
+      ]
+    },
     "SemanticDestination": {
       "oneOf": [
         {
@@ -5715,6 +7588,604 @@
             "route"
           ]
         }
+      ]
+    },
+    "SettingsIntent": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "create_device_activation"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "generation": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "kind": {
+              "type": "string",
+              "const": "close_device_activation"
+            }
+          },
+          "required": [
+            "kind",
+            "generation"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "refresh"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "refresh_sessions"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "expected_owner": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "expected_status": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/AuthSessionStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "kind": {
+              "type": "string",
+              "const": "revoke_session"
+            },
+            "session_id": {
+              "$ref": "#/$defs/AuthSessionId"
+            }
+          },
+          "required": [
+            "kind",
+            "expected_owner",
+            "session_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "kind": {
+              "type": "string",
+              "const": "keepawake"
+            }
+          },
+          "required": [
+            "kind",
+            "enabled"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "kind": {
+              "type": "string",
+              "const": "telemetry"
+            }
+          },
+          "required": [
+            "kind",
+            "enabled"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "preflight_model"
+            },
+            "selection": {
+              "$ref": "#/$defs/GatewayMemoryModelSelection"
+            }
+          },
+          "required": [
+            "kind",
+            "selection"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "clear_key": {
+              "type": "boolean"
+            },
+            "enabled": {
+              "type": "boolean"
+            },
+            "key": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "kind": {
+              "type": "string",
+              "const": "remote_access"
+            }
+          },
+          "required": [
+            "kind",
+            "enabled",
+            "clear_key"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "memory"
+            },
+            "settings": {
+              "$ref": "#/$defs/GatewayMemorySettings"
+            }
+          },
+          "required": [
+            "kind",
+            "settings"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "kind": {
+              "type": "string",
+              "const": "memory_toggle"
+            },
+            "toggle": {
+              "$ref": "#/$defs/MemorySettingToggle"
+            }
+          },
+          "required": [
+            "kind",
+            "toggle",
+            "enabled"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "memory_model"
+            },
+            "selection": {
+              "$ref": "#/$defs/GatewayMemoryModelSelection"
+            },
+            "setting": {
+              "$ref": "#/$defs/MemoryModelSetting"
+            }
+          },
+          "required": [
+            "kind",
+            "setting",
+            "selection"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "kind": {
+              "type": "string",
+              "const": "vector_enabled"
+            }
+          },
+          "required": [
+            "kind",
+            "enabled"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "kind": {
+              "type": "string",
+              "const": "vector_instructions"
+            }
+          },
+          "required": [
+            "kind",
+            "enabled"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "vector_model"
+            },
+            "selection": {
+              "$ref": "#/$defs/ModelSelectorSelection"
+            }
+          },
+          "required": [
+            "kind",
+            "selection"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "kind": {
+              "type": "string",
+              "const": "improvement_enabled"
+            }
+          },
+          "required": [
+            "kind",
+            "enabled"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "improvement_model"
+            },
+            "selection": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/GatewaySelfImprovementModelSelection"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "setting": {
+              "$ref": "#/$defs/SelfImprovementModelSetting"
+            }
+          },
+          "required": [
+            "kind",
+            "setting"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "kind": {
+              "type": "string",
+              "const": "thread_episodic"
+            }
+          },
+          "required": [
+            "kind",
+            "enabled"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "vector_search"
+            },
+            "settings": {
+              "$ref": "#/$defs/GatewayThreadEpisodicVectorSearchSettings"
+            }
+          },
+          "required": [
+            "kind",
+            "settings"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "self_improvement"
+            },
+            "settings": {
+              "$ref": "#/$defs/GatewaySelfImprovementSettings"
+            }
+          },
+          "required": [
+            "kind",
+            "settings"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "kind": {
+              "type": "string",
+              "const": "voice_enabled"
+            }
+          },
+          "required": [
+            "kind",
+            "enabled"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "voice_model"
+            },
+            "model": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "provider": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "voice_retry"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        }
+      ]
+    },
+    "SettingsModelPickerIntent": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "open"
+            },
+            "mode": {
+              "$ref": "#/$defs/ProviderModelSelectorMode"
+            },
+            "picker_id": {
+              "type": "string"
+            },
+            "selection": {
+              "$ref": "#/$defs/ModelSelectorSelection"
+            },
+            "workspace_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "picker_id",
+            "workspace_id",
+            "mode",
+            "selection"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "expected_owner": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "kind": {
+              "type": "string",
+              "const": "select_provider"
+            },
+            "picker_id": {
+              "type": "string"
+            },
+            "provider": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "picker_id",
+            "expected_owner",
+            "provider"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "expected_owner": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "kind": {
+              "type": "string",
+              "const": "select_model"
+            },
+            "model": {
+              "type": "string"
+            },
+            "picker_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "picker_id",
+            "expected_owner",
+            "model"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "effort": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "expected_owner": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "kind": {
+              "type": "string",
+              "const": "select_reasoning_effort"
+            },
+            "picker_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "picker_id",
+            "expected_owner"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "expected_owner": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "kind": {
+              "type": "string",
+              "const": "retry_providers"
+            },
+            "picker_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "picker_id",
+            "expected_owner"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "expected_owner": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "kind": {
+              "type": "string",
+              "const": "retry_models"
+            },
+            "picker_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "picker_id",
+            "expected_owner"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "expected_owner": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "kind": {
+              "type": "string",
+              "const": "close"
+            },
+            "picker_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "picker_id",
+            "expected_owner"
+          ]
+        }
+      ]
+    },
+    "SettingsPage": {
+      "type": "string",
+      "enum": [
+        "general",
+        "remote_access",
+        "voice",
+        "memory",
+        "self_improvement"
       ]
     },
     "SettingsRoute": {

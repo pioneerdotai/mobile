@@ -2,7 +2,13 @@ import React from 'react';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import renderer, { act, type ReactTestRenderer } from 'react-test-renderer';
 
-import { InvitationProfileProvider } from './profile-context';
+import type { InvitationPublication } from '@/client/generated/invitation_publication';
+const mockDispatch = jest.fn();
+let mockValue: Partial<InvitationPublication>;
+jest.mock('@/client/onboarding', () => ({
+    useInvitation: () => mockValue,
+    dispatchInvitation: mockDispatch,
+}));
 
 const mockReact = React;
 const mockSelectAvatar = jest.fn<() => Promise<Record<string, unknown> | null>>();
@@ -16,15 +22,6 @@ const mockNameFields = (props: Record<string, unknown>) =>
     mockReact.createElement('ProfileNameFields', props);
 const mockUsernameField = (props: Record<string, unknown>) =>
     mockReact.createElement('ProfileUsernameField', props);
-
-class MockMobileInvitationJoinError extends Error {
-    readonly code: string;
-
-    constructor(code: string) {
-        super(code);
-        this.code = code;
-    }
-}
 
 jest.mock('react-i18next', () => ({
     useTranslation: () => ({ t: (key: string) => key }),
@@ -81,9 +78,6 @@ jest.mock('@/services/profile/avatar', () => ({
     ProfileAvatarSelectionError: class ProfileAvatarSelectionError extends Error {},
     selectProfileAvatar: mockSelectAvatar,
 }));
-jest.mock('@/services/gateway/invitation-join', () => ({
-    MobileInvitationJoinError: MockMobileInvitationJoinError,
-}));
 jest.mock('@/client', () => ({}));
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -102,117 +96,112 @@ const headerSubmit = (): { disabled: boolean; onPress: () => void } => {
     return options.headerRight().props as { disabled: boolean; onPress: () => void };
 };
 
-const flushPromises = async () => {
-    await Promise.resolve();
-    await Promise.resolve();
-};
+const renderJoin = () => renderer.create(<InvitationJoinScreen onCancel={jest.fn()} />);
 
-const fillProfile = async (tree: ReactTestRenderer) => {
-    await act(async () => {
-        const fields = profileFields(tree);
-        fields.name.props.onFirstNameChange('Alexander');
-        fields.name.props.onLastNameChange('Oskin');
-    });
-};
-
-const renderJoin = (
-    onSubmit: React.ComponentProps<typeof InvitationJoinScreen>['onSubmit'],
-    initialNickname = 'superoskin',
-) =>
-    renderer.create(
-        <InvitationProfileProvider initialNickname={initialNickname}>
-            <InvitationJoinScreen onCancel={jest.fn()} onSubmit={onSubmit} />
-        </InvitationProfileProvider>,
-    );
-
-describe('InvitationJoinScreen', () => {
+describe('InvitationJoinScreen Client binding', () => {
     beforeEach(() => {
         jest.clearAllMocks();
+        mockValue = {
+            owner_generation: 7,
+            first_name: '',
+            last_name: '',
+            nickname: 'member',
+            name_valid: false,
+            nickname_valid: true,
+            submitting: false,
+        };
         mockSelectAvatar.mockResolvedValue(null);
     });
-
-    it('reuses the account profile fields and submits their normalized profile', async () => {
-        const onSubmit = jest.fn<() => Promise<void>>().mockResolvedValue(undefined);
-        let tree: ReactTestRenderer | null = null;
+    it('preserves profile fields and sends edits without controlled publication echo', async () => {
+        let tree!: ReactTestRenderer;
         await act(async () => {
-            tree = renderJoin(onSubmit);
+            tree = renderJoin();
         });
-
-        expect(profileFields(tree!).avatar.props.actionLabel).toBe('profile.choosePhoto');
         expect(headerSubmit().disabled).toBe(true);
-
-        await fillProfile(tree!);
-        expect(profileFields(tree!).username.props.value).toBe('superoskin');
+        expect(mockDispatch).not.toHaveBeenCalled();
+        act(() => profileFields(tree).name.props.onFirstNameChange('Member'));
+        expect(mockDispatch).toHaveBeenLastCalledWith({
+            kind: 'edit_field',
+            expected_owner: 7,
+            field: 'first_name',
+            value: 'Member',
+        });
+        mockValue = { ...mockValue, first_name: 'Member', name_valid: true };
+        await act(async () => {
+            tree.update(<InvitationJoinScreen onCancel={jest.fn()} />);
+        });
+        expect(profileFields(tree).name.props.firstName).toBe('Member');
+        expect(mockDispatch).toHaveBeenCalledTimes(1);
         expect(headerSubmit().disabled).toBe(false);
-
-        await act(async () => {
-            headerSubmit().onPress();
-            await flushPromises();
+        act(() => headerSubmit().onPress());
+        expect(mockDispatch).toHaveBeenLastCalledWith({
+            kind: 'submit_for_owner',
+            expected_owner: 7,
         });
-        expect(onSubmit).toHaveBeenCalledWith({
-            display_name: 'Alexander Oskin',
-            nickname: 'superoskin',
-            avatar: null,
-        });
+        act(() => tree.unmount());
     });
-
-    it('pushes the real nested username route from the shared account field', async () => {
-        let tree: ReactTestRenderer | null = null;
+    it('opens the retained Client username draft before native nested navigation', async () => {
+        let tree!: ReactTestRenderer;
         await act(async () => {
-            tree = renderJoin(jest.fn<() => Promise<void>>().mockResolvedValue(undefined), '');
+            tree = renderJoin();
         });
-
-        await act(async () => {
-            profileFields(tree!).username.props.onPress();
+        act(() => profileFields(tree).username.props.onPress());
+        expect(mockDispatch).toHaveBeenCalledWith({
+            kind: 'open_username_for_owner',
+            expected_owner: mockValue.owner_generation,
         });
         expect(mockRouterPush).toHaveBeenCalledWith('/invite/username');
+        act(() => tree.unmount());
     });
-
-    it('passes the selected account-style avatar through invitation acceptance', async () => {
+    it('guards a late native photo selection with its original invitation owner', async () => {
+        let resolve!: (value: Record<string, unknown>) => void;
+        mockSelectAvatar.mockImplementation(
+            () =>
+                new Promise((done) => {
+                    resolve = done;
+                }),
+        );
+        let tree!: ReactTestRenderer;
+        await act(async () => {
+            tree = renderJoin();
+        });
+        act(() => profileFields(tree).avatar.props.onPress());
+        mockValue = { ...mockValue, owner_generation: 8 };
+        await act(async () => {
+            tree.update(<InvitationJoinScreen onCancel={jest.fn()} />);
+        });
         const avatar = {
+            uri: 'file:///synthetic.png',
             input: { media_type: 'image/png', content_base64: 'cG5n' },
-            uri: 'file:///avatar.png',
-            fileName: 'avatar.png',
         };
-        mockSelectAvatar.mockResolvedValue(avatar);
-        const onSubmit = jest.fn<() => Promise<void>>().mockResolvedValue(undefined);
-        let tree: ReactTestRenderer | null = null;
         await act(async () => {
-            tree = renderJoin(onSubmit);
+            resolve(avatar);
+            await Promise.resolve();
         });
-
-        await act(async () => {
-            await profileFields(tree!).avatar.props.onPress();
+        expect(mockDispatch).toHaveBeenCalledWith({
+            kind: 'select_avatar',
+            expected_owner: 7,
+            preview: avatar.uri,
+            avatar: avatar.input,
         });
-        await fillProfile(tree!);
-        await act(async () => {
-            headerSubmit().onPress();
-            await flushPromises();
-        });
-
-        expect(profileFields(tree!).avatar.props).toMatchObject({
-            actionLabel: 'profile.changePhoto',
-            imageUri: avatar.uri,
-        });
-        expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ avatar: avatar.input }));
+        act(() => tree.unmount());
     });
-
-    it('shows nickname availability errors in the shared username field', async () => {
-        const onSubmit = jest
-            .fn<() => Promise<void>>()
-            .mockRejectedValue(new MockMobileInvitationJoinError('nickname_unavailable'));
-        let tree: ReactTestRenderer | null = null;
+    it('renders field-specific failure and durable storage retry from scoped values', async () => {
+        mockValue = {
+            ...mockValue,
+            nickname_error: 'nickname_unavailable',
+            error: 'invitation_registry_write_failed',
+            avatar_preview: 'file:///synthetic.png',
+        };
+        let tree!: ReactTestRenderer;
         await act(async () => {
-            tree = renderJoin(onSubmit);
+            tree = renderJoin();
         });
-        await fillProfile(tree!);
-        await act(async () => {
-            headerSubmit().onPress();
-            await flushPromises();
-        });
-
-        expect(profileFields(tree!).username.props.error).toBe(
+        expect(profileFields(tree).username.props.error).toBe(
             'invitation.join.errors.nicknameUnavailable',
         );
+        expect(profileFields(tree).avatar.props.imageUri).toBe('file:///synthetic.png');
+        expect(JSON.stringify(tree.toJSON())).toContain('invitation.join.errors.storage');
+        act(() => tree.unmount());
     });
 });

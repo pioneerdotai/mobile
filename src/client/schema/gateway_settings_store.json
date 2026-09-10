@@ -37,6 +37,12 @@
           "type": "null"
         }
       ]
+    },
+    "workspace_id": {
+      "type": [
+        "string",
+        "null"
+      ]
     }
   },
   "required": [

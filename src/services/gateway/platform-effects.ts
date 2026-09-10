@@ -1,8 +1,13 @@
+import { attachGatewayProjection } from '@/client/onboarding';
+import { loadGatewayRegistry, saveGatewayRegistry } from './registry';
+import { mobileAuthInstallation } from './session-grant';
+import { readGatewayBindingJournals, removeGatewayBindingJournal } from './binding-journals';
 import { mobileClientBinding, type MobileClientBinding } from '@/client/mobile-client-binding';
 import type { ClientEffectPlan } from '@/client/generated/client_effect_plan';
 import type { ClientEffectResult } from '@/client/generated/client_effect_completion_dto';
 import {
     MobileGatewaySessionStorageError,
+    deleteMobileGatewaySession,
     readMobileGatewaySession,
     writeMobileGatewaySession,
 } from './session-storage';
@@ -17,9 +22,11 @@ export class MobileSessionStorageAdapter {
         { plan: Pick<ClientEffectPlan, 'operation_id' | 'generation'>; result: ClientEffectResult }
     >();
     #detach: (() => void) | null;
+    #releaseGatewayProjection: (() => void) | null;
 
     constructor(binding: MobileClientBinding = mobileClientBinding) {
         this.#binding = binding;
+        this.#releaseGatewayProjection = attachGatewayProjection(binding);
         this.#detach = binding.attachPlatformEffects(
             (plans) => this.#deliver(plans),
             () => {
@@ -88,6 +95,68 @@ export class MobileSessionStorageAdapter {
     async #execute(plan: ClientEffectPlan): Promise<ClientEffectResult> {
         try {
             const effect = plan.effect;
+            if (effect === 'LoadGatewayEnvironment') {
+                const registry = loadGatewayRegistry();
+                const installationId = registry.installation_id;
+                if (!installationId) throw new Error('gateway_installation_missing');
+                const duration = (millis: number) => ({
+                    secs: Math.floor(millis / 1000),
+                    nanos: (millis % 1000) * 1_000_000,
+                });
+                return {
+                    kind: 'gateway_environment_loaded',
+                    environment: {
+                        registry,
+                        installation: mobileAuthInstallation(installationId),
+                        default_remote_name: 'Remote Gateway {index}',
+                        remote_connect_timeout_min: duration(5000),
+                        timings: {
+                            connect_timeout: duration(2500),
+                            startup_timeout: duration(15000),
+                            poll_interval: duration(100),
+                        },
+                        ws_timings: {
+                            connect_timeout: duration(5000),
+                            ping_interval: duration(10000),
+                            pong_timeout: duration(30000),
+                            reconnect_initial: duration(500),
+                            reconnect_max: duration(10000),
+                            reconnect_jitter_percent: 20,
+                        },
+                        local_provisioned: false,
+                        local_install_required: false,
+                        local_update_required: false,
+                        binding_journals: readGatewayBindingJournals(),
+                        discard_unbound_remote_candidates: true,
+                    },
+                };
+            }
+            if (
+                typeof effect === 'object' &&
+                !('kind' in effect) &&
+                'PersistGatewayRegistry' in effect
+            ) {
+                saveGatewayRegistry(effect.PersistGatewayRegistry.registry);
+                return { kind: 'completed' };
+            }
+            if (
+                typeof effect === 'object' &&
+                !('kind' in effect) &&
+                'RemoveGatewayBindingJournal' in effect
+            ) {
+                removeGatewayBindingJournal(effect.RemoveGatewayBindingJournal.gateway_id);
+                return { kind: 'completed' };
+            }
+
+            if (
+                typeof effect === 'object' &&
+                !('kind' in effect) &&
+                'DeleteGatewaySession' in effect
+            ) {
+                const reference = effect.DeleteGatewaySession.endpoint.session_ref;
+                if (reference) await deleteMobileGatewaySession(reference);
+                return { kind: 'completed' };
+            }
             if (
                 typeof effect === 'object' &&
                 !('kind' in effect) &&
@@ -131,6 +200,8 @@ export class MobileSessionStorageAdapter {
     }
 
     async close(cancel = true): Promise<void> {
+        this.#releaseGatewayProjection?.();
+        this.#releaseGatewayProjection = null;
         this.#detach?.();
         this.#detach = null;
         await Promise.allSettled(this.#pending.values());

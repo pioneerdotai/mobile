@@ -2,13 +2,12 @@ import { drainWorkspacePublications } from '@/client/workspaces';
 import { PioneerClientNativeError, pioneerClient } from '@/client';
 import type {
     GatewayEndpoint,
-    GatewayRegistry,
     Workspace,
     WorkspaceCreateResult,
     WorkspaceRenameResult,
     WorkspaceSwitchResult,
 } from '@/client';
-import { loadGatewayRegistry, saveGatewayRegistry } from '@/services/gateway/registry';
+import { persistGatewayWorkspace } from '@/client/onboarding';
 import { runGatewayTransportTransition } from '@/services/gateway/transport-coordinator';
 
 export type WorkspaceOperationErrorCode =
@@ -42,7 +41,6 @@ export type SwitchWorkspaceInput = {
 };
 
 export type SwitchWorkspaceResult = {
-    registry: GatewayRegistry;
     result: WorkspaceSwitchResult;
 };
 
@@ -71,21 +69,16 @@ export const switchActiveGatewayWorkspace = async (
 
             if (result.status !== 'switched') {
                 return {
-                    registry: loadGatewayRegistry(),
                     result,
                 };
             }
 
-            const plan = await pioneerClient.gatewayPlanSetWorkspaceRegistry({
-                registry: loadGatewayRegistry(),
-                gateway_id: input.activeGateway.id,
-                workspace_id: result.reduction.selected.persist_active_gateway_workspace_id,
-            });
-
-            saveGatewayRegistry(plan.registry);
+            await persistGatewayWorkspace(
+                input.activeGateway.id,
+                result.reduction.selected.persist_active_gateway_workspace_id ?? null,
+            );
 
             return {
-                registry: plan.registry,
                 result,
             };
         });

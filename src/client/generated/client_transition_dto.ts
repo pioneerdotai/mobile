@@ -1,7 +1,11 @@
 /* eslint-disable */
 
 export type ClientPlannedEffect =
-  ClientEffect | AdministrationPresentationEffect | ProviderPresentationEffect | GatewaySessionStorageEffect;
+  | ClientEffect
+  | AdministrationPresentationEffect
+  | ProviderPresentationEffect
+  | GatewaySessionStorageEffect
+  | OnboardingPlatformEffect;
 export type ClientEffect =
   | (
       | 'RefreshWorkspaceList'
@@ -33,6 +37,12 @@ export type ProviderPresentationEffect =
     };
 export type GatewaySessionStorageEffect =
   | {
+      DeleteGatewaySession: {
+        endpoint: GatewayEndpoint;
+        [k: string]: unknown;
+      };
+    }
+  | {
       ReadGatewaySession: {
         endpoint: GatewayEndpoint;
         [k: string]: unknown;
@@ -51,6 +61,33 @@ export type DeviceId = string;
 export type PrincipalId = string;
 export type AuthSessionId = string;
 export type TokenFamilyId = string;
+export type OnboardingPlatformEffect =
+  | 'LoadGatewayEnvironment'
+  | {
+      RemoveGatewayBindingJournal: {
+        gateway_id: string;
+        [k: string]: unknown;
+      };
+    }
+  | {
+      PersistGatewayRegistry: {
+        registry: GatewayRegistry;
+        [k: string]: unknown;
+      };
+    }
+  | {
+      PrepareLocalGateway: {
+        endpoint: GatewayEndpoint;
+        recover: boolean;
+        [k: string]: unknown;
+      };
+    }
+  | {
+      CreateLocalDeviceActivation: {
+        endpoint_id: string;
+        [k: string]: unknown;
+      };
+    };
 export type ClientTransitionOutcome = 'changed' | 'noop' | 'stale' | 'rejected';
 
 export interface ClientTransitionDto {
@@ -88,4 +125,11 @@ export interface GatewaySessionEnvelope {
   schema_version: number;
   session_id: AuthSessionId;
   token_family_id: TokenFamilyId;
+}
+export interface GatewayRegistry {
+  active_gateway_id?: string | null;
+  installation_id?: string | null;
+  local?: GatewayEndpoint | null;
+  remotes?: GatewayEndpoint[];
+  version: number;
 }

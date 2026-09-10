@@ -186,7 +186,43 @@ export type ClientScope =
       [k: string]: unknown;
     }
   | {
+      kind: 'auth_sessions';
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'device_activation';
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'profile';
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'settings_model_picker';
+      picker_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'settings_page';
+      page: SettingsPage;
+      [k: string]: unknown;
+    }
+  | {
       kind: 'onboarding_invitation';
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'gateway_setup';
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'gateway_destinations';
+      [k: string]: unknown;
+    }
+  | {
+      folder_id?: string | null;
+      kind: 'agents_document_content';
+      workspace_id: string;
       [k: string]: unknown;
     }
   | {
@@ -226,6 +262,7 @@ export type ProviderCollection =
     };
 export type ProviderModelKind = 'chat' | 'embeddings' | 'transcription';
 export type SkillId = string;
+export type SettingsPage = 'general' | 'remote_access' | 'voice' | 'memory' | 'self_improvement';
 export type ArtifactKind =
   | 'file'
   | 'text'
@@ -1003,7 +1040,11 @@ export type TurnPermissionDecisionReason =
   | 'unknown_action_default'
   | 'sandbox_denied';
 export type ClientPlannedEffect =
-  ClientEffect | AdministrationPresentationEffect | ProviderPresentationEffect | GatewaySessionStorageEffect;
+  | ClientEffect
+  | AdministrationPresentationEffect
+  | ProviderPresentationEffect
+  | GatewaySessionStorageEffect
+  | OnboardingPlatformEffect;
 export type ClientEffect =
   | (
       | 'RefreshWorkspaceList'
@@ -1035,6 +1076,12 @@ export type ProviderPresentationEffect =
     };
 export type GatewaySessionStorageEffect =
   | {
+      DeleteGatewaySession: {
+        endpoint: GatewayEndpoint;
+        [k: string]: unknown;
+      };
+    }
+  | {
       ReadGatewaySession: {
         endpoint: GatewayEndpoint;
         [k: string]: unknown;
@@ -1052,6 +1099,33 @@ export type GatewayId = string;
 export type DeviceId = string;
 export type AuthSessionId = string;
 export type TokenFamilyId = string;
+export type OnboardingPlatformEffect =
+  | 'LoadGatewayEnvironment'
+  | {
+      RemoveGatewayBindingJournal: {
+        gateway_id: string;
+        [k: string]: unknown;
+      };
+    }
+  | {
+      PersistGatewayRegistry: {
+        registry: GatewayRegistry;
+        [k: string]: unknown;
+      };
+    }
+  | {
+      PrepareLocalGateway: {
+        endpoint: GatewayEndpoint;
+        recover: boolean;
+        [k: string]: unknown;
+      };
+    }
+  | {
+      CreateLocalDeviceActivation: {
+        endpoint_id: string;
+        [k: string]: unknown;
+      };
+    };
 
 export interface ClientProcessChangeBatchDto {
   changes: ClientProcessChangeSetDto[];
@@ -1714,4 +1788,11 @@ export interface GatewaySessionEnvelope {
   schema_version: number;
   session_id: AuthSessionId;
   token_family_id: TokenFamilyId;
+}
+export interface GatewayRegistry {
+  active_gateway_id?: string | null;
+  installation_id?: string | null;
+  local?: GatewayEndpoint | null;
+  remotes?: GatewayEndpoint[];
+  version: number;
 }

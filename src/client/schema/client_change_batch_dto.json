@@ -778,11 +778,125 @@
           "properties": {
             "kind": {
               "type": "string",
+              "const": "auth_sessions"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "device_activation"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "profile"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "settings_model_picker"
+            },
+            "picker_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "picker_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "settings_page"
+            },
+            "page": {
+              "$ref": "#/$defs/SettingsPage"
+            }
+          },
+          "required": [
+            "kind",
+            "page"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
               "const": "onboarding_invitation"
             }
           },
           "required": [
             "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "gateway_setup"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "gateway_destinations"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "folder_id": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "kind": {
+              "type": "string",
+              "const": "agents_document_content"
+            },
+            "workspace_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "workspace_id"
           ]
         },
         {
@@ -889,6 +1003,16 @@
         "chat",
         "embeddings",
         "transcription"
+      ]
+    },
+    "SettingsPage": {
+      "type": "string",
+      "enum": [
+        "general",
+        "remote_access",
+        "voice",
+        "memory",
+        "self_improvement"
       ]
     },
     "SkillId": {

@@ -186,7 +186,43 @@ export type ClientScope =
       [k: string]: unknown;
     }
   | {
+      kind: 'auth_sessions';
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'device_activation';
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'profile';
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'settings_model_picker';
+      picker_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'settings_page';
+      page: SettingsPage;
+      [k: string]: unknown;
+    }
+  | {
       kind: 'onboarding_invitation';
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'gateway_setup';
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'gateway_destinations';
+      [k: string]: unknown;
+    }
+  | {
+      folder_id?: string | null;
+      kind: 'agents_document_content';
+      workspace_id: string;
       [k: string]: unknown;
     }
   | {
@@ -226,6 +262,7 @@ export type ProviderCollection =
     };
 export type ProviderModelKind = 'chat' | 'embeddings' | 'transcription';
 export type SkillId = string;
+export type SettingsPage = 'general' | 'remote_access' | 'voice' | 'memory' | 'self_improvement';
 
 export interface ClientChangeBatchRequestDto {
   maximum_items: number;

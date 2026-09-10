@@ -2,6 +2,31 @@
 
 export type ClientIntent =
   | {
+      intent: SettingsModelPickerIntent;
+      kind: 'settings_model_picker';
+      [k: string]: unknown;
+    }
+  | {
+      intent: OnboardingIntent;
+      kind: 'onboarding';
+      [k: string]: unknown;
+    }
+  | {
+      intent: SettingsIntent;
+      kind: 'settings';
+      [k: string]: unknown;
+    }
+  | {
+      intent: ProfileIntent;
+      kind: 'profile';
+      [k: string]: unknown;
+    }
+  | {
+      intent: AgentsDocumentIntent;
+      kind: 'agents_document';
+      [k: string]: unknown;
+    }
+  | {
       intent: AdministrationPresentationIntent;
       kind: 'administration_presentation';
       [k: string]: unknown;
@@ -129,6 +154,588 @@ export type ClientIntent =
       generation: number;
       kind: 'set_scope_demand';
       scope: ClientScope;
+      [k: string]: unknown;
+    };
+export type SettingsModelPickerIntent =
+  | {
+      kind: 'open';
+      mode: ProviderModelSelectorMode;
+      picker_id: string;
+      selection: ModelSelectorSelection;
+      workspace_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      expected_owner: number;
+      kind: 'select_provider';
+      picker_id: string;
+      provider: string;
+      [k: string]: unknown;
+    }
+  | {
+      expected_owner: number;
+      kind: 'select_model';
+      model: string;
+      picker_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      effort?: string | null;
+      expected_owner: number;
+      kind: 'select_reasoning_effort';
+      picker_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      expected_owner: number;
+      kind: 'retry_providers';
+      picker_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      expected_owner: number;
+      kind: 'retry_models';
+      picker_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      expected_owner: number;
+      kind: 'close';
+      picker_id: string;
+      [k: string]: unknown;
+    };
+export type ProviderModelSelectorMode = 'Chat' | 'SelfImprovement' | 'Embeddings' | 'Transcription';
+export type OnboardingIntent =
+  | {
+      kind: 'initialize';
+      [k: string]: unknown;
+    }
+  | {
+      intent: InvitationIntent;
+      kind: 'invitation';
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'retry_initialization';
+      [k: string]: unknown;
+    }
+  | {
+      intent: GatewaySetupIntent;
+      kind: 'setup';
+      [k: string]: unknown;
+    }
+  | {
+      endpoint_id: string;
+      kind: 'select_gateway';
+      [k: string]: unknown;
+    }
+  | {
+      endpoint_id: string;
+      expected_registry_revision: number;
+      kind: 'delete_gateway';
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'acknowledge_workspace_outcome';
+      request_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      endpoint_id: string;
+      kind: 'set_workspace_for_request';
+      request_id: string;
+      workspace_id?: string | null;
+      [k: string]: unknown;
+    }
+  | {
+      endpoint_id: string;
+      kind: 'set_workspace';
+      workspace_id?: string | null;
+      [k: string]: unknown;
+    };
+export type InvitationIntent =
+  | {
+      expected_owner: number;
+      kind: 'remove_avatar_for_owner';
+      [k: string]: unknown;
+    }
+  | {
+      expected_owner: number;
+      kind: 'preview_retry_for_owner';
+      [k: string]: unknown;
+    }
+  | {
+      expected_owner: number;
+      kind: 'open_username_for_owner';
+      [k: string]: unknown;
+    }
+  | {
+      expected_owner: number;
+      kind: 'accept_username_for_owner';
+      [k: string]: unknown;
+    }
+  | {
+      expected_owner: number;
+      kind: 'cancel_username_for_owner';
+      [k: string]: unknown;
+    }
+  | {
+      expected_owner: number;
+      field: ProfileField;
+      kind: 'edit_field';
+      value: string;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'open';
+      uri: string;
+      [k: string]: unknown;
+    }
+  | {
+      first_name: string;
+      kind: 'edit_name';
+      last_name: string;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'edit_nickname';
+      nickname: string;
+      [k: string]: unknown;
+    }
+  | {
+      avatar: ProfileAvatarInput;
+      expected_owner: number;
+      kind: 'select_avatar';
+      preview: string;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'remove_avatar';
+      [k: string]: unknown;
+    }
+  | {
+      expected_owner: number;
+      kind: 'avatar_failed';
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'open_username';
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'accept_username';
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'cancel_username';
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'preview_retry';
+      [k: string]: unknown;
+    }
+  | {
+      expected_owner: number;
+      kind: 'submit_for_owner';
+      [k: string]: unknown;
+    }
+  | {
+      expected_owner: number;
+      kind: 'close';
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'submit';
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'cancel';
+      [k: string]: unknown;
+    };
+export type ProfileField = 'first_name' | 'last_name' | 'nickname';
+export type ProfileAvatarMediaType = 'image/png' | 'image/jpeg' | 'image/webp';
+export type GatewaySetupIntent =
+  | {
+      kind: 'open';
+      mode: GatewaySetupMode;
+      [k: string]: unknown;
+    }
+  | {
+      activation: string;
+      address: string;
+      gateway_id?: GatewayId | null;
+      kind: 'prefill';
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'edit_name';
+      value: string;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'edit_address';
+      value: string;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'edit_activation';
+      value: string;
+      [k: string]: unknown;
+    }
+  | {
+      expected_owner: number;
+      kind: 'edit_name_for_owner';
+      value: string;
+      [k: string]: unknown;
+    }
+  | {
+      expected_owner: number;
+      kind: 'edit_address_for_owner';
+      value: string;
+      [k: string]: unknown;
+    }
+  | {
+      expected_owner: number;
+      kind: 'edit_activation_for_owner';
+      value: string;
+      [k: string]: unknown;
+    }
+  | {
+      expected_owner: number;
+      kind: 'delete_for_owner';
+      [k: string]: unknown;
+    }
+  | {
+      expected_owner: number;
+      kind: 'submit_for_owner';
+      local: boolean;
+      [k: string]: unknown;
+    }
+  | {
+      expected_owner: number;
+      kind: 'close';
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'submit_remote';
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'submit_local';
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'delete';
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'cancel';
+      [k: string]: unknown;
+    };
+export type GatewaySetupMode =
+  | {
+      allow_local: boolean;
+      kind: 'initial';
+      [k: string]: unknown;
+    }
+  | {
+      allow_local: boolean;
+      kind: 'add_gateway';
+      [k: string]: unknown;
+    }
+  | {
+      endpoint_id: string;
+      kind: 'edit_gateway';
+      [k: string]: unknown;
+    }
+  | {
+      close_on_success: boolean;
+      endpoint_id: string;
+      kind: 'reauthenticate_gateway';
+      [k: string]: unknown;
+    };
+export type GatewayId = string;
+export type SettingsIntent =
+  | {
+      kind: 'create_device_activation';
+      [k: string]: unknown;
+    }
+  | {
+      generation: number;
+      kind: 'close_device_activation';
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'refresh';
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'refresh_sessions';
+      [k: string]: unknown;
+    }
+  | {
+      expected_owner: number;
+      expected_status?: AuthSessionStatus | null;
+      kind: 'revoke_session';
+      session_id: AuthSessionId;
+      [k: string]: unknown;
+    }
+  | {
+      enabled: boolean;
+      kind: 'keepawake';
+      [k: string]: unknown;
+    }
+  | {
+      enabled: boolean;
+      kind: 'telemetry';
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'preflight_model';
+      selection: GatewayMemoryModelSelection;
+      [k: string]: unknown;
+    }
+  | {
+      clear_key: boolean;
+      enabled: boolean;
+      key?: string | null;
+      kind: 'remote_access';
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'memory';
+      settings: GatewayMemorySettings;
+      [k: string]: unknown;
+    }
+  | {
+      enabled: boolean;
+      kind: 'memory_toggle';
+      toggle: MemorySettingToggle;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'memory_model';
+      selection: GatewayMemoryModelSelection;
+      setting: MemoryModelSetting;
+      [k: string]: unknown;
+    }
+  | {
+      enabled: boolean;
+      kind: 'vector_enabled';
+      [k: string]: unknown;
+    }
+  | {
+      enabled: boolean;
+      kind: 'vector_instructions';
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'vector_model';
+      selection: ModelSelectorSelection;
+      [k: string]: unknown;
+    }
+  | {
+      enabled: boolean;
+      kind: 'improvement_enabled';
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'improvement_model';
+      selection?: GatewaySelfImprovementModelSelection | null;
+      setting: SelfImprovementModelSetting;
+      [k: string]: unknown;
+    }
+  | {
+      enabled: boolean;
+      kind: 'thread_episodic';
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'vector_search';
+      settings: GatewayThreadEpisodicVectorSearchSettings;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'self_improvement';
+      settings: GatewaySelfImprovementSettings;
+      [k: string]: unknown;
+    }
+  | {
+      enabled: boolean;
+      kind: 'voice_enabled';
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'voice_model';
+      model?: string | null;
+      provider?: string | null;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'voice_retry';
+      [k: string]: unknown;
+    };
+export type AuthSessionStatus = 'pending' | 'active' | 'revoked' | 'expired';
+export type AuthSessionId = string;
+export type MemorySettingToggle =
+  'Enabled' | 'ActiveRecall' | 'ProactiveWrites' | 'BackgroundExtraction' | 'DebugTrace';
+export type MemoryModelSetting = 'PostTurnExtractor';
+export type SelfImprovementModelSetting = 'Default' | 'Reviewer';
+export type GatewayThreadEpisodicVectorProvider = 'openai' | 'openrouter' | 'local';
+export type ProfileIntent =
+  | {
+      expected_owner: number;
+      kind: 'save_for_owner';
+      section: ProfileEditorSection;
+      [k: string]: unknown;
+    }
+  | {
+      expected_owner: number;
+      kind: 'close_for_owner';
+      section: ProfileEditorSection;
+      [k: string]: unknown;
+    }
+  | {
+      expected_owner: number;
+      kind: 'remove_avatar_for_owner';
+      [k: string]: unknown;
+    }
+  | {
+      expected_owner: number;
+      field: ProfileField;
+      kind: 'edit_field';
+      value: string;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'open';
+      section: ProfileEditorSection;
+      [k: string]: unknown;
+    }
+  | {
+      first_name: string;
+      kind: 'edit_name';
+      last_name: string;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'edit_nickname';
+      nickname: string;
+      [k: string]: unknown;
+    }
+  | {
+      avatar: ProfileAvatarInput;
+      expected_owner: number;
+      kind: 'select_avatar';
+      preview: string;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'remove_avatar';
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'begin_nickname_edit';
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'cancel_nickname_edit';
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'accept_nickname_edit';
+      [k: string]: unknown;
+    }
+  | {
+      error: string;
+      expected_owner: number;
+      kind: 'selection_failed';
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'save';
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'cancel';
+      [k: string]: unknown;
+    };
+export type ProfileEditorSection = 'account' | 'profile' | 'username';
+export type AgentsDocumentIntent =
+  | {
+      action: AgentsDocumentAction;
+      expected_owner: number;
+      kind: 'scoped';
+      scope: AgentsDocEditorScope;
+      [k: string]: unknown;
+    }
+  | {
+      content: string;
+      kind: 'edit';
+      scope: AgentsDocEditorScope;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'save';
+      scope: AgentsDocEditorScope;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'reload';
+      scope: AgentsDocEditorScope;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'reload_remote';
+      scope: AgentsDocEditorScope;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'overwrite_remote';
+      scope: AgentsDocEditorScope;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'close';
+      scope: AgentsDocEditorScope;
+      [k: string]: unknown;
+    };
+export type AgentsDocumentAction =
+  | {
+      content: string;
+      kind: 'edit';
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'save';
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'reload';
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'reload_remote';
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'overwrite_remote';
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'close';
+      [k: string]: unknown;
+    };
+export type AgentsDocEditorScope =
+  | {
+      kind: 'root';
+      workspace_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      folder_id: string;
+      kind: 'folder';
+      workspace_id: string;
       [k: string]: unknown;
     };
 export type AdministrationPresentationIntent =
@@ -1402,18 +2009,6 @@ export type NavigationIntent =
       kind: 'reset';
       [k: string]: unknown;
     };
-export type AgentsDocEditorScope =
-  | {
-      kind: 'root';
-      workspace_id: string;
-      [k: string]: unknown;
-    }
-  | {
-      folder_id: string;
-      kind: 'folder';
-      workspace_id: string;
-      [k: string]: unknown;
-    };
 export type AdministrationRoute = 'Members' | 'Invitations';
 export type SettingsRoute = 'General' | 'Account' | 'Memory' | 'SelfImprovement';
 export type ProviderFilter = 'Api' | 'Connected' | 'Cli';
@@ -1666,7 +2261,43 @@ export type ClientScope =
       [k: string]: unknown;
     }
   | {
+      kind: 'auth_sessions';
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'device_activation';
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'profile';
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'settings_model_picker';
+      picker_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'settings_page';
+      page: SettingsPage;
+      [k: string]: unknown;
+    }
+  | {
       kind: 'onboarding_invitation';
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'gateway_setup';
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'gateway_destinations';
+      [k: string]: unknown;
+    }
+  | {
+      folder_id?: string | null;
+      kind: 'agents_document_content';
+      workspace_id: string;
       [k: string]: unknown;
     }
   | {
@@ -1674,7 +2305,75 @@ export type ClientScope =
       workspace_id: string;
       [k: string]: unknown;
     };
+export type SettingsPage = 'general' | 'remote_access' | 'voice' | 'memory' | 'self_improvement';
 
+export interface ModelSelectorSelection {
+  model?: string | null;
+  provider?: string | null;
+  selected_reasoning_effort?: string | null;
+  [k: string]: unknown;
+}
+export interface ProfileAvatarInput {
+  content_base64: string;
+  media_type: ProfileAvatarMediaType;
+}
+export interface GatewayMemoryModelSelection {
+  model?: string | null;
+  model_provider?: string | null;
+  source?: 'thread' | 'custom';
+  [k: string]: unknown;
+}
+export interface GatewayMemorySettings {
+  active_recall_enabled: boolean;
+  background_extraction_enabled: boolean;
+  debug_trace_enabled: boolean;
+  deterministic_recall_enabled: boolean;
+  enabled: boolean;
+  proactive_writes_enabled: boolean;
+  proactive_writes_model?: GatewayMemoryModelSelection1;
+  strict_diagnostics_enabled: boolean;
+  tools_enabled: boolean;
+  [k: string]: unknown;
+}
+export interface GatewayMemoryModelSelection1 {
+  model?: string | null;
+  model_provider?: string | null;
+  source?: 'thread' | 'custom';
+  [k: string]: unknown;
+}
+export interface GatewaySelfImprovementModelSelection {
+  model: string;
+  provider: string;
+  /**
+   * None delegates to the provider; `none` explicitly disables reasoning.
+   */
+  reasoning_effort?: string | null;
+}
+export interface GatewayThreadEpisodicVectorSearchSettings {
+  downloaded_bytes?: number | null;
+  embedding_dimension?: number | null;
+  embedding_normalized?: boolean;
+  enabled?: boolean;
+  local_model?: string | null;
+  local_model_status?: 'not_selected' | 'unknown' | 'missing' | 'downloading' | 'installed' | 'failed';
+  model?: string | null;
+  provider?: GatewayThreadEpisodicVectorProvider | null;
+  provider_key?: GatewayThreadEpisodicVectorProviderKeyStatus;
+  refill_status?: 'disabled' | 'unknown' | 'required' | 'running' | 'complete' | 'failed';
+  total_bytes?: number | null;
+  use_search_instructions?: boolean;
+  [k: string]: unknown;
+}
+export interface GatewayThreadEpisodicVectorProviderKeyStatus {
+  present?: boolean;
+  required?: boolean;
+  [k: string]: unknown;
+}
+export interface GatewaySelfImprovementSettings {
+  default_model?: GatewaySelfImprovementModelSelection | null;
+  enabled?: boolean;
+  reviewer_model?: GatewaySelfImprovementModelSelection | null;
+}
 export interface InvitationCreateParams {
   role_key: RoleKey;
   /**

@@ -50,6 +50,7 @@ export interface GatewaySettingsStore {
   settings?: GatewaySettingsSnapshot | null;
   vector_refill_refresh_requested: boolean;
   voice_input?: GatewayVoiceInputSettings1 | null;
+  workspace_id?: string | null;
   [k: string]: unknown;
 }
 export interface GatewaySettingsSnapshot {

@@ -7,9 +7,20 @@ const mockRouterReplace = jest.fn();
 const mockRouterDismiss = jest.fn();
 const mockRouterSetParams = jest.fn();
 const mockClearInitialUrl = jest.fn();
-const mockPresentation = jest.fn<(input: { uri: string }) => Promise<Record<string, unknown>>>();
-const mockPreview = jest.fn<(input: { uri: string }) => Promise<Record<string, unknown>>>();
-const mockAccept = jest.fn<(input: Record<string, unknown>) => Promise<void>>();
+const mockDispatch = jest.fn();
+const mockHydrate = jest.fn<() => Promise<void>>();
+let mockValue: Record<string, unknown> | null;
+let mockDestinations: Record<string, unknown> | null;
+jest.mock('expo-router/react-navigation', () => ({ usePreventRemove: jest.fn() }));
+jest.mock('@/client/onboarding', () => ({
+    useInvitation: () => mockValue,
+    useGatewayDestinations: () => mockDestinations,
+    dispatchInvitation: mockDispatch,
+    hydrateOnboarding: mockHydrate,
+}));
+jest.mock('@/client/mobile-client-binding', () => ({
+    mobileClientBinding: { scope: () => ({ getSnapshot: () => ({ payload: mockValue }) }) },
+}));
 const mockJoinScreen = (props: Record<string, unknown>) =>
     mockReact.createElement('InvitationJoinScreen', props);
 let mockLinkingUrl: string | null = null;
@@ -42,12 +53,6 @@ jest.mock('react-native-unistyles', () => ({
     },
     useUnistyles: () => ({ theme: { colors: { typography: '#000' } } }),
 }));
-jest.mock('@/client', () => ({
-    pioneerClient: {
-        invitationPresentation: mockPresentation,
-        invitationPreview: mockPreview,
-    },
-}));
 jest.mock('@/components/buttons/base', () => ({
     Button: (props: Record<string, unknown>) => mockReact.createElement('Button', props),
 }));
@@ -59,11 +64,6 @@ jest.mock('@/screens/invitation/join', () => ({
     __esModule: true,
     default: mockJoinScreen,
 }));
-jest.mock('@/services/gateway/invitation-join', () => ({
-    MobileInvitationJoinError: class MobileInvitationJoinError extends Error {},
-    acceptMobileInvitation: mockAccept,
-}));
-
 const InviteRoute =
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     require('@/routes/invite').default as typeof import('@/routes/invite').default;
@@ -78,115 +78,103 @@ const flushPromises = async (): Promise<void> => {
     await Promise.resolve();
 };
 
-const settleLatestPreview = async (): Promise<void> => {
-    await act(async () => {
-        const presentation = mockPresentation.mock.results.at(-1)?.value;
-        const preview = mockPreview.mock.results.at(-1)?.value;
-        await Promise.allSettled([presentation, preview]);
-        await flushPromises();
-        await new Promise<void>((resolve) => setImmediate(resolve));
-    });
-};
-
-const joinScreen = (tree: ReactTestRenderer) =>
-    tree.root.find(
-        (node) =>
-            typeof node.props.onSubmit === 'function' && typeof node.props.onCancel === 'function',
-    );
-
-describe('InviteRoute', () => {
+describe('InviteRoute Client handoff', () => {
     beforeEach(() => {
         jest.clearAllMocks();
-        mockLinkingUrl = null;
-        mockPresentation.mockResolvedValue({
-            gateway_base_url: 'https://gateway.example/',
-            gateway_id: 'G00000000000000000001',
-            transport_security: 'secure_wss',
-            canonical_uri: invitationUri,
-            qr_payload: invitationUri,
-        });
-        mockPreview.mockResolvedValue({
-            gateway_id: 'G00000000000000000001',
-            inviter: { display_name: 'Owner' },
-            workspaces: [{ name: 'Workspace' }],
-            expires_at_unix: 100,
-            transport: 'secure_wss',
-        });
-        mockAccept.mockResolvedValue();
-    });
-
-    it('hands a cold link directly to native parsing without replacing the owning route', async () => {
         mockLinkingUrl = invitationUri;
-        let tree: ReactTestRenderer | null = null;
+        mockDestinations = null;
+        mockValue = {
+            owner_generation: 4,
+            preview: { gateway_id: 'G00000000000000000001' },
+            phase: 'editing_profile',
+        };
+        mockHydrate.mockResolvedValue();
+    });
+    it('sanitizes a cold link and opens it once without putting its secret into render props', async () => {
+        let tree!: ReactTestRenderer;
         await act(async () => {
             tree = renderer.create(<InviteRoute />);
+            await flushPromises();
         });
-        await settleLatestPreview();
-
-        expect(mockRouterReplace).not.toHaveBeenCalledWith('/invite');
-        expect(mockRouterReplace).not.toHaveBeenCalledWith(expect.stringContaining('pinv1_'));
+        expect(mockDispatch).toHaveBeenCalledWith({ kind: 'open', uri: invitationUri });
+        expect(mockRouterReplace).not.toHaveBeenCalled();
         expect(mockRouterSetParams).toHaveBeenCalledWith({
             '#': undefined,
             gateway_base_url: undefined,
             gateway_id: undefined,
         });
-        expect(mockClearInitialUrl).toHaveBeenCalledTimes(1);
-        expect(mockPresentation).toHaveBeenCalledWith({ uri: invitationUri });
-        expect(mockPreview).toHaveBeenCalledWith({ uri: invitationUri });
-        expect(joinScreen(tree!).props).not.toHaveProperty('presentation');
-    });
-
-    it('deduplicates warm delivery and one submit produces one accept', async () => {
-        mockLinkingUrl = invitationUri;
-        let tree: ReactTestRenderer | null = null;
+        expect(JSON.stringify(tree.toJSON())).not.toContain('pinv1_');
         await act(async () => {
-            tree = renderer.create(<InviteRoute />);
-        });
-        await settleLatestPreview();
-        await act(async () => {
-            tree!.update(<InviteRoute />);
+            tree.update(<InviteRoute />);
             await flushPromises();
         });
-        expect(mockPreview).toHaveBeenCalledTimes(1);
-
-        const profile = { display_name: 'Member', nickname: 'member', avatar: null };
-        await act(async () => {
-            await joinScreen(tree!).props.onSubmit(profile);
-        });
-        expect(mockAccept).toHaveBeenCalledTimes(1);
-        expect(mockAccept).toHaveBeenCalledWith({ uri: invitationUri, profile });
-        expect(mockRouterDismiss).toHaveBeenCalledTimes(1);
-        expect(mockRouterReplace).not.toHaveBeenCalledWith('/');
+        expect(mockDispatch).toHaveBeenCalledTimes(1);
+        act(() => tree.unmount());
+        expect(mockDispatch).toHaveBeenLastCalledWith({ kind: 'close', expected_owner: 4 });
     });
-
-    it('clears secret ownership on cancel and invalid preview', async () => {
-        mockLinkingUrl = invitationUri;
-        let tree: ReactTestRenderer | null = null;
+    it('retries failed native initialization before delivering the invitation', async () => {
+        mockValue = null;
+        mockDestinations = { error: 'gateway_environment_load_failed', installation_id: null };
+        mockHydrate.mockRejectedValueOnce(new Error('synthetic storage failure'));
+        let tree!: ReactTestRenderer;
+        await act(async () => {
+            tree = renderer.create(<InviteRoute />);
+            await flushPromises();
+        });
+        expect(mockDispatch).not.toHaveBeenCalled();
+        const retry = tree.root
+            .findAllByType('Button' as never)
+            .find((button) => button.props.title === 'retry')!;
+        await act(async () => {
+            retry.props.onPress();
+            await flushPromises();
+        });
+        expect(mockHydrate).toHaveBeenCalledTimes(2);
+        expect(mockDispatch).toHaveBeenCalledWith({ kind: 'open', uri: invitationUri });
+        act(() => tree.unmount());
+    });
+    it('dismisses only for completion of the owning invitation', async () => {
+        let tree!: ReactTestRenderer;
+        await act(async () => {
+            tree = renderer.create(<InviteRoute />);
+            await flushPromises();
+        });
+        mockValue = { ...mockValue, owner_generation: 5, phase: 'complete' };
+        await act(async () => tree.update(<InviteRoute />));
+        expect(mockRouterDismiss).not.toHaveBeenCalled();
+        mockValue = { ...mockValue, owner_generation: 4 };
+        await act(async () => tree.update(<InviteRoute />));
+        expect(mockRouterDismiss).toHaveBeenCalledTimes(1);
+        act(() => tree.unmount());
+    });
+    it('does not deliver a link after the route was released during native initialization', async () => {
+        let resolve!: () => void;
+        mockHydrate.mockImplementation(
+            () =>
+                new Promise<void>((done) => {
+                    resolve = done;
+                }),
+        );
+        let tree!: ReactTestRenderer;
         await act(async () => {
             tree = renderer.create(<InviteRoute />);
         });
-        await settleLatestPreview();
-        act(() => joinScreen(tree!).props.onCancel());
-        expect(mockRouterDismiss).toHaveBeenCalledTimes(1);
-        expect(mockRouterReplace).not.toHaveBeenCalledWith('/');
-
-        mockPreview.mockRejectedValueOnce(new Error('secret must not be displayed'));
-        mockLinkingUrl = `${invitationUri}x`;
+        act(() => tree.unmount());
         await act(async () => {
-            tree!.update(<InviteRoute />);
+            resolve();
+            await flushPromises();
         });
-        await settleLatestPreview();
-        expect(JSON.stringify(tree!.toJSON())).not.toContain('pinv1_');
+        expect(mockDispatch).not.toHaveBeenCalled();
     });
-
     it('does not consume a production link in the development application', async () => {
         mockLinkingUrl = invitationUri.replace('pioneer-dev://', 'pioneer://');
+        let tree!: ReactTestRenderer;
         await act(async () => {
-            renderer.create(<InviteRoute />);
+            tree = renderer.create(<InviteRoute />);
             await flushPromises();
         });
-        expect(mockPresentation).not.toHaveBeenCalled();
-        expect(mockPreview).not.toHaveBeenCalled();
-        expect(mockClearInitialUrl).not.toHaveBeenCalled();
+        expect(mockDispatch).not.toHaveBeenCalled();
+        expect(mockHydrate).not.toHaveBeenCalled();
+        act(() => tree.unmount());
     });
 });

@@ -98,11 +98,23 @@ const scopeKey = (scope: ClientScope): string => {
             return `${scope.kind}:${JSON.stringify(scope.workspace_id)}:${JSON.stringify(scope.thread_id)}`;
         case 'avatar':
             return `${scope.kind}:${JSON.stringify(scope.principal_id)}`;
+        case 'agents_document_content':
+            return `${scope.kind}:${JSON.stringify([scope.workspace_id, scope.folder_id ?? null])}`;
         case 'agents_document':
             return `${scope.kind}:${JSON.stringify(scope.workspace_id)}`;
         case 'session':
         case 'navigation':
         case 'provider':
+            return scope.kind;
+        case 'settings_model_picker':
+            return JSON.stringify([scope.kind, scope.picker_id]);
+        case 'settings_page':
+            return JSON.stringify([scope.kind, scope.page]);
+        case 'gateway_setup':
+        case 'gateway_destinations':
+        case 'profile':
+        case 'auth_sessions':
+        case 'device_activation':
         case 'settings':
         case 'administration_operation':
         case 'onboarding_invitation':
@@ -293,6 +305,10 @@ export class MobileClientBinding {
         };
     }
     #delivery: Promise<void> | null = null;
+
+    isClosed(): boolean {
+        return this.#closed;
+    }
 
     applyProcessBatch(batch: ClientProcessChangeBatchDto): void {
         assertSchemaVersion(batch);
@@ -592,6 +608,15 @@ export class MobileClientBinding {
             state.scope.kind !== 'skills' &&
             state.scope.kind !== 'skills_details' &&
             state.scope.kind !== 'skills_action' &&
+            state.scope.kind !== 'settings_model_picker' &&
+            state.scope.kind !== 'agents_document_content' &&
+            state.scope.kind !== 'gateway_setup' &&
+            state.scope.kind !== 'gateway_destinations' &&
+            state.scope.kind !== 'onboarding_invitation' &&
+            state.scope.kind !== 'auth_sessions' &&
+            state.scope.kind !== 'profile' &&
+            state.scope.kind !== 'device_activation' &&
+            state.scope.kind !== 'settings_page' &&
             state.scope.kind !== 'skills_upload'
         )
             return;
@@ -673,6 +698,15 @@ export class MobileClientBinding {
                             state.scope.kind === 'skills' ||
                             state.scope.kind === 'skills_details' ||
                             state.scope.kind === 'skills_action' ||
+                            state.scope.kind === 'settings_model_picker' ||
+                            state.scope.kind === 'agents_document_content' ||
+                            state.scope.kind === 'gateway_setup' ||
+                            state.scope.kind === 'gateway_destinations' ||
+                            state.scope.kind === 'onboarding_invitation' ||
+                            state.scope.kind === 'auth_sessions' ||
+                            state.scope.kind === 'profile' ||
+                            state.scope.kind === 'device_activation' ||
+                            state.scope.kind === 'settings_page' ||
                             state.scope.kind === 'skills_upload'
                         ) {
                             state.snapshot = null;

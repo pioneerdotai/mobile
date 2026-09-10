@@ -12,12 +12,6 @@ export type AccessChangeKind =
   | 'thread_visibility'
   | 'thread_participant_added'
   | 'thread_participant_removed';
-export type AuthSessionId = string;
-export type ClientKind = 'desktop' | 'mobile' | 'other';
-export type DeviceId = string;
-export type DeviceStatus = 'pending' | 'active' | 'revoked';
-export type AuthSessionStatus = 'pending' | 'active' | 'revoked' | 'expired';
-export type TokenFamilyId = string;
 export type PrincipalId = string;
 export type PermissionBehavior = 'allow' | 'ask' | 'deny';
 export type TurnPermissionMode = 'full_access' | 'auto_accept_edits' | 'supervised';
@@ -27,9 +21,15 @@ export type TurnPermissionMode = 'full_access' | 'auto_accept_edits' | 'supervis
  * Internal task/system threads deliberately have no public selectable value.
  */
 export type ThreadVisibility = 'private' | 'workspace';
+export type ClientKind = 'desktop' | 'mobile' | 'other';
+export type DeviceId = string;
+export type DeviceStatus = 'pending' | 'active' | 'revoked';
 export type GatewayId = string;
 export type PrincipalKind = 'superuser' | 'user';
 export type RoleKey = string;
+export type AuthSessionId = string;
+export type AuthSessionStatus = 'pending' | 'active' | 'revoked' | 'expired';
+export type TokenFamilyId = string;
 /**
  * Exact invalidation scope without policy contents or protected metadata.
  */
@@ -97,7 +97,6 @@ export type PolicyGeneration = number;
 
 export interface IdentityAuthorizationPublication {
   access_change?: AccessChangedNotification | null;
-  auth_sessions: AuthSessionsStore;
   authorization_change_sequence: number;
   capabilities: AuthorizationProjectionStore;
   connection_generation: number;
@@ -127,37 +126,6 @@ export interface AccessChangedNotification {
    */
   thread_id?: string | null;
   workspace_id: string;
-  [k: string]: unknown;
-}
-export interface AuthSessionsStore {
-  error?: string | null;
-  loading: boolean;
-  revoking?: AuthSessionId | null;
-  sessions: AuthSessionListItem[];
-  [k: string]: unknown;
-}
-export interface AuthSessionListItem {
-  current: boolean;
-  device: AuthDeviceSnapshot;
-  last_seen_at_unix: number;
-  session: AuthSessionSnapshot;
-  [k: string]: unknown;
-}
-export interface AuthDeviceSnapshot {
-  client_kind: ClientKind;
-  display_name: string;
-  id: DeviceId;
-  installation_id: string;
-  status: DeviceStatus;
-  [k: string]: unknown;
-}
-export interface AuthSessionSnapshot {
-  device_id: DeviceId;
-  id: AuthSessionId;
-  refresh_expires_at_unix: number;
-  refresh_generation: number;
-  status: AuthSessionStatus;
-  token_family_id: TokenFamilyId;
   [k: string]: unknown;
 }
 /**
@@ -405,6 +373,14 @@ export interface AuthMeResponse {
   session: AuthSessionSnapshot;
   [k: string]: unknown;
 }
+export interface AuthDeviceSnapshot {
+  client_kind: ClientKind;
+  display_name: string;
+  id: DeviceId;
+  installation_id: string;
+  status: DeviceStatus;
+  [k: string]: unknown;
+}
 export interface AuthGatewaySnapshot {
   id: GatewayId;
   [k: string]: unknown;
@@ -415,6 +391,15 @@ export interface AuthPrincipalSnapshot {
   id: PrincipalId;
   kind: PrincipalKind;
   nickname: string;
+  [k: string]: unknown;
+}
+export interface AuthSessionSnapshot {
+  device_id: DeviceId;
+  id: AuthSessionId;
+  refresh_expires_at_unix: number;
+  refresh_generation: number;
+  status: AuthSessionStatus;
+  token_family_id: TokenFamilyId;
   [k: string]: unknown;
 }
 export interface AuthorizationProjectionChangedNotification {

@@ -60,8 +60,6 @@ const localWorkspaceError = (
 };
 
 export const useWorkspace = () => {
-    const setGatewayRegistry = useGatewayStore((state) => state.setRegistry);
-
     const {
         workspaces,
         activeWorkspaceId,
@@ -151,7 +149,6 @@ export const useWorkspace = () => {
                 const selected = result.reduction.selected;
 
                 setBootstrappedConnectionId(connectionId);
-                setGatewayRegistry(result.registry);
                 setError(null);
                 mobileStartup.succeed('workspace.load');
                 loadCliRuntimeSummariesInBackground(selected.workspace_id);
@@ -165,17 +162,16 @@ export const useWorkspace = () => {
                 throw caught;
             }
         },
-        [bootstrapResultIsCurrent, setBootstrappedConnectionId, setError, setGatewayRegistry],
+        [bootstrapResultIsCurrent, setBootstrappedConnectionId, setError],
     );
 
     const applyWorkspaceSwitchResult = useCallback(
         (switchResult: SwitchWorkspaceResult): void => {
-            const { registry, result } = switchResult;
+            const { result } = switchResult;
 
             switch (result.status) {
                 case 'switched': {
                     const selected = result.reduction.selected;
-                    setGatewayRegistry(registry);
                     setError(null);
                     loadCliRuntimeSummariesInBackground(selected.workspace_id);
                     return;
@@ -191,7 +187,7 @@ export const useWorkspace = () => {
                     throw new WorkspaceOperationError('unknownTarget');
             }
         },
-        [setError, setGatewayRegistry],
+        [setError],
     );
 
     const switchWorkspace = useCallback(

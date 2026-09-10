@@ -2,7 +2,7 @@ import { PioneerClientNativeError, pioneerClient, mobileClientBinding } from '@/
 import type { ClientGatewayWsTimings, GatewayEndpoint, SessionTerminalReason } from '@/client';
 import type { GatewaySessionPublication } from '@/client/generated/gateway_session_publication';
 import type { IdentityAuthorizationPublication } from '@/client/generated/identity_authorization_publication';
-import { loadGatewayRegistry } from './registry';
+import { useGatewayStore } from '@/stores/gateway';
 
 export const MOBILE_ACCESS_REFRESH_LEEWAY_SECONDS = 60;
 
@@ -104,7 +104,7 @@ const ensureSession = async (
     publishDiagnostic(endpoint.id, 'authorization.registry.load', 'started');
     let installationId: string;
     try {
-        installationId = loadGatewayRegistry().installation_id?.trim() ?? '';
+        installationId = useGatewayStore.getState().registry.installation_id?.trim() ?? '';
         if (!installationId) {
             throw new Error('Gateway installation identity is missing');
         }

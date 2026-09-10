@@ -25,13 +25,7 @@ import { Pressable } from '@/components/primitives/pressable';
 import { ScrollView } from '@/components/primitives/scrollview';
 import { Text } from '@/components/primitives/text';
 import { VStack } from '@/components/primitives/vstack';
-import {
-    cancelMobileDeviceActivation,
-    createMobileDeviceActivationPresentation,
-    listMobileGatewaySessions,
-    logoutMobileGatewaySession,
-    revokeMobileGatewaySession,
-} from '@/services/gateway/device-activation';
+import { dispatchSettings, useAuthSessions, useDeviceActivation } from '@/client/settings';
 import { useGatewayStore } from '@/stores/gateway';
 
 const DevicesSettingsScreen = () => {
@@ -47,112 +41,63 @@ const DevicesSettingsScreen = () => {
             ) ?? null,
         [registry],
     );
-    const [sessions, setSessions] = useState<AuthSessionListItem[]>([]);
-    const [activation, setDeviceActivation] =
-        useState<ClientDeviceActivationPresentationResult | null>(null);
-    const activationRef = useRef<ClientDeviceActivationPresentationResult | null>(null);
-    const activationRequestRef = useRef(0);
-    const activationBusyRef = useRef(false);
-    const [pendingSessionId, setPendingSessionId] = useState<string | null>(null);
-    const [activationBusy, setActivationBusy] = useState(false);
-    const [sessionError, setSessionError] = useState<string | null>(null);
-    const [activationError, setActivationError] = useState<string | null>(null);
-    const [selectedSession, setSelectedSession] = useState<AuthSessionListItem | null>(null);
-
-    const replaceDeviceActivation = useCallback(
-        (next: ClientDeviceActivationPresentationResult | null) => {
-            activationRef.current = next;
-            setDeviceActivation(next);
-        },
-        [],
-    );
-
-    const cancelCurrentActivation = useCallback(() => {
-        activationRequestRef.current += 1;
-        const current = activationRef.current;
-        replaceDeviceActivation(null);
-        if (current) {
-            void cancelMobileDeviceActivation(current.session_id).catch(() => {});
-        }
-    }, [replaceDeviceActivation]);
-
-    const load = useCallback(async () => {
-        try {
-            const response = await listMobileGatewaySessions();
-            setSessions(response.sessions);
-            setSessionError(null);
-        } catch {
-            setSessionError(t('devices.loadFailed', { ns: 'gateway' }));
-        }
-    }, [t]);
+    const sessionState = useAuthSessions();
+    const activationState = useDeviceActivation();
+    const sessions = useMemo(() => sessionState?.sessions ?? [], [sessionState?.sessions]);
+    const pendingSessionId = sessionState?.revoking ?? null;
+    const sessionError = sessionState?.error ? t('devices.loadFailed', { ns: 'gateway' }) : null;
+    // The secret DTO is a native presentation resource; its generation and workflow live in Client.
+    const [nativePresentation, setNativePresentation] = useState<{
+        generation: number;
+        value: ClientDeviceActivationPresentationResult | null;
+        error: boolean;
+    } | null>(null);
+    const scopedPresentation =
+        activationState?.ready && nativePresentation?.generation === activationState.generation
+            ? nativePresentation
+            : null;
+    const activation = scopedPresentation?.value ?? null;
+    const presentationError = scopedPresentation?.error ?? false;
+    const [presentationRetry, setPresentationRetry] = useState(0);
+    const activationBusy = activationState?.loading ?? false;
+    const activationError =
+        activationState?.error || presentationError
+            ? t('devices.activationFailed', { ns: 'gateway' })
+            : null;
+    const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
+    const selectedSession = sessions.find((item) => item.session.id === selectedSessionId) ?? null;
+    const setSelectedSession = (item: AuthSessionListItem | null) =>
+        setSelectedSessionId(item?.session.id ?? null);
 
     useEffect(() => {
-        let cancelled = false;
-        void listMobileGatewaySessions()
-            .then((response) => {
-                if (!cancelled) {
-                    setSessions(response.sessions);
-                    setSessionError(null);
-                }
-            })
-            .catch(() => {
-                if (!cancelled) {
-                    setSessionError(t('devices.loadFailed', { ns: 'gateway' }));
-                }
-            });
+        if (!activationState?.ready) return;
+        const generation = activationState.generation;
+        let active = true;
+        void pioneerClient
+            .gatewayDeviceActivationPresentation({ generation: activationState.generation })
+            .then(
+                (presentation) => {
+                    if (active)
+                        setNativePresentation({ generation, value: presentation, error: false });
+                },
+                () => {
+                    if (active) setNativePresentation({ generation, value: null, error: true });
+                },
+            );
         return () => {
-            cancelled = true;
-            activationRequestRef.current += 1;
-            const current = activationRef.current;
-            activationRef.current = null;
-            if (current) {
-                void cancelMobileDeviceActivation(current.session_id).catch(() => {});
-            }
+            active = false;
         };
-    }, [t]);
+    }, [activationState?.generation, activationState?.ready, presentationRetry]);
 
-    const createDeviceActivation = useCallback(async () => {
-        if (!activeEndpoint || activationBusyRef.current) {
-            return;
-        }
-        const request = activationRequestRef.current + 1;
-        activationRequestRef.current = request;
-        activationBusyRef.current = true;
-        setActivationBusy(true);
-        setActivationError(null);
-        const previous = activationRef.current;
-        try {
-            if (previous) {
-                await cancelMobileDeviceActivation(previous.session_id);
-            }
-            if (activationRequestRef.current !== request) {
-                return;
-            }
-            const next = await createMobileDeviceActivationPresentation(activeEndpoint);
-            if (activationRequestRef.current !== request) {
-                await cancelMobileDeviceActivation(next.session_id).catch(() => {});
-                return;
-            }
-            replaceDeviceActivation(next);
-        } catch {
-            if (activationRequestRef.current === request) {
-                replaceDeviceActivation(null);
-                setActivationError(t('devices.activationFailed', { ns: 'gateway' }));
-            }
-        } finally {
-            if (activationRequestRef.current === request) {
-                activationBusyRef.current = false;
-                setActivationBusy(false);
-            }
-        }
-    }, [activeEndpoint, replaceDeviceActivation, t]);
-
+    const createDeviceActivation = useCallback(() => {
+        setNativePresentation(null);
+        if (activationState?.ready) setPresentationRetry((revision) => revision + 1);
+        else dispatchSettings({ kind: 'create_device_activation' });
+    }, [activationState?.ready]);
     const openDeviceActivation = useCallback(() => {
-        if (!activeEndpoint || activationBusyRef.current) {
-            return;
-        }
+        if (!activeEndpoint) return;
         activationSheetRef.current?.present();
-        void createDeviceActivation();
+        createDeviceActivation();
     }, [activeEndpoint, createDeviceActivation]);
 
     useLayoutEffect(() => {
@@ -182,23 +127,18 @@ const DevicesSettingsScreen = () => {
                         text: t('devices.revokeAction', { ns: 'gateway' }),
                         style: 'destructive',
                         onPress: () => {
-                            setPendingSessionId(item.session.id);
-                            void revokeMobileGatewaySession(
-                                activeEndpoint.id,
-                                item.session.id,
-                                false,
-                            )
-                                .then(load)
-                                .catch(() =>
-                                    setSessionError(t('devices.revokeFailed', { ns: 'gateway' })),
-                                )
-                                .finally(() => setPendingSessionId(null));
+                            dispatchSettings({
+                                kind: 'revoke_session',
+                                session_id: item.session.id,
+                                expected_status: item.session.status,
+                                expected_owner: sessionState?.owner_generation ?? 0,
+                            });
                         },
                     },
                 ],
             );
         },
-        [activeEndpoint, load, t],
+        [activeEndpoint, sessionState?.owner_generation, t],
     );
 
     const logout = useCallback(() => {
@@ -217,28 +157,30 @@ const DevicesSettingsScreen = () => {
                     onPress: () => {
                         const current = sessions.find((item) => item.current);
                         if (!current) return;
-                        setPendingSessionId(current.session.id);
-                        void logoutMobileGatewaySession(activeEndpoint)
-                            .catch(() =>
-                                setSessionError(t('devices.logoutFailed', { ns: 'gateway' })),
-                            )
-                            .finally(() => setPendingSessionId(null));
+                        dispatchSettings({
+                            kind: 'revoke_session',
+                            session_id: current.session.id,
+                            expected_status: current.session.status,
+                            expected_owner: sessionState?.owner_generation ?? 0,
+                        });
                     },
                 },
             ],
         );
-    }, [activeEndpoint, sessions, t]);
+    }, [activeEndpoint, sessions, sessionState?.owner_generation, t]);
 
     const closeActivationSheet = useCallback(() => {
         activationSheetRef.current?.close();
     }, []);
 
     const dismissActivationSheet = useCallback(() => {
-        cancelCurrentActivation();
-        setActivationError(null);
-        activationBusyRef.current = false;
-        setActivationBusy(false);
-    }, [cancelCurrentActivation]);
+        if (activationState)
+            dispatchSettings({
+                kind: 'close_device_activation',
+                generation: activationState.generation,
+            });
+        setNativePresentation(null);
+    }, [activationState]);
 
     return (
         <>

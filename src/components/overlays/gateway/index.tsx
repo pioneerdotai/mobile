@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { Alert, Pressable } from 'react-native';
 import { BottomSheetModal, BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { useTranslation } from 'react-i18next';
@@ -16,7 +16,10 @@ import { stableOutlineWidth } from '@/helpers/styles';
 import { CreateButton } from '@/components/buttons/create';
 import { HStack } from '@/components/primitives/hstack';
 import { useEditor } from '@/hooks/use-editor';
-import { GatewayOperationError } from '@/services/gateway/registry';
+import { dispatchOnboarding, useGatewayDestinations } from '@/client/onboarding';
+import { mobileClientBinding } from '@/client/mobile-client-binding';
+import type { GatewayDestinationsPublication } from '@/client/generated/gateway_destinations_publication';
+import type { OnboardingIntent } from '@/client/generated/client_intent';
 import type { GatewayOperationErrorCode } from '@/services/gateway/registry';
 import { Box } from '@/components/primitives/box';
 
@@ -34,14 +37,49 @@ const GatewaySwitcherSheet = () => {
     const { t } = useTranslation(['gateway', 'common']);
     const { theme, rt } = useUnistyles();
     const { navigate } = useEditor();
-    const { registry, busy, error: storeError, activateRemote, deleteRemote } = useGateway();
-    const [actionError, setActionError] = useState<string | null>(null);
+    const { registry, busy, error: storeError } = useGateway();
+    const destinations = useGatewayDestinations();
+    const action = useRef<{ generation: number; endpointId: string; close: boolean } | null>(null);
 
     const { showGatewaySwitcher, setGatewaySwitcherOpen } = useGatewayStore(
         useShallow((state) => ({
             showGatewaySwitcher: state.showGatewaySwitcher,
             setGatewaySwitcherOpen: state.setGatewaySwitcherOpen,
         })),
+    );
+
+    const mounted = useRef(false);
+    useEffect(() => {
+        mounted.current = true;
+        return () => {
+            mounted.current = false;
+            action.current = null;
+        };
+    }, []);
+    const trackAction = useCallback(
+        (intent: OnboardingIntent, endpointId: string, close: boolean) => {
+            if (!mounted.current) return;
+            const store = mobileClientBinding.scope({ kind: 'gateway_destinations' });
+            const before = store.getSnapshot()?.payload as GatewayDestinationsPublication | null;
+            const transition = dispatchOnboarding(intent);
+            const after = store.getSnapshot()?.payload as GatewayDestinationsPublication | null;
+            if (
+                transition.outcome !== 'changed' ||
+                !after ||
+                after.action_generation <= (before?.action_generation ?? 0) ||
+                (after.pending_endpoint !== endpointId && after.outcome?.endpoint_id !== endpointId)
+            )
+                return;
+            action.current = { generation: after.action_generation, endpointId, close };
+            if (
+                after.outcome?.generation === after.action_generation &&
+                after.outcome.endpoint_id === endpointId
+            ) {
+                if (after.outcome.succeeded && close) setGatewaySwitcherOpen(false);
+                action.current = null;
+            }
+        },
+        [setGatewaySwitcherOpen],
     );
 
     const remotes = registry.remotes ?? [];
@@ -69,16 +107,18 @@ const GatewaySwitcherSheet = () => {
         [setGatewaySwitcherOpen, showGatewaySwitcher],
     );
 
-    const gatewayErrorMessage = useCallback(
-        (error: unknown) => {
-            if (error instanceof GatewayOperationError) {
-                return t(gatewayErrorTranslationKeys[error.code], { ns: 'gateway' });
-            }
-
-            return t('operationFailed', { ns: 'gateway' });
-        },
-        [t],
-    );
+    useEffect(() => {
+        const outcome = destinations?.outcome;
+        if (
+            !action.current ||
+            !outcome ||
+            outcome.generation !== action.current.generation ||
+            outcome.endpoint_id !== action.current.endpointId
+        )
+            return;
+        if (outcome.succeeded && action.current.close) setGatewaySwitcherOpen(false);
+        action.current = null;
+    }, [destinations?.outcome, setGatewaySwitcherOpen]);
 
     const handleGatewayCreate = useCallback(() => {
         setGatewaySwitcherOpen(false);
@@ -94,17 +134,11 @@ const GatewaySwitcherSheet = () => {
     );
 
     const handleGatewayActivate = useCallback(
-        async (gatewayId: string) => {
-            setActionError(null);
-
-            try {
-                await activateRemote(gatewayId);
-                setGatewaySwitcherOpen(false);
-            } catch (error) {
-                setActionError(gatewayErrorMessage(error));
-            }
+        (gatewayId: string) => {
+            if (!destinations || busy) return;
+            trackAction({ kind: 'select_gateway', endpoint_id: gatewayId }, gatewayId, true);
         },
-        [activateRemote, gatewayErrorMessage, setGatewaySwitcherOpen],
+        [busy, destinations, trackAction],
     );
 
     const handleGatewayDelete = useCallback(
@@ -122,26 +156,26 @@ const GatewaySwitcherSheet = () => {
                     {
                         text: t('remove', { ns: 'common' }),
                         style: 'destructive',
-                        onPress: async () => {
-                            setActionError(null);
-
-                            try {
-                                await deleteRemote(gatewayId);
-                                if (active || remotes.length <= 1) {
-                                    setGatewaySwitcherOpen(false);
-                                }
-                            } catch (error) {
-                                setActionError(gatewayErrorMessage(error));
-                            }
+                        onPress: () => {
+                            if (!destinations) return;
+                            trackAction(
+                                {
+                                    kind: 'delete_gateway',
+                                    endpoint_id: gatewayId,
+                                    expected_registry_revision: destinations.registry_revision,
+                                },
+                                gatewayId,
+                                active || remotes.length <= 1,
+                            );
                         },
                     },
                 ],
             );
         },
-        [deleteRemote, gatewayErrorMessage, remotes.length, setGatewaySwitcherOpen, t],
+        [destinations, remotes.length, t, trackAction],
     );
 
-    const errorMessage = actionError ?? storeErrorMessage;
+    const errorMessage = storeErrorMessage;
     const empty = remotes.length === 0;
 
     return (
