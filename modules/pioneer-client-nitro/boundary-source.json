@@ -8,8 +8,8 @@
     "pioneer-protocol",
     "pioneer-skills"
   ],
-  "rust_source_sha256": "884fb4f6d7d5d94e3b4fa51ac37865b7c63d8a295e853c76013b5fc3116f3939",
-  "mobile_boundary_sha256": "79d212d23a30f2493b3df7aa7978c6a3818709e4dac7ad8a175253a69cc75501",
+  "rust_source_sha256": "1b3280d14f7e3c9f06608ec4c215987ecb171e9308769bdd5999a70c28655c7b",
+  "mobile_boundary_sha256": "e13bf183049929184a1f58ca1757ebeb8e52d4f44e09729edd1df4e86048d517",
   "platforms": {
     "ios": [
       "PioneerClientFfi.xcframework/Info.plist",
