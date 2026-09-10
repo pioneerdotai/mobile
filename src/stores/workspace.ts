@@ -28,6 +28,8 @@ type WorkspacePresentationState = Omit<
     | 'error'
     | 'bootstrappedConnectionId'
 >;
+const emptyWorkspaces: Workspace[] = [];
+
 const useWorkspacePresentationStore = create<WorkspacePresentationState>((set) => ({
     showWorkspaceSwitcher: false,
 
@@ -53,22 +55,22 @@ export const useWorkspaceStore = Object.assign(
     <T>(selector: (state: WorkspaceStoreState) => T): T => {
         const navigation = useClientNavigation();
         const catalog = useWorkspaceCatalog();
-        return useWorkspacePresentationStore((state) =>
-            selector({
-                ...state,
-                workspaces: catalog?.workspaces ?? [],
-                bootstrappedConnectionId: catalog?.bootstrapped_connection_id ?? null,
-                error: catalogError(catalog),
-                loading: (catalog?.loading || catalog?.action_pending) ?? false,
-                activeWorkspaceId: navigation?.workspace_id ?? null,
-                preferredWorkspaceId: navigation?.workspace_id ?? null,
-            }),
-        );
+        // Subscribe to stable store snapshots; compose the selected view during render.
+        const presentation = useWorkspacePresentationStore();
+        return selector({
+            ...presentation,
+            workspaces: catalog?.workspaces ?? emptyWorkspaces,
+            bootstrappedConnectionId: catalog?.bootstrapped_connection_id ?? null,
+            error: catalogError(catalog),
+            loading: (catalog?.loading || catalog?.action_pending) ?? false,
+            activeWorkspaceId: navigation?.workspace_id ?? null,
+            preferredWorkspaceId: navigation?.workspace_id ?? null,
+        });
     },
     {
         getState: (): WorkspaceStoreState => ({
             ...useWorkspacePresentationStore.getState(),
-            workspaces: catalogSnapshot()?.workspaces ?? [],
+            workspaces: catalogSnapshot()?.workspaces ?? emptyWorkspaces,
             bootstrappedConnectionId: catalogSnapshot()?.bootstrapped_connection_id ?? null,
             error: catalogError(catalogSnapshot()),
             loading: (catalogSnapshot()?.loading || catalogSnapshot()?.action_pending) ?? false,

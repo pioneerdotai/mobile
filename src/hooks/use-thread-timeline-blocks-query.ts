@@ -11,7 +11,8 @@ export const useThreadTimelineBlocksQuery = ({
     threadId: string | null;
     enabled: boolean;
 }) => {
-    const { snapshot } = useThreadPresentation(threadId, enabled);
+    const { snapshot } = useThreadPresentation(threadId);
+    const initialRequest = useRef<string | null>(null);
     const pending = useRef(new Set<() => void>());
     const refetch = useCallback(async () => {
         if (!threadId || !enabled) return;
@@ -50,12 +51,17 @@ export const useThreadTimelineBlocksQuery = ({
         });
     }, [threadId, enabled]);
     useEffect(() => {
-        void refetch();
+        if (enabled && threadId && initialRequest.current !== threadId) {
+            initialRequest.current = threadId;
+            if (!snapshot?.has_loaded_page) void refetch();
+        }
+    }, [enabled, threadId, snapshot?.has_loaded_page, refetch]);
+    useEffect(() => {
         const waits = pending.current;
         return () => {
             for (const finish of [...waits]) finish();
         };
-    }, [refetch]);
+    }, [threadId]);
     const status = snapshot?.status;
     const error =
         status && typeof status === 'object' && 'Failed' in status

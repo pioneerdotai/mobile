@@ -9,14 +9,16 @@ const localizedRows = new WeakMap<TimelineRowSnapshot, Map<string, TimelineRow>>
 const emptyRows: TimelineRow[] = [];
 const emptyStore = { subscribe: (_listener: () => void) => () => {}, getSnapshot: () => null };
 
-export const useThreadPresentation = (threadId: string | null | undefined, active = true) => {
+// A mounted route retains its publication across overlays and child routes.
+// Viewport work is controlled separately by useTimelineDemand.
+export const useThreadPresentation = (threadId: string | null | undefined) => {
     const { i18n } = useTranslation('threads');
     const store = useMemo(
         () =>
-            threadId && active
+            threadId
                 ? mobileClientBinding.scope({ kind: 'timeline', thread_id: threadId })
                 : emptyStore,
-        [threadId, active],
+        [threadId],
     );
     const publication = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot);
     const snapshot = publication?.payload as TimelineSnapshot | null | undefined;

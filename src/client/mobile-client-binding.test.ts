@@ -1121,3 +1121,75 @@ test('failed demand release clears protected values and failed resnapshot stays 
     binding.close();
     retry();
 });
+
+test('a delayed filtered resnapshot does not erase a workspace observed after native capture', async () => {
+    const catalogScope: ClientScope = { kind: 'workspace_tree', workspace_id: null };
+    const directoryScope: ClientScope = { kind: 'workspace_tree', workspace_id: 'workspace' };
+    const navigationScope: ClientScope = { kind: 'navigation' };
+    const current = new Map<string, ClientScopedSnapshotDto>();
+    current.set(JSON.stringify(settingsScope), snapshot(1, [], settingsScope));
+    let deliver!: (
+        batch: import('./generated/client_process_change_batch_dto').ClientProcessChangeBatchDto,
+    ) => void;
+    const fixture = bridgeFixture(null);
+    const binding = new MobileClientBinding({
+        ...fixture.bridge,
+        dispatch: () => ({ schema_version: 1, sequence: 0, outcome: 'changed', effects: [] }),
+        snapshot: (scope) => current.get(JSON.stringify(scope)) ?? null,
+        resnapshot: (scope) => current.get(JSON.stringify(scope)) ?? null,
+        waitForPublications: () =>
+            new Promise((resolve) => {
+                deliver = resolve;
+            }),
+    });
+    const release = binding.scope(settingsScope).subscribe(() => {});
+    // Native has already captured/filtered sequence 10 for the only observed
+    // scope, but its Promise has not reached JS yet. New screens read older,
+    // still-current workspace publications while that response is in flight.
+    const captured = {
+        schema_version: 1,
+        sequence: 10,
+        closed: false,
+        effects: [],
+        resnapshot: true,
+        changes: [
+            { sequence: 10, predecessor: null, snapshots: [snapshot(10, [], settingsScope)] },
+        ],
+    };
+    const scopes = [catalogScope, navigationScope, directoryScope];
+    const payloads = [
+        { workspaces: [{ id: 'workspace' }], bootstrapped_connection_id: 1 },
+        { workspace_id: 'workspace' },
+        { snapshot: { workspace_id: 'workspace', threads_by_id: { thread: { id: 'thread' } } } },
+    ];
+    scopes.forEach((scope, i) =>
+        current.set(JSON.stringify(scope), {
+            ...snapshot(i + 2, [], scope),
+            payload: payloads[i],
+        }),
+    );
+    const stores = scopes.map((scope) => binding.scope(scope));
+    const releases = stores.map((store) => store.subscribe(() => {}));
+    const before = stores.map((store) => store.getSnapshot());
+    deliver(captured);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    try {
+        stores.forEach((store, i) => expect(store.getSnapshot()).toBe(before[i]));
+        // An actual native removal must still clear the selected workspace.
+        current.delete(JSON.stringify(directoryScope));
+        deliver({
+            ...captured,
+            sequence: 11,
+            changes: [
+                { sequence: 11, predecessor: 10, snapshots: [snapshot(11, [], settingsScope)] },
+            ],
+        });
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        expect(stores[2].getSnapshot()).toBeNull();
+        expect(stores[0].getSnapshot()).toBe(before[0]);
+    } finally {
+        releases.forEach((dispose) => dispose());
+        release();
+        binding.close();
+    }
+});

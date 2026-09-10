@@ -420,11 +420,7 @@ const ThreadScreen = ({
             focused && connected && !isLiveDraftThread && Boolean(visibleSnapshot?.domain_revision),
     });
     const { refetch: refetchThreadTimelineBlocks } = threadTimelineBlocksQuery;
-    const threadTimelineBlocksQueryRef = useRef(threadTimelineBlocksQuery);
-    useEffect(() => {
-        threadTimelineBlocksQueryRef.current = threadTimelineBlocksQuery;
-    }, [threadTimelineBlocksQuery]);
-    const { rows: renderedTimelineRowsForVoice } = useThreadPresentation(visibleThreadId, focused);
+    const { rows: renderedTimelineRowsForVoice } = useThreadPresentation(visibleThreadId);
     const hasNativeTimelineRows = renderedTimelineRowsForVoice.length > 0;
     const voiceOperation =
         composerPublication?.operation?.kind === 'voice' ? composerPublication.operation : null;
@@ -586,14 +582,11 @@ const ThreadScreen = ({
     useFocusEffect(
         useCallback(() => {
             setFocused(true);
-            if (!isLiveDraftThread && threadTimelineBlocksQueryRef.current.hasLoadedPage) {
-                void threadTimelineBlocksQueryRef.current.refetch();
-            }
 
             return () => {
                 setFocused(false);
             };
-        }, [isLiveDraftThread]),
+        }, []),
     );
 
     useEffect(() => {

@@ -8,6 +8,7 @@ import {
     useTurnCancellationPublication,
 } from '@/client/turn-cancellation';
 import { mobileClientBinding } from '@/client/mobile-client-binding';
+import { dispatchNavigation, navigationSnapshot } from '@/client/navigation';
 import { beginComposerOperation } from '@/client/composer';
 import { withGatewayTransportLease } from '@/services/gateway/transport-coordinator';
 import {
@@ -105,6 +106,9 @@ export const useActiveThread = (
     );
 
     const activeThreadIdRef = useRef<string | null | undefined>(undefined);
+    const openedConnectionRef = useRef<{ threadId: string; connectionId: number | null } | null>(
+        null,
+    );
     const threadRef = useRef<Thread | null>(null);
     const cancellation = useTurnCancellationPublication(threadId);
     const turnCancelling = cancellation?.state.kind === 'pending';
@@ -161,11 +165,12 @@ export const useActiveThread = (
             return;
         }
 
-        if (!threadId || activeThreadIdRef.current === threadId) {
+        if (!threadId) {
             return;
         }
 
         activeThreadIdRef.current = threadId;
+        if (useActiveThreadStore.getState().activeComposerThreadId === threadId) return;
         activateComposerThread(threadId);
     }, [active, activateComposerThread, threadId]);
 
@@ -174,6 +179,25 @@ export const useActiveThread = (
             return;
         }
 
+        const opened = openedConnectionRef.current;
+        const retained = threadSnapshot(threadId);
+        if (
+            opened?.threadId === threadId &&
+            opened.connectionId === connectionId &&
+            retained?.thread
+        ) {
+            // Returning from a picker needs no open request. Returning from a
+            // child only restores selection of the still-mounted parent.
+            const navigation = navigationSnapshot();
+            if (navigation?.active_thread_id !== threadId)
+                dispatchNavigation({
+                    kind: 'select_thread',
+                    workspace_id: retained.workspace_id,
+                    thread_id: threadId,
+                });
+            return;
+        }
+        openedConnectionRef.current = { threadId, connectionId };
         void refresh();
     }, [active, connected, connectionId, refresh, threadId]);
 

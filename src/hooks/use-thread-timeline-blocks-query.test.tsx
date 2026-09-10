@@ -75,3 +75,29 @@ describe('timeline refresh observer', () => {
         expect(mockListeners.size).toBe(0);
     });
 });
+
+it('does not refresh a loaded history when picker or child navigation changes focus', async () => {
+    mockSnapshot = { status: 'Ready', has_loaded_page: true } as TimelineSnapshot;
+    mockDispatch.mockClear();
+    const Probe = ({ enabled }: { enabled: boolean }) => {
+        useThreadTimelineBlocksQuery({ threadId: 'parent', enabled });
+        return null;
+    };
+    let root!: ReactTestRenderer;
+    await act(async () => {
+        root = renderer.create(<Probe enabled />);
+    });
+    try {
+        for (let i = 0; i < 4; i++) {
+            await act(async () => {
+                root.update(<Probe enabled={false} />);
+            });
+            await act(async () => {
+                root.update(<Probe enabled />);
+            });
+        }
+        expect(mockDispatch).not.toHaveBeenCalled();
+    } finally {
+        await act(async () => root.unmount());
+    }
+});

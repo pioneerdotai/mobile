@@ -93,8 +93,8 @@ describe('published timeline selector', () => {
     it('preserves snapshot and row identities across replacements, shell renders and locale changes', async () => {
         let selected!: ReturnType<typeof useThreadPresentation>;
         const Probe = ({ active = true }: { active?: boolean }) => {
-            selected = useThreadPresentation('a', active);
-            return null;
+            selected = useThreadPresentation('a');
+            return <>{active ? 'active' : 'covered'}</>;
         };
         let tree!: ReactTestRenderer;
         await act(async () => {
@@ -131,11 +131,13 @@ describe('published timeline selector', () => {
             tree.update(<Probe />);
         });
         expect(selected.rows[1]).toBe(replacement.rows[1]);
+        const restoredRows = selected.rows;
         await act(async () => {
             tree.update(<Probe active={false} />);
         });
-        expect(selected.snapshot).toBeNull();
-        expect(mockListeners.size).toBe(0);
+        expect(selected.snapshot).toBe(replacement.snapshot);
+        expect(selected.rows).toBe(restoredRows);
+        expect(mockListeners.size).toBe(1);
         await act(async () => {
             tree.update(<Probe active />);
         });
@@ -145,5 +147,6 @@ describe('published timeline selector', () => {
         await act(async () => {
             tree.unmount();
         });
+        expect(mockListeners.size).toBe(0);
     });
 });

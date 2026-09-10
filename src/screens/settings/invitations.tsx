@@ -2,6 +2,7 @@ import type { AdministrationInvitationPresentation } from '@/services/administra
 import {
     copyAdministrationActivation,
     dismissAdministrationActivation,
+    useAdministrationOperation,
 } from '@/services/administration/operations';
 import { BottomSheetModal, BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { useNavigation } from 'expo-router';
@@ -54,6 +55,7 @@ const InvitationsSettingsScreen = () => {
     const rowScope = JSON.stringify([listInstance, endpointId]);
     const capabilities = useAdministrationCapabilities();
     const principal = useAdministrationPrincipal();
+    const operation = useAdministrationOperation();
     const invitationRoleOptions = useMemo(
         () => capabilities.capabilitySnapshot?.global.invitation_role_options ?? [],
         [capabilities.capabilitySnapshot],
@@ -100,14 +102,22 @@ const InvitationsSettingsScreen = () => {
     const presentationScope = JSON.stringify([
         endpointId,
         principal.data?.principal.id,
-        capabilities.capabilitySnapshot?.authorization_revision,
+        principal.data?.session.id,
     ]);
     const previousPresentationScope = useRef(presentationScope);
     const resetCreationScope = createMutation.reset;
     const resetRevoke = revokeMutation.reset;
     useEffect(() => {
-        if (previousPresentationScope.current === presentationScope) return;
+        const identityChanged = previousPresentationScope.current !== presentationScope;
         previousPresentationScope.current = presentationScope;
+        // Creation advances the policy revision. The Client keeps the matching
+        // invitation receipt across that update, as it does for desktop.
+        const presentationRetired =
+            presentation !== null &&
+            (operation?.generation !== presentation.operationGeneration ||
+                operation.action?.kind !== 'create_invitation' ||
+                !['loading', 'ready'].includes(operation.request.kind));
+        if (!identityChanged && !presentationRetired) return;
         resetCreationScope();
         resetRevoke();
         setSelectedInvitation(null);
@@ -115,7 +125,7 @@ const InvitationsSettingsScreen = () => {
         setSelectedWorkspaceIds(new Set());
         setSelectedRoleKey(null);
         creationSheetRef.current?.dismiss();
-    }, [presentationScope, resetCreationScope, resetRevoke]);
+    }, [presentationScope, operation, presentation, resetCreationScope, resetRevoke]);
 
     const {
         isError: createError,

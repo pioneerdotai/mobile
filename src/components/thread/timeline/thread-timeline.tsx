@@ -219,7 +219,6 @@ const ThreadTimelineContent = ({
 
     const { rows: publishedRows, snapshot: timelineSnapshot } = useThreadPresentation(
         conversation.thread_id,
-        presentationActive,
     );
     const publishTimelineDemand = useTimelineDemand(
         timelineSnapshot,

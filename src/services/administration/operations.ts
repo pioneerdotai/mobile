@@ -1,3 +1,4 @@
+import { useSyncExternalStore } from 'react';
 import * as Clipboard from 'expo-clipboard';
 import { mobileClientBinding } from '@/client/mobile-client-binding';
 import type { ClientIntent } from '@/client/generated/client_intent';
@@ -8,6 +9,13 @@ const scope = { kind: 'administration_operation' as const };
 const binding = () => mobileClientBinding.scope(scope);
 const snapshot = () =>
     binding().getSnapshot()?.payload as AdministrationOperationPublication | null;
+
+/** Observe the native receipt that owns a transient activation presentation. */
+export const useAdministrationOperation = (): AdministrationOperationPublication | null => {
+    const store = binding();
+    const publication = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot);
+    return (publication?.payload as AdministrationOperationPublication | null) ?? null;
+};
 
 export const prepareAdministrationCommand = (command: Command): number => {
     const before = snapshot()?.generation ?? 0;

@@ -17,6 +17,7 @@ import { useShallow } from 'zustand/react/shallow';
 import i18n from '@/locale/i18n';
 
 import { pioneerClient } from '@/client';
+import { hydrateOnboarding } from '@/client/onboarding';
 import type { GatewayConnectionState, GatewayEndpoint } from '@/client';
 import { useGateway } from '@/hooks/use-gateway';
 import { useGatewaySession } from '@/hooks/use-gateway-session';
@@ -61,7 +62,6 @@ const normalizeStartupError = (error: unknown): Error => {
 };
 
 const RootLayout = () => {
-    const { hydrate: hydrateGateway } = useGateway();
     const bootstrapStartedRef = useRef(false);
 
     const [startupReady, setStartupReady] = useState(false);
@@ -98,7 +98,7 @@ const RootLayout = () => {
 
             mobileStartup.begin('gateway_registry.hydrate');
             try {
-                await hydrateGateway();
+                await hydrateOnboarding();
                 mobileStartup.succeed('gateway_registry.hydrate');
             } catch (error) {
                 mobileStartup.fail('gateway_registry.hydrate');
@@ -113,7 +113,7 @@ const RootLayout = () => {
             .finally(() => {
                 setStartupReady(true);
             });
-    }, [hydrateGateway]);
+    }, []);
 
     useEffect(() => {
         if (fontsLoaded) {

@@ -441,17 +441,44 @@ export class MobileClientBinding {
                     change.snapshots.map((snapshot) => scopeKey(snapshot.scope)),
                 ),
             );
-            for (const state of this.#scopes.values()) {
-                if (
-                    state.needsResnapshot ||
-                    present.has(scopeKey(state.scope)) ||
-                    (state.lastAppliedSequence ?? 0) > batch.sequence
+            // Native filters the batch before its Promise reaches JS. A scope
+            // observed during that interval may be absent despite still having
+            // a current publication. Confirm omissions with Native before
+            // clearing them; install every replacement before notifying React.
+            const omitted = [...this.#scopes.values()]
+                .filter(
+                    (state) =>
+                        !state.needsResnapshot &&
+                        !present.has(scopeKey(state.scope)) &&
+                        (state.lastAppliedSequence ?? 0) <= batch.sequence,
                 )
-                    continue;
-                if (state.snapshot !== null) changed.add(state);
-                state.snapshot = null;
-                state.rows.clear();
-                state.lastAppliedSequence = batch.sequence;
+                .map((state) => {
+                    const snapshot = this.#bridge.resnapshot(
+                        state.scope,
+                        null,
+                        state.lastAppliedSequence,
+                    );
+                    if (snapshot) {
+                        assertSchemaVersion(snapshot);
+                        if (scopeKey(snapshot.scope) !== scopeKey(state.scope))
+                            throw new Error('Client resnapshot scope mismatch');
+                    }
+                    return { state, snapshot };
+                });
+            for (const { state, snapshot } of omitted) {
+                const before = state.snapshot;
+                if (snapshot) {
+                    this.#applySnapshot(state, snapshot, false);
+                    state.lastAppliedSequence = Math.max(
+                        state.lastAppliedSequence ?? 0,
+                        snapshot.sequence,
+                    );
+                } else {
+                    state.snapshot = null;
+                    state.rows.clear();
+                    state.lastAppliedSequence = batch.sequence;
+                }
+                if (state.snapshot !== before) changed.add(state);
             }
         }
         let predecessor = this.#processSequence;
