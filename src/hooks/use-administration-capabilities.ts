@@ -51,7 +51,6 @@ export const useAuthorizationCapabilitySnapshot = (threadId: string | null = nul
         connected,
         identity?.connection_generation,
         identity?.authorization_change_sequence,
-        identity?.capabilities?.accepted_revision,
         refetch,
     ]);
     return {

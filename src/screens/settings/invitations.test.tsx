@@ -182,6 +182,13 @@ it.each(
                 await act(async () => {
                     tree.update(<InvitationsSettingsScreen />);
                 });
+                const header = (
+                    mockSetOptions.mock.lastCall?.[0] as {
+                        headerRight: () => React.ReactElement<{ disabled: boolean }>;
+                    }
+                ).headerRight();
+                expect(header).not.toBeNull();
+                if (revision === undefined) expect(header.props.disabled).toBe(true);
             }
         };
         if (beforeResponse) await updatePolicy();

@@ -156,28 +156,40 @@ const InvitationsSettingsScreen = () => {
         creationSheetRef.current?.present();
     }, [createPending, invitationRoleOptions, resetCreate, workspaces]);
 
+    const canCreate =
+        capabilities.data === undefined
+            ? undefined
+            : capabilities.data.can_create_invitation === true &&
+              invitationRoleOptions.some((option) => option.is_default);
+    const [headerAccess, setHeaderAccess] = useState({ scope: presentationScope, visible: false });
+    if (
+        canCreate !== undefined &&
+        (headerAccess.scope !== presentationScope || headerAccess.visible !== canCreate)
+    ) {
+        setHeaderAccess({ scope: presentationScope, visible: canCreate });
+    }
+    const headerVisible =
+        canCreate ?? (headerAccess.scope === presentationScope && headerAccess.visible);
+    const openCreationRef = useRef(openCreation);
     useLayoutEffect(() => {
-        const canCreate =
-            capabilities.data?.can_create_invitation === true &&
-            invitationRoleOptions.some((option) => option.is_default);
+        openCreationRef.current = openCreation;
+    }, [openCreation]);
+    const openFromHeader = useCallback(() => openCreationRef.current(), []);
+    const headerDisabled = canCreate !== true || createPending;
+    useLayoutEffect(() => {
         navigation.setOptions({
-            headerRight: canCreate
+            headerRight: headerVisible
                 ? () => (
                       <CreateButton
                           variant="primary"
                           accessibilityLabel={t('invitations.create')}
-                          onPressHandler={openCreation}
+                          disabled={headerDisabled}
+                          onPressHandler={openFromHeader}
                       />
                   )
                 : () => null,
         });
-    }, [
-        capabilities.data?.can_create_invitation,
-        invitationRoleOptions,
-        navigation,
-        openCreation,
-        t,
-    ]);
+    }, [headerVisible, headerDisabled, navigation, openFromHeader, t]);
 
     const refreshInvitations = useCallback(async () => {
         if (manualRefreshing) return;

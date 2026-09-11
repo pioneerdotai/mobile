@@ -53,6 +53,25 @@ it('selects only the current Client capability revision and exposes its failure 
     });
     expect(value.data?.authorization_revision).toBe(9);
     expect(mockRefresh).toHaveBeenCalledWith({ workspace_id: 'workspace', thread_id: 'thread' });
+    const reads = mockRefresh.mock.calls.length;
+    await act(async () =>
+        publish({
+            ...publication,
+            capabilities: { accepted_revision: 10 },
+            thread_snapshots: { thread: { authorization_revision: 10 } },
+        }),
+    );
+    expect(value.data?.authorization_revision).toBe(10);
+    expect(mockRefresh).toHaveBeenCalledTimes(reads);
+    await act(async () =>
+        publish({
+            ...publication,
+            authorization_change_sequence: 1,
+            capabilities: { accepted_revision: 11 },
+        }),
+    );
+    expect(mockRefresh).toHaveBeenCalledTimes(reads + 1);
+
     act(() =>
         publish({
             ...publication,
