@@ -5,12 +5,14 @@ import { beforeEach, expect, it, jest } from '@jest/globals';
 const mockReact = React;
 const mockPresent = jest.fn();
 const mockDismiss = jest.fn();
+const mockSheetUnmount = jest.fn();
 const mockSetOptions = jest.fn();
 const mockDiscard = jest.fn();
 const mockCreate = jest.fn<() => Promise<unknown>>();
 const mockT = (key: string) => key;
 let mockRevision: number | undefined = 1;
 let mockEndpoint = 'gateway';
+let mockCapabilityError = false;
 let mockOperation: {
     generation: number;
     action: { kind: string };
@@ -20,6 +22,12 @@ const mockNode = (name: string) => (props: Record<string, unknown>) =>
     mockReact.createElement(name, props, props.children as React.ReactNode);
 const mockSheet = forwardRef((props: Record<string, unknown>, ref) => {
     useImperativeHandle(ref, () => ({ present: mockPresent, dismiss: mockDismiss }));
+    React.useEffect(
+        () => () => {
+            mockSheetUnmount();
+        },
+        [],
+    );
     return mockReact.createElement('Sheet', props, props.children as React.ReactNode);
 });
 mockSheet.displayName = 'Sheet';
@@ -74,7 +82,7 @@ jest.mock('@/hooks/use-administration-capabilities', () => ({
         isPending: false,
     }),
     useAdministrationCapabilities: () => ({
-        isPending: mockRevision === undefined,
+        isPending: mockRevision === undefined && !mockCapabilityError,
         data:
             mockRevision === undefined
                 ? undefined
@@ -117,6 +125,7 @@ const invitation = {
 beforeEach(() => {
     jest.clearAllMocks();
     mockRevision = 1;
+    mockCapabilityError = false;
     mockEndpoint = 'gateway';
     mockOperation = null;
 });
@@ -163,8 +172,13 @@ it.each(
                 .props.onPress();
         });
         const updatePolicy = async () => {
-            for (const revision of [undefined, 2]) {
+            for (const [revision, failed] of [
+                [undefined, false],
+                [undefined, true],
+                [2, false],
+            ] as const) {
                 mockRevision = revision;
+                mockCapabilityError = failed;
                 await act(async () => {
                     tree.update(<InvitationsSettingsScreen />);
                 });
@@ -175,7 +189,25 @@ it.each(
         await act(async () => {
             complete(invitation);
         });
+        const createButton = tree.root
+            .findAllByType('Button' as never)
+            .find((b) => b.props.title === 'invitations.create')!;
+        expect(createButton.props.loading).toBe(true);
+        expect(
+            tree.root.findByType('Workspaces' as never).props.selectedWorkspaceIds.has('ws'),
+        ).toBe(true);
+        await act(async () => {
+            tree.root
+                .findAll(
+                    (node) =>
+                        node.props.accessibilityElementsHidden === true &&
+                        typeof node.props.onLayout === 'function',
+                )[0]
+                .props.onLayout({ nativeEvent: { layout: { height: 500 } } });
+        });
+        expect(tree.root.findAllByType('Workspaces' as never)).toHaveLength(0);
         if (!beforeResponse) await updatePolicy();
+        expect(mockSheetUnmount).not.toHaveBeenCalled();
         expect(mockDismiss).not.toHaveBeenCalled();
         expect(mockDiscard).not.toHaveBeenCalled();
         expect(tree.root.findByType('Credential' as never).props.link.value).toBe(

@@ -73,9 +73,11 @@ export const useAdministrationPage = (page: Page, enabled: boolean) => {
     const key = JSON.stringify(page);
     const stablePage = useMemo(() => JSON.parse(key) as Page, [key]);
     const subscribe = useCallback(
-        (listener: () => void) =>
-            enabled ? subscribeAdministrationPage(stablePage, listener) : () => {},
-        [stablePage, enabled],
+        // Demand belongs to the mounted screen. Releasing it on capability
+        // refresh also cancels the native activation presentation. Client
+        // checks authorization before loading; enabled only gates rendering.
+        (listener: () => void) => subscribeAdministrationPage(stablePage, listener),
+        [stablePage],
     );
     const getSnapshot = useCallback(
         () => (enabled ? read(stablePage) : null),

@@ -1,6 +1,9 @@
+import React from 'react';
+import renderer, { act } from 'react-test-renderer';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { mobileClientBinding } from '@/client/mobile-client-binding';
 import {
+    useAdministrationPage,
     dispatchAdministrationPage,
     requestAdministrationPage,
     subscribeAdministrationPage,
@@ -96,5 +99,38 @@ describe('administration page publication adapter', () => {
         publish('ready');
         await expect(pending).resolves.toBeUndefined();
         expect(mobileClientBinding.dispatch).toHaveBeenCalledTimes(1);
+    });
+});
+
+it('retains page demand while capabilities revalidate, releasing only on unmount', async () => {
+    jest.clearAllMocks();
+    mockPublication = null;
+    mockListeners.clear();
+    const Screen = ({ enabled }: { enabled: boolean }) => {
+        useAdministrationPage({ kind: 'invitations' }, enabled);
+        return null;
+    };
+    let tree!: renderer.ReactTestRenderer;
+    await act(async () => {
+        tree = renderer.create(React.createElement(Screen, { enabled: true }));
+    });
+    for (const enabled of [false, true, false, true]) {
+        await act(async () => {
+            tree.update(React.createElement(Screen, { enabled }));
+        });
+    }
+    expect(jest.mocked(mobileClientBinding.dispatch).mock.calls.map(([r]) => r.intent)).toEqual([
+        { kind: 'administration_page', intent: { kind: 'observe', page: { kind: 'invitations' } } },
+    ]);
+    await act(async () => {
+        tree.unmount();
+    });
+    expect(mobileClientBinding.dispatch).toHaveBeenCalledTimes(2);
+    expect(mobileClientBinding.dispatch).toHaveBeenLastCalledWith({
+        schema_version: 1,
+        intent: {
+            kind: 'administration_page',
+            intent: { kind: 'release', page: { kind: 'invitations' } },
+        },
     });
 });
