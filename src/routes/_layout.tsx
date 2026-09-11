@@ -12,7 +12,6 @@ import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { Stack } from 'expo-router/js-stack';
 import { SystemBars } from 'react-native-edge-to-edge';
-import { useShallow } from 'zustand/react/shallow';
 
 import i18n from '@/locale/i18n';
 
@@ -39,10 +38,6 @@ import { TaskUserNotificationController } from '@/services/tasks/user-notificati
 import { mobileStartup } from '@/services/telemetry/mobile-startup';
 import { mobileStartupReadinessOutcome } from '@/services/telemetry/mobile-startup-readiness';
 import { useAuthorizationCapabilitySnapshot } from '@/hooks/use-administration-capabilities';
-import { useActiveThreadStore } from '@/stores/active-thread';
-import { useGatewayStore } from '@/stores/gateway';
-import { useThreadTreeStore } from '@/stores/thread-tree';
-import { useWorkspaceStore } from '@/stores/workspace';
 
 export const unstable_settings = {
     initialRouteName: '(tabs)',
@@ -197,7 +192,7 @@ const RootContent = () => {
             <AuthorizationProjectionController />
             <RootStack />
             <SemanticNavigationController />
-            <MobileStartupReadinessController />
+            <MobileStartupReadinessController hasActiveGateway={activeGateway !== null} />
             <TaskUserNotificationController />
             <TerminalGatewaySessionNavigation />
         </>
@@ -215,59 +210,12 @@ const AuthorizationProjectionController = () => {
     return null;
 };
 
-const MobileStartupReadinessController = () => {
-    const gateway = useGatewayStore(
-        useShallow((state) => ({
-            registry: state.registry,
-            bootstrapped: state.bootstrapped,
-            connectionId: state.connectionId,
-            connectionState: state.connectionState,
-            sessionError: state.sessionError,
-            sessionTerminalReason: state.sessionTerminalReason,
-        })),
-    );
-    const workspace = useWorkspaceStore(
-        useShallow((state) => ({
-            bootstrappedConnectionId: state.bootstrappedConnectionId,
-            activeWorkspaceId: state.activeWorkspaceId,
-            loading: state.loading,
-            error: state.error,
-        })),
-    );
-    const threadTree = useThreadTreeStore(
-        useShallow((state) => ({
-            snapshot: state.snapshot,
-            workspaceId: state.workspaceId,
-            loading: state.loading,
-            error: state.error,
-        })),
-    );
-    const composer = useActiveThreadStore(
-        useShallow((state) => ({
-            loading: state.defaultComposerSelectionLoading,
-        })),
-    );
-    // Mobile can establish sessions only to remote endpoints. A desktop-local
-    // registry entry must lead to setup UI instead of an endless startup wait.
-    const hasActiveGateway = (gateway.registry.remotes ?? []).some(
-        (remote) => remote.id === gateway.registry.active_gateway_id,
-    );
+// RootContent mounts this only after fonts, native initialization and the local
+// gateway registry are ready. Network state must never hold the switcher behind splash.
+const MobileStartupReadinessController = ({ hasActiveGateway }: { hasActiveGateway: boolean }) => {
     const outcome = mobileStartupReadinessOutcome({
-        registryBootstrapped: gateway.bootstrapped,
+        registryBootstrapped: true,
         hasActiveGateway,
-        connectionId: gateway.connectionId,
-        connectionState: gateway.connectionState,
-        sessionError: gateway.sessionError,
-        sessionTerminalReason: gateway.sessionTerminalReason,
-        workspaceBootstrappedConnectionId: workspace.bootstrappedConnectionId,
-        activeWorkspaceId: workspace.activeWorkspaceId,
-        workspaceLoading: workspace.loading,
-        workspaceError: workspace.error,
-        threadTreeWorkspaceId: threadTree.workspaceId,
-        threadTreeLoaded: threadTree.snapshot !== null,
-        threadTreeLoading: threadTree.loading,
-        threadTreeError: threadTree.error,
-        composerSelectionLoading: composer.loading,
     });
 
     useEffect(() => {
