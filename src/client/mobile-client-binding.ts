@@ -1,3 +1,4 @@
+import { observeTurnStartupReceived } from '@/services/telemetry/turn-startup';
 import type { ClientEffectPlan } from './generated/client_effect_plan';
 import type {
     ClientProcessChangeBatchDto,
@@ -633,6 +634,7 @@ export class MobileClientBinding {
 
     #deferredListeners: Set<Listener> | null = null;
     #notify(listeners: Iterable<Listener>): void {
+        observeTurnStartupReceived();
         for (const listener of listeners) {
             if (this.#deferredListeners) this.#deferredListeners.add(listener);
             else listener();

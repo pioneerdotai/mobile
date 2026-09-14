@@ -1,3 +1,4 @@
+import { beginTurnStartup } from '@/services/telemetry/turn-startup';
 import { useSyncExternalStore } from 'react';
 import type {
     ComposerIntent,
@@ -29,6 +30,7 @@ export const useComposerPublication = (threadId: string | null): ComposerPublica
 };
 
 export const dispatchComposer = (intent: ComposerIntent) => {
+    const startupStarted = performance.now();
     const result = mobileClientBinding.dispatch({
         schema_version: 1,
         intent: { kind: 'composer', intent },
@@ -46,6 +48,14 @@ export const dispatchComposer = (intent: ComposerIntent) => {
                 ? intent.identity.thread_id
                 : intent.thread_id;
         mobileClientBinding.drain({ kind: 'composer', thread_id: threadId });
+    }
+    if (result.outcome === 'changed') {
+        if (intent.kind === 'commit_voice_capture')
+            beginTurnStartup(intent.identity, startupStarted);
+        if (intent.kind === 'begin_operation' && intent.operation === 'send') {
+            const identity = composerSnapshot(intent.thread_id)?.operation?.identity;
+            if (identity) beginTurnStartup(identity, startupStarted);
+        }
     }
     return result;
 };

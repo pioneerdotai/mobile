@@ -1,3 +1,5 @@
+import { useEffect } from 'react';
+import { observeTurnStartupPresentation } from '@/services/telemetry/turn-startup';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { ChevronDown, ChevronUp, Lightbulb } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
@@ -24,6 +26,9 @@ export const ReasoningRow = ({ row, expanded, onToggle }: ReasoningRowProps) => 
     const { t } = useTranslation('threads');
 
     const hasText = row.text.trim().length > 0 || (row.markdown?.nodes?.length ?? 0) > 0;
+    useEffect(() => {
+        if (expanded && hasText) observeTurnStartupPresentation(row.turnId, false);
+    }, [expanded, hasText, row.turnId]);
     const iconSize = theme.space(4);
     const iconColor = theme.colors.typography;
 

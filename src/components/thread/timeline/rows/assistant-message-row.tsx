@@ -1,3 +1,5 @@
+import { useEffect } from 'react';
+import { observeTurnStartupPresentation } from '@/services/telemetry/turn-startup';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { ChevronDown, ChevronUp, MessageCircle } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
@@ -37,6 +39,9 @@ export const AssistantMessageRow = ({
     const { t } = useTranslation('threads');
 
     const hasText = row.text.trim().length > 0 || (row.markdown?.nodes?.length ?? 0) > 0;
+    useEffect(() => {
+        if (hasText) observeTurnStartupPresentation(row.turnId, true);
+    }, [hasText, row.turnId]);
     const iconSize = theme.space(4);
     const activityColor = theme.colors.textMuted;
     if (row.taskTimeline) {

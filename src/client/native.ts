@@ -1,3 +1,7 @@
+import {
+    configureTurnStartupRecorder,
+    type TurnStartupReport,
+} from '@/services/telemetry/turn-startup';
 import type { AdministrationActivationRequest } from './generated/administration_activation_request';
 import type {
     ComposerOperationIdentity,
@@ -556,6 +560,14 @@ export const pioneerClient = {
         );
     },
 
+    turnStartupObserve(input: TurnStartupReport): { recorded: boolean; turn_id?: string } {
+        return parsePioneerClientResponse(
+            getPioneerClientNitro().mobileStartupRecordJson(
+                JSON.stringify({ kind: 'turn_startup', ...input }),
+            ),
+        );
+    },
+
     mobileStartupRecord(input: MobileStartupRecordRequest): MobileStartupRecordResult {
         return parsePioneerClientResponse<MobileStartupRecordResult>(
             getPioneerClientNitro().mobileStartupRecordJson(JSON.stringify(input)),
@@ -918,3 +930,5 @@ export const pioneerClient = {
         );
     },
 };
+
+configureTurnStartupRecorder((input) => pioneerClient.turnStartupObserve(input));

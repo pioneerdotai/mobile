@@ -1,3 +1,4 @@
+import { turnStartupBackgrounded } from '@/services/telemetry/turn-startup';
 import * as Network from 'expo-network';
 import { useEffect } from 'react';
 import { AppState } from 'react-native';
@@ -34,6 +35,7 @@ export const useGatewaySession = (endpoint: GatewayEndpoint | null, sessionRevis
             });
         };
         const app = AppState.addEventListener('change', (state) => {
+            if (state === 'background') turnStartupBackgrounded();
             visibility = state;
             publish();
         });
