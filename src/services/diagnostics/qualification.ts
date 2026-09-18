@@ -200,10 +200,7 @@ export const stopQualificationDiagnosticCapture = (
     const records = Object.freeze(orderedRecords);
     const stoppedElapsedMs = performance.now() - state.startedAt;
     const stoppedElapsedMicros = Number.isFinite(stoppedElapsedMs)
-        ? Math.max(
-              state.lastElapsedMicros,
-              Math.max(0, Math.round(stoppedElapsedMs * 1_000)),
-          )
+        ? Math.max(state.lastElapsedMicros, Math.max(0, Math.round(stoppedElapsedMs * 1_000)))
         : state.lastElapsedMicros;
     return Object.freeze({
         schema_version: QUALIFICATION_DIAGNOSTIC_SCHEMA_VERSION,
@@ -230,11 +227,7 @@ const elapsedMicrosForRecord = (state: CaptureState): number | null => {
     }
     // `performance.now()` is specified as monotonic, but preserve the capture
     // contract even if a runner supplies a regressing clock implementation.
-    const elapsedMicros = Math.max(
-        state.lastElapsedMicros,
-        0,
-        Math.round(elapsedMs * 1_000),
-    );
+    const elapsedMicros = Math.max(state.lastElapsedMicros, 0, Math.round(elapsedMs * 1_000));
     state.lastElapsedMicros = elapsedMicros;
     if (elapsedMicros >= state.maxDurationMs * 1_000) {
         incrementDroppedRecords(state);

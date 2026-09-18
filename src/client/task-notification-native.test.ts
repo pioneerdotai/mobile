@@ -1,10 +1,10 @@
 import { expect, it, jest } from '@jest/globals';
-jest.mock('./task-inbox', () => ({ dispatchTaskNotification: jest.fn() }));
 import {
     TaskNotificationNativeBinding,
     type TaskNotificationNativePort,
 } from './task-notification-native';
 import type { TaskNotificationEffect } from './generated/task_notification_effect';
+jest.mock('./task-inbox', () => ({ dispatchTaskNotification: jest.fn() }));
 
 it('retains one OS resource per task revision and fences duplicate, replaced and closed callbacks', () => {
     const callbacks: ((result: 'activated' | 'dismissed') => void)[] = [];

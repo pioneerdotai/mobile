@@ -61,18 +61,10 @@ describe('qualification diagnostic capture', () => {
             startQualificationDiagnosticCapture(isolatedRunner, 'unknown' as never, 10, 1_000),
         ).toThrow('Qualification diagnostic scenario is not recognized');
 
-        const now = jest
-            .spyOn(performance, 'now')
-            .mockReturnValueOnce(100)
-            .mockReturnValue(100.1);
+        const now = jest.spyOn(performance, 'now').mockReturnValueOnce(100).mockReturnValue(100.1);
         startQualificationDiagnosticCapture(isolatedRunner, 'visible_stream', 2, 1);
         expect(isQualificationDiagnosticCaptureActive()).toBe(true);
-        recordMobileClientDelivery(
-            'foreign_binding' as never,
-            'thread',
-            'received',
-            'visible',
-        );
+        recordMobileClientDelivery('foreign_binding' as never, 'thread', 'received', 'visible');
         recordMobileClientDelivery(
             'mobile_binding',
             'foreign_scope' as never,
@@ -92,11 +84,7 @@ describe('qualification diagnostic capture', () => {
             'foreign_visibility' as never,
         );
         recordMobileClientBatchItems('foreign_binding' as never, 'other', 1);
-        recordMobileClientBatchItems(
-            'mobile_binding',
-            'foreign_scope' as never,
-            1,
-        );
+        recordMobileClientBatchItems('mobile_binding', 'foreign_scope' as never, 1);
         recordMobileClientDelivery('mobile_binding', 'thread', 'received', 'visible');
         recordMobileClientBatchItems('mobile_binding', 'other', Number.NaN);
         now.mockReturnValue(100.05);
@@ -119,9 +107,7 @@ describe('qualification diagnostic capture', () => {
         expect(
             snapshot.records.map(({ event }) => ('action' in event ? event.action : null)),
         ).toEqual(['delivered', 'applied']);
-        expect(snapshot.records.map(({ elapsed_micros }) => elapsed_micros)).toEqual([
-            100, 200,
-        ]);
+        expect(snapshot.records.map(({ elapsed_micros }) => elapsed_micros)).toEqual([100, 200]);
         expect(snapshot.dropped_records).toBe(9);
         expect(snapshot.stopped_after_micros).toBe(1_000);
         const serialized = JSON.stringify(snapshot);

@@ -2,9 +2,8 @@ import { useEffect, useSyncExternalStore } from 'react';
 import { mobileClientBinding } from './mobile-client-binding';
 import type { IdentityAuthorizationPublication } from './generated/identity_authorization_publication';
 import type { AvatarPublication } from './generated/avatar_publication';
-import { resolveMemberAvatar } from '@/services/members/resolve-avatar';
+import { resolveMemberAvatar, cachedAvatarPathToUri } from '@/services/members/resolve-avatar';
 import { resolveAgentAvatarRepresentation } from '@/services/members/resolve-agent-avatar';
-import { cachedAvatarPathToUri } from '@/services/members/resolve-avatar';
 
 /** Native decoding belongs to the mounted Image; Client owns authenticated paths. */
 export const useAuthenticatedAvatar = (

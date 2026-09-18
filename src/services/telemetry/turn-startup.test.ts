@@ -29,8 +29,8 @@ describe('turn startup presentation', () => {
         turn = 'child';
         clock.mockReturnValue(180);
         observeTurnStartupPresentation('child', true);
-        expect(reports.filter(r => r.duration_ms !== undefined)).toEqual([
-            expect.objectContaining({duration_ms: 90, text: true})
+        expect(reports.filter((r) => r.duration_ms !== undefined)).toEqual([
+            expect.objectContaining({ duration_ms: 90, text: true }),
         ]);
         clock.mockRestore();
     });
