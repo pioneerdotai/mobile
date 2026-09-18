@@ -502,6 +502,16 @@ export type SettingsIntent =
       [k: string]: unknown;
     }
   | {
+      kind: 'compaction_model';
+      selection: GatewayModelSelection;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'model_catalog_proxy';
+      proxy_url?: string | null;
+      [k: string]: unknown;
+    }
+  | {
       clear_key: boolean;
       enabled: boolean;
       key?: string | null;
@@ -583,6 +593,22 @@ export type SettingsIntent =
     };
 export type AuthSessionStatus = 'pending' | 'active' | 'revoked' | 'expired';
 export type AuthSessionId = string;
+/**
+ * Inherit is a real absence of an override. It never stores a resolved fallback.
+ * The tagged value also distinguishes an explicit reset from an omitted update.
+ */
+export type GatewayModelSelection =
+  | {
+      source: 'inherit';
+    }
+  | {
+      instance: string;
+      model: string;
+      reasoning_effort?: string | null;
+      source: 'explicit';
+      transport: ModelSelectionTransport;
+    };
+export type ModelSelectionTransport = 'api' | 'codex' | 'claude';
 export type MemorySettingToggle =
   'Enabled' | 'ActiveRecall' | 'ProactiveWrites' | 'BackgroundExtraction' | 'DebugTrace';
 export type MemoryModelSetting = 'PostTurnExtractor';
@@ -2452,6 +2478,21 @@ export interface CLIRuntimeProxyDeleteParams {
 }
 export interface CLIRuntimeProviderDraft {
   binary_path: string;
+  /**
+   * Inherit is a real absence of an override. It never stores a resolved fallback.
+   * The tagged value also distinguishes an explicit reset from an omitted update.
+   */
+  compaction_model?:
+    | {
+        source: 'inherit';
+      }
+    | {
+        instance: string;
+        model: string;
+        reasoning_effort?: string | null;
+        source: 'explicit';
+        transport: ModelSelectionTransport;
+      };
   display_name: string;
   enabled: boolean;
   home_path: string;

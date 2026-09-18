@@ -45,5 +45,11 @@ export type CLIRuntimeProviderSettingsRejection =
         kind: CLIAgentRuntimeKind;
         [k: string]: unknown;
       };
+    }
+  | {
+      InvalidCompactionModel: {
+        message: string;
+        [k: string]: unknown;
+      };
     };
 export type CLIAgentRuntimeKind = 'codex' | 'claude';

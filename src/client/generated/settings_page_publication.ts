@@ -28,6 +28,7 @@ export type SettingsPageValue =
       status?: GatewaySelfImprovementStatus | null;
       [k: string]: unknown;
     };
+export type ModelSelectionTransport = 'api' | 'codex' | 'claude';
 export type GatewayRemoteAccessErrorKind =
   | 'invalid_settings'
   | 'missing_key'
@@ -81,9 +82,34 @@ export interface SettingsPagePublication {
   [k: string]: unknown;
 }
 export interface GatewayGeneralSettings {
+  /**
+   * Inherit is a real absence of an override. It never stores a resolved fallback.
+   * The tagged value also distinguishes an explicit reset from an omitted update.
+   */
+  compaction_model?:
+    | {
+        source: 'inherit';
+      }
+    | {
+        instance: string;
+        model: string;
+        reasoning_effort?: string | null;
+        source: 'explicit';
+        transport: ModelSelectionTransport;
+      };
   keepawake?: boolean;
+  model_catalog?: GatewayModelCatalogSettings;
   preflight_model?: GatewayMemoryModelSelection;
   telemetry_enabled?: boolean;
+  [k: string]: unknown;
+}
+export interface GatewayModelCatalogSettings {
+  catalog_available?: boolean;
+  proxy_configured?: boolean;
+  /**
+   * Credential-free display URL. Userinfo, query, and fragment are removed.
+   */
+  proxy_url?: string | null;
   [k: string]: unknown;
 }
 export interface GatewayMemoryModelSelection {

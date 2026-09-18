@@ -1,5 +1,21 @@
 /* eslint-disable */
 
+/**
+ * Inherit is a real absence of an override. It never stores a resolved fallback.
+ * The tagged value also distinguishes an explicit reset from an omitted update.
+ */
+export type GatewayModelSelection =
+  | {
+      source: 'inherit';
+    }
+  | {
+      instance: string;
+      model: string;
+      reasoning_effort?: string | null;
+      source: 'explicit';
+      transport: ModelSelectionTransport;
+    };
+export type ModelSelectionTransport = 'api' | 'codex' | 'claude';
 export type CLIAgentRuntimeKind = 'codex' | 'claude';
 export type GatewayRemoteAccessErrorKind =
   | 'invalid_settings'
@@ -67,6 +83,11 @@ export interface GatewayCliRuntimeSettings {
 }
 export interface GatewayCliRuntimeInstanceSettings {
   binary_path: string;
+  /**
+   * Workspace override. Omission in updates preserves the stored value;
+   * an explicit Inherit removes it without affecting other workspaces.
+   */
+  compaction_model?: GatewayModelSelection | null;
   display_name: string;
   enabled: boolean;
   home_path: string;
@@ -82,9 +103,34 @@ export interface GatewayCliRuntimeInstanceSettings {
   [k: string]: unknown;
 }
 export interface GatewayGeneralSettings {
+  /**
+   * Inherit is a real absence of an override. It never stores a resolved fallback.
+   * The tagged value also distinguishes an explicit reset from an omitted update.
+   */
+  compaction_model?:
+    | {
+        source: 'inherit';
+      }
+    | {
+        instance: string;
+        model: string;
+        reasoning_effort?: string | null;
+        source: 'explicit';
+        transport: ModelSelectionTransport;
+      };
   keepawake?: boolean;
+  model_catalog?: GatewayModelCatalogSettings;
   preflight_model?: GatewayMemoryModelSelection;
   telemetry_enabled?: boolean;
+  [k: string]: unknown;
+}
+export interface GatewayModelCatalogSettings {
+  catalog_available?: boolean;
+  proxy_configured?: boolean;
+  /**
+   * Credential-free display URL. Userinfo, query, and fragment are removed.
+   */
+  proxy_url?: string | null;
   [k: string]: unknown;
 }
 export interface GatewayMemoryModelSelection {

@@ -28,6 +28,17 @@
         "binary_path": {
           "type": "string"
         },
+        "compaction_model": {
+          "description": "Workspace override. Omission in updates preserves the stored value;\nan explicit Inherit removes it without affecting other workspaces.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/GatewayModelSelection"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "display_name": {
           "type": "string"
         },
@@ -79,9 +90,22 @@
     "GatewayGeneralSettings": {
       "type": "object",
       "properties": {
+        "compaction_model": {
+          "$ref": "#/$defs/GatewayModelSelection",
+          "default": {
+            "source": "inherit"
+          }
+        },
         "keepawake": {
           "type": "boolean",
           "default": false
+        },
+        "model_catalog": {
+          "$ref": "#/$defs/GatewayModelCatalogSettings",
+          "default": {
+            "catalog_available": false,
+            "proxy_configured": false
+          }
         },
         "preflight_model": {
           "$ref": "#/$defs/GatewayMemoryModelSelection",
@@ -98,10 +122,30 @@
     "GatewayGeneralSettingsUpdate": {
       "type": "object",
       "properties": {
+        "compaction_model": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/GatewayModelSelection"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "keepawake": {
           "type": [
             "boolean",
             "null"
+          ]
+        },
+        "model_catalog_proxy": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/GatewayModelCatalogProxyUpdate"
+            },
+            {
+              "type": "null"
+            }
           ]
         },
         "preflight_model": {
@@ -193,6 +237,87 @@
         "background_extraction_enabled",
         "debug_trace_enabled",
         "strict_diagnostics_enabled"
+      ]
+    },
+    "GatewayModelCatalogProxyUpdate": {
+      "type": "object",
+      "properties": {
+        "proxy_url": {
+          "description": "`Some` configures/replaces the proxy; `None` clears it. The value is\nconsumed by Gateway's keystore layer and is never persisted in settings.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "GatewayModelCatalogSettings": {
+      "type": "object",
+      "properties": {
+        "catalog_available": {
+          "type": "boolean",
+          "default": false
+        },
+        "proxy_configured": {
+          "type": "boolean",
+          "default": false
+        },
+        "proxy_url": {
+          "description": "Credential-free display URL. Userinfo, query, and fragment are removed.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "GatewayModelSelection": {
+      "description": "Inherit is a real absence of an override. It never stores a resolved fallback.\nThe tagged value also distinguishes an explicit reset from an omitted update.",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "source": {
+              "type": "string",
+              "const": "inherit"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "source"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "instance": {
+              "type": "string"
+            },
+            "model": {
+              "type": "string"
+            },
+            "reasoning_effort": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "source": {
+              "type": "string",
+              "const": "explicit"
+            },
+            "transport": {
+              "$ref": "#/$defs/ModelSelectionTransport"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "source",
+            "transport",
+            "instance",
+            "model"
+          ]
+        }
       ]
     },
     "GatewayRemoteAccessErrorKind": {
@@ -478,7 +603,14 @@
         "general": {
           "$ref": "#/$defs/GatewayGeneralSettings",
           "default": {
+            "compaction_model": {
+              "source": "inherit"
+            },
             "keepawake": false,
+            "model_catalog": {
+              "catalog_available": false,
+              "proxy_configured": false
+            },
             "preflight_model": {
               "source": "thread"
             },
@@ -1180,6 +1312,14 @@
           "type": "boolean"
         }
       }
+    },
+    "ModelSelectionTransport": {
+      "type": "string",
+      "enum": [
+        "api",
+        "codex",
+        "claude"
+      ]
     },
     "SelfImprovementPhase": {
       "type": "string",
