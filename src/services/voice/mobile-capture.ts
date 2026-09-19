@@ -367,7 +367,6 @@ export class MobileVoiceCaptureSession {
 
     private sendVoiceChunk(samples: Float32Array, sampleOffset: number, sampleCount: number): void {
         const sequence = this.sequence;
-        this.sequence += 1;
         const pcmChunk = pcmS16LeFromFloat32(samples, sampleOffset, sampleCount);
         const durationMs = Math.max(
             1,
@@ -386,6 +385,7 @@ export class MobileVoiceCaptureSession {
                 },
                 pcmChunk,
             );
+            this.sequence += 1;
             this.updateLevel(samples, sampleOffset, sampleCount);
         } catch (error) {
             const captureError = new MobileVoiceCaptureError(
