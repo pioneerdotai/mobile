@@ -208,7 +208,7 @@ class MobileStartupTimeline {
                 extra.metricsEndpoint ?? 'https://telemetry.getpioneer.dev/v1/metrics',
             traces_endpoint: extra.tracesEndpoint ?? 'https://telemetry.getpioneer.dev/v1/traces',
             export_interval_ms: 30_000,
-            export_timeout_ms: 3_000,
+            export_timeout_ms: 15_000,
             deployment_environment: extra.environment ?? 'production',
             ...(appVersion
                 ? { service_version: buildVersion ? `${appVersion}+${buildVersion}` : appVersion }
