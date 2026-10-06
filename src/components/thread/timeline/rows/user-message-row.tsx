@@ -1,3 +1,4 @@
+import { Puzzle } from 'lucide-react-native';
 import {
     Download,
     FileAudio,
@@ -273,6 +274,8 @@ const UserAttachmentIcon = ({
     size: number;
 }) => {
     switch (attachment.kind) {
+        case 'plugin':
+            return <Puzzle size={size} color={color} />;
         case 'skill':
             return <Zap size={size} color={color} />;
         case 'mcp':

@@ -27,7 +27,15 @@ export type McpInstallFieldIssue =
       };
     };
 export type McpDiagnosticLevel = 'error' | 'warning';
-export type McpActionKind = 'policy' | 'restart' | 'remove' | 'configure';
+export type McpActionKind =
+  | 'retry_authorization_browser'
+  | 'sign_in'
+  | 'disconnect'
+  | 'cancel_authorization'
+  | 'policy'
+  | 'restart'
+  | 'remove'
+  | 'configure';
 export type McpActionState = 'pending' | 'succeeded' | 'failed' | 'cancelled';
 
 export interface McpActionPublication {

@@ -130,6 +130,7 @@
         "expo-system-ui": "^57.0.4",
         "expo-task-manager": "^57.0.19",
         "expo-updates": "^57.0.23",
+        "expo-web-browser": "~57.0.3",
         "i18next": "^26.4.2",
         "immer": "^11.1.18",
         "intl-pluralrules": "^2.0.1",

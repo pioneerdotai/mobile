@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PluginShellResponse",
+  "type": "object",
+  "properties": {
+    "accepted": {
+      "type": "boolean"
+    },
+    "active_flows": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "launches": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/NativeOAuthLaunch"
+      }
+    },
+    "operation_id": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "uint64",
+      "minimum": 0
+    },
+    "picker": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/PluginPickerRow"
+      }
+    }
+  },
+  "required": [
+    "accepted",
+    "launches",
+    "picker",
+    "active_flows"
+  ],
+  "$defs": {
+    "NativeOAuthLaunch": {
+      "type": "object",
+      "properties": {
+        "authorization_url": {
+          "type": "string"
+        },
+        "flow_id": {
+          "type": "string"
+        },
+        "redirect_uri": {
+          "type": "string"
+        },
+        "server_id": {
+          "type": "string"
+        },
+        "workspace_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "flow_id",
+        "workspace_id",
+        "server_id",
+        "authorization_url",
+        "redirect_uri"
+      ]
+    },
+    "PluginPickerRow": {
+      "description": "Parent-only presentation for immediate pickers. Selection retains its original\nrevision even when catalog labels/revisions refresh. Desktop picker migration:\nuse these rows in place of shell-local eligibility and selected-key checks.",
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "plugin_id": {
+          "type": "string"
+        },
+        "selectable": {
+          "type": "boolean"
+        },
+        "selected": {
+          "type": "boolean"
+        },
+        "stale": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "plugin_id",
+        "key",
+        "label",
+        "selected",
+        "selectable",
+        "stale"
+      ]
+    }
+  }
+}

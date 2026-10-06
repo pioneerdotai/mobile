@@ -78,6 +78,7 @@ const scopeKey = (scope: ClientScope): string => {
         case 'administration':
         case 'mcp':
         case 'skills':
+        case 'plugins':
             return `${scope.kind}:${optionalIdentity(scope.workspace_id)}`;
         case 'task':
             return `${scope.kind}:${optionalIdentity(scope.task_id)}`;

@@ -22,6 +22,21 @@ export type McpServerStatus =
   | 'stopping'
   | 'stopped'
   | 'restarting';
+export type McpOAuthState =
+  | 'idle'
+  | 'preparing'
+  | 'awaiting_callback'
+  | 'exchanging'
+  | 'resolving'
+  | 'retired'
+  | 'cleanup_required'
+  | 'authorized'
+  | 'auth_required'
+  | 'insufficient_scope'
+  | 'denied'
+  | 'cancelled'
+  | 'timed_out'
+  | 'failed';
 export type McpScopeKind = 'workspace' | 'user';
 export type McpSourceKind = 'config';
 export type McpTransportSummary =
@@ -121,6 +136,12 @@ export interface McpManagementDetails {
   audit?: McpAuditEventSummary[];
   fingerprint: string;
   health: McpServerHealthDetails;
+  /**
+   * Device-neutral cleanup availability, including uncertain persistence.
+   * False after confirmed Clear; omitted by older Gateways.
+   */
+  oauth_cleanup_available?: boolean | null;
+  oauth_state?: McpOAuthState | null;
   recent_bindings?: McpTurnBindingSummary[];
   scope: McpScopeKind;
   source_kind: McpSourceKind;
@@ -175,6 +196,7 @@ export interface McpListItem {
   display_name?: string | null;
   id: string;
   name: string;
+  plugin_owner?: PluginOwner | null;
   policy: McpPolicyState;
   prompts_count: number;
   required: boolean;
@@ -184,6 +206,11 @@ export interface McpListItem {
   scope: McpScopeKind;
   status: McpServerStatus;
   tools_count: number;
+  [k: string]: unknown;
+}
+export interface PluginOwner {
+  member_key: string;
+  plugin_id: string;
   [k: string]: unknown;
 }
 export interface McpPolicyState {

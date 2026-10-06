@@ -1,3 +1,5 @@
+import type { PluginShellRequest } from './generated/plugin_shell_request';
+import type { PluginShellResponse } from './generated/plugin_shell_response';
 import {
     configureTurnStartupRecorder,
     type TurnStartupReport,
@@ -831,6 +833,12 @@ export const pioneerClient = {
     ): ComposerSkillPickerProjection {
         return parsePioneerClientResponse<ComposerSkillPickerProjection>(
             getPioneerClientNitro().composerSkillPackPickerJson(JSON.stringify(input)),
+        );
+    },
+
+    pluginShell(request: PluginShellRequest): PluginShellResponse {
+        return parsePioneerClientResponse<PluginShellResponse>(
+            getPioneerClientNitro().pluginShellJson(JSON.stringify(request)),
         );
     },
 

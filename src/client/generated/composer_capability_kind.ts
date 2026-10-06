@@ -2,6 +2,13 @@
 
 export type ComposerCapabilityKind =
   | {
+      Plugin: {
+        expected_revision: number;
+        plugin_id: string;
+        [k: string]: unknown;
+      };
+    }
+  | {
       Skill: {
         owner?: string | null;
         skill_id: SkillId;

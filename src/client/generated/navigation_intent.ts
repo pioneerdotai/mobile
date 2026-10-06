@@ -99,6 +99,10 @@ export type ProviderFilter = 'Api' | 'Connected' | 'Cli';
 export type SkillId = string;
 export type SemanticDestination =
   | {
+      kind: 'plugins';
+      [k: string]: unknown;
+    }
+  | {
       kind: 'threads';
       [k: string]: unknown;
     }

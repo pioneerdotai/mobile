@@ -75,6 +75,11 @@ export type UserMessageAttachment =
       [k: string]: unknown;
     }
   | {
+      capability: TurnPluginCapabilitySummary;
+      type: 'plugin';
+      [k: string]: unknown;
+    }
+  | {
       capability: TurnSkillPackCapabilitySummary;
       type: 'skillPack';
       [k: string]: unknown;
@@ -207,6 +212,12 @@ export interface TurnSkillCapabilitySummary {
 export interface TurnSkillPackPresentationSummary {
   label: string;
   packId: SkillPackId;
+  [k: string]: unknown;
+}
+export interface TurnPluginCapabilitySummary {
+  expectedRevision: number;
+  label: string;
+  pluginId: string;
   [k: string]: unknown;
 }
 export interface TurnSkillPackCapabilitySummary {

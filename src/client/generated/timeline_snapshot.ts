@@ -37,7 +37,7 @@ export type ArtifactKind =
 export type ArtifactProjectionKind = 'plain_text' | 'thumbnail' | 'json_summary' | 'pdf_text';
 export type ArtifactProjectionStatus = 'pending' | 'ready' | 'failed' | 'stale';
 export type ArtifactStatus = 'ready' | 'pending' | 'quarantined' | 'deleted' | 'missing_external_source' | 'failed';
-export type TimelineAttachmentKind = 'artifact' | 'file' | 'image' | 'audio' | 'video' | 'skill' | 'mcp';
+export type TimelineAttachmentKind = 'plugin' | 'artifact' | 'file' | 'image' | 'audio' | 'video' | 'skill' | 'mcp';
 export type TimelineCapabilityKind = 'Skill' | 'McpServer' | 'McpTool' | 'Unknown';
 export type TimelineFinalStatusKind = 'Cancelled' | 'Blocked' | 'Failed' | 'Running' | 'Completed';
 export type TimelineItemKind =
@@ -371,6 +371,11 @@ export type UserMessageAttachment =
   | {
       capability: TurnSkillCapabilitySummary;
       type: 'skill';
+      [k: string]: unknown;
+    }
+  | {
+      capability: TurnPluginCapabilitySummary;
+      type: 'plugin';
       [k: string]: unknown;
     }
   | {
@@ -1063,6 +1068,12 @@ export interface TurnSkillCapabilitySummary {
 export interface TurnSkillPackPresentationSummary {
   label: string;
   packId: SkillPackId;
+  [k: string]: unknown;
+}
+export interface TurnPluginCapabilitySummary {
+  expectedRevision: number;
+  label: string;
+  pluginId: string;
   [k: string]: unknown;
 }
 export interface TurnSkillPackCapabilitySummary {

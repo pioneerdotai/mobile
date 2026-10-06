@@ -16,6 +16,36 @@
     "pack": {
       "type": "boolean"
     },
+    "plugin_preview": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/PluginPreviewPublication"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "plugin_result": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/PluginItem"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "plugin_update_preview": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/PluginUpdatePreviewPublication"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
     "revision": {
       "type": "integer",
       "format": "uint64",
@@ -49,6 +79,252 @@
     "pack"
   ],
   "$defs": {
+    "PluginComponentItem": {
+      "type": "object",
+      "properties": {
+        "diagnostic": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "kind": {
+          "type": "string"
+        },
+        "mcp_installation_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "member_key": {
+          "type": "string"
+        },
+        "runtime_status": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "skill_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SkillId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "status": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "member_key",
+        "status"
+      ]
+    },
+    "PluginComponentKey": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string"
+        },
+        "member_key": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "member_key"
+      ]
+    },
+    "PluginDiagnostic": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "path",
+        "message"
+      ]
+    },
+    "PluginItem": {
+      "type": "object",
+      "properties": {
+        "components": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PluginComponentItem"
+          }
+        },
+        "diagnostics": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PluginDiagnostic"
+          }
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "revision": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "state": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "version": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "enabled",
+        "state",
+        "revision",
+        "status",
+        "components",
+        "diagnostics"
+      ]
+    },
+    "PluginPreviewPublication": {
+      "type": "object",
+      "properties": {
+        "package": {
+          "$ref": "#/$defs/PluginsPreviewResponse"
+        },
+        "upload_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "upload_id",
+        "package"
+      ]
+    },
+    "PluginUpdatePreviewPublication": {
+      "type": "object",
+      "properties": {
+        "preview": {
+          "$ref": "#/$defs/PluginsUpdatePreviewResponse"
+        },
+        "upload_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "upload_id",
+        "preview"
+      ]
+    },
+    "PluginsPreviewResponse": {
+      "type": "object",
+      "properties": {
+        "components": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PluginComponentItem"
+          }
+        },
+        "diagnostics": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PluginDiagnostic"
+          }
+        },
+        "fingerprint": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "version": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "fingerprint",
+        "components",
+        "diagnostics"
+      ]
+    },
+    "PluginsUpdatePreviewResponse": {
+      "type": "object",
+      "properties": {
+        "added": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PluginComponentKey"
+          }
+        },
+        "authorization_changes": {
+          "description": "Conservative disclosure of changed MCP configurations that may need sign-in.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PluginComponentKey"
+          }
+        },
+        "identity_resets": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PluginComponentKey"
+          }
+        },
+        "package": {
+          "$ref": "#/$defs/PluginsPreviewResponse"
+        },
+        "removed": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PluginComponentKey"
+          }
+        },
+        "updated": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PluginComponentKey"
+          }
+        }
+      },
+      "required": [
+        "package",
+        "added",
+        "updated",
+        "identity_resets",
+        "removed",
+        "authorization_changes"
+      ]
+    },
     "SkillId": {
       "type": "string",
       "maxLength": 21,
@@ -76,6 +352,51 @@
     },
     "SkillUploadTarget": {
       "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "plugin_install"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "plugin_preview"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "expected_revision": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "kind": {
+              "type": "string",
+              "const": "plugin_update_preview"
+            },
+            "plugin_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "plugin_id",
+            "expected_revision"
+          ]
+        },
         {
           "type": "object",
           "properties": {

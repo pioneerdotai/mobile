@@ -35,6 +35,12 @@ export type ComposerAttachmentUploadState =
     };
 export type TurnCapabilityKind =
   | {
+      expectedRevision: number;
+      pluginId: string;
+      type: 'plugin';
+      [k: string]: unknown;
+    }
+  | {
       packId?: SkillPackId | null;
       skillId: SkillId;
       type: 'skill';

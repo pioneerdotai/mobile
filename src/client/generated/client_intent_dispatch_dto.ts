@@ -2,6 +2,13 @@
 
 export type ClientIntent =
   | {
+      connection_id?: number | null;
+      intent: PluginIntent;
+      kind: 'plugins';
+      workspace_id: string;
+      [k: string]: unknown;
+    }
+  | {
       demand: SessionDemand;
       kind: 'session_demand';
       [k: string]: unknown;
@@ -159,6 +166,128 @@ export type ClientIntent =
       generation: number;
       kind: 'set_scope_demand';
       scope: ClientScope;
+      [k: string]: unknown;
+    };
+export type PluginIntent =
+  | {
+      kind: 'observe';
+      plugin_id?: string | null;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'close';
+      [k: string]: unknown;
+    }
+  | {
+      enabled: boolean;
+      expected_revision: number;
+      kind: 'set_enabled';
+      plugin_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      expected_revision: number;
+      intent: PluginManagementIntent;
+      kind: 'mutate';
+      plugin_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'install';
+      upload_operation: number;
+      [k: string]: unknown;
+    }
+  | {
+      confirm_changes: boolean;
+      kind: 'apply_update';
+      upload_operation: number;
+      [k: string]: unknown;
+    }
+  | {
+      allow_implicit_invocation: boolean;
+      enabled: boolean;
+      kind: 'skill';
+      skill_id: SkillId;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'remove_skill';
+      skill_id: SkillId;
+      [k: string]: unknown;
+    }
+  | {
+      body: string;
+      kind: 'configure_mcp';
+      server_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      intent: McpIntent;
+      kind: 'mcp';
+      [k: string]: unknown;
+    };
+export type PluginManagementIntent =
+  | {
+      action: 'update';
+      confirm_changes: boolean;
+      expected_fingerprint: string;
+      upload_id: string;
+    }
+  | {
+      action: 'retry';
+      components: PluginComponentKey[];
+      restore_removed: boolean;
+    }
+  | {
+      action: 'continue';
+    }
+  | {
+      action: 'remove';
+      purge_data: boolean;
+    };
+export type SkillId = string;
+export type McpIntent =
+  | {
+      kind: 'retry_authorization_browser';
+      server_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'sign_in';
+      server_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'disconnect';
+      server_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      flow_id: string;
+      kind: 'cancel_authorization';
+      server_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      allow_implicit_invocation: boolean;
+      enabled: boolean;
+      kind: 'policy';
+      server_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'restart';
+      server_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'remove';
+      server_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      config_json: string;
+      kind: 'configure';
       [k: string]: unknown;
     };
 export type SessionVisibility = 'foreground' | 'inactive' | 'background';
@@ -1166,6 +1295,12 @@ export type ComposerCatalogIntent =
     }
   | {
       identity: ComposerOperationIdentity;
+      kind: 'toggle_plugin';
+      plugin_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      identity: ComposerOperationIdentity;
       kind: 'toggle_skill';
       selection: ComposerSkillSelection;
       [k: string]: unknown;
@@ -1188,6 +1323,10 @@ export type ComposerCatalogIntent =
     };
 export type ComposerCatalogKind =
   | {
+      kind: 'plugins';
+      [k: string]: unknown;
+    }
+  | {
       kind: 'skills';
       [k: string]: unknown;
     }
@@ -1200,7 +1339,7 @@ export type ComposerCatalogKind =
       server_id: string;
       [k: string]: unknown;
     };
-export type ComposerPickerKind = 'skills' | 'mcp';
+export type ComposerPickerKind = 'plugins' | 'skills' | 'mcp';
 export type ComposerSkillSelection =
   | {
       kind: 'skill';
@@ -1214,7 +1353,6 @@ export type ComposerSkillSelection =
       [k: string]: unknown;
     };
 export type SkillPackId = string;
-export type SkillId = string;
 export type MessageRevisionIntent =
   | {
       kind: 'open';
@@ -1523,6 +1661,12 @@ export type ComposerAttachmentUploadState =
     };
 export type TurnCapabilityKind =
   | {
+      expectedRevision: number;
+      pluginId: string;
+      type: 'plugin';
+      [k: string]: unknown;
+    }
+  | {
       packId?: SkillPackId | null;
       skillId: SkillId;
       type: 'skill';
@@ -1627,6 +1771,13 @@ export type UserInput =
     };
 export type SandboxMode = 'FullAccess';
 export type ComposerCapabilityKind =
+  | {
+      Plugin: {
+        expected_revision: number;
+        plugin_id: string;
+        [k: string]: unknown;
+      };
+    }
   | {
       Skill: {
         owner?: string | null;
@@ -2046,6 +2197,10 @@ export type SettingsRoute = 'General' | 'Account' | 'Memory' | 'SelfImprovement'
 export type ProviderFilter = 'Api' | 'Connected' | 'Cli';
 export type SemanticDestination =
   | {
+      kind: 'plugins';
+      [k: string]: unknown;
+    }
+  | {
       kind: 'threads';
       [k: string]: unknown;
     }
@@ -2272,6 +2427,11 @@ export type ClientScope =
       [k: string]: unknown;
     }
   | {
+      kind: 'plugins';
+      workspace_id: string;
+      [k: string]: unknown;
+    }
+  | {
       kind: 'skills_upload';
       operation_id: number;
       workspace_id: string;
@@ -2342,6 +2502,10 @@ export type SettingsPage = 'general' | 'remote_access' | 'voice' | 'memory' | 's
 export interface ClientIntentDispatchDto {
   intent: ClientIntent;
   schema_version: number;
+}
+export interface PluginComponentKey {
+  kind: string;
+  member_key: string;
 }
 export interface SessionDemand {
   endpoint_id?: string | null;
@@ -2452,6 +2616,8 @@ export interface WorkspaceMemberRemoveParams {
 }
 export interface ProviderConfigureParams {
   api_key?: string | null;
+  base_url?: string | null;
+  clear_base_url?: boolean;
   clear_proxy?: boolean;
   provider: string;
   proxy_url?: string | null;

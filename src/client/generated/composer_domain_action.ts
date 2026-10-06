@@ -220,6 +220,13 @@ export type ArtifactProjectionStatus = 'pending' | 'ready' | 'failed' | 'stale';
 export type ArtifactStatus = 'ready' | 'pending' | 'quarantined' | 'deleted' | 'missing_external_source' | 'failed';
 export type ComposerCapabilityKind =
   | {
+      Plugin: {
+        expected_revision: number;
+        plugin_id: string;
+        [k: string]: unknown;
+      };
+    }
+  | {
       Skill: {
         owner?: string | null;
         skill_id: SkillId;

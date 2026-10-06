@@ -5,11 +5,12 @@
     "pioneer-client",
     "pioneer-client-ffi",
     "pioneer-observability",
+    "pioneer-plugins",
     "pioneer-protocol",
     "pioneer-skills"
   ],
-  "rust_source_sha256": "daf1bc4010b29ecbb8aee1f3af73623eedb6c43a1728102b7c46afc33827af5b",
-  "mobile_boundary_sha256": "396b2f79c3b254def01a04f4a30918122f349369fd6245e6ff0a857c48d6be2b",
+  "rust_source_sha256": "abeed596fdd5a53a8b0d1f3ae278b804f5220a7b76929274ccbb97e051cfe682",
+  "mobile_boundary_sha256": "f946a17499ca8a69854e305313514e1eb08f13b7e1a0255bf36a25acd3fa7d3d",
   "platforms": {
     "ios": [
       "PioneerClientFfi.xcframework/Info.plist",

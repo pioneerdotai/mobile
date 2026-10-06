@@ -60,6 +60,7 @@ char* pioneer_client_ffi_thread_create_visibility_plan(PioneerClientFfi* client,
 char* pioneer_client_ffi_member_presentation(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_composer_attachment_from_path(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_composer_skill_pack_picker(PioneerClientFfi* client, const char* input_json);
+char* pioneer_client_ffi_plugin_shell(PioneerClientFfi* ptr, const char* input_json);
 char* pioneer_client_ffi_composer_skill_chips(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_composer_capability_target(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_composer_capability_menu_visibility(PioneerClientFfi* client, const char* input_json);

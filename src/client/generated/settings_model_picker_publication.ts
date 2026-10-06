@@ -194,6 +194,11 @@ export interface ProviderTranscriptionModelMetadata {
 }
 export interface ProviderSummary {
   api_key_configured?: boolean;
+  /**
+   * The gateway can construct this provider in the selected workspace.
+   */
+  available?: boolean | null;
+  base_url?: string | null;
   capabilities?: ProviderSummaryCapabilities;
   name: string;
   proxy_url?: string | null;

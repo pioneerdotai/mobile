@@ -35,6 +35,13 @@ export type ArtifactProjectionStatus = 'pending' | 'ready' | 'failed' | 'stale';
 export type ArtifactStatus = 'ready' | 'pending' | 'quarantined' | 'deleted' | 'missing_external_source' | 'failed';
 export type ComposerCapabilityKind =
   | {
+      Plugin: {
+        expected_revision: number;
+        plugin_id: string;
+        [k: string]: unknown;
+      };
+    }
+  | {
       Skill: {
         owner?: string | null;
         skill_id: SkillId;
@@ -124,6 +131,11 @@ export type UserMessageAttachment =
   | {
       capability: TurnSkillCapabilitySummary;
       type: 'skill';
+      [k: string]: unknown;
+    }
+  | {
+      capability: TurnPluginCapabilitySummary;
+      type: 'plugin';
       [k: string]: unknown;
     }
   | {
@@ -223,6 +235,12 @@ export type ComposerOperationStatus =
     };
 export type ComposerVoiceCapturePreflightState = 'checking' | 'ready';
 export type TurnCapabilityKind =
+  | {
+      expectedRevision: number;
+      pluginId: string;
+      type: 'plugin';
+      [k: string]: unknown;
+    }
   | {
       packId?: SkillPackId | null;
       skillId: SkillId;
@@ -527,6 +545,12 @@ export interface TurnSkillCapabilitySummary {
 export interface TurnSkillPackPresentationSummary {
   label: string;
   packId: SkillPackId;
+  [k: string]: unknown;
+}
+export interface TurnPluginCapabilitySummary {
+  expectedRevision: number;
+  label: string;
+  pluginId: string;
   [k: string]: unknown;
 }
 export interface TurnSkillPackCapabilitySummary {

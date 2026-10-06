@@ -23,6 +23,15 @@
         "$ref": "#/$defs/SelectableMcpCapability"
       }
     },
+    "plugin_request": {
+      "$ref": "#/$defs/ComposerCatalogRequest"
+    },
+    "plugins": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/PluginItem"
+      }
+    },
     "revision": {
       "type": "integer",
       "format": "uint64",
@@ -58,6 +67,8 @@
     "thread_id",
     "draft_id",
     "revision",
+    "plugins",
+    "plugin_request",
     "skills",
     "skill_request",
     "mcp_servers",
@@ -177,6 +188,7 @@
     "ComposerPickerKind": {
       "type": "string",
       "enum": [
+        "plugins",
         "skills",
         "mcp"
       ]
@@ -315,6 +327,139 @@
       "enum": [
         "workspace",
         "user"
+      ]
+    },
+    "PluginComponentItem": {
+      "type": "object",
+      "properties": {
+        "diagnostic": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "kind": {
+          "type": "string"
+        },
+        "mcp_installation_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "member_key": {
+          "type": "string"
+        },
+        "runtime_status": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "skill_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SkillId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "status": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "member_key",
+        "status"
+      ]
+    },
+    "PluginDiagnostic": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "path",
+        "message"
+      ]
+    },
+    "PluginItem": {
+      "type": "object",
+      "properties": {
+        "components": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PluginComponentItem"
+          }
+        },
+        "diagnostics": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PluginDiagnostic"
+          }
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "revision": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "state": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "version": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "enabled",
+        "state",
+        "revision",
+        "status",
+        "components",
+        "diagnostics"
+      ]
+    },
+    "PluginOwner": {
+      "type": "object",
+      "properties": {
+        "member_key": {
+          "type": "string"
+        },
+        "plugin_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "plugin_id",
+        "member_key"
       ]
     },
     "SelectableMcpCapability": {
@@ -497,6 +642,16 @@
           "anyOf": [
             {
               "$ref": "#/$defs/SkillPackMembership"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "plugin_owner": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PluginOwner"
             },
             {
               "type": "null"

@@ -25,7 +25,8 @@ export type ComposerCatalogRequestState =
 export type McpScopeKind = 'workspace' | 'user';
 export type McpCapabilityUnavailableReason =
   'DisabledByPolicy' | 'RuntimeUnavailable' | 'RuntimeNotReady' | 'NoToolCatalog';
-export type ComposerPickerKind = 'skills' | 'mcp';
+export type SkillId = string;
+export type ComposerPickerKind = 'plugins' | 'skills' | 'mcp';
 export type ComposerPickerSelection =
   | {
       kind: 'immediate';
@@ -54,13 +55,14 @@ export type ComposerSkillSelection =
       [k: string]: unknown;
     };
 export type SkillPackId = string;
-export type SkillId = string;
 
 export interface ComposerCatalogPublication {
   draft_id: number;
   mcp_request: ComposerCatalogRequest;
   mcp_servers: SelectableMcpCapability[];
   mcp_tools: SelectableMcpCapability[];
+  plugin_request: ComposerCatalogRequest;
+  plugins: PluginItem[];
   revision: number;
   session?: ComposerPickerSession | null;
   skill_request: ComposerCatalogRequest;
@@ -87,6 +89,34 @@ export interface SelectableMcpCapability {
   server_name: string;
   tools_count?: number | null;
   unavailable_reason?: McpCapabilityUnavailableReason | null;
+  [k: string]: unknown;
+}
+export interface PluginItem {
+  components: PluginComponentItem[];
+  diagnostics: PluginDiagnostic[];
+  enabled: boolean;
+  id: string;
+  name: string;
+  revision: number;
+  state: string;
+  status: string;
+  version?: string | null;
+  [k: string]: unknown;
+}
+export interface PluginComponentItem {
+  diagnostic?: string | null;
+  kind: string;
+  mcp_installation_id?: string | null;
+  member_key: string;
+  runtime_status?: string | null;
+  skill_id?: SkillId | null;
+  status: string;
+  [k: string]: unknown;
+}
+export interface PluginDiagnostic {
+  code: string;
+  message: string;
+  path: string;
   [k: string]: unknown;
 }
 export interface ComposerPickerSession {
@@ -120,6 +150,7 @@ export interface SkillListItem {
   install: SkillInstallState;
   owner?: string | null;
   pack?: SkillPackMembership | null;
+  plugin_owner?: PluginOwner | null;
   policy: SkillPolicyState;
   skill_id: SkillId;
   slug: string;
@@ -169,6 +200,11 @@ export interface SkillInstallState {
 export interface SkillPackMembership {
   member_key: string;
   pack_id: SkillPackId;
+  [k: string]: unknown;
+}
+export interface PluginOwner {
+  member_key: string;
+  plugin_id: string;
   [k: string]: unknown;
 }
 export interface SkillPolicyState {

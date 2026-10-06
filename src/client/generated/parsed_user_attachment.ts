@@ -18,7 +18,7 @@ export type ArtifactKind =
 export type ArtifactProjectionKind = 'plain_text' | 'thumbnail' | 'json_summary' | 'pdf_text';
 export type ArtifactProjectionStatus = 'pending' | 'ready' | 'failed' | 'stale';
 export type ArtifactStatus = 'ready' | 'pending' | 'quarantined' | 'deleted' | 'missing_external_source' | 'failed';
-export type ParsedUserAttachmentKind = 'File' | 'Skill' | 'Mcp';
+export type ParsedUserAttachmentKind = 'Plugin' | 'File' | 'Skill' | 'Mcp';
 
 export interface ParsedUserAttachment {
   artifact?: ArtifactRef | null;

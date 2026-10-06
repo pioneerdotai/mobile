@@ -22,6 +22,7 @@ export default function SettingsStackLayout() {
                 headerLeft: () => <BackButton onPressHandler={handleBack} />,
             }}
         >
+            <Stack.Screen name="plugins" options={{ headerTitle: t('plugins.title') }} />
             <Stack.Screen
                 name="language"
                 options={{
