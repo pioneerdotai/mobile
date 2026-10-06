@@ -65,13 +65,14 @@ export const initializePluginOAuthEffects = (): (() => void) => {
             void WebBrowser.openAuthSessionAsync(launch.authorization_url, launch.redirect_uri)
                 .then((result) => {
                     if (closed || browserFlow !== launch.flow_id) return;
-                    if (result.type === 'success') relayPluginOAuthCallback(result.url);
-                    else
-                        pioneerClient.pluginShell({
-                            kind: 'browser_result',
-                            flow_id: launch.flow_id,
-                            cancelled: true,
-                        });
+                    if (result.type === 'success' && relayPluginOAuthCallback(result.url)) return;
+                    // A locked/unavailable browser retains the existing flow for
+                    // Retry. Only actual user dismissal cancels Gateway consent.
+                    pioneerClient.pluginShell({
+                        kind: 'browser_result',
+                        flow_id: launch.flow_id,
+                        cancelled: result.type === 'cancel' || result.type === 'dismiss',
+                    });
                 })
                 .catch(() => {
                     if (!closed && browserFlow === launch.flow_id)

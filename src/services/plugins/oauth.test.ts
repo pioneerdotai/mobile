@@ -1,6 +1,7 @@
 // NOT_RUN / NOT_COMPILED. Native platform boundary mocks only; no app/provider.
 import { pioneerClient } from '@/client';
-import { relayPluginOAuthCallback } from './oauth';
+import { initializePluginOAuthEffects, relayPluginOAuthCallback } from './oauth';
+import * as WebBrowser from 'expo-web-browser';
 
 jest.mock('@/client', () => ({ pioneerClient: { pluginShell: jest.fn() } }));
 jest.mock('@/helpers/app-url', () => ({ PIONEER_APP_URL_SCHEME: 'pioneer' }));
@@ -8,7 +9,10 @@ jest.mock('expo-web-browser', () => ({
     openAuthSessionAsync: jest.fn(),
     dismissAuthSession: jest.fn(),
 }));
-jest.mock('expo-linking', () => ({ addEventListener: jest.fn() }));
+jest.mock('expo-linking', () => ({ addEventListener: jest.fn(() => ({ remove: jest.fn() })) }));
+jest.mock('react-native', () => ({
+    AppState: { currentState: 'active', addEventListener: jest.fn(() => ({ remove: jest.fn() })) },
+}));
 
 describe('native plugin OAuth callback boundary', () => {
     beforeEach(() => jest.clearAllMocks());
@@ -45,4 +49,52 @@ describe('native plugin OAuth callback boundary', () => {
             expect(relayPluginOAuthCallback(url)).toBe(false);
         expect(pioneerClient.pluginShell).not.toHaveBeenCalled();
     });
+});
+
+// OS outcomes must never turn a failed launch into native consent cancellation.
+describe('plugin browser result ownership', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+        jest.useFakeTimers();
+    });
+    afterEach(() => jest.useRealTimers());
+    it.each(['locked', 'cancel', 'dismiss'] as const)(
+        'relays %s with its original flow identity',
+        async (type) => {
+            jest.mocked(pioneerClient.pluginShell).mockImplementation((request) => ({
+                accepted: true,
+                operation_id: null,
+                picker: [],
+                active_flows: ['original-flow'],
+                launches:
+                    request.kind === 'poll_oauth'
+                        ? [
+                              {
+                                  flow_id: 'original-flow',
+                                  workspace_id: 'original-workspace',
+                                  server_id: 'original-installation',
+                                  authorization_url:
+                                      'https://issuer.example/authorize?state=opaque',
+                                  redirect_uri: 'pioneer:///oauth/mcp/callback',
+                              },
+                          ]
+                        : [],
+            }));
+            jest.mocked(WebBrowser.openAuthSessionAsync).mockResolvedValueOnce({
+                type: type as WebBrowser.WebBrowserResultType,
+            });
+            const close = initializePluginOAuthEffects();
+            try {
+                await Promise.resolve();
+                await Promise.resolve();
+                expect(pioneerClient.pluginShell).toHaveBeenCalledWith({
+                    kind: 'browser_result',
+                    flow_id: 'original-flow',
+                    cancelled: type !== 'locked',
+                });
+            } finally {
+                close();
+            }
+        },
+    );
 });
