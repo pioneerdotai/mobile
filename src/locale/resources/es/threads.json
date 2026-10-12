@@ -64,7 +64,7 @@
     "threadEmpty": "Inicia una conversación enviando un mensaje.",
     "inputPlaceholder": "Enviar un mensaje",
     "sendMessage": "Enviar mensaje",
-    "sendFailed": "No se pudo enviar el mensaje.",
+    "sendFailed": "Se produjo un error al enviar. Revisa la conversación antes de volver a intentarlo.",
     "voiceMicrophone": "Entrada de voz",
     "voiceKeyboard": "Volver a escribir",
     "voiceHoldToTalk": "Mantén para hablar",

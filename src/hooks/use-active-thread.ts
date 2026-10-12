@@ -9,7 +9,7 @@ import {
 } from '@/client/turn-cancellation';
 import { mobileClientBinding } from '@/client/mobile-client-binding';
 import { dispatchNavigation, navigationSnapshot } from '@/client/navigation';
-import { beginComposerOperation } from '@/client/composer';
+import { beginComposerOperation, composerSnapshot } from '@/client/composer';
 import { withGatewayTransportLease } from '@/services/gateway/transport-coordinator';
 import {
     openActiveThread,
@@ -106,6 +106,14 @@ export const useActiveThread = (
     );
 
     const activeThreadIdRef = useRef<string | null | undefined>(undefined);
+    const sendScopeRef = useRef({ threadId, active });
+    sendScopeRef.current = { threadId, active };
+    useEffect(() => {
+        sendScopeRef.current = { threadId, active };
+        return () => {
+            sendScopeRef.current.active = false;
+        };
+    }, [threadId, active]);
     const openedConnectionRef = useRef<{ threadId: string; connectionId: number | null } | null>(
         null,
     );
@@ -207,7 +215,7 @@ export const useActiveThread = (
     );
 
     useEffect(() => {
-        if (!subscribedThreadId) return;
+        if (!subscribedThreadId || !active) return;
         const store = mobileClientBinding.scope({
             kind: 'composer',
             thread_id: subscribedThreadId,
@@ -215,7 +223,17 @@ export const useActiveThread = (
         const receive = () => {
             const publication = store.getSnapshot()?.payload as
                 import('@/client/generated/composer_publication').ComposerPublication | null;
+            const identity = publication?.operation?.identity;
+            const current = composerSnapshot(subscribedThreadId)?.operation?.identity;
             if (
+                sendScopeRef.current.active &&
+                sendScopeRef.current.threadId === subscribedThreadId &&
+                useActiveThreadStore.getState().activeComposerThreadId === subscribedThreadId &&
+                publication?.thread_id === subscribedThreadId &&
+                identity?.thread_id === subscribedThreadId &&
+                current?.thread_id === identity.thread_id &&
+                current.draft_id === identity.draft_id &&
+                current.generation === identity.generation &&
                 publication?.operation?.kind === 'send' &&
                 publication.operation.status.kind === 'failed'
             ) {
@@ -225,7 +243,7 @@ export const useActiveThread = (
         const unsubscribe = store.subscribe(receive);
         receive();
         return unsubscribe;
-    }, [subscribedThreadId, setComposerError, t]);
+    }, [active, subscribedThreadId, setComposerError, t]);
 
     const sendText = useCallback(async (): Promise<boolean> => {
         if (!active || !connected) return false;
@@ -248,6 +266,17 @@ export const useActiveThread = (
         const operation = beginComposerOperation(requestThreadId, 'send');
         if (!operation) return false;
         setComposerError(null);
+        const ownsSend = () => {
+            const identity = composerSnapshot(requestThreadId)?.operation?.identity;
+            return (
+                sendScopeRef.current.active &&
+                sendScopeRef.current.threadId === requestThreadId &&
+                useActiveThreadStore.getState().activeComposerThreadId === requestThreadId &&
+                identity?.thread_id === operation.identity.thread_id &&
+                identity.draft_id === operation.identity.draft_id &&
+                identity.generation === operation.identity.generation
+            );
+        };
 
         try {
             const result = await withGatewayTransportLease(() =>
@@ -258,16 +287,19 @@ export const useActiveThread = (
                 }),
             );
 
-            if (
-                useGatewayStore.getState().connectionId !== connectionId ||
-                activeThreadIdRef.current !== requestThreadId
-            ) {
+            if (!ownsSend() || activeThreadIdRef.current !== requestThreadId) {
                 return false;
             }
 
             activeThreadIdRef.current = result.thread_id;
             return true;
         } catch {
+            if (
+                ownsSend() &&
+                composerSnapshot(requestThreadId)?.operation?.status.kind !== 'cancelled'
+            ) {
+                setComposerError(t('sendFailed'));
+            }
             return false;
         }
     }, [connected, connectionId, setComposerError, t, workspaceId, thread, threadId, active]);
