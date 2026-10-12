@@ -45,6 +45,16 @@ export const localizeTimelineRow = (snapshot: TimelineRowSnapshot): TimelineRow 
         };
     }
     const row = value.Timeline;
+    if (snapshot.content?.html_publication) {
+        const publication = snapshot.content.html_publication;
+        return {
+            ...meta,
+            type: 'html',
+            turnId: publication.turnId,
+            publication,
+            author: row.author ?? null,
+        };
+    }
     if (snapshot.item) {
         const localized = localizeItem(snapshot.item, snapshot.content!);
         if ('UserMessage' in row.kind && localized.type === 'user-message') {

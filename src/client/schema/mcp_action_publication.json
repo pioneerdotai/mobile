@@ -40,6 +40,10 @@
     "McpActionKind": {
       "type": "string",
       "enum": [
+        "retry_authorization_browser",
+        "sign_in",
+        "disconnect",
+        "cancel_authorization",
         "policy",
         "restart",
         "remove",

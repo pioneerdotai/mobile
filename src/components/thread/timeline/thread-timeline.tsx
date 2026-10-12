@@ -1,3 +1,4 @@
+import { HtmlRow } from './rows/html-row';
 import { useTimelineDemand } from '@/client/timeline-demand';
 import { mobileClientBinding } from '@/client/mobile-client-binding';
 import { useThreadPresentation } from '@/hooks/use-thread-presentation';
@@ -819,6 +820,8 @@ const TimelineRowRenderer = ({
                     canRespond={canRespondToAgentRequests}
                 />
             );
+        case 'html':
+            return <HtmlRow publication={row.publication} />;
         case 'artifact':
             return (
                 <ArtifactRow

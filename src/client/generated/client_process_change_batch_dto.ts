@@ -1202,6 +1202,7 @@ export interface TimelineItemPresentation {
   edited_timestamp?: number | null;
   file_output?: TimelineTextPreview | null;
   final_status?: TimelineFinalStatus | null;
+  html_publication?: HtmlPublication | null;
   kind: TimelineItemKind;
   markdown?: MarkdownDocument | null;
   markdown_presentation?: MarkdownPresentation | null;
@@ -1271,6 +1272,18 @@ export interface TimelineFinalStatus {
   kind: TimelineFinalStatusKind;
   successful: boolean;
   [k: string]: unknown;
+}
+/**
+ * An exact Gateway-created HTML publication. Generic HTML attachments never
+ * acquire this descriptor based on MIME alone.
+ */
+export interface HtmlPublication {
+  artifact: ArtifactRef;
+  callId: string;
+  threadId: string;
+  title: string;
+  turnId: string;
+  workspaceId: string;
 }
 export interface MarkdownDocument {
   blocks?: MarkdownBlock[];

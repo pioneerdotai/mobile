@@ -46,6 +46,12 @@ export type TimelineRowMeta = {
 export type TimelineRow = TimelineRowMeta &
     (
         | {
+              type: 'html';
+              key: string;
+              turnId: string;
+              publication: import('@/client/generated/timeline_snapshot').HtmlPublication;
+          }
+        | {
               type: 'user-message';
               key: string;
               itemId: string;
