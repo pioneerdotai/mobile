@@ -1,5 +1,5 @@
 import React from 'react';
-import { expect, it, jest } from '@jest/globals';
+import { beforeEach, expect, it, jest } from '@jest/globals';
 import renderer, { act } from 'react-test-renderer';
 import { useActiveThread } from './use-active-thread';
 
@@ -7,6 +7,15 @@ const mockOpen = jest.fn(async () => ({}));
 let mockComposer: string | null = null;
 let mockNavigation = { active_thread_id: 'parent', workspace_id: 'workspace' };
 let mockConnection = 1;
+let mockPublication: {
+    thread_id: string;
+    operation: {
+        identity: { thread_id: string; draft_id: number; generation: number };
+        kind: string;
+        status: { kind: string };
+    };
+} | null = null;
+const mockSend = jest.fn<() => Promise<{ thread_id: string }>>();
 const mockActivate = jest.fn((id: string) => {
     mockComposer = id;
 });
@@ -29,9 +38,15 @@ jest.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) =>
 jest.mock('@/services/threads/active', () => ({
     openActiveThread: () => mockOpen(),
     openActiveThreadById: () => mockOpen(),
+    sendActiveThreadText: () => mockSend(),
 }));
-jest.mock('@/services/gateway/transport-coordinator', () => ({}));
-jest.mock('@/client/composer', () => ({}));
+jest.mock('@/services/gateway/transport-coordinator', () => ({
+    withGatewayTransportLease: (run: () => Promise<unknown>) => run(),
+}));
+jest.mock('@/client/composer', () => ({
+    composerSnapshot: () => mockPublication,
+    beginComposerOperation: () => ({ identity: mockPublication!.operation.identity }),
+}));
 jest.mock('@/client/turn-cancellation', () => ({ useTurnCancellationPublication: () => null }));
 jest.mock('@/client/navigation', () => ({
     navigationSnapshot: () => mockNavigation,
@@ -101,3 +116,61 @@ it('returning from pickers and a child restores selection without reopening the 
         await act(async () => root.unmount());
     }
 });
+
+beforeEach(() => {
+    mockConnection = 1;
+    mockComposer = null;
+    mockNavigation = { active_thread_id: 'parent', workspace_id: 'workspace' };
+    mockOpen.mockClear();
+    mockState.setComposerError.mockClear();
+    mockSend.mockReset();
+    mockPublication = {
+        thread_id: 'parent',
+        operation: {
+            identity: { thread_id: 'parent', draft_id: 1, generation: 7 },
+            kind: 'send',
+            status: { kind: 'pending' },
+        },
+    };
+});
+
+it.each(['failed', 'cancelled', 'replacement', 'inactive', 'unmounted'])(
+    'send completion presents only the owning scope: %s',
+    async (outcome) => {
+        let hook!: ReturnType<typeof useActiveThread>;
+        const Probe = ({ active }: { active: boolean }) => {
+            hook = useActiveThread(null, 'workspace', active, 'parent');
+            return null;
+        };
+        let reject!: (error: Error) => void;
+        mockSend.mockImplementationOnce(
+            () => new Promise((_resolve, fail) => { reject = fail; }),
+        );
+        let root!: renderer.ReactTestRenderer;
+        await act(async () => { root = renderer.create(<Probe active />); });
+        let sending!: Promise<boolean>;
+        act(() => { sending = hook.sendText(); });
+        expect(mockSend).toHaveBeenCalledTimes(1);
+        mockConnection = 2; // Same authorization; a connection replacement must not hide this error.
+        if (outcome === 'replacement') {
+            mockPublication!.operation.identity = {
+                thread_id: 'parent', draft_id: 2, generation: 7,
+            };
+        } else {
+            mockPublication!.operation.status = {
+                kind: outcome === 'cancelled' ? 'cancelled' : 'failed',
+            };
+        }
+        if (outcome === 'unmounted') await act(async () => root.unmount());
+        else await act(async () => root.update(<Probe active={outcome !== 'inactive'} />));
+        mockState.setComposerError.mockClear();
+        await act(async () => {
+            reject(new Error('raw transport failure'));
+            await sending;
+        });
+        if (outcome === 'failed') expect(mockState.setComposerError).toHaveBeenCalledWith('sendFailed');
+        else expect(mockState.setComposerError).not.toHaveBeenCalled();
+        expect(mockSend).toHaveBeenCalledTimes(1);
+        if (outcome !== 'unmounted') await act(async () => root.unmount());
+    },
+);

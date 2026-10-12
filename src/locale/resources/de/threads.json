@@ -64,7 +64,7 @@
     "threadEmpty": "Starte eine Unterhaltung, indem du eine Nachricht sendest.",
     "inputPlaceholder": "Nachricht senden",
     "sendMessage": "Nachricht senden",
-    "sendFailed": "Nachricht konnte nicht gesendet werden.",
+    "sendFailed": "Beim Senden ist ein Fehler aufgetreten. Prüfen Sie den Chat vor einem erneuten Versuch.",
     "voiceMicrophone": "Spracheingabe",
     "voiceKeyboard": "Zurück zur Tastatur",
     "voiceHoldToTalk": "Zum Sprechen halten",

@@ -64,7 +64,7 @@
     "threadEmpty": "メッセージを送信して会話を開始してください。",
     "inputPlaceholder": "メッセージを送信",
     "sendMessage": "メッセージを送信",
-    "sendFailed": "メッセージを送信できませんでした。",
+    "sendFailed": "送信中にエラーが発生しました。再試行する前に会話を確認してください。",
     "voiceMicrophone": "音声入力",
     "voiceKeyboard": "キーボードに戻る",
     "voiceHoldToTalk": "長押しして話す",
