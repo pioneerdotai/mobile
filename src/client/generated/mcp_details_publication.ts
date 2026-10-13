@@ -22,6 +22,21 @@ export type McpServerStatus =
   | 'stopping'
   | 'stopped'
   | 'restarting';
+export type McpOAuthState =
+  | 'idle'
+  | 'preparing'
+  | 'awaiting_callback'
+  | 'exchanging'
+  | 'resolving'
+  | 'retired'
+  | 'cleanup_required'
+  | 'authorized'
+  | 'auth_required'
+  | 'insufficient_scope'
+  | 'denied'
+  | 'cancelled'
+  | 'timed_out'
+  | 'failed';
 export type McpScopeKind = 'workspace' | 'user';
 export type McpSourceKind = 'config';
 export type McpTransportSummary =
@@ -117,6 +132,12 @@ export interface McpManagementDetails {
   audit?: McpAuditEventSummary[];
   fingerprint: string;
   health: McpServerHealthDetails;
+  /**
+   * Device-neutral cleanup availability, including uncertain persistence.
+   * False after confirmed Clear; omitted by older Gateways.
+   */
+  oauth_cleanup_available?: boolean | null;
+  oauth_state?: McpOAuthState | null;
   recent_bindings?: McpTurnBindingSummary[];
   scope: McpScopeKind;
   source_kind: McpSourceKind;
