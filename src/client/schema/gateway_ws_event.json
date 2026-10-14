@@ -878,6 +878,12 @@
             "null"
           ]
         },
+        "version_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "workspace_id": {
           "type": "string"
         }
@@ -3820,6 +3826,39 @@
       },
       "required": [
         "settings"
+      ]
+    },
+    "HtmlPublication": {
+      "description": "An exact Gateway-created HTML publication. Generic HTML attachments never\nacquire this descriptor based on MIME alone.",
+      "type": "object",
+      "properties": {
+        "artifact": {
+          "$ref": "#/$defs/ArtifactRef"
+        },
+        "callId": {
+          "type": "string"
+        },
+        "threadId": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "turnId": {
+          "type": "string"
+        },
+        "workspaceId": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "workspaceId",
+        "threadId",
+        "turnId",
+        "callId",
+        "title",
+        "artifact"
       ]
     },
     "InvitationChangedNotification": {
@@ -13851,6 +13890,12 @@
           "type": "integer",
           "format": "uint64",
           "minimum": 0
+        },
+        "htmlPublications": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/HtmlPublication"
+          }
         },
         "lastWorkItemId": {
           "type": [

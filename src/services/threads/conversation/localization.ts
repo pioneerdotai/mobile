@@ -257,6 +257,7 @@ const localizeItem = (item: ItemView, content: TimelineItemPresentation): Timeli
             const turnItem = item.item as Extract<TurnItem, { type: 'agentMessage' }>;
             return {
                 type: 'assistant-message',
+                htmlPublications: content.html_publications ?? [],
                 key: rowKey('assistant-message', item.id),
                 itemId: item.id,
                 turnId: item.turn_id,

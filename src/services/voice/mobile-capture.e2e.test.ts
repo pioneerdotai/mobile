@@ -69,7 +69,9 @@ describe('mobile voice capture with fake native and Client ports', () => {
 
     beforeEach(() => {
         jest.clearAllMocks();
-        jest.mocked(composerOperationPlan).mockImplementation((identity) => ({ identity } as never));
+        jest.mocked(composerOperationPlan).mockImplementation(
+            (identity) => ({ identity }) as never,
+        );
         emitAudioReady = null;
         recorder = {
             clearOnAudioReady: jest.fn(),
@@ -120,7 +122,9 @@ describe('mobile voice capture with fake native and Client ports', () => {
             currentInputs: [{ id: 'bluetooth-microphone' }],
         } as never);
         let restarted!: () => void;
-        const restarting = new Promise<void>((resolve) => { restarted = resolve; });
+        const restarting = new Promise<void>((resolve) => {
+            restarted = resolve;
+        });
         recorder.start.mockImplementationOnce(async () => {
             restarted();
             return { status: 'success' };
@@ -155,8 +159,12 @@ describe('mobile voice capture with fake native and Client ports', () => {
             } as never);
             let entered!: () => void;
             let release!: () => void;
-            const deactivating = new Promise<void>((resolve) => { entered = resolve; });
-            const pending = new Promise<void>((resolve) => { release = resolve; });
+            const deactivating = new Promise<void>((resolve) => {
+                entered = resolve;
+            });
+            const pending = new Promise<void>((resolve) => {
+                release = resolve;
+            });
             jest.mocked(AudioManager.setAudioSessionActivity).mockImplementationOnce(
                 async (active) => {
                     expect(active).toBe(false);
@@ -183,7 +191,9 @@ describe('mobile voice capture with fake native and Client ports', () => {
             } else {
                 // Even a still-readable old plan must not steal a new native owner's activity.
                 jest.mocked(AudioRecorder).mockImplementationOnce(() => nextRecorder as never);
-                next = await startMobileVoiceCapture({ operation: { ...operation, generation: 2 } });
+                next = await startMobileVoiceCapture({
+                    operation: { ...operation, generation: 2 },
+                });
             }
             jest.mocked(AudioManager.setAudioSessionActivity).mockClear();
             release();
@@ -341,7 +351,9 @@ describe('mobile voice capture with fake native and Client ports', () => {
             const session = await startMobileVoiceCapture({ operation });
             const lateAudio = emitAudioReady;
             let release!: () => void;
-            const pending = new Promise<void>((resolve) => { release = resolve; });
+            const pending = new Promise<void>((resolve) => {
+                release = resolve;
+            });
             if (kind === 'cancel') {
                 jest.mocked(pioneerClient.voiceSessionCancel).mockImplementationOnce(async () => {
                     await pending;
@@ -364,7 +376,9 @@ describe('mobile voice capture with fake native and Client ports', () => {
             expect(pioneerClient.gatewayTransportRelease).toHaveBeenCalledTimes(1);
             expect(recorder.stop).toHaveBeenCalledTimes(1);
             expect(routeSubscription.remove).toHaveBeenCalledTimes(1);
-            const next = await startMobileVoiceCapture({ operation: { ...operation, generation: 2 } });
+            const next = await startMobileVoiceCapture({
+                operation: { ...operation, generation: 2 },
+            });
             const calls = jest.mocked(pioneerClient.voiceAudioChunk).mock.calls.length;
             lateAudio?.({
                 buffer: { getChannelData: () => new Float32Array([0.5]), sampleRate: 16000 },
@@ -379,7 +393,9 @@ describe('mobile voice capture with fake native and Client ports', () => {
     it('late cleanup of the old capture cannot deactivate the new native audio session', async () => {
         const old = await startMobileVoiceCapture({ operation });
         let release!: () => void;
-        const pending = new Promise<void>((resolve) => { release = resolve; });
+        const pending = new Promise<void>((resolve) => {
+            release = resolve;
+        });
         jest.mocked(pioneerClient.voiceSessionCancel).mockImplementationOnce(async () => {
             await pending;
             return { cancelled: true };
@@ -398,8 +414,12 @@ describe('mobile voice capture with fake native and Client ports', () => {
     it('a cancelled native start cannot attach callbacks after its terminal cleanup', async () => {
         let entered!: () => void;
         let release!: () => void;
-        const starting = new Promise<void>((resolve) => { entered = resolve; });
-        const pending = new Promise<void>((resolve) => { release = resolve; });
+        const starting = new Promise<void>((resolve) => {
+            entered = resolve;
+        });
+        const pending = new Promise<void>((resolve) => {
+            release = resolve;
+        });
         let fail!: (event: { message: string }) => void;
         recorder.onError.mockImplementation((callback: typeof fail) => {
             fail = callback;
@@ -421,5 +441,4 @@ describe('mobile voice capture with fake native and Client ports', () => {
         expect(recorder.clearOnError).toHaveBeenCalled();
         expect(pioneerClient.gatewayTransportRelease).toHaveBeenCalledTimes(1);
     });
-
 });

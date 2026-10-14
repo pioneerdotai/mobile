@@ -222,15 +222,18 @@ const ThreadScreen = ({
             owner.generation === identity.generation
         );
     }, []);
-    const ownsVoiceOperation = useCallback((identity: ComposerOperationIdentity) => {
-        const current = composerSnapshot(identity.thread_id)?.operation?.identity;
-        return (
-            ownsVoiceCapture(identity) &&
-            current?.thread_id === identity.thread_id &&
-            current.draft_id === identity.draft_id &&
-            current.generation === identity.generation
-        );
-    }, [ownsVoiceCapture]);
+    const ownsVoiceOperation = useCallback(
+        (identity: ComposerOperationIdentity) => {
+            const current = composerSnapshot(identity.thread_id)?.operation?.identity;
+            return (
+                ownsVoiceCapture(identity) &&
+                current?.thread_id === identity.thread_id &&
+                current.draft_id === identity.draft_id &&
+                current.generation === identity.generation
+            );
+        },
+        [ownsVoiceCapture],
+    );
     const voiceSessionRef = useRef<MobileVoiceCaptureSession | null>(null);
     const voiceStartPromiseRef = useRef<Promise<MobileVoiceCaptureSession> | null>(null);
     const voiceReleaseIntentRef = useRef<'commit' | 'cancel' | null>(null);
@@ -632,10 +635,12 @@ const ThreadScreen = ({
         const identity = voiceOperationRef.current;
         if (!identity || !ownsVoiceCapture(identity)) return;
         const operation = composerPublication?.operation;
-        const matching = operation?.identity.thread_id === identity.thread_id &&
+        const matching =
+            operation?.identity.thread_id === identity.thread_id &&
             operation.identity.draft_id === identity.draft_id &&
             operation.identity.generation === identity.generation;
-        if (matching && !['cancelled', 'failed', 'completed'].includes(operation.status.kind)) return;
+        if (matching && !['cancelled', 'failed', 'completed'].includes(operation.status.kind))
+            return;
         if (matching && operation.status.kind === 'failed' && !operation.voice_result) {
             useActiveThreadStore.getState().setComposerError(t('voiceFailed'));
         }
@@ -650,15 +655,17 @@ const ThreadScreen = ({
             ) ??
             Promise.resolve();
         setVoiceCaptureBusy(true);
-        void cleanup.catch(() => null).finally(() => {
-            if (!ownsVoiceCapture(identity)) return;
-            voiceOperationRef.current = null;
-            voiceSessionRef.current = null;
-            voiceStartPromiseRef.current = null;
-            voiceReleaseIntentRef.current = null;
-            setVoiceCaptureBusy(false);
-            setVoiceLevel(0);
-        });
+        void cleanup
+            .catch(() => null)
+            .finally(() => {
+                if (!ownsVoiceCapture(identity)) return;
+                voiceOperationRef.current = null;
+                voiceSessionRef.current = null;
+                voiceStartPromiseRef.current = null;
+                voiceReleaseIntentRef.current = null;
+                setVoiceCaptureBusy(false);
+                setVoiceLevel(0);
+            });
     }, [composerPublication, ownsVoiceCapture, t]);
 
     const updateComposerHeight = useCallback((height: number) => {
@@ -917,7 +924,8 @@ const ThreadScreen = ({
                         !ownsVoiceOperation(identity) ||
                         ['cancelled', 'completed'].includes(current?.status.kind ?? '') ||
                         current?.voice_result
-                    ) return;
+                    )
+                        return;
                     completeComposerOperation(identity, {
                         kind: 'failed',
                         message: voiceComposerErrorMessage(captureError),
@@ -992,7 +1000,8 @@ const ThreadScreen = ({
                         !ownsVoiceOperation(identity) ||
                         ['cancelled', 'completed'].includes(current?.status.kind ?? '') ||
                         current?.voice_result
-                    ) return;
+                    )
+                        return;
                     completeComposerOperation(identity, {
                         kind: 'failed',
                         message: voiceComposerErrorMessage(captureError),
@@ -1029,7 +1038,8 @@ const ThreadScreen = ({
                     !ownsVoiceOperation(identity) ||
                     ['cancelled', 'completed'].includes(current?.status.kind ?? '') ||
                     current?.voice_result
-                ) return;
+                )
+                    return;
                 completeComposerOperation(identity, {
                     kind: 'failed',
                     message: voiceComposerErrorMessage(captureError),

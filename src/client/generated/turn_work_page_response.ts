@@ -851,6 +851,7 @@ export interface TurnWorkBlock {
   hasMoreAfter: boolean;
   hasMoreBefore: boolean;
   hiddenWorkCount: number;
+  htmlPublications?: HtmlPublication[];
   lastWorkItemId?: string | null;
   presentation: TurnWorkPresentation;
   startedAtUnixMs?: number | null;
@@ -911,4 +912,16 @@ export interface AgentPresentationSnapshot {
   nickname: string;
   role_label?: string | null;
   [k: string]: unknown;
+}
+/**
+ * An exact Gateway-created HTML publication. Generic HTML attachments never
+ * acquire this descriptor based on MIME alone.
+ */
+export interface HtmlPublication {
+  artifact: ArtifactRef;
+  callId: string;
+  threadId: string;
+  title: string;
+  turnId: string;
+  workspaceId: string;
 }

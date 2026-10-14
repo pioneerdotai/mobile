@@ -144,17 +144,26 @@ it.each(['failed', 'cancelled', 'replacement', 'inactive', 'unmounted'])(
         };
         let reject!: (error: Error) => void;
         mockSend.mockImplementationOnce(
-            () => new Promise((_resolve, fail) => { reject = fail; }),
+            () =>
+                new Promise((_resolve, fail) => {
+                    reject = fail;
+                }),
         );
         let root!: renderer.ReactTestRenderer;
-        await act(async () => { root = renderer.create(<Probe active />); });
+        await act(async () => {
+            root = renderer.create(<Probe active />);
+        });
         let sending!: Promise<boolean>;
-        act(() => { sending = hook.sendText(); });
+        act(() => {
+            sending = hook.sendText();
+        });
         expect(mockSend).toHaveBeenCalledTimes(1);
         mockConnection = 2; // Same authorization; a connection replacement must not hide this error.
         if (outcome === 'replacement') {
             mockPublication!.operation.identity = {
-                thread_id: 'parent', draft_id: 2, generation: 7,
+                thread_id: 'parent',
+                draft_id: 2,
+                generation: 7,
             };
         } else {
             mockPublication!.operation.status = {
@@ -168,7 +177,8 @@ it.each(['failed', 'cancelled', 'replacement', 'inactive', 'unmounted'])(
             reject(new Error('raw transport failure'));
             await sending;
         });
-        if (outcome === 'failed') expect(mockState.setComposerError).toHaveBeenCalledWith('sendFailed');
+        if (outcome === 'failed')
+            expect(mockState.setComposerError).toHaveBeenCalledWith('sendFailed');
         else expect(mockState.setComposerError).not.toHaveBeenCalled();
         expect(mockSend).toHaveBeenCalledTimes(1);
         if (outcome !== 'unmounted') await act(async () => root.unmount());

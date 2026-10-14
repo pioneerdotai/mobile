@@ -30,6 +30,10 @@ export type TimelineBlockKind =
     }
   | {
       author?: TurnAuthorSnapshot | null;
+      /**
+       * Exact HTML content of this canonical response; source ownership is unchanged.
+       */
+      htmlPublications?: HtmlPublication[];
       itemId: string;
       kind: 'assistant_message';
       markdown?: MarkdownDocument | null;
@@ -468,6 +472,7 @@ export interface TurnWorkBlock {
   hasMoreAfter: boolean;
   hasMoreBefore: boolean;
   hiddenWorkCount: number;
+  htmlPublications?: HtmlPublication[];
   lastWorkItemId?: string | null;
   presentation: TurnWorkPresentation;
   startedAtUnixMs?: number | null;
@@ -508,6 +513,18 @@ export interface AgentWorkNodeProjection {
   progressLabel?: string | null;
   progressRevision: number;
   state: AgentWorkNodeState;
+}
+/**
+ * An exact Gateway-created HTML publication. Generic HTML attachments never
+ * acquire this descriptor based on MIME alone.
+ */
+export interface HtmlPublication {
+  artifact: ArtifactRef;
+  callId: string;
+  threadId: string;
+  title: string;
+  turnId: string;
+  workspaceId: string;
 }
 export interface TaskTurnItem {
   agentRole?: string | null;

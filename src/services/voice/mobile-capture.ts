@@ -546,7 +546,8 @@ const deactivateRecordingSession = async (operation: ComposerOperationIdentity):
         recordingSessionOwner?.thread_id !== operation.thread_id ||
         recordingSessionOwner.draft_id !== operation.draft_id ||
         recordingSessionOwner.generation !== operation.generation
-    ) return;
+    )
+        return;
     recordingSessionOwner = null;
     await AudioManager.setAudioSessionActivity(false).catch(() => null);
 };

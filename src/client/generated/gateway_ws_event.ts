@@ -689,6 +689,24 @@ export type ThreadParticipantChangeKind = 'added' | 'removed';
 export type ThreadAgentsDocStatus = 'draft' | 'active' | 'archived';
 export type TimelineChangeReason = 'backfill' | 'live_event' | 'state_changed' | 'page_invalidated';
 export type AgentWorkNodeState = 'queued' | 'running' | 'completed' | 'failed' | 'cancelled' | 'blocked';
+export type ArtifactKind =
+  | 'file'
+  | 'text'
+  | 'image'
+  | 'audio'
+  | 'video'
+  | 'pdf'
+  | 'spreadsheet'
+  | 'archive'
+  | 'json'
+  | 'generated_image'
+  | 'screenshot'
+  | 'workspace_file'
+  | 'directory_manifest'
+  | 'unknown';
+export type ArtifactProjectionKind = 'plain_text' | 'thumbnail' | 'json_summary' | 'pdf_text';
+export type ArtifactProjectionStatus = 'pending' | 'ready' | 'failed' | 'stale';
+export type ArtifactStatus = 'ready' | 'pending' | 'quarantined' | 'deleted' | 'missing_external_source' | 'failed';
 export type TurnWorkPresentation = 'expanded_live' | 'collapsed_after_final' | 'expanded_terminal_no_final';
 export type TurnWorkState =
   'starting' | 'running' | 'waiting_for_approval' | 'stalled' | 'completed' | 'blocked' | 'failed' | 'interrupted';
@@ -987,24 +1005,6 @@ export type UserMessageAttachment =
       type: 'mcpTool';
       [k: string]: unknown;
     };
-export type ArtifactKind =
-  | 'file'
-  | 'text'
-  | 'image'
-  | 'audio'
-  | 'video'
-  | 'pdf'
-  | 'spreadsheet'
-  | 'archive'
-  | 'json'
-  | 'generated_image'
-  | 'screenshot'
-  | 'workspace_file'
-  | 'directory_manifest'
-  | 'unknown';
-export type ArtifactProjectionKind = 'plain_text' | 'thumbnail' | 'json_summary' | 'pdf_text';
-export type ArtifactProjectionStatus = 'pending' | 'ready' | 'failed' | 'stale';
-export type ArtifactStatus = 'ready' | 'pending' | 'quarantined' | 'deleted' | 'missing_external_source' | 'failed';
 export type SkillPackId = string;
 export type SkillId = string;
 export type McpScopeKind = 'workspace' | 'user';
@@ -2335,6 +2335,7 @@ export interface TurnWorkBlock {
   hasMoreAfter: boolean;
   hasMoreBefore: boolean;
   hiddenWorkCount: number;
+  htmlPublications?: HtmlPublication[];
   lastWorkItemId?: string | null;
   presentation: TurnWorkPresentation;
   startedAtUnixMs?: number | null;
@@ -2371,6 +2372,41 @@ export interface AgentWorkNodeProjection {
   progressLabel?: string | null;
   progressRevision: number;
   state: AgentWorkNodeState;
+}
+/**
+ * An exact Gateway-created HTML publication. Generic HTML attachments never
+ * acquire this descriptor based on MIME alone.
+ */
+export interface HtmlPublication {
+  artifact: ArtifactRef;
+  callId: string;
+  threadId: string;
+  title: string;
+  turnId: string;
+  workspaceId: string;
+}
+export interface ArtifactRef {
+  artifact_id: string;
+  display_name: string;
+  kind: ArtifactKind;
+  mime_type?: string | null;
+  preview?: ArtifactPreviewRef | null;
+  sha256?: string | null;
+  size_bytes?: number | null;
+  status: ArtifactStatus;
+  version_id?: string | null;
+  [k: string]: unknown;
+}
+export interface ArtifactPreviewRef {
+  artifact_id: string;
+  blob_id?: string | null;
+  mime_type?: string | null;
+  projection_kind: ArtifactProjectionKind;
+  sha256?: string | null;
+  size_bytes?: number | null;
+  status: ArtifactProjectionStatus;
+  version_id: string;
+  [k: string]: unknown;
 }
 export interface TurnPermissionRequestOpenedNotification {
   request: TurnPermissionApprovalRequest;
@@ -2478,29 +2514,6 @@ export interface ItemStartedNotification {
   thread_id: string;
   turn_id: string;
   workspace_id: string;
-  [k: string]: unknown;
-}
-export interface ArtifactRef {
-  artifact_id: string;
-  display_name: string;
-  kind: ArtifactKind;
-  mime_type?: string | null;
-  preview?: ArtifactPreviewRef | null;
-  sha256?: string | null;
-  size_bytes?: number | null;
-  status: ArtifactStatus;
-  version_id?: string | null;
-  [k: string]: unknown;
-}
-export interface ArtifactPreviewRef {
-  artifact_id: string;
-  blob_id?: string | null;
-  mime_type?: string | null;
-  projection_kind: ArtifactProjectionKind;
-  sha256?: string | null;
-  size_bytes?: number | null;
-  status: ArtifactProjectionStatus;
-  version_id: string;
   [k: string]: unknown;
 }
 export interface TurnSkillCapabilitySummary {
@@ -2942,6 +2955,7 @@ export interface ArtifactBindingSummary {
   tool_call_id?: string | null;
   turn_id?: string | null;
   turn_item_id?: string | null;
+  version_id?: string | null;
   workspace_id: string;
   [k: string]: unknown;
 }
