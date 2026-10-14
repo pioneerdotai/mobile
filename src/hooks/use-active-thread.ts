@@ -107,8 +107,7 @@ export const useActiveThread = (
 
     const activeThreadIdRef = useRef<string | null | undefined>(undefined);
     const sendScopeRef = useRef({ threadId, active });
-    sendScopeRef.current = { threadId, active };
-    useEffect(() => {
+    useLayoutEffect(() => {
         sendScopeRef.current = { threadId, active };
         return () => {
             sendScopeRef.current.active = false;
@@ -302,7 +301,7 @@ export const useActiveThread = (
             }
             return false;
         }
-    }, [connected, connectionId, setComposerError, t, workspaceId, thread, threadId, active]);
+    }, [connected, setComposerError, t, workspaceId, thread, threadId, active]);
 
     const stopTurn = useCallback(async (): Promise<boolean> => {
         if (!active || !connected || !threadId || turnCancelling) return false;
