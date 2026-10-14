@@ -3,6 +3,18 @@
   "title": "ProviderCollectionPublication",
   "type": "object",
   "properties": {
+    "definitions": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ProviderDefinition"
+      }
+    },
+    "failure": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
     "key": {
       "$ref": "#/$defs/ProviderCollectionKey"
     },
@@ -32,6 +44,7 @@
     "revision",
     "request",
     "providers",
+    "definitions",
     "models"
   ],
   "$defs": {
@@ -105,6 +118,34 @@
       "required": [
         "workspace_id",
         "collection"
+      ]
+    },
+    "ProviderDefinition": {
+      "type": "object",
+      "properties": {
+        "default_base_url": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "name": {
+          "type": "string"
+        },
+        "retirement_reason": {
+          "description": "Terminal product lifecycle diagnostic; old clients can ignore it.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "supports_base_url_override": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": [
+        "name"
       ]
     },
     "ProviderLoadState": {
@@ -426,6 +467,19 @@
       "properties": {
         "api_key_configured": {
           "type": "boolean"
+        },
+        "available": {
+          "description": "The gateway can construct this provider in the selected workspace.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "base_url": {
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "capabilities": {
           "$ref": "#/$defs/ProviderSummaryCapabilities",

@@ -74,6 +74,14 @@ export type MarkdownBlock =
       [k: string]: unknown;
     }
   | {
+      alignments: MarkdownTableAlignment[];
+      headers: MarkdownInline1[];
+      rows: MarkdownInline1[][];
+      source: string;
+      type: 'table';
+      [k: string]: unknown;
+    }
+  | {
       type: 'rule';
       [k: string]: unknown;
     };
@@ -99,6 +107,7 @@ export type MarkdownMarkKind =
       url: string;
       [k: string]: unknown;
     };
+export type MarkdownTableAlignment = 'none' | 'left' | 'center' | 'right';
 export type SystemEventLabel =
   | (
       | 'Timeout'
