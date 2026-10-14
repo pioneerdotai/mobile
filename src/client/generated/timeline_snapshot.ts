@@ -873,7 +873,7 @@ export interface TimelineItemPresentation {
   edited_timestamp?: number | null;
   file_output?: TimelineTextPreview | null;
   final_status?: TimelineFinalStatus | null;
-  html_publication?: HtmlPublication | null;
+  html_publications?: HtmlPublication[];
   kind: TimelineItemKind;
   markdown?: MarkdownDocument | null;
   markdown_presentation?: MarkdownPresentation | null;
@@ -1050,6 +1050,7 @@ export interface ItemView {
   completed_at_unix_ms?: number | null;
   final_markdown?: MarkdownDocument | null;
   final_text?: string | null;
+  html_publications?: HtmlPublication[];
   id: string;
   item: TurnItem;
   item_type: string;

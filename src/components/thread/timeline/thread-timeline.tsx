@@ -1,4 +1,5 @@
-import { HtmlRow } from './rows/html-row';
+import type { View } from 'react-native';
+import { HtmlViewportContext } from './html-viewport';
 import { useTimelineDemand } from '@/client/timeline-demand';
 import { mobileClientBinding } from '@/client/mobile-client-binding';
 import { useThreadPresentation } from '@/hooks/use-thread-presentation';
@@ -186,6 +187,44 @@ const ThreadTimelineContent = ({
     );
     const [timelineNowMs, setTimelineNowMs] = useState(() => Date.now());
     const internalTimelineRef = useRef<LegendListRef | null>(null);
+    const htmlViewportView = useRef<View>(null);
+    const htmlMeasurements = useRef(new Set<(top: number, height: number) => void>());
+    const htmlFrame = useRef<number | null>(null);
+    const htmlGeneration = useRef(0);
+    const measureHtmlViewport = useCallback(() => {
+        if (htmlFrame.current !== null || htmlMeasurements.current.size === 0) return;
+        htmlFrame.current = requestAnimationFrame(() => {
+            htmlFrame.current = null;
+            const generation = ++htmlGeneration.current;
+            htmlViewportView.current?.measureInWindow(
+                (_x: number, top: number, _width: number, height: number) => {
+                    if (generation !== htmlGeneration.current) return;
+                    for (const measure of htmlMeasurements.current) measure(top, height);
+                },
+            );
+        });
+    }, []);
+    const htmlViewport = useMemo(
+        () => ({
+            subscribe: (measure: (top: number, height: number) => void) => {
+                htmlMeasurements.current.add(measure);
+                measureHtmlViewport();
+                return () => {
+                    htmlMeasurements.current.delete(measure);
+                };
+            },
+        }),
+        [measureHtmlViewport],
+    );
+    useEffect(
+        () => () => {
+            ++htmlGeneration.current;
+            if (htmlFrame.current !== null) cancelAnimationFrame(htmlFrame.current);
+            htmlMeasurements.current.clear();
+        },
+        [],
+    );
+
     const avatarRailController = useMemo(() => new TimelineAvatarRailController(), []);
     const listScrollOffset = useSharedValue(0);
     const listSharedValues = useMemo(
@@ -455,73 +494,77 @@ const ThreadTimelineContent = ({
     );
 
     return (
-        <Box style={styles.timelineRoot}>
-            <KeyboardAwareLegendList<TimelineRow>
-                key={timelineIdentityKey}
-                ref={internalTimelineRef}
-                {...TIMELINE_SCROLL_BEHAVIOR}
-                contentInsetEndAdjustment={contentInsetEndAdjustment}
-                data={rows}
-                drawDistance={TIMELINE_DRAW_DISTANCE}
-                estimatedItemSize={TIMELINE_ESTIMATED_ITEM_SIZE}
-                extraData={listExtraData}
-                getItemType={getTimelineItemType}
-                itemsAreEqual={timelineRowsAreEqual}
-                keyExtractor={(row) => row.key}
-                keyboardDismissMode="interactive"
-                keyboardLiftBehavior={TIMELINE_KEYBOARD_LIFT_BEHAVIOR}
-                keyboardOffset={keyboardOffset}
-                ListHeaderComponent={ListHeaderComponent}
-                onMomentumScrollBegin={timelineScroll.markScrollIntent}
-                onItemSizeChanged={handleTimelineItemSizeChanged}
-                onScrollBeginDrag={timelineScroll.markScrollIntent}
-                onViewableItemsChanged={handleViewableItemsChanged}
-                onRefresh={handleRefresh}
-                recycleItems
-                refreshing={refreshing}
-                renderItem={renderTimelineItem}
-                sharedValues={listSharedValues}
-                scrollEnabled={rowCount > 0}
-                scrollEventThrottle={16}
-                showsVerticalScrollIndicator={false}
-                style={styles.timelineList}
-                viewabilityConfig={TIMELINE_VIEWABILITY_CONFIG}
-                contentContainerStyle={[
-                    styles.content,
-                    contentTopInset > 0 && { paddingTop: contentTopInset },
-                ]}
-            />
-            <TimelineAvatarRail
-                controller={avatarRailController}
-                connected={connected}
-                contentInsetEndAdjustment={contentInsetEndAdjustment}
-                contentTopInset={contentTopInset}
-                grouping={timelineGrouping}
-                listRef={internalTimelineRef}
-                scrollOffset={listScrollOffset}
-                timelineIdentityKey={timelineIdentityKey}
-                viewportTopInset={avatarRailTopInset}
-            />
-            {rowCount === 0 && emptyReady ? (
-                <TimelineEmptyOverlay
-                    loading={loading}
-                    message={emptyMessage}
-                    loadingLabel={loadingLabel}
-                    contentTopInset={contentTopInset}
-                    contentBottomInset={contentBottomInset}
+        <HtmlViewportContext.Provider value={htmlViewport}>
+            <Box ref={htmlViewportView} collapsable={false} style={styles.timelineRoot}>
+                <KeyboardAwareLegendList<TimelineRow>
+                    key={timelineIdentityKey}
+                    ref={internalTimelineRef}
+                    {...TIMELINE_SCROLL_BEHAVIOR}
+                    contentInsetEndAdjustment={contentInsetEndAdjustment}
+                    data={rows}
+                    drawDistance={TIMELINE_DRAW_DISTANCE}
+                    estimatedItemSize={TIMELINE_ESTIMATED_ITEM_SIZE}
+                    extraData={listExtraData}
+                    getItemType={getTimelineItemType}
+                    itemsAreEqual={timelineRowsAreEqual}
+                    keyExtractor={(row) => row.key}
+                    keyboardDismissMode="interactive"
+                    keyboardLiftBehavior={TIMELINE_KEYBOARD_LIFT_BEHAVIOR}
                     keyboardOffset={keyboardOffset}
+                    ListHeaderComponent={ListHeaderComponent}
+                    onMomentumScrollBegin={timelineScroll.markScrollIntent}
+                    onItemSizeChanged={handleTimelineItemSizeChanged}
+                    onScroll={measureHtmlViewport}
+                    onLayout={measureHtmlViewport}
+                    onScrollBeginDrag={timelineScroll.markScrollIntent}
+                    onViewableItemsChanged={handleViewableItemsChanged}
+                    onRefresh={handleRefresh}
+                    recycleItems
+                    refreshing={refreshing}
+                    renderItem={renderTimelineItem}
+                    sharedValues={listSharedValues}
+                    scrollEnabled={rowCount > 0}
+                    scrollEventThrottle={16}
+                    showsVerticalScrollIndicator={false}
+                    style={styles.timelineList}
+                    viewabilityConfig={TIMELINE_VIEWABILITY_CONFIG}
+                    contentContainerStyle={[
+                        styles.content,
+                        contentTopInset > 0 && { paddingTop: contentTopInset },
+                    ]}
                 />
-            ) : null}
-            <MessageActionsSheet
-                row={messageActionsRow}
-                currentPrincipalId={currentPrincipalId}
-                onClose={closeMessageActions}
-                onOpenRevisions={onOpenMessageRevisions}
-                onReply={onReplyToMessage}
-                onEdit={onEditMessage}
-                onDelete={onDeleteMessage}
-            />
-        </Box>
+                <TimelineAvatarRail
+                    controller={avatarRailController}
+                    connected={connected}
+                    contentInsetEndAdjustment={contentInsetEndAdjustment}
+                    contentTopInset={contentTopInset}
+                    grouping={timelineGrouping}
+                    listRef={internalTimelineRef}
+                    scrollOffset={listScrollOffset}
+                    timelineIdentityKey={timelineIdentityKey}
+                    viewportTopInset={avatarRailTopInset}
+                />
+                {rowCount === 0 && emptyReady ? (
+                    <TimelineEmptyOverlay
+                        loading={loading}
+                        message={emptyMessage}
+                        loadingLabel={loadingLabel}
+                        contentTopInset={contentTopInset}
+                        contentBottomInset={contentBottomInset}
+                        keyboardOffset={keyboardOffset}
+                    />
+                ) : null}
+                <MessageActionsSheet
+                    row={messageActionsRow}
+                    currentPrincipalId={currentPrincipalId}
+                    onClose={closeMessageActions}
+                    onOpenRevisions={onOpenMessageRevisions}
+                    onReply={onReplyToMessage}
+                    onEdit={onEditMessage}
+                    onDelete={onDeleteMessage}
+                />
+            </Box>
+        </HtmlViewportContext.Provider>
     );
 };
 
@@ -771,6 +814,7 @@ const TimelineRowRenderer = ({
             return (
                 <AssistantMessageRow
                     row={row}
+                    threadId={threadId}
                     expanded={expanded}
                     onToggle={onToggleExpanded}
                     onLongPress={() => onOpenMessageActions(row)}
@@ -820,8 +864,6 @@ const TimelineRowRenderer = ({
                     canRespond={canRespondToAgentRequests}
                 />
             );
-        case 'html':
-            return <HtmlRow publication={row.publication} />;
         case 'artifact':
             return (
                 <ArtifactRow

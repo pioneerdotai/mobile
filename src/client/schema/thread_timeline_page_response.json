@@ -1270,6 +1270,13 @@
                 }
               ]
             },
+            "htmlPublications": {
+              "description": "Exact HTML content of this canonical response; source ownership is unchanged.",
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/HtmlPublication"
+              }
+            },
             "itemId": {
               "type": "string"
             },

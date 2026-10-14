@@ -30,6 +30,10 @@ export type TimelineBlockKind =
     }
   | {
       author?: TurnAuthorSnapshot | null;
+      /**
+       * Exact HTML content of this canonical response; source ownership is unchanged.
+       */
+      htmlPublications?: HtmlPublication[];
       itemId: string;
       kind: 'assistant_message';
       markdown?: MarkdownDocument | null;

@@ -713,6 +713,12 @@
             "null"
           ]
         },
+        "html_publications": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/HtmlPublication"
+          }
+        },
         "id": {
           "type": "string"
         },
@@ -2431,15 +2437,11 @@
             }
           ]
         },
-        "html_publication": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/HtmlPublication"
-            },
-            {
-              "type": "null"
-            }
-          ]
+        "html_publications": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/HtmlPublication"
+          }
         },
         "kind": {
           "$ref": "#/$defs/TimelineItemKind"

@@ -45,16 +45,6 @@ export const localizeTimelineRow = (snapshot: TimelineRowSnapshot): TimelineRow 
         };
     }
     const row = value.Timeline;
-    if (snapshot.content?.html_publication) {
-        const publication = snapshot.content.html_publication;
-        return {
-            ...meta,
-            type: 'html',
-            turnId: publication.turnId,
-            publication,
-            author: row.author ?? null,
-        };
-    }
     if (snapshot.item) {
         const localized = localizeItem(snapshot.item, snapshot.content!);
         if ('UserMessage' in row.kind && localized.type === 'user-message') {
@@ -267,6 +257,7 @@ const localizeItem = (item: ItemView, content: TimelineItemPresentation): Timeli
             const turnItem = item.item as Extract<TurnItem, { type: 'agentMessage' }>;
             return {
                 type: 'assistant-message',
+                htmlPublications: content.html_publications ?? [],
                 key: rowKey('assistant-message', item.id),
                 itemId: item.id,
                 turnId: item.turn_id,

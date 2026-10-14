@@ -209,7 +209,6 @@ const timelineAvatarGroupBottomInsetUnits = (row: TimelineRow): number => {
             return TIMELINE_TECHNICAL_ROW_VERTICAL_PADDING_UNITS;
         case 'running':
             return TIMELINE_RUNNING_ROW_BOTTOM_PADDING_UNITS;
-        case 'html':
         case 'artifact':
         case 'unknown':
             return TIMELINE_CARD_VERTICAL_MARGIN_UNITS;

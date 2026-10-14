@@ -110,6 +110,24 @@ export type MarkdownMarkKind =
       url: string;
       [k: string]: unknown;
     };
+export type ArtifactKind =
+  | 'file'
+  | 'text'
+  | 'image'
+  | 'audio'
+  | 'video'
+  | 'pdf'
+  | 'spreadsheet'
+  | 'archive'
+  | 'json'
+  | 'generated_image'
+  | 'screenshot'
+  | 'workspace_file'
+  | 'directory_manifest'
+  | 'unknown';
+export type ArtifactProjectionKind = 'plain_text' | 'thumbnail' | 'json_summary' | 'pdf_text';
+export type ArtifactProjectionStatus = 'pending' | 'ready' | 'failed' | 'stale';
+export type ArtifactStatus = 'ready' | 'pending' | 'quarantined' | 'deleted' | 'missing_external_source' | 'failed';
 export type TurnItem =
   | {
       attachments?: UserMessageAttachment[];
@@ -369,24 +387,6 @@ export type UserMessageAttachment =
       type: 'mcpTool';
       [k: string]: unknown;
     };
-export type ArtifactKind =
-  | 'file'
-  | 'text'
-  | 'image'
-  | 'audio'
-  | 'video'
-  | 'pdf'
-  | 'spreadsheet'
-  | 'archive'
-  | 'json'
-  | 'generated_image'
-  | 'screenshot'
-  | 'workspace_file'
-  | 'directory_manifest'
-  | 'unknown';
-export type ArtifactProjectionKind = 'plain_text' | 'thumbnail' | 'json_summary' | 'pdf_text';
-export type ArtifactProjectionStatus = 'pending' | 'ready' | 'failed' | 'stale';
-export type ArtifactStatus = 'ready' | 'pending' | 'quarantined' | 'deleted' | 'missing_external_source' | 'failed';
 export type SkillPackId = string;
 export type SkillId = string;
 export type McpScopeKind = 'workspace' | 'user';
@@ -822,6 +822,7 @@ export interface ItemView {
   completed_at_unix_ms?: number | null;
   final_markdown?: MarkdownDocument | null;
   final_text?: string | null;
+  html_publications?: HtmlPublication[];
   id: string;
   item: TurnItem;
   item_type: string;
@@ -858,6 +859,18 @@ export interface MarkdownMark {
 export interface MarkdownList {
   type: 'list';
   [k: string]: unknown;
+}
+/**
+ * An exact Gateway-created HTML publication. Generic HTML attachments never
+ * acquire this descriptor based on MIME alone.
+ */
+export interface HtmlPublication {
+  artifact: ArtifactRef;
+  callId: string;
+  threadId: string;
+  title: string;
+  turnId: string;
+  workspaceId: string;
 }
 export interface ArtifactRef {
   artifact_id: string;

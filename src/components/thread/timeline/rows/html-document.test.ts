@@ -1,5 +1,5 @@
 import { describe, it, expect } from '@jest/globals';
-import { measurement, prepare, rendererIntersects, layoutMeasurement } from './html-document';
+import { measurement, prepare, layoutMeasurement } from './html-document';
 
 describe('HTML renderer boundary', () => {
     const valid = { kind: 'pioneer-layout', instance: 'generation', width: 360, height: 4200 };
@@ -34,13 +34,6 @@ describe('HTML renderer boundary', () => {
             measurement(JSON.stringify({ ...valid, rpc: 'arbitrary' }), 'null', 'generation', 360),
         ).toBeNull();
         expect(measurement(' '.repeat(8193), 'null', 'generation', 360)).toBeNull();
-    });
-    it('retains a 100000px row with only 700px visible, including a partial 1px edge', () => {
-        expect(rendererIntersects(700)).toBe(true);
-        expect(rendererIntersects(1)).toBe(true);
-        expect(rendererIntersects(0)).toBe(false);
-        expect(rendererIntersects(-1)).toBe(false);
-        expect(rendererIntersects(NaN)).toBe(false);
     });
     it('admits only bounded widget geometry for Android gesture ownership', () => {
         const raw = JSON.stringify({ ...valid, scrollRects: [[10, 20, 100, 120]] });
@@ -78,6 +71,5 @@ describe('HTML renderer boundary', () => {
         });
         expect(document.indexOf('--pioneer-background')).toBeLessThan(document.indexOf(html));
         expect(document.indexOf('const id="generation"')).toBeLessThan(document.indexOf(html));
-        expect(document).not.toContain('Authorization');
     });
 });

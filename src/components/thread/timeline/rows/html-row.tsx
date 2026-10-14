@@ -1,8 +1,7 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { AppState, NativeModules, Platform, View, findNodeHandle } from 'react-native';
 import { File } from 'expo-file-system';
 import { nanoid } from 'nanoid';
-import { useViewabilityAmount } from '@legendapp/list/react-native';
 import WebView, { type WebViewMessageEvent } from 'react-native-webview';
 import { useTranslation } from 'react-i18next';
 import { useUnistyles } from 'react-native-unistyles';
@@ -12,39 +11,53 @@ import { useThreadArtifacts } from '@/client/thread-artifacts';
 import { useThreadCapabilities } from '@/client/thread-capabilities';
 import type { HtmlPublication } from '@/client/generated/timeline_snapshot';
 import { BodyText } from './status';
-import {
-    prepare,
-    layoutMeasurement,
-    rendererIntersects,
-    type Palette,
-    type ScrollRect,
-} from './html-document';
+import { HtmlViewportContext } from '../html-viewport';
+import { prepare, layoutMeasurement, type Palette, type ScrollRect } from './html-document';
 
 // The key is the immutable publication identity, including its exact version.
 // LegendList may recycle the containing component; the renderer below never is.
-export function HtmlRow({ publication }: { publication: HtmlPublication }) {
+export function HtmlRow({
+    publication,
+    responseThreadId,
+    viewable = true,
+}: {
+    publication: HtmlPublication;
+    responseThreadId: string;
+    viewable?: boolean;
+}) {
     return (
         <HtmlInstance
             key={`${publication.artifact.artifact_id}:${publication.artifact.version_id}`}
             publication={publication}
+            responseThreadId={responseThreadId}
+            viewable={viewable}
         />
     );
 }
 
-function HtmlInstance({ publication }: { publication: HtmlPublication }) {
+function HtmlInstance({
+    publication,
+    responseThreadId,
+    viewable,
+}: {
+    publication: HtmlPublication;
+    responseThreadId: string;
+    viewable: boolean;
+}) {
     const { theme, rt } = useUnistyles();
+    const viewport = useContext(HtmlViewportContext);
+    const surface = useRef<View>(null);
+    const [intersects, setIntersects] = useState(() => viewport === null);
     const { t } = useTranslation('artifacts');
-    const [viewable, setViewable] = useState(true);
     const [foreground, setForeground] = useState(AppState.currentState === 'active');
-    useViewabilityAmount((token) => setViewable(rendererIntersects(token.sizeVisible)));
     useEffect(() => {
         const listener = AppState.addEventListener('change', (state) =>
             setForeground(state === 'active'),
         );
         return () => listener.remove();
     }, []);
-    const artifacts = useThreadArtifacts(publication.threadId, true, publication.workspaceId);
-    const capability = useThreadCapabilities(publication.threadId, true, publication.workspaceId);
+    const artifacts = useThreadArtifacts(responseThreadId, true, publication.workspaceId);
+    const capability = useThreadCapabilities(responseThreadId, true, publication.workspaceId);
     const permitted =
         capability?.request.kind !== 'failed' &&
         capability?.snapshot?.thread?.capabilities.can_read_artifacts === true;
@@ -61,7 +74,28 @@ function HtmlInstance({ publication }: { publication: HtmlPublication }) {
     const [document, setDocument] = useState<string | null>(null);
     const [failed, setFailed] = useState(false);
     const [height, setHeight] = useState(1);
-    const active = permitted && available && viewable && foreground;
+    const active = permitted && available && viewable && intersects && foreground;
+    useEffect(() => {
+        if (!viewport || !viewable || !foreground) return;
+        let alive = true;
+        let generation = 0;
+        const unsubscribe = viewport.subscribe((top, viewportHeight) => {
+            const current = ++generation;
+            surface.current?.measureInWindow((_x, y, _width, measuredHeight) => {
+                if (!alive || current !== generation) return;
+                setIntersects(
+                    viewportHeight > 0 &&
+                        measuredHeight > 0 &&
+                        y < top + viewportHeight &&
+                        y + measuredHeight > top,
+                );
+            });
+        });
+        return () => {
+            alive = false;
+            unsubscribe();
+        };
+    }, [viewport, viewable, foreground, height, document]);
     const palette = useMemo(
         () => ({
             appearance: rt.themeName === 'light' ? 'light' : 'dark',
@@ -75,64 +109,74 @@ function HtmlInstance({ publication }: { publication: HtmlPublication }) {
     );
 
     useEffect(() => {
-        if (!permitted || !available || !viewable || !foreground || document !== null || failed)
+        if (
+            !permitted ||
+            !available ||
+            !viewable ||
+            !intersects ||
+            !foreground ||
+            document !== null ||
+            failed
+        )
             return;
         let cancelled = false;
-        const identity = beginArtifactAction(
-            publication.threadId,
-            publication.artifact.artifact_id,
-            publication.artifact.version_id ?? null,
-            'share',
-        );
-        if (!identity) {
-            setFailed(true);
-            return;
-        }
-        const operation = `html:${nanoid()}`;
-        void pioneerClient
-            .artifactDownload({
+        let identity: ReturnType<typeof beginArtifactAction> = null;
+        const load = async () => {
+            identity = beginArtifactAction(
+                responseThreadId,
+                publication.artifact.artifact_id,
+                publication.artifact.version_id ?? null,
+                'share',
+            );
+            if (!identity) throw new Error('HTML artifact action unavailable');
+            const operation = `html-${nanoid()}`;
+            // Shared Rust admission defers this action while all eight slots are busy.
+            // Cleanup cancels the waiting identity before it can download or present.
+            const result = await pioneerClient.artifactDownload({
                 identity,
                 operation_id: operation,
-                thread_id: publication.threadId,
+                thread_id: responseThreadId,
                 workspace_id: publication.workspaceId,
                 artifact_id: publication.artifact.artifact_id,
                 version_id: publication.artifact.version_id,
-            })
-            .then(async (result) => {
-                // Rust resolves the configured remote Gateway, owns authentication,
-                // checks the exact version, length and SHA, and returns a verified file.
-                if (cancelled) return;
-                if (
-                    result.artifact_id !== publication.artifact.artifact_id ||
-                    result.version_id !== publication.artifact.version_id ||
-                    result.sha256 !== publication.artifact.sha256 ||
-                    result.size_bytes !== publication.artifact.size_bytes
-                )
-                    throw new Error('HTML exact source mismatch');
-                const html = await new File(result.local_file_path).text();
-                if (cancelled) return;
-                dispatchArtifact({ kind: 'claim_presentation', identity });
-                dispatchArtifact({ kind: 'complete_presentation', identity, error: null });
-                setDocument(html);
-            })
-            .catch(() => {
-                if (!cancelled) setFailed(true);
             });
+            // Rust resolves the configured remote Gateway, owns authentication,
+            // checks the exact version, length and SHA, and returns a verified file.
+            if (cancelled) return;
+            if (
+                result.artifact_id !== publication.artifact.artifact_id ||
+                result.version_id !== publication.artifact.version_id ||
+                result.sha256 !== publication.artifact.sha256 ||
+                result.size_bytes !== publication.artifact.size_bytes
+            )
+                throw new Error('HTML exact source mismatch');
+            const html = await new File(result.local_file_path).text();
+            if (cancelled) return;
+            dispatchArtifact({ kind: 'claim_presentation', identity });
+            dispatchArtifact({ kind: 'complete_presentation', identity, error: null });
+            setDocument(html);
+        };
+        void load().catch(() => {
+            if (!cancelled) setFailed(true);
+        });
         return () => {
             cancelled = true;
-            dispatchArtifact({ kind: 'cancel_action', identity });
+            if (identity) dispatchArtifact({ kind: 'cancel_action', identity });
         };
     }, [
         permitted,
         available,
         viewable,
+        intersects,
         foreground,
         document,
         failed,
-        publication.threadId,
+        responseThreadId,
         publication.workspaceId,
         publication.artifact.artifact_id,
         publication.artifact.version_id,
+        publication.artifact.sha256,
+        publication.artifact.size_bytes,
     ]);
     if (
         !available ||
@@ -142,10 +186,15 @@ function HtmlInstance({ publication }: { publication: HtmlPublication }) {
     )
         return <BodyText>{t('actionErrors.revoked_or_unavailable')}</BodyText>;
     if (failed) return <BodyText>{t('loadFailed')}</BodyText>;
-    if (document === null) return <BodyText>{t('loading')}</BodyText>;
     return (
-        <View style={{ height, width: '100%' }}>
-            {active ? (
+        <View
+            ref={surface}
+            collapsable={false}
+            style={{ height: document === null ? undefined : height, width: '100%' }}
+        >
+            {document === null ? (
+                <BodyText>{t('loading')}</BodyText>
+            ) : active ? (
                 <HtmlWebView
                     html={document}
                     palette={palette}
@@ -178,10 +227,10 @@ function HtmlWebView({
     const gestureTag = useRef<number | null>(null);
     const scrollRects = useRef<ScrollRect[]>([]);
     const [instance] = useState(() => nanoid());
-    const initialPalette = useRef(palette);
+    const [initialPalette] = useState(palette);
     const source = useMemo(
-        () => ({ html: prepare(html, instance, initialPalette.current) }),
-        [html, instance],
+        () => ({ html: prepare(html, instance, initialPalette) }),
+        [html, instance, initialPalette],
     );
     const live = useRef(true);
     const frame = useRef<number | null>(null);
@@ -195,7 +244,7 @@ function HtmlWebView({
                 NativeModules.PioneerHtmlLayout?.release(gestureTag.current, instance);
             if (frame.current !== null) cancelAnimationFrame(frame.current);
         };
-    }, []);
+    }, [instance]);
     useEffect(() => {
         webview.current?.injectJavaScript(
             `window.dispatchEvent(new CustomEvent('pioneer-theme',{detail:${JSON.stringify(palette)}}));true;`,
