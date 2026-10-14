@@ -1,7 +1,8 @@
-import { beforeEach, describe, expect, it, jest } from '@jest/globals';
+import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { AudioManager, AudioRecorder } from 'react-native-audio-api';
 
 import { pioneerClient, type VoiceSessionStartContext, type VoiceTurnContext } from '@/client';
+import { composerOperationPlan } from '@/client/composer';
 import { MOBILE_VOICE_AUDIO_FORMAT, startMobileVoiceCapture } from './mobile-capture';
 
 jest.mock('react-native-audio-api', () => ({
@@ -14,6 +15,10 @@ jest.mock('react-native-audio-api', () => ({
         setAudioSessionOptions: jest.fn(),
     },
     AudioRecorder: jest.fn(),
+}));
+
+jest.mock('@/client/composer', () => ({
+    composerOperationPlan: jest.fn((identity: unknown) => ({ identity })),
 }));
 
 jest.mock('@/client', () => ({
@@ -64,6 +69,9 @@ describe('mobile voice capture with fake native and Client ports', () => {
 
     beforeEach(() => {
         jest.clearAllMocks();
+        jest.mocked(composerOperationPlan).mockImplementation(
+            (identity) => ({ identity }) as never,
+        );
         emitAudioReady = null;
         recorder = {
             clearOnAudioReady: jest.fn(),
@@ -101,6 +109,110 @@ describe('mobile voice capture with fake native and Client ports', () => {
         jest.mocked(pioneerClient.voiceSessionFinalize).mockResolvedValue({} as never);
         jest.mocked(pioneerClient.voiceSessionCancel).mockResolvedValue({} as never);
     });
+
+    afterEach(() => {
+        jest.useRealTimers();
+    });
+
+    it('route restart retains the capture identity and releases its audio activity', async () => {
+        const session = await startMobileVoiceCapture({ operation });
+        jest.useFakeTimers();
+        jest.mocked(AudioManager.getDevicesInfo).mockResolvedValue({
+            availableInputs: [],
+            currentInputs: [{ id: 'bluetooth-microphone' }],
+        } as never);
+        let restarted!: () => void;
+        const restarting = new Promise<void>((resolve) => {
+            restarted = resolve;
+        });
+        recorder.start.mockImplementationOnce(async () => {
+            restarted();
+            return { status: 'success' };
+        });
+        const routeChanged = jest.mocked(AudioManager.addSystemEventListener).mock.calls[0][1];
+        routeChanged({ reason: 'NewDeviceAvailable' } as never);
+        jest.advanceTimersByTime(150);
+        await restarting;
+        expect(AudioManager.setAudioSessionActivity).toHaveBeenNthCalledWith(2, false);
+        expect(AudioManager.setAudioSessionActivity).toHaveBeenNthCalledWith(3, true);
+        emitAudioReady?.({
+            buffer: { getChannelData: () => new Float32Array([0.5]), sampleRate: 16000 },
+            numFrames: 1,
+        });
+        expect(pioneerClient.voiceAudioChunk).toHaveBeenLastCalledWith(
+            expect.objectContaining({ operation }),
+            expect.any(ArrayBuffer),
+        );
+        await session.cancel('route_restart_complete');
+        expect(AudioManager.setAudioSessionActivity).toHaveBeenLastCalledWith(false);
+        expect(pioneerClient.gatewayTransportRelease).toHaveBeenCalledTimes(1);
+    });
+
+    it.each(['cancel', 'superseded', 'new_capture'])(
+        'restart awaiting deactivation cannot reactivate after %s',
+        async (replacement) => {
+            const session = await startMobileVoiceCapture({ operation });
+            jest.useFakeTimers();
+            jest.mocked(AudioManager.getDevicesInfo).mockResolvedValue({
+                availableInputs: [],
+                currentInputs: [{ id: 'bluetooth-microphone' }],
+            } as never);
+            let entered!: () => void;
+            let release!: () => void;
+            const deactivating = new Promise<void>((resolve) => {
+                entered = resolve;
+            });
+            const pending = new Promise<void>((resolve) => {
+                release = resolve;
+            });
+            jest.mocked(AudioManager.setAudioSessionActivity).mockImplementationOnce(
+                async (active) => {
+                    expect(active).toBe(false);
+                    entered();
+                    await pending;
+                },
+            );
+            const routeChanged = jest.mocked(AudioManager.addSystemEventListener).mock.calls[0][1];
+            routeChanged({ reason: 'OldDeviceUnavailable' } as never);
+            jest.advanceTimersByTime(150);
+            await deactivating;
+
+            let cleanup: Promise<void> | null = null;
+            let next: Awaited<ReturnType<typeof startMobileVoiceCapture>> | null = null;
+            const nextRecorder = {
+                ...recorder,
+                start: jest.fn(async () => ({ status: 'success' })),
+                stop: jest.fn(async () => ({ status: 'success' })),
+            };
+            if (replacement === 'cancel') {
+                cleanup = session.cancel('cancel_during_deactivation');
+            } else if (replacement === 'superseded') {
+                jest.mocked(composerOperationPlan).mockReturnValue(null);
+            } else {
+                // Even a still-readable old plan must not steal a new native owner's activity.
+                jest.mocked(AudioRecorder).mockImplementationOnce(() => nextRecorder as never);
+                next = await startMobileVoiceCapture({
+                    operation: { ...operation, generation: 2 },
+                });
+            }
+            jest.mocked(AudioManager.setAudioSessionActivity).mockClear();
+            release();
+            // Let the queued restart examine ending/identity/ownership before later cleanup.
+            await jest.advanceTimersByTimeAsync(0);
+            await (cleanup ?? session.cancel('join_old_restart'));
+            expect(AudioManager.setAudioSessionActivity).not.toHaveBeenCalledWith(true);
+            expect(recorder.start).toHaveBeenCalledTimes(1);
+            expect(pioneerClient.gatewayTransportRelease).toHaveBeenCalledTimes(1);
+            if (next) {
+                expect(nextRecorder.stop).not.toHaveBeenCalled();
+                expect(AudioManager.setAudioSessionActivity).not.toHaveBeenCalledWith(false);
+                await next.cancel('release_new_capture');
+                expect(AudioManager.setAudioSessionActivity).toHaveBeenCalledWith(false);
+                expect(nextRecorder.stop).toHaveBeenCalledTimes(1);
+                expect(pioneerClient.gatewayTransportRelease).toHaveBeenCalledTimes(2);
+            }
+        },
+    );
 
     it('streams PCM with captured operation identity and finalizes through Client', async () => {
         const session = await startMobileVoiceCapture({
@@ -231,6 +343,102 @@ describe('mobile voice capture with fake native and Client ports', () => {
         expect(AudioManager.setAudioSessionActivity).not.toHaveBeenCalled();
         expect(AudioRecorder).not.toHaveBeenCalled();
         expect(pioneerClient.voiceSessionStart).not.toHaveBeenCalled();
+        expect(pioneerClient.gatewayTransportRelease).toHaveBeenCalledTimes(1);
+    });
+    it.each(['cancel', 'finalize'])(
+        'joins %s cleanup before releasing the exact native capture and transport lease',
+        async (kind) => {
+            const session = await startMobileVoiceCapture({ operation });
+            const lateAudio = emitAudioReady;
+            let release!: () => void;
+            const pending = new Promise<void>((resolve) => {
+                release = resolve;
+            });
+            if (kind === 'cancel') {
+                jest.mocked(pioneerClient.voiceSessionCancel).mockImplementationOnce(async () => {
+                    await pending;
+                    return { cancelled: true };
+                });
+            } else {
+                jest.mocked(pioneerClient.voiceSessionFinalize).mockImplementationOnce(async () => {
+                    await pending;
+                    throw new Error('connection closed');
+                });
+            }
+            const ending =
+                kind === 'cancel' ? session.cancel() : session.commit(async () => turnContext);
+            const joined = session.cancel('composer_terminal');
+            expect(joined).toBe(ending);
+            expect(pioneerClient.gatewayTransportRelease).not.toHaveBeenCalled();
+            release();
+            if (kind === 'cancel') await ending;
+            else await expect(ending).rejects.toThrow('connection closed');
+            expect(pioneerClient.gatewayTransportRelease).toHaveBeenCalledTimes(1);
+            expect(recorder.stop).toHaveBeenCalledTimes(1);
+            expect(routeSubscription.remove).toHaveBeenCalledTimes(1);
+            const next = await startMobileVoiceCapture({
+                operation: { ...operation, generation: 2 },
+            });
+            const calls = jest.mocked(pioneerClient.voiceAudioChunk).mock.calls.length;
+            lateAudio?.({
+                buffer: { getChannelData: () => new Float32Array([0.5]), sampleRate: 16000 },
+                numFrames: 1,
+            });
+            expect(pioneerClient.voiceAudioChunk).toHaveBeenCalledTimes(calls);
+            await next.cancel();
+            expect(pioneerClient.gatewayTransportRelease).toHaveBeenCalledTimes(2);
+        },
+    );
+
+    it('late cleanup of the old capture cannot deactivate the new native audio session', async () => {
+        const old = await startMobileVoiceCapture({ operation });
+        let release!: () => void;
+        const pending = new Promise<void>((resolve) => {
+            release = resolve;
+        });
+        jest.mocked(pioneerClient.voiceSessionCancel).mockImplementationOnce(async () => {
+            await pending;
+            return { cancelled: true };
+        });
+        const cleanup = old.cancel();
+        const next = await startMobileVoiceCapture({ operation: { ...operation, generation: 2 } });
+        jest.mocked(AudioManager.setAudioSessionActivity).mockClear();
+        release();
+        await cleanup;
+        expect(AudioManager.setAudioSessionActivity).not.toHaveBeenCalledWith(false);
+        expect(pioneerClient.gatewayTransportRelease).toHaveBeenCalledTimes(1);
+        await next.cancel();
+        expect(AudioManager.setAudioSessionActivity).toHaveBeenCalledWith(false);
+        expect(pioneerClient.gatewayTransportRelease).toHaveBeenCalledTimes(2);
+    });
+    it('a cancelled native start cannot attach callbacks after its terminal cleanup', async () => {
+        let entered!: () => void;
+        let release!: () => void;
+        const starting = new Promise<void>((resolve) => {
+            entered = resolve;
+        });
+        const pending = new Promise<void>((resolve) => {
+            release = resolve;
+        });
+        let fail!: (event: { message: string }) => void;
+        recorder.onError.mockImplementation((callback: typeof fail) => {
+            fail = callback;
+            return { status: 'success' };
+        });
+        recorder.start.mockImplementation(async () => {
+            entered();
+            await pending;
+            return { status: 'success' };
+        });
+        const capture = startMobileVoiceCapture({ operation });
+        await starting;
+        fail({ message: 'native connection lost' });
+        release();
+        const session = await capture;
+        await session.cancel('test_join');
+        expect(AudioManager.addSystemEventListener).not.toHaveBeenCalled();
+        expect(recorder.clearOnAudioReady).toHaveBeenCalled();
+        expect(recorder.clearOnError).toHaveBeenCalled();
         expect(pioneerClient.gatewayTransportRelease).toHaveBeenCalledTimes(1);
     });
 });

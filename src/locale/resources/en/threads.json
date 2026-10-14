@@ -64,7 +64,7 @@
     "threadEmpty": "Start a conversation by sending a message.",
     "inputPlaceholder": "Send a message",
     "sendMessage": "Send message",
-    "sendFailed": "Failed to send message.",
+    "sendFailed": "An error occurred while sending. Check the conversation before trying again.",
     "voiceMicrophone": "Voice input",
     "voiceKeyboard": "Back to typing",
     "voiceHoldToTalk": "Hold to talk",

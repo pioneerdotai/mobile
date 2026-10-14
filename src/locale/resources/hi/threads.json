@@ -64,7 +64,7 @@
     "threadEmpty": "संदेश भेजकर बातचीत शुरू करें.",
     "inputPlaceholder": "संदेश भेजें",
     "sendMessage": "संदेश भेजें",
-    "sendFailed": "संदेश नहीं भेजा जा सका.",
+    "sendFailed": "भेजते समय त्रुटि हुई। फिर प्रयास करने से पहले बातचीत जाँचें।",
     "voiceMicrophone": "वॉइस इनपुट",
     "voiceKeyboard": "टाइपिंग पर लौटें",
     "voiceHoldToTalk": "बोलने के लिए दबाए रखें",
