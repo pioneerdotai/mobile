@@ -37,22 +37,24 @@ describe('resolveAgentAvatar', () => {
         });
     });
 
-    test('returns the immutable revision together with the owned cache URI', async () => {
+    test.each([
+        AGENT_AVATAR_REVISIONS.codex,
+        AGENT_AVATAR_REVISIONS.claude,
+        AGENT_AVATAR_REVISIONS.opencode,
+    ])('returns the immutable revision %s together with the owned cache URI', async (revision) => {
         agentAvatarCache.mockResolvedValue({
             cached_image_path: '/owned/cache/agent avatar.jpeg',
-            avatar_revision: AGENT_AVATAR_REVISIONS.opencode,
+            avatar_revision: revision,
             media_type: 'image/jpeg',
             source: 'downloaded',
         });
 
-        await expect(
-            resolveAgentAvatarRepresentation(AGENT_AVATAR_REVISIONS.opencode),
-        ).resolves.toEqual({
-            avatarRevision: AGENT_AVATAR_REVISIONS.opencode,
+        await expect(resolveAgentAvatarRepresentation(revision)).resolves.toEqual({
+            avatarRevision: revision,
             uri: 'file:///owned/cache/agent%20avatar.jpeg',
         });
         expect(agentAvatarCache).toHaveBeenCalledWith({
-            avatar_revision: AGENT_AVATAR_REVISIONS.opencode,
+            avatar_revision: revision,
         });
     });
 

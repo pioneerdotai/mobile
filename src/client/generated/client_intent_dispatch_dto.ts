@@ -608,7 +608,7 @@ export type GatewayModelSelection =
       source: 'explicit';
       transport: ModelSelectionTransport;
     };
-export type ModelSelectionTransport = 'api' | 'codex' | 'claude' | 'open_code';
+export type ModelSelectionTransport = 'api' | 'codex' | 'claude' | 'opencode';
 export type MemorySettingToggle =
   'Enabled' | 'ActiveRecall' | 'ProactiveWrites' | 'BackgroundExtraction' | 'DebugTrace';
 export type MemoryModelSetting = 'PostTurnExtractor';

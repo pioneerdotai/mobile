@@ -34,7 +34,7 @@ export type GatewayModelSelection =
       source: 'explicit';
       transport: ModelSelectionTransport;
     };
-export type ModelSelectionTransport = 'api' | 'codex' | 'claude' | 'open_code';
+export type ModelSelectionTransport = 'api' | 'codex' | 'claude' | 'opencode';
 export type CLIAgentRuntimeKind = 'codex' | 'claude' | 'opencode';
 export type GatewayThreadEpisodicVectorProvider = 'openai' | 'openrouter' | 'local';
 export type GatewayVoiceInputProvider = 'local';
