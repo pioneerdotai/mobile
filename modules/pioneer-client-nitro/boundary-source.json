@@ -8,7 +8,7 @@
     "pioneer-protocol",
     "pioneer-skills"
   ],
-  "rust_source_sha256": "93acbfef51f988f7904508e0edfafeef54dfa528ceec768fdb2cb40ad3d0e8aa",
+  "rust_source_sha256": "b8c9adf11379194ca87921595883d116c7b8796c402aaf2186593254e484d602",
   "mobile_boundary_sha256": "2724e792f4b63f463fc569a98e26bd718801594e8059319fe4ef8309684e9c0a",
   "platforms": {
     "ios": [

@@ -170,6 +170,13 @@ export const TimelineAvatarRail = ({
         AGENT_AVATAR_REVISIONS.claude,
         true,
     );
+    const opencodeAvatar = useAuthenticatedAvatar(
+        connected && displayedAgentRevisions.has(AGENT_AVATAR_REVISIONS.opencode)
+            ? `agent:${AGENT_AVATAR_REVISIONS.opencode}`
+            : null,
+        AGENT_AVATAR_REVISIONS.opencode,
+        true,
+    );
     const agentAvatars = useMemo<Readonly<Record<string, ResolvedAgentAvatar>>>(
         () =>
             Object.fromEntries(
@@ -177,11 +184,12 @@ export const TimelineAvatarRail = ({
                     [AGENT_AVATAR_REVISIONS.pioneer, pioneerAvatar],
                     [AGENT_AVATAR_REVISIONS.codex, codexAvatar],
                     [AGENT_AVATAR_REVISIONS.claude, claudeAvatar],
+                    [AGENT_AVATAR_REVISIONS.opencode, opencodeAvatar],
                 ].flatMap(([avatarRevision, uri]) =>
                     avatarRevision && uri ? [[avatarRevision, { avatarRevision, uri }]] : [],
                 ),
             ),
-        [pioneerAvatar, codexAvatar, claudeAvatar],
+        [pioneerAvatar, codexAvatar, claudeAvatar, opencodeAvatar],
     );
     const handleViewportLayout = useCallback(
         (event: LayoutChangeEvent) => {
