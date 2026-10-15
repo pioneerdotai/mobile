@@ -1,16 +1,17 @@
-import { useEffect, useMemo } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect, useRef } from 'react';
+import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet } from 'react-native-unistyles';
 
-import { pioneerClient, type TaskUserNotification } from '@/client';
+import type { TaskUserNotification } from '@/client';
+import { useTaskInbox, dispatchTaskNotification } from '@/client/task-inbox';
+import {
+    useTaskNotificationNative,
+    type TaskNotificationNativePort,
+} from '@/client/task-notification-native';
 import { Pressable } from '@/components/primitives/pressable';
 import { Text } from '@/components/primitives/text';
 import { VStack } from '@/components/primitives/vstack';
-import {
-    administrationAuthorizationQueryRetry,
-    administrationAuthorizationQueryRetryDelay,
-} from '@/services/administration/query';
 import {
     useAdministrationPrincipal,
     useAuthorizationCapabilitySnapshot,
@@ -18,19 +19,11 @@ import {
 import { useGatewayStore } from '@/stores/gateway';
 import { useWorkspaceStore } from '@/stores/workspace';
 import { taskUserNotificationAuthorLabel } from './task-notification-presentation';
-import { taskUserNotificationTargetsInbox } from './user-notification-targeting';
-
-const taskUserNotificationKeys = {
-    all: ['task-user-notifications'] as const,
-    inbox: (gatewayId: string, connectionId: number, principalId: string, workspaceId: string) =>
-        [
-            ...taskUserNotificationKeys.all,
-            { gatewayId, connectionId, principalId, workspaceId },
-        ] as const,
-};
-
-export const TaskUserNotificationController = () => {
-    const queryClient = useQueryClient();
+export const TaskUserNotificationController = ({
+    notificationPort,
+}: { notificationPort?: TaskNotificationNativePort } = {}) => {
+    const router = useRouter();
+    const openedOperation = useRef(0);
     const { t } = useTranslation('common');
     const principal = useAdministrationPrincipal();
     const capabilities = useAuthorizationCapabilitySnapshot();
@@ -49,64 +42,31 @@ export const TaskUserNotificationController = () => {
         connectionId !== null &&
         principalId !== null &&
         workspaceId !== null;
-    const queryKey = useMemo(
-        () =>
-            enabled
-                ? taskUserNotificationKeys.inbox(gatewayId, connectionId, principalId, workspaceId)
-                : taskUserNotificationKeys.all,
-        [connectionId, enabled, gatewayId, principalId, workspaceId],
-    );
-    const inbox = useQuery({
-        queryKey,
-        queryFn: () =>
-            pioneerClient.taskUserNotificationList({
-                workspaceId: workspaceId!,
-                limit: 100,
-            }),
-        enabled,
-        retry: administrationAuthorizationQueryRetry,
-        retryDelay: administrationAuthorizationQueryRetryDelay,
-        staleTime: 30_000,
-    });
-    const acknowledge = useMutation({
-        mutationFn: (notificationId: string) =>
-            pioneerClient.taskUserNotificationAcknowledge({
-                workspaceId: workspaceId!,
-                notificationId,
-            }),
-        onSuccess: ({ notification }) => {
-            queryClient.setQueryData(queryKey, (current: typeof inbox.data) => {
-                if (!current) return current;
-                return {
-                    ...current,
-                    notifications: (current.notifications ?? []).map((item) =>
-                        item.notificationId === notification.notificationId ? notification : item,
-                    ),
-                };
-            });
-        },
-    });
-
+    const inbox = useTaskInbox(workspaceId);
+    useTaskNotificationNative(enabled ? inbox : null, notificationPort);
     useEffect(() => {
-        if (!enabled) return;
-        return useGatewayStore.subscribe((state, previous) => {
-            if (state.lastEventSerial === previous.lastEventSerial) return;
-            const event = state.lastEvent;
-            if (!event || !('GatewayNotification' in event)) return;
-            const notification = event.GatewayNotification;
-            if (
-                notification.kind !== 'task_user_notification_delivered' ||
-                !taskUserNotificationTargetsInbox(notification.params, workspaceId, principalId)
-            ) {
-                return;
-            }
-            void queryClient.invalidateQueries({ queryKey, exact: true });
-        });
-    }, [enabled, principalId, queryClient, queryKey, workspaceId]);
-
-    const notification = inbox.data?.notifications?.find(
-        (item) => item.acknowledgedAt === undefined || item.acknowledgedAt === null,
-    );
+        if (enabled) dispatchTaskNotification({ kind: 'refresh', workspace_id: workspaceId });
+    }, [enabled, workspaceId, principalId, connectionId]);
+    useEffect(() => {
+        const opened = inbox?.opened;
+        if (!enabled || !opened || opened.operation_id <= openedOperation.current) return;
+        openedOperation.current = opened.operation_id;
+        router.push({ pathname: '/thread/[threadId]', params: { threadId: opened.thread_id } });
+    }, [enabled, inbox?.opened, router]);
+    const item = inbox?.items.find((item) => item.notification.acknowledgedAt == null);
+    const notification = item?.notification;
+    const acknowledge = {
+        isPending: item?.dismissing ?? false,
+        mutate: (notificationId: string) => {
+            if (workspaceId && item)
+                dispatchTaskNotification({
+                    kind: 'dismiss',
+                    workspace_id: workspaceId,
+                    notification_id: notificationId,
+                    revision: item.revision,
+                });
+        },
+    };
     if (!enabled || !notification) return null;
 
     return (

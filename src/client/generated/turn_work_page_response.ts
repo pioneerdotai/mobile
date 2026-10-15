@@ -301,6 +301,14 @@ export type MarkdownBlock =
       [k: string]: unknown;
     }
   | {
+      alignments: MarkdownTableAlignment[];
+      headers: MarkdownInline1[];
+      rows: MarkdownInline1[][];
+      source: string;
+      type: 'table';
+      [k: string]: unknown;
+    }
+  | {
       type: 'rule';
       [k: string]: unknown;
     };
@@ -326,6 +334,7 @@ export type MarkdownMarkKind =
       url: string;
       [k: string]: unknown;
     };
+export type MarkdownTableAlignment = 'none' | 'left' | 'center' | 'right';
 export type AgentMessagePhase = 'final_answer' | 'commentary';
 export type SystemEventLevel = 'info' | 'warning' | 'error';
 export type TaskExecutorKind = 'agent' | 'tool' | 'workflow' | 'webhook' | 'system';
@@ -635,7 +644,11 @@ export interface TurnWorkPageResponse {
   sourceHighWatermark?: number;
   threadId: string;
   turnId: string;
-  work: TurnWorkBlock;
+  /**
+   * `None` is an authoritative tombstone: the Turn exists, but it does not
+   * own a work projection (for example, a detached Task owns the work).
+   */
+  work?: TurnWorkBlock | null;
   workspaceId: string;
   [k: string]: unknown;
 }
@@ -838,6 +851,7 @@ export interface TurnWorkBlock {
   hasMoreAfter: boolean;
   hasMoreBefore: boolean;
   hiddenWorkCount: number;
+  htmlPublications?: HtmlPublication[];
   lastWorkItemId?: string | null;
   presentation: TurnWorkPresentation;
   startedAtUnixMs?: number | null;
@@ -898,4 +912,16 @@ export interface AgentPresentationSnapshot {
   nickname: string;
   role_label?: string | null;
   [k: string]: unknown;
+}
+/**
+ * An exact Gateway-created HTML publication. Generic HTML attachments never
+ * acquire this descriptor based on MIME alone.
+ */
+export interface HtmlPublication {
+  artifact: ArtifactRef;
+  callId: string;
+  threadId: string;
+  title: string;
+  turnId: string;
+  workspaceId: string;
 }

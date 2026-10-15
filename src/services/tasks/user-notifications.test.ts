@@ -1,7 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
 import type { TaskUserNotification } from '@/client';
 import { taskUserNotificationAuthorLabel } from './task-notification-presentation';
-import { taskUserNotificationTargetsInbox } from './user-notification-targeting';
 
 const labels = {
     agent: 'Agent',
@@ -69,20 +68,5 @@ describe('taskUserNotificationAuthorLabel', () => {
 
     it('renders an authorless system delivery as system', () => {
         expect(taskUserNotificationAuthorLabel(notification({}), labels)).toBe('System');
-    });
-});
-
-describe('task user notification inbox targeting', () => {
-    const target = {
-        workspaceId: 'workspace-a',
-        recipientPrincipalId: 'principal-a',
-    };
-
-    it('accepts only the exact current workspace and principal', () => {
-        expect(taskUserNotificationTargetsInbox(target, 'workspace-a', 'principal-a')).toBe(true);
-        expect(taskUserNotificationTargetsInbox(target, 'workspace-b', 'principal-a')).toBe(false);
-        expect(taskUserNotificationTargetsInbox(target, 'workspace-a', 'principal-b')).toBe(false);
-        expect(taskUserNotificationTargetsInbox(target, null, 'principal-a')).toBe(false);
-        expect(taskUserNotificationTargetsInbox(target, 'workspace-a', null)).toBe(false);
     });
 });

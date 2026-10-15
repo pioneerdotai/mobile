@@ -3,8 +3,12 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { pioneerClient } from '@/client';
-
-import { createInvitationPresentation, loadInvitationPage } from './invitations';
+import { prepareAdministrationCommand } from './operations';
+import { createInvitationPresentation } from './invitations';
+jest.mock('./operations', () => ({
+    performAdministrationCommand: jest.fn(),
+    prepareAdministrationCommand: jest.fn(() => 7),
+}));
 
 jest.mock('@/client', () => ({
     pioneerClient: {
@@ -19,16 +23,7 @@ describe('mobile invitation administration', () => {
         jest.clearAllMocks();
     });
 
-    it('keeps pagination cursor ownership exact', async () => {
-        jest.mocked(pioneerClient.invitationList).mockResolvedValue({
-            invitations: [],
-            next_cursor: 'next',
-        });
-        await loadInvitationPage('cursor');
-        expect(pioneerClient.invitationList).toHaveBeenCalledWith({ cursor: 'cursor', limit: 50 });
-    });
-
-    it('normalizes workspace selection and delegates URI parsing to native code', async () => {
+    it('sends selection once to Client and claims the operation for transient activation', async () => {
         jest.mocked(pioneerClient.invitationCreate).mockResolvedValue({
             invitation: {} as never,
             presentation: { deep_link: 'pioneer://invite#token=secret' } as never,
@@ -46,9 +41,16 @@ describe('mobile invitation administration', () => {
             ['workspace-b', 'workspace-a', 'workspace-b'],
             'test-role',
         );
+        expect(prepareAdministrationCommand).toHaveBeenCalledWith({
+            kind: 'create_invitation',
+            params: {
+                role_key: 'test-role',
+                workspace_ids: ['workspace-b', 'workspace-a', 'workspace-b'],
+            },
+        });
         expect(pioneerClient.invitationCreate).toHaveBeenCalledWith({
-            role_key: 'test-role',
-            workspace_ids: ['workspace-a', 'workspace-b'],
+            schema_version: 1,
+            generation: 7,
         });
         expect(pioneerClient.invitationPresentation).toHaveBeenCalledWith({
             uri: 'pioneer://invite#token=secret',
@@ -66,7 +68,7 @@ describe('mobile invitation administration', () => {
         expect(source).not.toContain('router.push');
         expect(source).not.toContain('MMKV');
         expect(source).not.toContain('console.');
-        expect(source).toContain('administrationConflictRefetch');
-        expect(source).toContain('invalidateAdministrationTargets');
+        expect(source).not.toContain('useMutation');
+        expect(source).not.toContain('useInfiniteQuery');
     });
 });

@@ -1,27 +1,27 @@
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
+import { AccessibilityInfo } from 'react-native';
 import {
     EnrichedMarkdownText,
-    type CodeBlockHeaderConfig,
-    type CodeBlockScrollConfig,
-    type CodeHighlightingConfig,
     type MarkdownStyle,
+    type TextSelectionMenuConfig,
 } from 'react-native-enriched-markdown';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 import remend from 'remend';
 import type { RemendOptions } from 'remend';
 
-import type { MarkdownDocument } from '@/client/generated/client_active_thread_snapshot';
+import type { MarkdownPresentation } from '@/client/generated/timeline_snapshot';
 
 import { markdownSource } from './markdown-rendering';
+import { openTimelineExternalUrl, timelineLinkKind } from './timeline-link';
 
 type MarkdownContentProps = {
     text: string;
-    document?: MarkdownDocument | null;
+    document?: MarkdownPresentation | null;
     tone?: 'default' | 'muted' | 'inverted';
     selectable?: boolean;
     streaming?: boolean;
-    highlightCodeBlocks?: boolean;
+    onOpenLocalFile?: (href: string) => void;
 };
 const MARKDOWN_FLAGS = {
     latexMath: false,
@@ -45,7 +45,7 @@ export const MarkdownContent = ({
     tone = 'default',
     selectable = true,
     streaming = false,
-    highlightCodeBlocks = false,
+    onOpenLocalFile,
 }: MarkdownContentProps) => {
     const { theme, rt } = useUnistyles();
     const { t } = useTranslation('threads');
@@ -57,54 +57,44 @@ export const MarkdownContent = ({
         () => (streaming ? remend(markdown, STREAMING_REMEND_CONFIG) : markdown),
         [markdown, streaming],
     );
-    const markdownStyle = useMemo(() => timelineMarkdownStyle({ theme, tone }), [theme, tone]);
-
-    const codeHighlighting = useMemo<CodeHighlightingConfig | undefined>(
-        () =>
-            highlightCodeBlocks
-                ? {
-                      theme: rt.themeName === 'dark' ? 'catppuccin-frappe' : 'catppuccin-latte',
-                  }
-                : undefined,
-        [highlightCodeBlocks, rt.themeName],
+    const markdownStyle = useMemo(
+        () => timelineMarkdownStyle({ theme, tone, dark: rt.themeName === 'dark' }),
+        [rt.themeName, theme, tone],
     );
-
-    const codeBlockHeader = useMemo<CodeBlockHeaderConfig>(
+    const selectionMenuConfig = useMemo<TextSelectionMenuConfig>(
         () => ({
-            showLanguage: true,
-            showCopyButton: true,
-            color: theme.colors.typography,
-            fontSize: theme.fontSize.xs.fontSize,
-            height: theme.space(5),
-            gap: theme.space(2),
-            horizontalPadding: theme.space(3),
-            iconSize: theme.space(3),
-            opacity: 0.6,
-            copyAccessibilityLabel: t('timelineCopy'),
-            copiedAccessibilityLabel: t('timelineCopied'),
+            copy: { label: t('timelineCopy') },
+            copyAsMarkdown: { enabled: true },
+            copyImageUrl: { enabled: false },
         }),
-        [t, theme],
+        [t],
     );
-    const codeBlockScroll = useMemo<CodeBlockScrollConfig>(
-        () => ({
-            enabled: true,
-            showsHorizontalScrollIndicator: false,
-        }),
-        [],
+    const handleCopyPress = useCallback(
+        () => AccessibilityInfo.announceForAccessibility(t('timelineCopied')),
+        [t],
+    );
+    const handleLinkPress = useCallback(
+        ({ url }: { url: string }) => {
+            if (timelineLinkKind(url) === 'local-file') {
+                onOpenLocalFile?.(url);
+                return;
+            }
+            void openTimelineExternalUrl(url);
+        },
+        [onOpenLocalFile],
     );
 
     return (
         <EnrichedMarkdownText
-            key={selectable ? 'selection-enabled' : 'selection-disabled'}
+            key={`${document?.document_id ?? 'plain-text'}:${selectable ? 'selection-enabled' : 'selection-disabled'}`}
             allowTrailingMargin={false}
             containerStyle={styles.document}
-            codeBlockHeader={codeBlockHeader}
-            codeBlockScroll={codeBlockScroll}
-            codeHighlighting={codeHighlighting}
             flavor="github"
             markdown={renderedMarkdown}
             markdownStyle={markdownStyle}
             md4cFlags={MARKDOWN_FLAGS}
+            onCopyPress={handleCopyPress}
+            onLinkPress={handleLinkPress}
             selectable={selectable}
             selectionColor={theme.colors.infoText}
             selectionHandleColor={theme.colors.infoText}
@@ -114,17 +104,17 @@ export const MarkdownContent = ({
     );
 };
 
-const selectionMenuConfig = {
-    copyAsMarkdown: { enabled: true },
-    copyImageUrl: { enabled: false },
-};
-
 type TimelineMarkdownStyleInput = {
     theme: ReturnType<typeof useUnistyles>['theme'];
     tone: NonNullable<MarkdownContentProps['tone']>;
+    dark: boolean;
 };
 
-const timelineMarkdownStyle = ({ theme, tone }: TimelineMarkdownStyleInput): MarkdownStyle => {
+const timelineMarkdownStyle = ({
+    theme,
+    tone,
+    dark,
+}: TimelineMarkdownStyleInput): MarkdownStyle => {
     const textColor =
         tone === 'muted'
             ? theme.colors.textMuted
@@ -225,6 +215,7 @@ const timelineMarkdownStyle = ({ theme, tone }: TimelineMarkdownStyleInput): Mar
             marginTop: 0,
             marginBottom: theme.space(3),
             padding: theme.space(3),
+            syntaxColors: dark ? CATPPUCCIN_FRAPPE_SYNTAX_COLORS : CATPPUCCIN_LATTE_SYNTAX_COLORS,
         },
         code: {
             backgroundColor: theme.colors.surfaceMuted,
@@ -234,7 +225,7 @@ const timelineMarkdownStyle = ({ theme, tone }: TimelineMarkdownStyleInput): Mar
         },
         link: {
             color: tone === 'inverted' ? theme.colors.userBubbleForeground : theme.colors.infoText,
-            underline: true,
+            underline: false,
         },
         strong: {
             color: textColor,
@@ -281,6 +272,40 @@ const timelineMarkdownStyle = ({ theme, tone }: TimelineMarkdownStyleInput): Mar
         },
     };
 };
+
+const CATPPUCCIN_LATTE_SYNTAX_COLORS = {
+    keyword: '#8839ef',
+    operator: '#179299',
+    punctuation: '#7c7f93',
+    string: '#40a02b',
+    number: '#fe640b',
+    constant: '#fe640b',
+    comment: '#9ca0b0',
+    function: '#1e66f5',
+    type: '#df8e1d',
+    variable: '#4c4f69',
+    property: '#209fb5',
+    tag: '#d20f39',
+    attribute: '#179299',
+    embedded: '#7287fd',
+} satisfies NonNullable<NonNullable<MarkdownStyle['codeBlock']>['syntaxColors']>;
+
+const CATPPUCCIN_FRAPPE_SYNTAX_COLORS = {
+    keyword: '#ca9ee6',
+    operator: '#81c8be',
+    punctuation: '#949cbb',
+    string: '#a6d189',
+    number: '#ef9f76',
+    constant: '#ef9f76',
+    comment: '#737994',
+    function: '#8caaee',
+    type: '#e5c890',
+    variable: '#c6d0f5',
+    property: '#85c1dc',
+    tag: '#e78284',
+    attribute: '#81c8be',
+    embedded: '#babbf1',
+} satisfies NonNullable<NonNullable<MarkdownStyle['codeBlock']>['syntaxColors']>;
 
 const markdownFontWeight = (value: { fontWeight: string | number }): string =>
     String(value.fontWeight);

@@ -14,5 +14,14 @@
     "local": "Local",
     "remote": "Remote",
     "reloadRemote": "Reload remote",
-    "overwriteRemote": "Overwrite remote"
+    "overwriteRemote": "Overwrite remote",
+    "fileViewerTitle": "File",
+    "fileViewerLoading": "Opening file…",
+    "fileViewerLargeFileNotice": "Syntax highlighting is disabled for this large file.",
+    "fileViewerErrors": {
+        "expired": "This file link has expired. Try opening it again.",
+        "invalid_content": "This file cannot be displayed.",
+        "too_large": "This file is larger than 10 MB and cannot be opened.",
+        "unavailable": "The file is unavailable."
+    }
 }

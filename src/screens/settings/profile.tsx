@@ -1,11 +1,10 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { router, useNavigation } from 'expo-router';
 import { ImagePlus, Trash2 } from 'lucide-react-native';
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useLayoutEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet } from 'react-native-unistyles';
 
-import { PioneerClientNativeError, type AuthProfileUpdateParams } from '@/client';
+import { dispatchProfile, useProfileEditor } from '@/client/settings';
 import { HeaderCheckButton } from '@/components/buttons/header-action';
 import {
     ProfileAvatarField,
@@ -19,90 +18,59 @@ import { ScrollView } from '@/components/primitives/scrollview';
 import { Text } from '@/components/primitives/text';
 import { VStack } from '@/components/primitives/vstack';
 import { useAdministrationPrincipal } from '@/hooks/use-administration-capabilities';
-import {
-    ProfileAvatarSelectionError,
-    selectProfileAvatar,
-    type SelectedProfileAvatar,
-} from '@/services/profile/avatar';
-import {
-    applyCurrentProfileUpdate,
-    isValidProfileDisplayName,
-    joinProfileDisplayName,
-    splitProfileDisplayName,
-    updateCurrentProfile,
-} from '@/services/profile/update';
-
-type AvatarEdit =
-    { kind: 'unchanged' } | { kind: 'remove' } | { kind: 'set'; selected: SelectedProfileAvatar };
-
+import { ProfileAvatarSelectionError, selectProfileAvatar } from '@/services/profile/avatar';
 const ProfileSettingsScreen = () => {
     const { t } = useTranslation('settings');
     const navigation = useNavigation();
-    const queryClient = useQueryClient();
     const principalQuery = useAdministrationPrincipal();
     const principal = principalQuery.data?.principal;
-    const initializedPrincipal = useRef<string | null>(null);
-    const [firstName, setFirstName] = useState('');
-    const [lastName, setLastName] = useState('');
-    const [avatarEdit, setAvatarEdit] = useState<AvatarEdit>({ kind: 'unchanged' });
+    const profile = useProfileEditor('profile');
+    const profileOwner = profile?.owner_generation;
     const [avatarMenuOpen, setAvatarMenuOpen] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-
-    useEffect(() => {
-        if (!principal || initializedPrincipal.current === principal.id) return;
-        initializedPrincipal.current = principal.id;
-        const parts = splitProfileDisplayName(principal.display_name);
-        setFirstName(parts.firstName);
-        setLastName(parts.lastName);
-        setAvatarEdit({ kind: 'unchanged' });
-        setError(null);
-    }, [principal]);
-
-    const displayName = useMemo(
-        () => joinProfileDisplayName(firstName, lastName),
-        [firstName, lastName],
-    );
-    const dirty = Boolean(
-        principal && (displayName !== principal.display_name || avatarEdit.kind !== 'unchanged'),
-    );
-    const valid = isValidProfileDisplayName(displayName);
-
-    const { mutate: saveProfile, isPending: isSaving } = useMutation({
-        mutationFn: updateCurrentProfile,
-        onSuccess: async (response) => {
-            await applyCurrentProfileUpdate(queryClient, response);
-            router.back();
-        },
-        onError: (failure) => {
-            if (failure instanceof PioneerClientNativeError) {
-                if (failure.code === 'avatar_invalid') {
-                    setError(t('profile.errors.avatar'));
-                    return;
-                }
-                if (failure.code === 'invalid_profile') {
-                    setError(t('profile.errors.name'));
-                    return;
-                }
-            }
-            setError(t('profile.errors.save'));
-        },
-    });
-
+    const firstName = profile?.first_name ?? '';
+    const lastName = profile?.last_name ?? '';
+    const avatarEdit = profile?.avatar ?? { kind: 'unchanged' as const };
+    const displayName = [firstName.trim(), lastName.trim()].filter(Boolean).join(' ');
+    const dirty = profile?.dirty ?? false;
+    const valid = profile?.valid ?? false;
+    const isSaving = profile?.pending ?? false;
+    const error = profile?.error
+        ? t(
+              profile.error === 'avatar_invalid'
+                  ? 'profile.errors.avatar'
+                  : profile.error === 'invalid_profile'
+                    ? 'profile.errors.name'
+                    : profile.error === 'photo_picker_failed'
+                      ? 'profile.errors.photoPicker'
+                      : 'profile.errors.save',
+          )
+        : null;
+    const setFirstName = (value: string) => {
+        if (profile)
+            dispatchProfile({
+                kind: 'edit_field',
+                expected_owner: profile.owner_generation,
+                field: 'first_name',
+                value,
+            });
+    };
+    const setLastName = (value: string) => {
+        if (profile)
+            dispatchProfile({
+                kind: 'edit_field',
+                expected_owner: profile.owner_generation,
+                field: 'last_name',
+                value,
+            });
+    };
     const save = useCallback(() => {
-        if (!principal || !dirty || !valid || isSaving) return;
-        setError(null);
-        const avatar: AuthProfileUpdateParams['avatar'] =
-            avatarEdit.kind === 'set'
-                ? { action: 'set', avatar: avatarEdit.selected.input }
-                : avatarEdit.kind === 'remove'
-                  ? { action: 'remove' }
-                  : { action: 'unchanged' };
-        saveProfile({
-            display_name: displayName,
-            nickname: principal.nickname,
-            avatar,
-        });
-    }, [avatarEdit, dirty, displayName, isSaving, principal, saveProfile, valid]);
+        if (profileOwner !== undefined)
+            dispatchProfile({
+                kind: 'save_for_owner',
+                expected_owner: profileOwner,
+                section: 'profile',
+            });
+    }, [profileOwner]);
 
     useLayoutEffect(() => {
         navigation.setOptions({
@@ -119,33 +87,44 @@ const ProfileSettingsScreen = () => {
 
     const choosePhoto = useCallback(async () => {
         setAvatarMenuOpen(false);
-        setError(null);
+        const expected_owner = profileOwner;
+        if (expected_owner === undefined) return;
         try {
             const selected = await selectProfileAvatar();
-            if (selected) setAvatarEdit({ kind: 'set', selected });
+            if (selected)
+                dispatchProfile({
+                    kind: 'select_avatar',
+                    expected_owner,
+                    preview: selected.uri,
+                    avatar: selected.input,
+                });
         } catch (failure) {
-            setError(
-                failure instanceof ProfileAvatarSelectionError
-                    ? t('profile.errors.avatar')
-                    : t('profile.errors.photoPicker'),
-            );
+            dispatchProfile({
+                kind: 'selection_failed',
+                expected_owner,
+                error:
+                    failure instanceof ProfileAvatarSelectionError
+                        ? 'avatar_invalid'
+                        : 'photo_picker_failed',
+            });
         }
-    }, [t]);
-
+    }, [profileOwner]);
     const removePhoto = useCallback(() => {
         setAvatarMenuOpen(false);
-        setError(null);
-        setAvatarEdit(principal?.avatar_revision ? { kind: 'remove' } : { kind: 'unchanged' });
-    }, [principal?.avatar_revision]);
-
+        if (profileOwner !== undefined)
+            dispatchProfile({
+                kind: 'remove_avatar_for_owner',
+                expected_owner: profileOwner,
+            });
+    }, [profileOwner]);
     const previewUri =
-        avatarEdit.kind === 'set'
-            ? avatarEdit.selected.uri
+        avatarEdit.kind === 'selected'
+            ? avatarEdit.preview
             : avatarEdit.kind === 'remove'
               ? null
               : undefined;
     const hasPhoto =
-        avatarEdit.kind === 'set' ||
+        avatarEdit.kind === 'selected' ||
         (avatarEdit.kind === 'unchanged' && Boolean(principal?.avatar_revision));
 
     return (

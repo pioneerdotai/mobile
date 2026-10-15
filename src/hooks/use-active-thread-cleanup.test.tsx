@@ -4,7 +4,6 @@ import renderer, { act, type ReactTestRenderer } from 'react-test-renderer';
 
 const mockClearActiveThread = jest.fn<() => Promise<void>>();
 const mockResetActiveThread = jest.fn();
-const mockResetDefaultComposerModelSelection = jest.fn();
 const mockResetThreadTree = jest.fn();
 const mockQueryClient = { id: 'pioneer-query-client' };
 const mockClearThreadQueryCache = jest.fn<(client: typeof mockQueryClient) => Promise<void>>();
@@ -17,15 +16,10 @@ jest.mock('@/services/threads/active', () => ({
     clearActiveThread: mockClearActiveThread,
 }));
 
-jest.mock('@/services/threads/timeline-query', () => ({
-    clearThreadQueryCache: mockClearThreadQueryCache,
-}));
-
 jest.mock('@/stores/active-thread', () => ({
     useActiveThreadStore: {
         getState: () => ({
             reset: mockResetActiveThread,
-            resetDefaultComposerModelSelection: mockResetDefaultComposerModelSelection,
         }),
     },
 }));
@@ -49,7 +43,7 @@ describe('useActiveThreadCleanup', () => {
         mockClearThreadQueryCache.mockResolvedValue();
     });
 
-    it('works before QueryClientProvider is mounted and clears the shared query client', async () => {
+    it('works before QueryClientProvider is mounted and delegates session retirement to Client', async () => {
         let cleanup: (() => Promise<void>) | null = null;
         let tree: ReactTestRenderer | null = null;
 
@@ -66,10 +60,10 @@ describe('useActiveThreadCleanup', () => {
             await cleanup!();
         });
 
-        expect(mockClearThreadQueryCache).toHaveBeenCalledWith(mockQueryClient);
+        expect(mockClearThreadQueryCache).not.toHaveBeenCalled();
+        expect(mockClearActiveThread).toHaveBeenCalledTimes(1);
         expect(mockResetActiveThread).toHaveBeenCalledTimes(1);
-        expect(mockResetDefaultComposerModelSelection).toHaveBeenCalledTimes(1);
-        expect(mockResetThreadTree).toHaveBeenCalledTimes(1);
+        expect(mockResetThreadTree).not.toHaveBeenCalled();
 
         await act(async () => {
             tree!.unmount();

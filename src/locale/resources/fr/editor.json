@@ -14,5 +14,14 @@
     "local": "Local",
     "remote": "Distant",
     "reloadRemote": "Recharger le distant",
-    "overwriteRemote": "Remplacer le distant"
+    "overwriteRemote": "Remplacer le distant",
+    "fileViewerTitle": "Fichier",
+    "fileViewerLoading": "Ouverture du fichier…",
+    "fileViewerLargeFileNotice": "La coloration syntaxique est désactivée pour ce fichier volumineux.",
+    "fileViewerErrors": {
+        "expired": "Le lien vers ce fichier a expiré. Essayez de l’ouvrir à nouveau.",
+        "invalid_content": "Ce fichier ne peut pas être affiché.",
+        "too_large": "Ce fichier dépasse 10 Mo et ne peut pas être ouvert.",
+        "unavailable": "Le fichier n’est pas disponible."
+    }
 }

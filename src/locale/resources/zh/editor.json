@@ -14,5 +14,14 @@
     "local": "本地",
     "remote": "远程",
     "reloadRemote": "重新加载远程",
-    "overwriteRemote": "覆盖远程"
+    "overwriteRemote": "覆盖远程",
+    "fileViewerTitle": "文件",
+    "fileViewerLoading": "正在打开文件…",
+    "fileViewerLargeFileNotice": "为保证大型文件的性能，已关闭语法高亮。",
+    "fileViewerErrors": {
+        "expired": "此文件链接已过期，请重新打开。",
+        "invalid_content": "无法显示此文件。",
+        "too_large": "文件大于 10 MB，无法打开。",
+        "unavailable": "文件不可用。"
+    }
 }

@@ -473,6 +473,7 @@
       "enum": [
         "command_approval",
         "file_change_approval",
+        "permission_approval",
         "user_input",
         "other"
       ]
@@ -482,6 +483,39 @@
       "enum": [
         "accessible",
         "inaccessible"
+      ]
+    },
+    "HtmlPublication": {
+      "description": "An exact Gateway-created HTML publication. Generic HTML attachments never\nacquire this descriptor based on MIME alone.",
+      "type": "object",
+      "properties": {
+        "artifact": {
+          "$ref": "#/$defs/ArtifactRef"
+        },
+        "callId": {
+          "type": "string"
+        },
+        "threadId": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "turnId": {
+          "type": "string"
+        },
+        "workspaceId": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "workspaceId",
+        "threadId",
+        "turnId",
+        "callId",
+        "title",
+        "artifact"
       ]
     },
     "MarkdownBlock": {
@@ -574,6 +608,47 @@
           "required": [
             "type",
             "text"
+          ]
+        },
+        {
+          "description": "Structured cells and the original GFM fragment with its used reference\ndefinitions, without Quote/List prefixes.",
+          "type": "object",
+          "properties": {
+            "alignments": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/MarkdownTableAlignment"
+              }
+            },
+            "headers": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/MarkdownInline"
+              }
+            },
+            "rows": {
+              "type": "array",
+              "items": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/MarkdownInline"
+                }
+              }
+            },
+            "source": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "const": "table"
+            }
+          },
+          "required": [
+            "type",
+            "headers",
+            "rows",
+            "alignments",
+            "source"
           ]
         },
         {
@@ -751,6 +826,15 @@
             "url"
           ]
         }
+      ]
+    },
+    "MarkdownTableAlignment": {
+      "type": "string",
+      "enum": [
+        "none",
+        "left",
+        "center",
+        "right"
       ]
     },
     "McpScopeKind": {
@@ -1205,6 +1289,13 @@
                 }
               ]
             },
+            "htmlPublications": {
+              "description": "Exact HTML content of this canonical response; source ownership is unchanged.",
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/HtmlPublication"
+              }
+            },
             "itemId": {
               "type": "string"
             },
@@ -1631,6 +1722,12 @@
           "type": "integer",
           "format": "uint64",
           "minimum": 0
+        },
+        "htmlPublications": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/HtmlPublication"
+          }
         },
         "lastWorkItemId": {
           "type": [

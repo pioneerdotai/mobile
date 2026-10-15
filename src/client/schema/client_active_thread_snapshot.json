@@ -19,19 +19,16 @@
         }
       ]
     },
+    "domain_revision": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0
+    },
     "draft_thread_id": {
       "type": [
         "string",
         "null"
-      ],
-      "default": null
-    },
-    "draft_workspace_id": {
-      "type": [
-        "string",
-        "null"
-      ],
-      "default": null
+      ]
     },
     "history_loaded": {
       "type": "boolean"
@@ -39,41 +36,14 @@
     "history_loading": {
       "type": "boolean"
     },
-    "last_active_thread_id": {
-      "type": [
-        "string",
-        "null"
-      ],
-      "default": null
-    },
     "pending_requests": {
       "type": "array",
-      "default": [],
       "items": {
         "$ref": "#/$defs/PendingRequest"
       }
     },
     "projection": {
       "$ref": "#/$defs/ConversationViewState"
-    },
-    "row_render_fingerprints": {
-      "type": "object",
-      "additionalProperties": {
-        "type": "string"
-      },
-      "default": {}
-    },
-    "rows": {
-      "type": "array",
-      "items": {
-        "$ref": "#/$defs/TimelineRow"
-      }
-    },
-    "session_revision": {
-      "type": "integer",
-      "format": "uint64",
-      "default": 0,
-      "minimum": 0
     },
     "thread": {
       "anyOf": [
@@ -86,23 +56,27 @@
       ]
     },
     "thread_id": {
-      "type": [
-        "string",
-        "null"
-      ]
+      "type": "string"
+    },
+    "timeline_revision": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0
     },
     "workspace_id": {
-      "type": [
-        "string",
-        "null"
-      ]
+      "type": "string"
     }
   },
   "required": [
+    "thread_id",
+    "workspace_id",
     "history_loaded",
     "history_loading",
     "projection",
-    "rows"
+    "active_turn_security_diagnostics",
+    "pending_requests",
+    "domain_revision",
+    "timeline_revision"
   ],
   "$defs": {
     "AgentExecutionId": {
@@ -226,94 +200,6 @@
         }
       },
       "additionalProperties": false
-    },
-    "AgentWorkGraphProjection": {
-      "type": "object",
-      "properties": {
-        "nodes": {
-          "description": "Stable, bounded nodes in the exact root graph. No prompt, provider,\nmodel, thread title, runtime path, or other private payload is exposed.",
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/AgentWorkNodeProjection"
-          }
-        },
-        "queuedCount": {
-          "type": "integer",
-          "format": "uint64",
-          "minimum": 0
-        },
-        "rootExecutionId": {
-          "$ref": "#/$defs/AgentExecutionId"
-        },
-        "runningCount": {
-          "type": "integer",
-          "format": "uint64",
-          "minimum": 0
-        },
-        "saturated": {
-          "description": "True while one or more authorized nodes are durably queued for\nserver-owned capacity. This is resource state, not an authorization\nfailure and never implies that the whole graph is blocked.",
-          "type": "boolean"
-        },
-        "terminalCount": {
-          "type": "integer",
-          "format": "uint64",
-          "minimum": 0
-        },
-        "updatedAtUnixMicros": {
-          "description": "Monotonic persisted resource-state timestamp used only to reject stale\ngraph projections racing with live queue/promotion/finalization events.",
-          "type": "integer",
-          "format": "int64"
-        }
-      },
-      "additionalProperties": false,
-      "required": [
-        "rootExecutionId",
-        "updatedAtUnixMicros",
-        "queuedCount",
-        "runningCount",
-        "terminalCount",
-        "saturated",
-        "nodes"
-      ]
-    },
-    "AgentWorkNodeProjection": {
-      "type": "object",
-      "properties": {
-        "executionId": {
-          "$ref": "#/$defs/AgentExecutionId"
-        },
-        "progressLabel": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "progressRevision": {
-          "type": "integer",
-          "format": "uint64",
-          "minimum": 0
-        },
-        "state": {
-          "$ref": "#/$defs/AgentWorkNodeState"
-        }
-      },
-      "additionalProperties": false,
-      "required": [
-        "executionId",
-        "state",
-        "progressRevision"
-      ]
-    },
-    "AgentWorkNodeState": {
-      "type": "string",
-      "enum": [
-        "queued",
-        "running",
-        "completed",
-        "failed",
-        "cancelled",
-        "blocked"
-      ]
     },
     "ArtifactKind": {
       "type": "string",
@@ -506,6 +392,7 @@
       "enum": [
         "command_approval",
         "file_change_approval",
+        "permission_approval",
         "user_input",
         "other"
       ]
@@ -789,6 +676,39 @@
         }
       ]
     },
+    "HtmlPublication": {
+      "description": "An exact Gateway-created HTML publication. Generic HTML attachments never\nacquire this descriptor based on MIME alone.",
+      "type": "object",
+      "properties": {
+        "artifact": {
+          "$ref": "#/$defs/ArtifactRef"
+        },
+        "callId": {
+          "type": "string"
+        },
+        "threadId": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "turnId": {
+          "type": "string"
+        },
+        "workspaceId": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "workspaceId",
+        "threadId",
+        "turnId",
+        "callId",
+        "title",
+        "artifact"
+      ]
+    },
     "ItemView": {
       "type": "object",
       "properties": {
@@ -814,6 +734,12 @@
             "string",
             "null"
           ]
+        },
+        "html_publications": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/HtmlPublication"
+          }
         },
         "id": {
           "type": "string"
@@ -1067,6 +993,47 @@
           ]
         },
         {
+          "description": "Structured cells and the original GFM fragment with its used reference\ndefinitions, without Quote/List prefixes.",
+          "type": "object",
+          "properties": {
+            "alignments": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/MarkdownTableAlignment"
+              }
+            },
+            "headers": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/MarkdownInline"
+              }
+            },
+            "rows": {
+              "type": "array",
+              "items": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/MarkdownInline"
+                }
+              }
+            },
+            "source": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "const": "table"
+            }
+          },
+          "required": [
+            "type",
+            "headers",
+            "rows",
+            "alignments",
+            "source"
+          ]
+        },
+        {
           "type": "object",
           "properties": {
             "type": {
@@ -1243,6 +1210,15 @@
         }
       ]
     },
+    "MarkdownTableAlignment": {
+      "type": "string",
+      "enum": [
+        "none",
+        "left",
+        "center",
+        "right"
+      ]
+    },
     "McpScopeKind": {
       "type": "string",
       "enum": [
@@ -1301,6 +1277,12 @@
             "null"
           ]
         },
+        "visible_thread_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
         "workspace_id": {
           "type": "string"
         }
@@ -1318,6 +1300,7 @@
       "enum": [
         "command_approval",
         "file_change_approval",
+        "permission_approval",
         "user_input",
         "other"
       ]
@@ -1843,80 +1826,6 @@
         }
       ]
     },
-    "RunningTurnDisplay": {
-      "type": "object",
-      "properties": {
-        "agent_work_graph": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/AgentWorkGraphProjection"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "message": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "permission_profile": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/TurnPermissionProfileSnapshot"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "route": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/SafeRouteProvenance"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "security_summary": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ClientTurnSecuritySummary"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "started_at_unix_ms": {
-          "type": [
-            "integer",
-            "null"
-          ],
-          "format": "int64"
-        },
-        "state": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/TurnWorkState"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "turn_id": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "turn_id"
-      ]
-    },
     "SafeRouteProvenance": {
       "type": "object",
       "properties": {
@@ -2250,38 +2159,6 @@
         "workspace"
       ]
     },
-    "TimelineCoalescedToolsKind": {
-      "type": "string",
-      "enum": [
-        "CompletedTaskTools",
-        "RepeatedTaskWait"
-      ]
-    },
-    "TimelineCoalescedToolsRow": {
-      "type": "object",
-      "properties": {
-        "count": {
-          "type": "integer",
-          "format": "uint",
-          "minimum": 0
-        },
-        "is_open": {
-          "type": "boolean"
-        },
-        "kind": {
-          "$ref": "#/$defs/TimelineCoalescedToolsKind"
-        },
-        "toggle_key": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "toggle_key",
-        "count",
-        "is_open",
-        "kind"
-      ]
-    },
     "TimelineEntry": {
       "type": "object",
       "properties": {
@@ -2457,158 +2334,6 @@
           },
           "required": [
             "mode"
-          ]
-        }
-      ]
-    },
-    "TimelineReplyState": {
-      "type": "string",
-      "enum": [
-        "available",
-        "deleted",
-        "unavailable"
-      ]
-    },
-    "TimelineReplySummary": {
-      "type": "object",
-      "properties": {
-        "author": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/TurnAuthorSnapshot"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "deleted": {
-          "type": "boolean",
-          "default": false
-        },
-        "text": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "turnId": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "turnId"
-      ]
-    },
-    "TimelineRow": {
-      "type": "object",
-      "properties": {
-        "author": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/TurnAuthorSnapshot"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "key": {
-          "type": "string"
-        },
-        "kind": {
-          "$ref": "#/$defs/TimelineRowKind"
-        }
-      },
-      "required": [
-        "key",
-        "kind"
-      ]
-    },
-    "TimelineRowKind": {
-      "oneOf": [
-        {
-          "type": "object",
-          "properties": {
-            "Item": {
-              "type": "object",
-              "properties": {
-                "timeline_index": {
-                  "type": "integer",
-                  "format": "uint",
-                  "minimum": 0
-                }
-              },
-              "required": [
-                "timeline_index"
-              ]
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "Item"
-          ]
-        },
-        {
-          "type": "object",
-          "properties": {
-            "UserMessage": {
-              "type": "object",
-              "properties": {
-                "presentation": {
-                  "$ref": "#/$defs/UserMessagePresentation"
-                },
-                "timeline_index": {
-                  "type": "integer",
-                  "format": "uint",
-                  "minimum": 0
-                }
-              },
-              "required": [
-                "timeline_index",
-                "presentation"
-              ]
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "UserMessage"
-          ]
-        },
-        {
-          "type": "object",
-          "properties": {
-            "TurnWorkToggle": {
-              "$ref": "#/$defs/TurnWorkGroupRow"
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "TurnWorkToggle"
-          ]
-        },
-        {
-          "type": "object",
-          "properties": {
-            "CoalescedTools": {
-              "$ref": "#/$defs/TimelineCoalescedToolsRow"
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "CoalescedTools"
-          ]
-        },
-        {
-          "type": "object",
-          "properties": {
-            "RunningTurn": {
-              "$ref": "#/$defs/RunningTurnDisplay"
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "RunningTurn"
           ]
         }
       ]
@@ -3054,17 +2779,28 @@
     "ToolPermissionPolicySnapshot": {
       "type": "object",
       "properties": {
+        "agent_action": {
+          "$ref": "#/$defs/PermissionBehavior"
+        },
         "allowed_paths": {
           "type": "array",
           "items": {
             "type": "string"
           }
         },
+        "allowed_paths_restricted": {
+          "description": "See `allowed_tools_restricted`.  A restricted empty path set is a\ndurable deny-all result, while an unrestricted empty set is the legacy\nwildcard.",
+          "type": "boolean"
+        },
         "allowed_tools": {
           "type": "array",
           "items": {
             "type": "string"
           }
+        },
+        "allowed_tools_restricted": {
+          "description": "`allowed_tools = []` historically means \"no allow-list\".  This bit\npreserves the distinct result of intersecting two disjoint allow-lists:\na restricted empty set must deny every tool rather than reopen all of\nthem.",
+          "type": "boolean"
         },
         "computer_use": {
           "$ref": "#/$defs/PermissionBehavior"
@@ -3093,6 +2829,9 @@
         "mcp_write_or_unknown": {
           "$ref": "#/$defs/PermissionBehavior"
         },
+        "memory_write": {
+          "$ref": "#/$defs/PermissionBehavior"
+        },
         "network": {
           "$ref": "#/$defs/PermissionBehavior"
         },
@@ -3113,7 +2852,9 @@
         "mcp_write_or_unknown",
         "dynamic_skill_tool",
         "computer_use",
-        "task_subagent"
+        "task_subagent",
+        "memory_write",
+        "agent_action"
       ]
     },
     "ToolRecoveryIdempotencyMode": {
@@ -4613,6 +4354,8 @@
         "dynamic_skill_tool",
         "computer_use",
         "task_subagent",
+        "memory_write",
+        "agent_action",
         "internal",
         "unknown"
       ]
@@ -4954,57 +4697,6 @@
         "phase"
       ]
     },
-    "TurnWorkGroupRow": {
-      "type": "object",
-      "properties": {
-        "anchor_entry_id": {
-          "type": "string"
-        },
-        "elapsed_ms": {
-          "type": [
-            "integer",
-            "null"
-          ],
-          "format": "uint64",
-          "minimum": 0
-        },
-        "is_open": {
-          "type": "boolean"
-        },
-        "state": {
-          "description": "Server-owned lifecycle state; clients must not infer it from row order.",
-          "anyOf": [
-            {
-              "$ref": "#/$defs/TurnWorkState"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "toggle_key": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "toggle_key",
-        "anchor_entry_id",
-        "is_open"
-      ]
-    },
-    "TurnWorkState": {
-      "type": "string",
-      "enum": [
-        "starting",
-        "running",
-        "waiting_for_approval",
-        "stalled",
-        "completed",
-        "blocked",
-        "failed",
-        "interrupted"
-      ]
-    },
     "UserMessageAttachment": {
       "oneOf": [
         {
@@ -5215,105 +4907,6 @@
             "capability"
           ]
         }
-      ]
-    },
-    "UserMessagePresentation": {
-      "description": "Authoritative collaboration metadata attached to a rendered user-message\nrow. It mirrors disclosed server fields; shells must not reconstruct it by\nparsing text or by joining a mutable member directory.",
-      "type": "object",
-      "properties": {
-        "attachments": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/UserMessageAttachment"
-          }
-        },
-        "author": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/TurnAuthorSnapshot"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "block_id": {
-          "type": "string"
-        },
-        "deleted": {
-          "type": "boolean"
-        },
-        "edited": {
-          "type": "boolean"
-        },
-        "item_id": {
-          "type": "string"
-        },
-        "mentions": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/TurnMention"
-          }
-        },
-        "mode": {
-          "$ref": "#/$defs/ThreadMode"
-        },
-        "reply": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/TimelineReplySummary"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "reply_state": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/TimelineReplyState"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "revision": {
-          "type": "integer",
-          "format": "uint64",
-          "minimum": 0
-        },
-        "route": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/SafeRouteProvenance"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "thread_id": {
-          "type": "string"
-        },
-        "turn_id": {
-          "type": "string"
-        },
-        "workspace_id": {
-          "type": "string"
-        }
-      },
-      "additionalProperties": false,
-      "required": [
-        "workspace_id",
-        "thread_id",
-        "block_id",
-        "turn_id",
-        "item_id",
-        "mode",
-        "revision",
-        "edited",
-        "deleted"
       ]
     },
     "WebFetchLink": {

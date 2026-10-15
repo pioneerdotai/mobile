@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ClientGatewaySessionValidationResult",
+  "type": "object",
+  "properties": {
+    "terminal_reason": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/SessionTerminalReason"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "valid": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "valid"
+  ],
+  "$defs": {
+    "SessionTerminalReason": {
+      "type": "string",
+      "enum": [
+        "authentication_required",
+        "session_revoked",
+        "session_expired",
+        "session_compromised",
+        "principal_suspended",
+        "principal_removed",
+        "gateway_identity_mismatch",
+        "secure_storage_failed",
+        "refresh_outcome_unknown",
+        "refresh_credential_invalid"
+      ]
+    }
+  }
+}

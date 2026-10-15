@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback } from 'react';
 import { FlashList, type ListRenderItem } from '@shopify/flash-list';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 
-import { pioneerClient, type MessageRevisionPagePresentation } from '@/client';
+import type { MessageRevisionPagePresentation } from '@/client';
+import { dispatchMessageRevisions, useMessageRevisions } from '@/client/message-revisions';
 import Spinner from '@/components/feedback/spinner';
 import { Box } from '@/components/primitives/box';
 import { Pressable } from '@/components/primitives/pressable';
@@ -17,8 +18,6 @@ type MessageRevisionsScreenProps = {
 
 type MessageRevisionPresentation = MessageRevisionPagePresentation['revisions'][number];
 
-const MESSAGE_REVISION_PAGE_SIZE = 50;
-
 const formatRevisionDate = (createdAtUnix: number): string => {
     const date = new Date(createdAtUnix * 1_000);
     return Number.isNaN(date.getTime()) ? '—' : date.toLocaleString();
@@ -27,68 +26,10 @@ const formatRevisionDate = (createdAtUnix: number): string => {
 const MessageRevisionsScreen = ({ threadId, turnId }: MessageRevisionsScreenProps) => {
     const { t } = useTranslation('threads');
     const { theme } = useUnistyles();
-    const [page, setPage] = useState<MessageRevisionPagePresentation | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(false);
-    const requestInFlightRef = useRef(false);
-    const mountedRef = useRef(true);
-
-    const validatePresentation = useCallback(
-        (presentation: MessageRevisionPagePresentation) => {
-            if (presentation.thread_id !== threadId || presentation.turn_id !== turnId) {
-                throw new Error('revision page identity mismatch');
-            }
-            return presentation;
-        },
-        [threadId, turnId],
-    );
-
-    const loadPage = useCallback(
-        async (cursor: string | null) => {
-            await Promise.resolve();
-            if (!mountedRef.current) return;
-            if (requestInFlightRef.current) return;
-            requestInFlightRef.current = true;
-            setLoading(true);
-            setError(false);
-            try {
-                const response = await pioneerClient.turnMessageRevisionsPage({
-                    thread_id: threadId,
-                    turn_id: turnId,
-                    cursor,
-                    limit: MESSAGE_REVISION_PAGE_SIZE,
-                });
-                const presentation = validatePresentation(
-                    pioneerClient.messageRevisionPagePresentation(response),
-                );
-                if (!mountedRef.current) return;
-                setPage((current) =>
-                    cursor && current
-                        ? {
-                              ...presentation,
-                              revisions: [...current.revisions, ...presentation.revisions],
-                          }
-                        : presentation,
-                );
-            } catch {
-                if (mountedRef.current) setError(true);
-            } finally {
-                requestInFlightRef.current = false;
-                if (mountedRef.current) setLoading(false);
-            }
-        },
-        [threadId, turnId, validatePresentation],
-    );
-
-    useEffect(() => {
-        mountedRef.current = true;
-        void Promise.resolve().then(() => {
-            void loadPage(null);
-        });
-        return () => {
-            mountedRef.current = false;
-        };
-    }, [loadPage]);
+    const input = useMessageRevisions(threadId, turnId);
+    const page = input?.page ?? null;
+    const loading = !input || input.state === 'loading';
+    const error = input?.state === 'failed';
 
     const renderRevision = useCallback<ListRenderItem<MessageRevisionPresentation>>(
         ({ item }) => (
@@ -149,7 +90,13 @@ const MessageRevisionsScreen = ({ threadId, turnId }: MessageRevisionsScreenProp
                             {!loading && page?.next_cursor ? (
                                 <Pressable
                                     accessibilityRole="button"
-                                    onPress={() => void loadPage(page.next_cursor ?? null)}
+                                    onPress={() => {
+                                        if (input)
+                                            dispatchMessageRevisions({
+                                                kind: 'more',
+                                                identity: input.identity,
+                                            });
+                                    }}
                                     style={styles.moreButton}
                                 >
                                     <Text style={styles.moreText}>

@@ -1,11 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Image } from 'react-native';
+import { useMemo } from 'react';
+import { Image } from 'expo-image';
 import { StyleSheet } from 'react-native-unistyles';
 
 import { Box } from '@/components/primitives/box';
 import { Text } from '@/components/primitives/text';
-import { stableOutlineWidth } from '@/helpers/styles';
-import { resolveMemberAvatar } from '@/services/members/resolve-avatar';
+import { useAuthenticatedAvatar } from '@/client/avatars';
 
 import { avatarFallbackAppearance } from './avatar-appearance';
 
@@ -16,8 +15,6 @@ type MemberAvatarProps = {
     principalId?: string | null;
     avatarRevision?: string | null;
     fallbackBackgroundColor?: string;
-    borderColor?: string;
-    borderWidth?: number;
 };
 
 const MemberAvatar = ({
@@ -27,55 +24,18 @@ const MemberAvatar = ({
     principalId,
     avatarRevision,
     fallbackBackgroundColor,
-    borderColor,
-    borderWidth = borderColor ? stableOutlineWidth : 0,
 }: MemberAvatarProps) => {
     const normalizedRevision = avatarRevision?.trim() || null;
-    const avatarKey =
-        principalId && normalizedRevision ? `${principalId}:${normalizedRevision}` : null;
-    const [resolvedAvatar, setResolvedAvatar] = useState<{
-        key: string;
-        uri: string | null;
-    } | null>(null);
+    const authenticatedUri = useAuthenticatedAvatar(
+        imageUri === undefined ? (principalId ?? null) : null,
+        normalizedRevision,
+    );
     const fallbackAppearance = useMemo(() => avatarFallbackAppearance(displayName), [displayName]);
-
-    useEffect(() => {
-        let cancelled = false;
-        if (imageUri !== undefined || !avatarKey || !principalId || !normalizedRevision) {
-            return;
-        }
-
-        void resolveMemberAvatar(principalId, normalizedRevision)
-            .then((uri) => {
-                if (!cancelled) {
-                    setResolvedAvatar({ key: avatarKey, uri });
-                }
-            })
-            .catch(() => {
-                if (!cancelled) {
-                    setResolvedAvatar({ key: avatarKey, uri: null });
-                }
-            });
-
-        return () => {
-            cancelled = true;
-        };
-    }, [avatarKey, imageUri, normalizedRevision, principalId]);
-
-    const resolvedUri =
-        imageUri !== undefined
-            ? imageUri
-            : resolvedAvatar?.key === avatarKey
-              ? resolvedAvatar.uri
-              : null;
+    const resolvedUri = imageUri !== undefined ? imageUri : authenticatedUri;
 
     if (resolvedUri) {
         return (
-            <Image
-                accessible={false}
-                source={{ uri: resolvedUri }}
-                style={styles.avatar(size, borderColor, borderWidth)}
-            />
+            <Image accessible={false} source={{ uri: resolvedUri }} style={styles.avatar(size)} />
         );
     }
 
@@ -85,8 +45,6 @@ const MemberAvatar = ({
             style={styles.fallback(
                 size,
                 fallbackBackgroundColor ?? fallbackAppearance.backgroundColor,
-                borderColor,
-                borderWidth,
             )}
         >
             <Text style={styles.initials(size, fallbackAppearance.textColor)}>
@@ -97,22 +55,18 @@ const MemberAvatar = ({
 };
 
 const styles = StyleSheet.create((theme) => ({
-    avatar: (size: number, borderColor?: string, borderWidth = 0) => ({
+    avatar: (size: number) => ({
         width: size,
         height: size,
         borderRadius: size / 2,
-        borderColor,
-        borderWidth,
     }),
-    fallback: (size: number, backgroundColor: string, borderColor?: string, borderWidth = 0) => ({
+    fallback: (size: number, backgroundColor: string) => ({
         width: size,
         height: size,
         borderRadius: size / 2,
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor,
-        borderColor,
-        borderWidth,
     }),
     initials: (size: number, color: string) => ({
         color,

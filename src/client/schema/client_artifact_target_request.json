@@ -6,6 +6,9 @@
     "artifact_id": {
       "type": "string"
     },
+    "identity": {
+      "$ref": "#/$defs/ArtifactActionIdentity"
+    },
     "version_id": {
       "type": [
         "string",
@@ -19,7 +22,37 @@
   },
   "additionalProperties": false,
   "required": [
+    "identity",
     "workspace_id",
     "artifact_id"
-  ]
+  ],
+  "$defs": {
+    "ArtifactActionIdentity": {
+      "type": "object",
+      "properties": {
+        "artifact_id": {
+          "type": "string"
+        },
+        "generation": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "thread_id": {
+          "type": "string"
+        },
+        "version_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "thread_id",
+        "artifact_id",
+        "generation"
+      ]
+    }
+  }
 }

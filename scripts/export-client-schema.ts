@@ -34,7 +34,19 @@ mkdirSync(outputDir, { recursive: true });
 
 execFileSync(
     'cargo',
-    ['run', '-p', 'pioneer-client', '--features', 'schema', '--bin', 'schema', '--', outputDir],
+    [
+        'run',
+        '--locked',
+        '--offline',
+        '-p',
+        'pioneer-client',
+        '--features',
+        'schema',
+        '--bin',
+        'schema',
+        '--',
+        outputDir,
+    ],
     {
         cwd: rustRoot,
         stdio: 'inherit',
@@ -45,6 +57,8 @@ execFileSync(
     'cargo',
     [
         'run',
+        '--locked',
+        '--offline',
         '-p',
         'pioneer-client-ffi',
         '--features',

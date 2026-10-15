@@ -4,6 +4,7 @@ const cleanEnv = (value) => {
 
 const appName = cleanEnv(process.env.APP_NAME) || 'Pioneer';
 const appVersion = cleanEnv(process.env.APP_VERSION) || '1.0';
+const clientBoundaryVersion = 2;
 const appBuildNumber = cleanEnv(process.env.APP_BUILD_NUMBER) || '1';
 const appBundleIdentifier = cleanEnv(process.env.APP_BUNDLE_IDENTIFIER) || '';
 const appVariant = cleanEnv(process.env.APP_VARIANT);
@@ -109,6 +110,7 @@ module.exports = {
         appVariant === 'development' ? './assets/images/icon-dev.png' : './assets/images/icon.png',
     plugins: [
         'expo-asset',
+        '@workspace-sh/react-native-source-editor',
         'expo-secure-store',
         'expo-document-picker',
         'expo-file-system',
@@ -133,6 +135,10 @@ module.exports = {
         [
             'expo-build-properties',
             {
+                ios: {
+                    deploymentTarget: iosDeploymentTarget,
+                    useFrameworks: 'static',
+                },
                 android: {
                     compileSdkVersion: 36,
                     targetSdkVersion: 35,
@@ -200,9 +206,7 @@ module.exports = {
         ],
         ['@sentry/react-native/expo', sentryPluginOptions],
     ],
-    runtimeVersion: {
-        policy: 'appVersion',
-    },
+    runtimeVersion: `${appVersion}-client-ffi-${clientBoundaryVersion}`,
     extra: {
         appUrlScheme,
         sentry: sentryExtra,

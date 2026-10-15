@@ -1,9 +1,11 @@
+import { dispatchNavigation, navigationSnapshot } from '@/client/navigation';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useUnistyles } from 'react-native-unistyles';
 
 import { ActionsButton } from '@/components/buttons/actions';
 import { CollapseButton } from '@/components/buttons/collapse';
+import { BackButton } from '@/components/buttons/back';
 import { useScreen } from '@/hooks/use-screen';
 
 type ThreadScreenNavigation = 'modal' | 'stack';
@@ -36,13 +38,15 @@ const useThreadScreen = ({
     };
 
     const handleTaskBack = () => {
-        if (parentThreadId) {
+        const parent = navigationSnapshot()?.lineage.at(-1)?.parent_thread_id ?? parentThreadId;
+        dispatchNavigation({ kind: 'pop_task_thread' });
+        if (parent) {
             if (router.canGoBack()) {
                 router.back();
             } else {
                 router.replace({
                     pathname: '/thread/[threadId]',
-                    params: { threadId: parentThreadId },
+                    params: { threadId: parent },
                 });
             }
             return;
@@ -72,15 +76,16 @@ const useThreadScreen = ({
             },
             headerLeft: () =>
                 isTaskChildThread ? (
-                    <CollapseButton icon="left" onPressHandler={handleTaskBack} />
+                    <BackButton variant="secondary" onPressHandler={handleTaskBack} />
                 ) : (
-                    <CollapseButton onPressHandler={handleBack} />
+                    <CollapseButton variant="secondary" onPressHandler={handleBack} />
                 ),
             headerRight: () =>
                 onActionsPress && !isTaskChildThread && threadId ? (
                     <ActionsButton
                         accessibilityLabel={t('threadActions')}
                         onPressHandler={onActionsPress}
+                        variant="secondary"
                     />
                 ) : null,
             cardStyle: {

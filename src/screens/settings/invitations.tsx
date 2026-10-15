@@ -1,18 +1,17 @@
+import type { AdministrationInvitationPresentation } from '@/services/administration/invitations';
+import {
+    copyAdministrationActivation,
+    dismissAdministrationActivation,
+    useAdministrationOperation,
+} from '@/services/administration/operations';
 import { BottomSheetModal, BottomSheetScrollView } from '@gorhom/bottom-sheet';
-import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigation } from 'expo-router';
 import { Trash2 } from 'lucide-react-native';
-import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Alert, RefreshControl } from 'react-native';
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { Alert, RefreshControl, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 
-import {
-    pioneerClient,
-    type ClientInvitationPresentationResult,
-    type InvitationListResponse,
-    type InvitationListRow,
-} from '@/client';
 import { Button } from '@/components/buttons/base';
 import { CreateButton } from '@/components/buttons/create';
 import { CredentialPresentation } from '@/components/credential-presentation';
@@ -35,22 +34,15 @@ import {
 } from '@/hooks/use-administration-capabilities';
 import {
     createInvitationPresentation,
-    loadInvitationPage,
     revokeInvitation,
 } from '@/services/administration/invitations';
-import {
-    administrationConflictRefetch,
-    administrationMutationKey,
-    administrationQueryKeys,
-    invalidateAdministrationTargets,
-} from '@/services/administration/query';
+import { useAdministrationPage } from '@/services/administration/pages';
+import { useAdministrationAction } from '@/hooks/use-administration-action';
+import type { AdministrationPagePublication } from '@/client/generated/administration_page_publication';
+import { useGatewayStore } from '@/stores/gateway';
 import { useWorkspaceStore } from '@/stores/workspace';
 
-type Invitation = InvitationListResponse['invitations'][number];
-type PresentedInvitation = {
-    invitation: Invitation;
-    row: InvitationListRow;
-};
+type PresentedInvitation = AdministrationPagePublication['invitations'][number];
 
 const EMPTY_INVITATIONS: PresentedInvitation[] = [];
 
@@ -58,96 +50,95 @@ const InvitationsSettingsScreen = () => {
     const { t } = useTranslation(['settings', 'common', 'gateway']);
     const { theme, rt } = useUnistyles();
     const navigation = useNavigation();
-    const queryClient = useQueryClient();
+    const listInstance = useId();
+    const endpointId = useGatewayStore((state) => state.connectionGatewayId);
+    const rowScope = JSON.stringify([listInstance, endpointId]);
     const capabilities = useAdministrationCapabilities();
     const principal = useAdministrationPrincipal();
+    const operation = useAdministrationOperation();
     const invitationRoleOptions = useMemo(
         () => capabilities.capabilitySnapshot?.global.invitation_role_options ?? [],
         [capabilities.capabilitySnapshot],
     );
     const workspaces = useWorkspaceStore((state) => state.workspaces);
+    const [creationChoices, setCreationChoices] = useState<{
+        workspaces: typeof workspaces;
+        roles: typeof invitationRoleOptions;
+    } | null>(null);
     const creationSheetRef = useRef<BottomSheetModal>(null);
     const [selectedWorkspaceIds, setSelectedWorkspaceIds] = useState<ReadonlySet<string>>(
         () => new Set(),
     );
     const [selectedRoleKey, setSelectedRoleKey] = useState<string | null>(null);
-    const [presentation, setPresentation] = useState<ClientInvitationPresentationResult | null>(
+    const [presentation, setPresentation] = useState<AdministrationInvitationPresentation | null>(
         null,
+    );
+    const [resultMeasured, setResultMeasured] = useState(false);
+    const [formHeight, setFormHeight] = useState(0);
+    useEffect(
+        () => () => {
+            if (presentation) dismissAdministrationActivation(presentation.operationGeneration);
+        },
+        [presentation],
     );
     const [selectedInvitation, setSelectedInvitation] = useState<PresentedInvitation | null>(null);
     const [manualRefreshing, setManualRefreshing] = useState(false);
 
-    const invitationsQuery = useInfiniteQuery({
-        queryKey: administrationQueryKeys.invitations(),
-        queryFn: ({ pageParam }) => loadInvitationPage(pageParam),
-        initialPageParam: null as string | null,
-        getNextPageParam: (lastPage) => lastPage.next_cursor ?? undefined,
-        enabled: capabilities.data?.can_view_invitations === true,
-        refetchOnMount: 'always',
-        refetchOnReconnect: true,
-    });
-    const invitations = useMemo(() => {
-        const seen = new Set<string>();
-        return (invitationsQuery.data?.pages ?? []).flatMap((page) =>
-            page.invitations.filter((invitation) => {
-                if (seen.has(invitation.invitation_id)) return false;
-                seen.add(invitation.invitation_id);
-                return true;
-            }),
-        );
-    }, [invitationsQuery.data?.pages]);
-    const rows = useMemo(() => {
-        const capabilitySnapshot = capabilities.capabilitySnapshot;
-        if (!principal.data || !capabilitySnapshot) return EMPTY_INVITATIONS;
-        return invitations.map((invitation) => ({
-            invitation,
-            row: pioneerClient.invitationListRow({
-                auth: principal.data,
-                capability_snapshot: capabilitySnapshot,
-                invitation,
-            }),
-        }));
-    }, [capabilities.capabilitySnapshot, invitations, principal.data]);
+    const invitationsQuery = useAdministrationPage({ kind: 'invitations' }, true);
+    const rows = invitationsQuery.snapshot?.invitations ?? EMPTY_INVITATIONS;
 
-    const createMutation = useMutation({
-        mutationKey: administrationMutationKey,
+    const createMutation = useAdministrationAction({
         mutationFn: ({ workspaceIds, roleKey }: { workspaceIds: string[]; roleKey: string }) =>
             createInvitationPresentation(workspaceIds, roleKey),
+        onDiscard: (result) => dismissAdministrationActivation(result.operationGeneration),
         onSuccess: (result) => {
             setPresentation(result);
-            setSelectedWorkspaceIds(new Set());
-            void queryClient.invalidateQueries({
-                queryKey: administrationQueryKeys.invitations(),
-            });
-        },
-        onError: async () => {
-            const targets = administrationConflictRefetch({ kind: 'create_invitation' });
-            await invalidateAdministrationTargets(queryClient, targets);
         },
     });
-    const revokeMutation = useMutation({
-        mutationKey: administrationMutationKey,
+    const revokeMutation = useAdministrationAction({
         mutationFn: (invitationId: string) => revokeInvitation(invitationId),
-        onSuccess: async () => {
-            await queryClient.invalidateQueries({
-                queryKey: administrationQueryKeys.invitations(),
-            });
-        },
-        onError: async (_error, invitationId) => {
-            const targets = administrationConflictRefetch({
-                kind: 'revoke_invitation',
-                invitation_id: invitationId,
-            });
-            await invalidateAdministrationTargets(queryClient, targets);
+        onError: () => {
             Alert.alert(t('invitations.actionFailed'));
         },
     });
+    const presentationScope = JSON.stringify([
+        endpointId,
+        principal.data?.principal.id,
+        principal.data?.session.id,
+    ]);
+    const previousPresentationScope = useRef(presentationScope);
+    const resetCreationScope = createMutation.reset;
+    const resetRevoke = revokeMutation.reset;
+    useEffect(() => {
+        const identityChanged = previousPresentationScope.current !== presentationScope;
+        previousPresentationScope.current = presentationScope;
+        // Creation advances the policy revision. The Client keeps the matching
+        // invitation receipt across that update, as it does for desktop.
+        const presentationRetired =
+            presentation !== null &&
+            (operation?.generation !== presentation.operationGeneration ||
+                operation.action?.kind !== 'create_invitation' ||
+                !['loading', 'ready'].includes(operation.request.kind));
+        if (!identityChanged && !presentationRetired) return;
+        resetCreationScope();
+        resetRevoke();
+        setSelectedInvitation(null);
+        setPresentation(null);
+        setResultMeasured(false);
+        setCreationChoices(null);
+        setSelectedWorkspaceIds(new Set());
+        setSelectedRoleKey(null);
+        creationSheetRef.current?.dismiss();
+    }, [presentationScope, operation, presentation, resetCreationScope, resetRevoke]);
+
     const {
         isError: createError,
         isPending: createPending,
         mutate: mutateCreate,
         reset: resetCreate,
     } = createMutation;
+    const showingResult = presentation !== null && resultMeasured;
+    const transitionPending = createPending || (presentation !== null && !resultMeasured);
     const { isPending: revokePending, mutate: mutateRevoke } = revokeMutation;
     const refetchInvitations = invitationsQuery.refetch;
 
@@ -157,32 +148,48 @@ const InvitationsSettingsScreen = () => {
         if (!defaultRole) return;
         resetCreate();
         setPresentation(null);
+        setResultMeasured(false);
+        setCreationChoices(null);
         setSelectedWorkspaceIds(new Set());
         setSelectedRoleKey(defaultRole.role.key);
+        setCreationChoices({ workspaces, roles: invitationRoleOptions });
         creationSheetRef.current?.present();
-    }, [createPending, invitationRoleOptions, resetCreate]);
+    }, [createPending, invitationRoleOptions, resetCreate, workspaces]);
 
+    const canCreate =
+        capabilities.data === undefined
+            ? undefined
+            : capabilities.data.can_create_invitation === true &&
+              invitationRoleOptions.some((option) => option.is_default);
+    const [headerAccess, setHeaderAccess] = useState({ scope: presentationScope, visible: false });
+    if (
+        canCreate !== undefined &&
+        (headerAccess.scope !== presentationScope || headerAccess.visible !== canCreate)
+    ) {
+        setHeaderAccess({ scope: presentationScope, visible: canCreate });
+    }
+    const headerVisible =
+        canCreate ?? (headerAccess.scope === presentationScope && headerAccess.visible);
+    const openCreationRef = useRef(openCreation);
     useLayoutEffect(() => {
-        const canCreate =
-            capabilities.data?.can_create_invitation === true &&
-            invitationRoleOptions.some((option) => option.is_default);
+        openCreationRef.current = openCreation;
+    }, [openCreation]);
+    const openFromHeader = useCallback(() => openCreationRef.current(), []);
+    const headerDisabled = canCreate !== true || createPending;
+    useLayoutEffect(() => {
         navigation.setOptions({
-            headerRight: canCreate
+            headerRight: headerVisible
                 ? () => (
                       <CreateButton
+                          variant="primary"
                           accessibilityLabel={t('invitations.create')}
-                          onPressHandler={openCreation}
+                          disabled={headerDisabled}
+                          onPressHandler={openFromHeader}
                       />
                   )
                 : () => null,
         });
-    }, [
-        capabilities.data?.can_create_invitation,
-        invitationRoleOptions,
-        navigation,
-        openCreation,
-        t,
-    ]);
+    }, [headerVisible, headerDisabled, navigation, openFromHeader, t]);
 
     const refreshInvitations = useCallback(async () => {
         if (manualRefreshing) return;
@@ -208,7 +215,7 @@ const InvitationsSettingsScreen = () => {
 
     const confirmRevoke = useCallback(() => {
         if (!selectedInvitation || revokePending) return;
-        const invitationId = selectedInvitation.row.invitation_id;
+        const invitationId = selectedInvitation.presentation.invitation_id;
         setSelectedInvitation(null);
         Alert.alert(t('invitations.revokeTitle'), t('invitations.revokeDescription'), [
             { text: t('cancel', { ns: 'common' }), style: 'cancel' },
@@ -222,23 +229,26 @@ const InvitationsSettingsScreen = () => {
 
     const renderInvitation = useCallback(
         (item: PresentedInvitation, index: number) => (
-            <VStack key={item.row.invitation_id}>
+            <VStack key={`${rowScope}:invitations:${item.id}:row`}>
                 {index > 0 ? <Box style={styles.divider} /> : null}
                 <Pressable
-                    accessibilityLabel={`${item.row.workspace_names.join(', ')}, ${t(`invitations.status.${item.row.status}`)}`}
+                    accessibilityLabel={`${item.presentation.workspace_names.join(', ')}, ${t(`invitations.status.${item.presentation.status}`)}`}
                     delayLongPress={350}
                     onLongPress={
-                        item.row.can_revoke ? () => setSelectedInvitation(item) : undefined
+                        item.presentation.can_revoke ? () => setSelectedInvitation(item) : undefined
                     }
                 >
                     <VStack
                         style={[styles.invitationRow, index > 0 ? styles.rowWithDivider : null]}
                     >
                         <HStack style={styles.badges}>
-                            {item.row.workspace_names.map((name) => (
-                                <Box key={name} style={styles.badge}>
+                            {item.invitation.workspaces.map((workspace) => (
+                                <Box
+                                    key={`${rowScope}:invitations:${item.id}:workspace:${workspace.workspace_id}`}
+                                    style={styles.badge}
+                                >
                                     <Text numberOfLines={1} style={styles.badgeText}>
-                                        {name}
+                                        {workspace.name}
                                     </Text>
                                 </Box>
                             ))}
@@ -246,45 +256,50 @@ const InvitationsSettingsScreen = () => {
                         <Text
                             style={[
                                 styles.invitationMeta,
-                                item.row.status === 'accepted'
+                                item.presentation.status === 'accepted'
                                     ? styles.statusAccepted
-                                    : item.row.status === 'pending'
+                                    : item.presentation.status === 'pending'
                                       ? styles.statusPending
-                                      : item.row.status === 'revoked' ||
-                                          item.row.status === 'expired'
+                                      : item.presentation.status === 'revoked' ||
+                                          item.presentation.status === 'expired'
                                         ? styles.statusTerminal
                                         : null,
                             ]}
                         >
-                            {t(`invitations.status.${item.row.status}`)}
+                            {t(`invitations.status.${item.presentation.status}`)}
                         </Text>
                         <Text style={styles.invitationMeta}>
-                            {new Date(item.row.created_at_unix * 1000).toLocaleString()} —{' '}
-                            {new Date(item.row.expires_at_unix * 1000).toLocaleString()}
+                            {new Date(item.presentation.created_at_unix * 1000).toLocaleString()} —{' '}
+                            {new Date(item.presentation.expires_at_unix * 1000).toLocaleString()}
                         </Text>
                     </VStack>
                 </Pressable>
             </VStack>
         ),
-        [t],
+        [rowScope, t],
     );
 
     const dismissCreation = useCallback(() => {
         setPresentation(null);
+        setResultMeasured(false);
+        setCreationChoices(null);
         setSelectedWorkspaceIds(new Set());
         setSelectedRoleKey(null);
         resetCreate();
     }, [resetCreate]);
 
-    if (!capabilities.isPending && !principal.isPending) {
-        if (!capabilities.data?.can_view_invitations || !principal.data) {
-            return <ScreenFeedback label={t('invitations.forbidden')} />;
-        }
-    }
+    // List authorization can be unavailable during revalidation. Keep the
+    // modal mounted: its lifetime belongs to the identity/operation above,
+    // not to the result of a background capability read.
+    const listUnavailable =
+        rows.length === 0 &&
+        !capabilities.isPending &&
+        !principal.isPending &&
+        (!capabilities.data?.can_view_invitations || !principal.data);
 
     const initialLoading =
         capabilities.isPending || principal.isPending || invitationsQuery.isPending;
-    const visibleRows = invitationsQuery.isError ? EMPTY_INVITATIONS : rows;
+    const visibleRows = rows;
 
     return (
         <Box style={styles.container}>
@@ -300,7 +315,9 @@ const InvitationsSettingsScreen = () => {
                 }
                 showsVerticalScrollIndicator={false}
             >
-                {visibleRows.length > 0 ? (
+                {listUnavailable ? (
+                    <ScreenFeedback label={t('invitations.forbidden')} />
+                ) : visibleRows.length > 0 ? (
                     <VStack testID="invitations-list" style={styles.listCard}>
                         {visibleRows.map(renderInvitation)}
                     </VStack>
@@ -323,7 +340,7 @@ const InvitationsSettingsScreen = () => {
                         )}
                     </VStack>
                 )}
-                {invitationsQuery.hasNextPage ? (
+                {!listUnavailable && invitationsQuery.hasNextPage ? (
                     <Box style={styles.footer}>
                         <Button
                             type="link"
@@ -354,23 +371,22 @@ const InvitationsSettingsScreen = () => {
             <BottomSheetModal
                 ref={creationSheetRef}
                 backdropComponent={(props) => (
-                    <Backdrop {...props} pressBehavior={createPending ? 'none' : 'close'} />
+                    <Backdrop {...props} pressBehavior={transitionPending ? 'none' : 'close'} />
                 )}
                 handleComponent={(props) => (
                     <Handle
                         {...props}
                         title={
-                            presentation
+                            showingResult
                                 ? t('invitations.presentationTitle')
                                 : t('invitations.create')
                         }
-                        closeButton={!createPending}
-                        closeButtonType="ghost"
+                        closeButton={!transitionPending}
                         handleClose={() => creationSheetRef.current?.dismiss()}
                     />
                 )}
                 onDismiss={dismissCreation}
-                enablePanDownToClose={!createPending}
+                enablePanDownToClose={!transitionPending}
                 stackBehavior="push"
                 topInset={rt.insets.top + theme.space(5)}
                 backgroundStyle={styles.sheetBackground}
@@ -378,97 +394,123 @@ const InvitationsSettingsScreen = () => {
                 handleIndicatorStyle={styles.sheetHandleIndicator}
             >
                 <BottomSheetScrollView contentContainerStyle={styles.sheetContent}>
-                    {presentation ? (
-                        <VStack style={styles.presentation}>
-                            <CredentialPresentation
-                                qrModules={presentation.qr_modules}
-                                qrWidth={presentation.qr_width}
-                                qrAccessibilityLabel={t('invitations.qrLabel')}
-                                description={t('invitations.presentationDescription')}
-                                link={{
-                                    value: presentation.canonical_uri,
-                                    label: t('devices.linkLabel', { ns: 'gateway' }),
-                                    copyAccessibilityLabel: t('invitations.copyLink'),
-                                    copiedAccessibilityLabel: t('invitations.copied'),
-                                    kind: 'link',
+                    <View style={showingResult ? { minHeight: formHeight } : undefined}>
+                        {presentation ? (
+                            <View
+                                onLayout={(event) => {
+                                    if (event.nativeEvent.layout.height > 0)
+                                        setResultMeasured(true);
                                 }}
-                            />
-                            <Button
-                                title={t('invitations.done')}
-                                onPress={() => creationSheetRef.current?.dismiss()}
-                            />
-                        </VStack>
-                    ) : (
-                        <VStack style={styles.creation}>
-                            <VStack style={styles.roleSelector}>
-                                <Label>{t('invitations.role')}</Label>
-                                <HStack style={styles.roleOptions}>
-                                    {invitationRoleOptions.map((option) => {
-                                        const selected = selectedRoleKey === option.role.key;
-                                        return (
-                                            <Pressable
-                                                key={option.role.key}
-                                                accessibilityRole="radio"
-                                                accessibilityState={{
-                                                    selected,
-                                                    disabled: createPending,
-                                                }}
-                                                disabled={createPending}
-                                                onPress={() => setSelectedRoleKey(option.role.key)}
-                                                style={[
-                                                    styles.roleOption,
-                                                    selected
-                                                        ? styles.roleOptionSelected
-                                                        : styles.roleOptionIdle,
-                                                ]}
-                                            >
-                                                <Text
-                                                    style={
-                                                        selected
-                                                            ? styles.roleOptionTextSelected
-                                                            : styles.roleOptionText
-                                                    }
-                                                >
-                                                    {option.role.display_name}
-                                                </Text>
-                                                <Text
-                                                    style={
-                                                        selected
-                                                            ? styles.roleDescriptionSelected
-                                                            : styles.roleDescription
-                                                    }
-                                                >
-                                                    {option.role.description}
-                                                </Text>
-                                            </Pressable>
-                                        );
-                                    })}
-                                </HStack>
-                            </VStack>
-                            <WorkspaceToggleSelector
-                                label={t('invitations.workspaces')}
-                                workspaces={workspaces}
-                                selectedWorkspaceIds={selectedWorkspaceIds}
-                                disabled={createPending}
-                                onToggle={toggleWorkspace}
-                            />
-                            {createError ? (
-                                <Text accessibilityRole="alert" style={styles.error}>
-                                    {t('invitations.actionFailed')}
-                                </Text>
-                            ) : null}
-                            <Button
-                                title={t('invitations.create')}
-                                disabled={
-                                    selectedWorkspaceIds.size === 0 ||
-                                    !selectedRoleKey ||
-                                    createPending
+                                style={
+                                    !showingResult
+                                        ? { position: 'absolute', left: 0, right: 0, opacity: 0 }
+                                        : undefined
                                 }
-                                loading={createPending}
-                                onPress={createInvitation}
-                            />
-                        </VStack>
-                    )}
+                                pointerEvents={showingResult ? 'auto' : 'none'}
+                                accessibilityElementsHidden={!showingResult}
+                                importantForAccessibility={
+                                    showingResult ? 'auto' : 'no-hide-descendants'
+                                }
+                            >
+                                <VStack style={styles.presentation}>
+                                    <CredentialPresentation
+                                        onCopy={(value) =>
+                                            copyAdministrationActivation(
+                                                presentation.operationGeneration,
+                                                value,
+                                            )
+                                        }
+                                        qrModules={presentation.qr_modules}
+                                        qrWidth={presentation.qr_width}
+                                        qrAccessibilityLabel={t('invitations.qrLabel')}
+                                        description={t('invitations.presentationDescription')}
+                                        link={{
+                                            value: presentation.canonical_uri,
+                                            label: t('devices.linkLabel', { ns: 'gateway' }),
+                                            copyAccessibilityLabel: t('invitations.copyLink'),
+                                            copiedAccessibilityLabel: t('invitations.copied'),
+                                            kind: 'link',
+                                        }}
+                                    />
+                                    <Button
+                                        title={t('invitations.done')}
+                                        onPress={() => creationSheetRef.current?.dismiss()}
+                                    />
+                                </VStack>
+                            </View>
+                        ) : null}
+                        {!showingResult ? (
+                            <View
+                                onLayout={(event) => setFormHeight(event.nativeEvent.layout.height)}
+                            >
+                                <VStack style={styles.creation}>
+                                    <VStack style={styles.roleSelector}>
+                                        <Label>{t('invitations.role')}</Label>
+                                        <HStack style={styles.roleOptions}>
+                                            {(creationChoices?.roles ?? invitationRoleOptions).map(
+                                                (option) => {
+                                                    const selected =
+                                                        selectedRoleKey === option.role.key;
+                                                    return (
+                                                        <Pressable
+                                                            key={option.role.key}
+                                                            accessibilityRole="radio"
+                                                            accessibilityState={{
+                                                                selected,
+                                                                disabled: transitionPending,
+                                                            }}
+                                                            disabled={transitionPending}
+                                                            onPress={() =>
+                                                                setSelectedRoleKey(option.role.key)
+                                                            }
+                                                            style={[
+                                                                styles.roleOption,
+                                                                selected
+                                                                    ? styles.roleOptionSelected
+                                                                    : styles.roleOptionIdle,
+                                                            ]}
+                                                        >
+                                                            <Text
+                                                                style={
+                                                                    selected
+                                                                        ? styles.roleOptionTextSelected
+                                                                        : styles.roleOptionText
+                                                                }
+                                                            >
+                                                                {option.role.display_name}
+                                                            </Text>
+                                                        </Pressable>
+                                                    );
+                                                },
+                                            )}
+                                        </HStack>
+                                    </VStack>
+                                    <WorkspaceToggleSelector
+                                        label={t('invitations.workspaces')}
+                                        workspaces={creationChoices?.workspaces ?? workspaces}
+                                        selectedWorkspaceIds={selectedWorkspaceIds}
+                                        disabled={transitionPending}
+                                        onToggle={toggleWorkspace}
+                                    />
+                                    {createError ? (
+                                        <Text accessibilityRole="alert" style={styles.error}>
+                                            {t('invitations.actionFailed')}
+                                        </Text>
+                                    ) : null}
+                                    <Button
+                                        title={t('invitations.create')}
+                                        disabled={
+                                            selectedWorkspaceIds.size === 0 ||
+                                            !selectedRoleKey ||
+                                            transitionPending
+                                        }
+                                        loading={transitionPending}
+                                        onPress={createInvitation}
+                                    />
+                                </VStack>
+                            </View>
+                        ) : null}
+                    </View>
                 </BottomSheetScrollView>
             </BottomSheetModal>
         </Box>
@@ -605,14 +647,13 @@ const styles = StyleSheet.create((theme, rt) => ({
         gap: theme.space(1.5),
     },
     roleOption: {
-        minWidth: theme.space(32),
-        maxWidth: '100%',
-        gap: theme.space(0.5),
+        minHeight: theme.space(10),
+        justifyContent: 'center',
         paddingHorizontal: theme.space(4),
-        paddingVertical: theme.space(2.5),
-        borderRadius: theme.radius['2xl'],
+        borderRadius: theme.radius.full,
     },
     roleOptionIdle: {
+        backgroundColor: 'transparent',
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: theme.colors.border,
     },
@@ -621,21 +662,13 @@ const styles = StyleSheet.create((theme, rt) => ({
     },
     roleOptionText: {
         color: theme.colors.typography,
+        opacity: 0.8,
         ...theme.fontSize.default,
     },
     roleOptionTextSelected: {
         color: theme.colors.background,
+        opacity: 1,
         ...theme.fontSize.default,
-    },
-    roleDescription: {
-        color: theme.colors.typography,
-        ...theme.fontSize.xs,
-        opacity: 0.6,
-    },
-    roleDescriptionSelected: {
-        color: theme.colors.background,
-        ...theme.fontSize.xs,
-        opacity: 0.7,
     },
     presentation: {
         gap: theme.space(5),

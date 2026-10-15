@@ -1,0 +1,7052 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ClientProcessChangeBatchDto",
+  "type": "object",
+  "properties": {
+    "changes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ClientProcessChangeSetDto"
+      }
+    },
+    "closed": {
+      "type": "boolean"
+    },
+    "effects": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ClientEffectPlan"
+      }
+    },
+    "resnapshot": {
+      "type": "boolean"
+    },
+    "schema_version": {
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0
+    },
+    "sequence": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0
+    }
+  },
+  "required": [
+    "closed",
+    "effects",
+    "schema_version",
+    "sequence",
+    "resnapshot",
+    "changes"
+  ],
+  "$defs": {
+    "AdministrationPage": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "members"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "member_directory"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "invitations"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "workspace_members"
+            },
+            "workspace_id": {
+              "$ref": "#/$defs/WorkspaceId"
+            }
+          },
+          "required": [
+            "kind",
+            "workspace_id"
+          ]
+        }
+      ]
+    },
+    "AdministrationPresentationEffect": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "copy_administration_activation"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        }
+      ]
+    },
+    "AgentExecutionId": {
+      "type": "string",
+      "maxLength": 21,
+      "minLength": 21,
+      "pattern": "^[A-Za-z0-9]{21}$"
+    },
+    "AgentIdentityId": {
+      "type": "string",
+      "maxLength": 21,
+      "minLength": 21,
+      "pattern": "^[A-Za-z0-9]{21}$"
+    },
+    "AgentIdentitySourceKind": {
+      "type": "string",
+      "enum": [
+        "native_agent",
+        "cli_runtime_instance",
+        "ephemeral"
+      ]
+    },
+    "AgentMessagePhase": {
+      "type": "string",
+      "enum": [
+        "final_answer",
+        "commentary"
+      ]
+    },
+    "AgentPresentationSnapshot": {
+      "type": "object",
+      "properties": {
+        "agent_execution_id": {
+          "$ref": "#/$defs/AgentExecutionId"
+        },
+        "agent_identity_id": {
+          "$ref": "#/$defs/AgentIdentityId"
+        },
+        "avatar_revision": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "display_name": {
+          "type": "string"
+        },
+        "identity_source_kind": {
+          "$ref": "#/$defs/AgentIdentitySourceKind"
+        },
+        "identity_source_revision": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "nickname": {
+          "type": "string"
+        },
+        "role_label": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "agent_identity_id",
+        "agent_execution_id",
+        "identity_source_kind",
+        "identity_source_revision",
+        "display_name",
+        "nickname"
+      ]
+    },
+    "AgentResultReturnPolicy": {
+      "type": "string",
+      "enum": [
+        "none",
+        "summary_only",
+        "full_result"
+      ]
+    },
+    "AgentRouteAction": {
+      "type": "string",
+      "enum": [
+        "send_message",
+        "start_agent",
+        "create_task",
+        "schedule_task",
+        "review_task_result",
+        "deliver_result"
+      ]
+    },
+    "AgentRouteDisclosurePolicy": {
+      "type": "object",
+      "properties": {
+        "artifacts": {
+          "description": "Exact, already-authorized artifact handles. Raw files and paths are\nnever represented by this flag.",
+          "type": "boolean",
+          "default": false
+        },
+        "context": {
+          "description": "Bounded conversation excerpts or summaries selected by server policy.",
+          "type": "boolean",
+          "default": false
+        },
+        "resultReturn": {
+          "description": "Result return is a separate disclosure class: allowing ordinary text\nmust never imply that a full Task result can cross a capsule boundary.",
+          "$ref": "#/$defs/AgentResultReturnPolicy",
+          "default": "none"
+        },
+        "text": {
+          "description": "Explicit text authored for the routed operation.",
+          "type": "boolean",
+          "default": false
+        },
+        "userInput": {
+          "description": "Explicit user-provided Task inputs. This is deliberately independent\nfrom Agent-authored text and inherited conversation context.",
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "AgentWorkGraphProjection": {
+      "type": "object",
+      "properties": {
+        "nodes": {
+          "description": "Stable, bounded nodes in the exact root graph. No prompt, provider,\nmodel, thread title, runtime path, or other private payload is exposed.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AgentWorkNodeProjection"
+          }
+        },
+        "queuedCount": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "rootExecutionId": {
+          "$ref": "#/$defs/AgentExecutionId"
+        },
+        "runningCount": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "saturated": {
+          "description": "True while one or more authorized nodes are durably queued for\nserver-owned capacity. This is resource state, not an authorization\nfailure and never implies that the whole graph is blocked.",
+          "type": "boolean"
+        },
+        "terminalCount": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "updatedAtUnixMicros": {
+          "description": "Monotonic persisted resource-state timestamp used only to reject stale\ngraph projections racing with live queue/promotion/finalization events.",
+          "type": "integer",
+          "format": "int64"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "rootExecutionId",
+        "updatedAtUnixMicros",
+        "queuedCount",
+        "runningCount",
+        "terminalCount",
+        "saturated",
+        "nodes"
+      ]
+    },
+    "AgentWorkNodeProjection": {
+      "type": "object",
+      "properties": {
+        "executionId": {
+          "$ref": "#/$defs/AgentExecutionId"
+        },
+        "progressLabel": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "progressRevision": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "state": {
+          "$ref": "#/$defs/AgentWorkNodeState"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "executionId",
+        "state",
+        "progressRevision"
+      ]
+    },
+    "AgentWorkNodeState": {
+      "type": "string",
+      "enum": [
+        "queued",
+        "running",
+        "completed",
+        "failed",
+        "cancelled",
+        "blocked"
+      ]
+    },
+    "ArtifactKind": {
+      "type": "string",
+      "enum": [
+        "file",
+        "text",
+        "image",
+        "audio",
+        "video",
+        "pdf",
+        "spreadsheet",
+        "archive",
+        "json",
+        "generated_image",
+        "screenshot",
+        "workspace_file",
+        "directory_manifest",
+        "unknown"
+      ]
+    },
+    "ArtifactPreviewRef": {
+      "type": "object",
+      "properties": {
+        "artifact_id": {
+          "type": "string"
+        },
+        "blob_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "mime_type": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "projection_kind": {
+          "$ref": "#/$defs/ArtifactProjectionKind"
+        },
+        "sha256": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "size_bytes": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0
+        },
+        "status": {
+          "$ref": "#/$defs/ArtifactProjectionStatus"
+        },
+        "version_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "projection_kind",
+        "status",
+        "artifact_id",
+        "version_id"
+      ]
+    },
+    "ArtifactProjectionKind": {
+      "type": "string",
+      "enum": [
+        "plain_text",
+        "thumbnail",
+        "json_summary",
+        "pdf_text"
+      ]
+    },
+    "ArtifactProjectionStatus": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "ready",
+        "failed",
+        "stale"
+      ]
+    },
+    "ArtifactRef": {
+      "type": "object",
+      "properties": {
+        "artifact_id": {
+          "type": "string"
+        },
+        "display_name": {
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/ArtifactKind"
+        },
+        "mime_type": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "preview": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ArtifactPreviewRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "sha256": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "size_bytes": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0
+        },
+        "status": {
+          "$ref": "#/$defs/ArtifactStatus"
+        },
+        "version_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "artifact_id",
+        "display_name",
+        "kind",
+        "status"
+      ]
+    },
+    "ArtifactStatus": {
+      "type": "string",
+      "enum": [
+        "ready",
+        "pending",
+        "quarantined",
+        "deleted",
+        "missing_external_source",
+        "failed"
+      ]
+    },
+    "AuthSessionId": {
+      "type": "string",
+      "maxLength": 21,
+      "minLength": 21,
+      "pattern": "^[A-Za-z0-9]{21}$"
+    },
+    "CLIRuntimePendingRequest": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/CLIRuntimeRequestKind"
+        },
+        "message": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "native_request_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "payload": true,
+        "title": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "kind"
+      ]
+    },
+    "CLIRuntimeRequestKind": {
+      "type": "string",
+      "enum": [
+        "command_approval",
+        "file_change_approval",
+        "permission_approval",
+        "user_input",
+        "other"
+      ]
+    },
+    "ClientEffect": {
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "RefreshWorkspaceList",
+            "RefreshGatewaySettings",
+            "RefreshProviderLists",
+            "QueueSkillsRefresh",
+            "EnqueueInFlightTurnsForResume"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "UnsubscribeThreads": {
+              "type": "object",
+              "properties": {
+                "thread_ids": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [
+                "thread_ids"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "UnsubscribeThreads"
+          ]
+        }
+      ]
+    },
+    "ClientEffectPlan": {
+      "type": "object",
+      "properties": {
+        "effect": {
+          "$ref": "#/$defs/ClientPlannedEffect"
+        },
+        "generation": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "operation_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "operation_id",
+        "generation",
+        "effect"
+      ]
+    },
+    "ClientPlannedEffect": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ClientEffect"
+        },
+        {
+          "$ref": "#/$defs/AdministrationPresentationEffect"
+        },
+        {
+          "$ref": "#/$defs/ProviderPresentationEffect"
+        },
+        {
+          "$ref": "#/$defs/GatewaySessionStorageEffect"
+        },
+        {
+          "$ref": "#/$defs/OnboardingPlatformEffect"
+        }
+      ]
+    },
+    "ClientProcessChangeSetDto": {
+      "type": "object",
+      "properties": {
+        "predecessor": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0
+        },
+        "sequence": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "snapshots": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ClientScopedSnapshotDto"
+          }
+        },
+        "timeline_changes": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/TimelineChangeSet"
+          }
+        }
+      },
+      "required": [
+        "sequence",
+        "snapshots"
+      ]
+    },
+    "ClientRevisions": {
+      "type": "object",
+      "properties": {
+        "content": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "domain": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "presentation": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "scoped": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "domain",
+        "presentation",
+        "content",
+        "scoped"
+      ]
+    },
+    "ClientScope": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "session"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "navigation"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "sidebar_summary"
+            },
+            "thread_id": {
+              "type": "string"
+            },
+            "workspace_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "workspace_id",
+            "thread_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "workspace_tree"
+            },
+            "workspace_id": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "task_inbox"
+            },
+            "workspace_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "workspace_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "task"
+            },
+            "task_id": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "thread"
+            },
+            "thread_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "thread_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "timeline"
+            },
+            "thread_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "thread_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "composer"
+            },
+            "thread_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "thread_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "thread_member"
+            },
+            "thread_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "thread_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "thread_capability"
+            },
+            "thread_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "thread_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "turn_cancellation"
+            },
+            "thread_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "thread_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "composer_model_picker"
+            },
+            "thread_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "thread_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "composer_catalog"
+            },
+            "thread_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "thread_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "message_deletion"
+            },
+            "thread_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "thread_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "message_revisions"
+            },
+            "thread_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "thread_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "approval_action"
+            },
+            "request_id": {
+              "type": "string"
+            },
+            "thread_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "thread_id",
+            "request_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "candidate_id": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "task_review"
+            },
+            "thread_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "thread_id",
+            "candidate_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "pending_request"
+            },
+            "thread_id": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "workspace_id": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "artifact"
+            },
+            "thread_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "thread_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "avatar"
+            },
+            "principal_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "principal_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "administration_operation"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "administration_page"
+            },
+            "page": {
+              "$ref": "#/$defs/AdministrationPage"
+            }
+          },
+          "required": [
+            "kind",
+            "page"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "provider"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "provider_operation"
+            },
+            "workspace_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "workspace_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "key": {
+              "$ref": "#/$defs/ProviderCollectionKey"
+            },
+            "kind": {
+              "type": "string",
+              "const": "provider_collection"
+            }
+          },
+          "required": [
+            "kind",
+            "key"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "provider_runtime"
+            },
+            "workspace_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "workspace_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "administration"
+            },
+            "workspace_id": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "mcp"
+            },
+            "workspace_id": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "skills_details"
+            },
+            "skill_id": {
+              "$ref": "#/$defs/SkillId"
+            },
+            "workspace_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "workspace_id",
+            "skill_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "mcp_action"
+            },
+            "target": {
+              "type": "string"
+            },
+            "workspace_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "workspace_id",
+            "target"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "skills_action"
+            },
+            "target": {
+              "type": "string"
+            },
+            "workspace_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "workspace_id",
+            "target"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "skills_upload"
+            },
+            "operation_id": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "workspace_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "workspace_id",
+            "operation_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "mcp_details"
+            },
+            "server_id": {
+              "type": "string"
+            },
+            "workspace_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "workspace_id",
+            "server_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "skills"
+            },
+            "workspace_id": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "settings"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "auth_sessions"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "device_activation"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "profile"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "settings_model_picker"
+            },
+            "picker_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "picker_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "settings_page"
+            },
+            "page": {
+              "$ref": "#/$defs/SettingsPage"
+            }
+          },
+          "required": [
+            "kind",
+            "page"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "onboarding_invitation"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "gateway_setup"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "gateway_destinations"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "folder_id": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "kind": {
+              "type": "string",
+              "const": "agents_document_content"
+            },
+            "workspace_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "workspace_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "agents_document"
+            },
+            "workspace_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "workspace_id"
+          ]
+        }
+      ]
+    },
+    "ClientScopedSnapshotDto": {
+      "type": "object",
+      "properties": {
+        "payload": true,
+        "revisions": {
+          "$ref": "#/$defs/ClientRevisions"
+        },
+        "schema_version": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "scope": {
+          "$ref": "#/$defs/ClientScope"
+        },
+        "sequence": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "schema_version",
+        "sequence",
+        "scope",
+        "revisions",
+        "payload"
+      ]
+    },
+    "ClientSecurityDiagnostic": {
+      "type": "object",
+      "properties": {
+        "capability": {
+          "$ref": "#/$defs/TurnSecurityCapabilityKind"
+        },
+        "message": {
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/ClientSecurityEnforcementStatus"
+        }
+      },
+      "required": [
+        "capability",
+        "status",
+        "message"
+      ]
+    },
+    "ClientSecurityEnforcementStatus": {
+      "type": "string",
+      "enum": [
+        "active",
+        "degraded",
+        "unavailable"
+      ]
+    },
+    "ClientSecurityFilesystemAccess": {
+      "type": "string",
+      "enum": [
+        "unrestricted",
+        "read_only",
+        "workspace_write"
+      ]
+    },
+    "ClientTurnSecuritySummary": {
+      "type": "object",
+      "properties": {
+        "diagnostics": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ClientSecurityDiagnostic"
+          }
+        },
+        "enforcement": {
+          "$ref": "#/$defs/ClientSecurityEnforcementStatus"
+        },
+        "execution_backend": {
+          "$ref": "#/$defs/TurnSecurityExecutionBackendKind"
+        },
+        "filesystem_access": {
+          "$ref": "#/$defs/ClientSecurityFilesystemAccess"
+        },
+        "network_mode": {
+          "$ref": "#/$defs/TurnNetworkMode"
+        },
+        "permission_mode": {
+          "$ref": "#/$defs/TurnPermissionMode"
+        },
+        "sandbox_backend": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SandboxBackendKind"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "sandbox_mode": {
+          "$ref": "#/$defs/TurnSandboxMode"
+        }
+      },
+      "required": [
+        "permission_mode",
+        "sandbox_mode",
+        "filesystem_access",
+        "network_mode",
+        "execution_backend",
+        "enforcement"
+      ]
+    },
+    "CrossThreadSourceVisibility": {
+      "type": "string",
+      "enum": [
+        "accessible",
+        "inaccessible"
+      ]
+    },
+    "DeltaOutputPolicy": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "max_chunk_bytes": {
+              "type": "integer",
+              "format": "uint",
+              "minimum": 0
+            },
+            "max_total_bytes": {
+              "type": "integer",
+              "format": "uint",
+              "minimum": 0
+            },
+            "mode": {
+              "type": "string",
+              "const": "persist_and_display"
+            }
+          },
+          "required": [
+            "mode",
+            "max_chunk_bytes",
+            "max_total_bytes"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "mode": {
+              "type": "string",
+              "const": "progress_only"
+            }
+          },
+          "required": [
+            "mode"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "mode": {
+              "type": "string",
+              "const": "disabled"
+            }
+          },
+          "required": [
+            "mode"
+          ]
+        }
+      ]
+    },
+    "DeviceId": {
+      "type": "string",
+      "maxLength": 21,
+      "minLength": 21,
+      "pattern": "^[A-Za-z0-9]{21}$"
+    },
+    "DiagnosticExcerptPolicy": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "mode": {
+              "type": "string",
+              "const": "disabled"
+            }
+          },
+          "required": [
+            "mode"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "max_chars": {
+              "type": "integer",
+              "format": "uint",
+              "minimum": 0
+            },
+            "mode": {
+              "type": "string",
+              "const": "errors_only"
+            }
+          },
+          "required": [
+            "mode",
+            "max_chars"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "max_chars": {
+              "type": "integer",
+              "format": "uint",
+              "minimum": 0
+            },
+            "mode": {
+              "type": "string",
+              "const": "output"
+            }
+          },
+          "required": [
+            "mode",
+            "max_chars"
+          ]
+        }
+      ]
+    },
+    "GatewayEndpoint": {
+      "type": "object",
+      "properties": {
+        "gateway_base_url": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/GatewayEndpointKind"
+        },
+        "name": {
+          "type": "string"
+        },
+        "server_gateway_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/GatewayId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "service_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "session_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "workspace_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "gateway_base_url",
+        "kind"
+      ]
+    },
+    "GatewayEndpointKind": {
+      "type": "string",
+      "enum": [
+        "local",
+        "remote"
+      ]
+    },
+    "GatewayId": {
+      "type": "string",
+      "maxLength": 21,
+      "minLength": 21,
+      "pattern": "^[A-Za-z0-9]{21}$"
+    },
+    "GatewayRegistry": {
+      "type": "object",
+      "properties": {
+        "active_gateway_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "installation_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "local": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/GatewayEndpoint"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "remotes": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/GatewayEndpoint"
+          }
+        },
+        "version": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "version"
+      ]
+    },
+    "GatewaySessionEnvelope": {
+      "type": "object",
+      "properties": {
+        "device_id": {
+          "$ref": "#/$defs/DeviceId"
+        },
+        "gateway_id": {
+          "$ref": "#/$defs/GatewayId"
+        },
+        "installation_id": {
+          "type": "string"
+        },
+        "pending_refresh_request_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "principal_id": {
+          "$ref": "#/$defs/PrincipalId"
+        },
+        "refresh_expires_at_unix": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "refresh_generation": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "refresh_token": {
+          "type": "string"
+        },
+        "schema_version": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "session_id": {
+          "$ref": "#/$defs/AuthSessionId"
+        },
+        "token_family_id": {
+          "$ref": "#/$defs/TokenFamilyId"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "gateway_id",
+        "principal_id",
+        "device_id",
+        "session_id",
+        "token_family_id",
+        "installation_id",
+        "refresh_generation",
+        "refresh_expires_at_unix",
+        "refresh_token"
+      ]
+    },
+    "GatewaySessionStorageEffect": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "DeleteGatewaySession": {
+              "type": "object",
+              "properties": {
+                "endpoint": {
+                  "$ref": "#/$defs/GatewayEndpoint"
+                }
+              },
+              "required": [
+                "endpoint"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "DeleteGatewaySession"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "ReadGatewaySession": {
+              "type": "object",
+              "properties": {
+                "endpoint": {
+                  "$ref": "#/$defs/GatewayEndpoint"
+                }
+              },
+              "required": [
+                "endpoint"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "ReadGatewaySession"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "PersistGatewaySession": {
+              "type": "object",
+              "properties": {
+                "endpoint": {
+                  "$ref": "#/$defs/GatewayEndpoint"
+                },
+                "envelope": {
+                  "$ref": "#/$defs/GatewaySessionEnvelope"
+                }
+              },
+              "required": [
+                "endpoint",
+                "envelope"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "PersistGatewaySession"
+          ]
+        }
+      ]
+    },
+    "HtmlPublication": {
+      "description": "An exact Gateway-created HTML publication. Generic HTML attachments never\nacquire this descriptor based on MIME alone.",
+      "type": "object",
+      "properties": {
+        "artifact": {
+          "$ref": "#/$defs/ArtifactRef"
+        },
+        "callId": {
+          "type": "string"
+        },
+        "threadId": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "turnId": {
+          "type": "string"
+        },
+        "workspaceId": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "workspaceId",
+        "threadId",
+        "turnId",
+        "callId",
+        "title",
+        "artifact"
+      ]
+    },
+    "ItemView": {
+      "type": "object",
+      "properties": {
+        "completed_at_unix_ms": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "int64"
+        },
+        "final_markdown": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MarkdownDocument"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "final_text": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "html_publications": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/HtmlPublication"
+          }
+        },
+        "id": {
+          "type": "string"
+        },
+        "item": {
+          "$ref": "#/$defs/TurnItem"
+        },
+        "item_type": {
+          "type": "string"
+        },
+        "opaque_meta": true,
+        "partial_markdown": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MarkdownDocument"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "partial_text": {
+          "type": "string"
+        },
+        "route": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SafeRouteProvenance"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "started_at_unix_ms": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "int64"
+        },
+        "status": {
+          "$ref": "#/$defs/TimelineEntryStatus"
+        },
+        "timeline_origin": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TimelineOrigin"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "turn_id": {
+          "type": "string"
+        },
+        "updated_at_unix_ms": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "int64"
+        }
+      },
+      "required": [
+        "id",
+        "turn_id",
+        "item_type",
+        "status",
+        "partial_text",
+        "item"
+      ]
+    },
+    "LlmOutputPolicy": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "max_bytes": {
+              "type": "integer",
+              "format": "uint",
+              "minimum": 0
+            },
+            "mode": {
+              "type": "string",
+              "const": "full"
+            }
+          },
+          "required": [
+            "mode",
+            "max_bytes"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "max_bytes": {
+              "type": "integer",
+              "format": "uint",
+              "minimum": 0
+            },
+            "mode": {
+              "type": "string",
+              "const": "structured"
+            }
+          },
+          "required": [
+            "mode",
+            "max_bytes"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "mode": {
+              "type": "string",
+              "const": "summary_only"
+            }
+          },
+          "required": [
+            "mode"
+          ]
+        }
+      ]
+    },
+    "LlmRetentionPolicy": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "max_bytes": {
+              "type": "integer",
+              "format": "uint",
+              "minimum": 0
+            },
+            "mode": {
+              "type": "string",
+              "const": "until_turn_terminal"
+            }
+          },
+          "required": [
+            "mode",
+            "max_bytes"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "mode": {
+              "type": "string",
+              "const": "do_not_retain"
+            }
+          },
+          "required": [
+            "mode"
+          ]
+        }
+      ]
+    },
+    "MarkdownBlock": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "paragraph"
+            }
+          },
+          "$ref": "#/$defs/MarkdownInline",
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "content": {
+              "$ref": "#/$defs/MarkdownInline"
+            },
+            "level": {
+              "type": "integer",
+              "format": "uint8",
+              "maximum": 255,
+              "minimum": 0
+            },
+            "type": {
+              "type": "string",
+              "const": "heading"
+            }
+          },
+          "required": [
+            "type",
+            "level",
+            "content"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "list"
+            }
+          },
+          "$ref": "#/$defs/MarkdownList",
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "blocks": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/MarkdownBlock"
+              }
+            },
+            "type": {
+              "type": "string",
+              "const": "quote"
+            }
+          },
+          "required": [
+            "type",
+            "blocks"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "language": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "text": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "const": "code"
+            }
+          },
+          "required": [
+            "type",
+            "text"
+          ]
+        },
+        {
+          "description": "Structured cells and the original GFM fragment with its used reference\ndefinitions, without Quote/List prefixes.",
+          "type": "object",
+          "properties": {
+            "alignments": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/MarkdownTableAlignment"
+              }
+            },
+            "headers": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/MarkdownInline"
+              }
+            },
+            "rows": {
+              "type": "array",
+              "items": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/MarkdownInline"
+                }
+              }
+            },
+            "source": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "const": "table"
+            }
+          },
+          "required": [
+            "type",
+            "headers",
+            "rows",
+            "alignments",
+            "source"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "rule"
+            }
+          },
+          "required": [
+            "type"
+          ]
+        }
+      ]
+    },
+    "MarkdownDocument": {
+      "type": "object",
+      "properties": {
+        "blocks": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/MarkdownBlock"
+          }
+        }
+      }
+    },
+    "MarkdownInline": {
+      "type": "object",
+      "properties": {
+        "marks": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/MarkdownMark"
+          }
+        },
+        "text": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "text"
+      ]
+    },
+    "MarkdownList": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/MarkdownListItem"
+          }
+        },
+        "ordered": {
+          "type": "boolean"
+        },
+        "start": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "ordered",
+        "start"
+      ]
+    },
+    "MarkdownListItem": {
+      "type": "object",
+      "properties": {
+        "blocks": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/MarkdownBlock"
+          }
+        },
+        "checked": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      }
+    },
+    "MarkdownMark": {
+      "type": "object",
+      "properties": {
+        "end": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "kind": {
+          "$ref": "#/$defs/MarkdownMarkKind"
+        },
+        "start": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "start",
+        "end",
+        "kind"
+      ]
+    },
+    "MarkdownMarkKind": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "bold"
+            }
+          },
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "italic"
+            }
+          },
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "strike"
+            }
+          },
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "code"
+            }
+          },
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "link"
+            },
+            "url": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "url"
+          ]
+        }
+      ]
+    },
+    "MarkdownNode": {
+      "type": "object",
+      "properties": {
+        "block": {
+          "$ref": "#/$defs/MarkdownBlock"
+        },
+        "children": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/MarkdownNode"
+          }
+        },
+        "id": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "revision": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "id",
+        "revision",
+        "block",
+        "children"
+      ]
+    },
+    "MarkdownPresentation": {
+      "type": "object",
+      "properties": {
+        "document_id": {
+          "type": "string"
+        },
+        "next_id": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "nodes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/MarkdownNode"
+          }
+        },
+        "revision": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "source": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "document_id",
+        "revision",
+        "nodes",
+        "source",
+        "next_id"
+      ]
+    },
+    "MarkdownTableAlignment": {
+      "type": "string",
+      "enum": [
+        "none",
+        "left",
+        "center",
+        "right"
+      ]
+    },
+    "McpScopeKind": {
+      "type": "string",
+      "enum": [
+        "workspace",
+        "user"
+      ]
+    },
+    "McpTimelineMetadata": {
+      "type": "object",
+      "properties": {
+        "catalog_version": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "duration_ms": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0
+        },
+        "raw_tool_name": {
+          "type": "string"
+        },
+        "result_truncated": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "runtime_state": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "server_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "server_name": {
+          "type": "string"
+        },
+        "snapshot_version": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "server_name",
+        "raw_tool_name"
+      ]
+    },
+    "OnboardingPlatformEffect": {
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "LoadGatewayEnvironment"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "RemoveGatewayBindingJournal": {
+              "type": "object",
+              "properties": {
+                "gateway_id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "gateway_id"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "RemoveGatewayBindingJournal"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "PersistGatewayRegistry": {
+              "type": "object",
+              "properties": {
+                "registry": {
+                  "$ref": "#/$defs/GatewayRegistry"
+                }
+              },
+              "required": [
+                "registry"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "PersistGatewayRegistry"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "PrepareLocalGateway": {
+              "type": "object",
+              "properties": {
+                "endpoint": {
+                  "$ref": "#/$defs/GatewayEndpoint"
+                },
+                "recover": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "endpoint",
+                "recover"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "PrepareLocalGateway"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "CreateLocalDeviceActivation": {
+              "type": "object",
+              "properties": {
+                "endpoint_id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "endpoint_id"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "CreateLocalDeviceActivation"
+          ]
+        }
+      ]
+    },
+    "PendingRequest": {
+      "type": "object",
+      "properties": {
+        "item_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "kind": {
+          "$ref": "#/$defs/PendingRequestKind"
+        },
+        "message": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "native_request_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "origin": {
+          "$ref": "#/$defs/PendingRequestOrigin"
+        },
+        "payload": {
+          "$ref": "#/$defs/PendingRequestPayload"
+        },
+        "request_id": {
+          "type": "string"
+        },
+        "thread_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "title": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "turn_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "visible_thread_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "workspace_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "workspace_id",
+        "request_id",
+        "origin",
+        "kind",
+        "payload"
+      ]
+    },
+    "PendingRequestKind": {
+      "type": "string",
+      "enum": [
+        "command_approval",
+        "file_change_approval",
+        "permission_approval",
+        "user_input",
+        "other"
+      ]
+    },
+    "PendingRequestOrigin": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "origin": {
+              "type": "string",
+              "const": "cli_runtime"
+            },
+            "runtime_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "origin",
+            "runtime_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "origin": {
+              "type": "string",
+              "const": "native_permission_gate"
+            }
+          },
+          "required": [
+            "origin"
+          ]
+        }
+      ]
+    },
+    "PendingRequestPayload": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "request": {
+              "$ref": "#/$defs/CLIRuntimePendingRequest"
+            },
+            "source": {
+              "type": "string",
+              "const": "cli_runtime"
+            }
+          },
+          "required": [
+            "source",
+            "request"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "request": {
+              "$ref": "#/$defs/TurnPermissionApprovalRequest"
+            },
+            "source": {
+              "type": "string",
+              "const": "native_permission_gate"
+            }
+          },
+          "required": [
+            "source",
+            "request"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "payload": true,
+            "source": {
+              "type": "string",
+              "const": "other"
+            }
+          },
+          "required": [
+            "source"
+          ]
+        }
+      ]
+    },
+    "PermissionBehavior": {
+      "type": "string",
+      "enum": [
+        "allow",
+        "ask",
+        "deny"
+      ]
+    },
+    "PersistedActorRef": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "$ref": "#/$defs/PrincipalId"
+            },
+            "kind": {
+              "type": "string",
+              "const": "principal"
+            }
+          },
+          "required": [
+            "kind",
+            "id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "$ref": "#/$defs/AgentExecutionId"
+            },
+            "kind": {
+              "type": "string",
+              "const": "agent_execution"
+            }
+          },
+          "required": [
+            "kind",
+            "id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "system"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        }
+      ]
+    },
+    "PrincipalId": {
+      "type": "string",
+      "maxLength": 21,
+      "minLength": 21,
+      "pattern": "^[A-Za-z0-9]{21}$"
+    },
+    "ProviderCollection": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "catalog"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "models"
+            },
+            "provider": {
+              "type": "string"
+            },
+            "purpose": {
+              "$ref": "#/$defs/ProviderModelKind"
+            }
+          },
+          "required": [
+            "kind",
+            "provider",
+            "purpose"
+          ]
+        }
+      ]
+    },
+    "ProviderCollectionKey": {
+      "type": "object",
+      "properties": {
+        "collection": {
+          "$ref": "#/$defs/ProviderCollection"
+        },
+        "workspace_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "workspace_id",
+        "collection"
+      ]
+    },
+    "ProviderModelKind": {
+      "type": "string",
+      "enum": [
+        "chat",
+        "embeddings",
+        "transcription"
+      ]
+    },
+    "ProviderPresentationEffect": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "copy_provider_diagnostics"
+            },
+            "value": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "value"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "open_provider_path"
+            },
+            "path": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "path"
+          ]
+        }
+      ]
+    },
+    "RecoveryAction": {
+      "type": "string",
+      "enum": [
+        "retry_attempt",
+        "retry_with_backoff",
+        "restart_turn",
+        "replay_durable_event",
+        "rehydrate_turn_state",
+        "open_next_execution_window",
+        "adapt_provider_request",
+        "refresh_provider_auth",
+        "compact_history",
+        "disable_streaming",
+        "disable_unsupported_capability",
+        "repair_artifact_finalization",
+        "requeue_task_dispatch",
+        "block_resumable",
+        "fallback",
+        "mark_failed"
+      ]
+    },
+    "RecoveryOutputPolicy": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "diagnostic_excerpt": {
+              "$ref": "#/$defs/DiagnosticExcerptPolicy"
+            },
+            "include_error_class": {
+              "type": "boolean"
+            },
+            "include_exit_status": {
+              "type": "boolean"
+            },
+            "include_fingerprints": {
+              "type": "boolean"
+            },
+            "include_retry_hint": {
+              "type": "boolean"
+            },
+            "mode": {
+              "type": "string",
+              "const": "evidence"
+            }
+          },
+          "required": [
+            "mode",
+            "include_exit_status",
+            "include_error_class",
+            "include_retry_hint",
+            "diagnostic_excerpt",
+            "include_fingerprints"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "mode": {
+              "type": "string",
+              "const": "metadata_only"
+            }
+          },
+          "required": [
+            "mode"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "mode": {
+              "type": "string",
+              "const": "none"
+            }
+          },
+          "required": [
+            "mode"
+          ]
+        }
+      ]
+    },
+    "RunningTurnDisplay": {
+      "type": "object",
+      "properties": {
+        "agent_work_graph": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AgentWorkGraphProjection"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "message": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "permission_profile": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TurnPermissionProfileSnapshot"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "route": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SafeRouteProvenance"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "security_summary": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ClientTurnSecuritySummary"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "started_at_unix_ms": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "int64"
+        },
+        "state": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TurnWorkState"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "turn_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "turn_id"
+      ]
+    },
+    "SafeRouteProvenance": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "$ref": "#/$defs/AgentRouteAction"
+        },
+        "disclosure": {
+          "$ref": "#/$defs/AgentRouteDisclosurePolicy"
+        },
+        "sourceThreadLabel": {
+          "description": "Present only when the viewer has source read authority.  Source title,\nparticipants, prompts, and raw identifiers are never sent otherwise.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "visibility": {
+          "$ref": "#/$defs/CrossThreadSourceVisibility"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "action",
+        "visibility",
+        "disclosure"
+      ]
+    },
+    "SandboxBackendKind": {
+      "type": "string",
+      "enum": [
+        "nono",
+        "windows_restricted_token",
+        "provider_native"
+      ]
+    },
+    "SemanticTimelineRowId": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "TopLevelBlock": {
+              "type": "object",
+              "properties": {
+                "block_id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "block_id"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "TopLevelBlock"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "TurnWorkItem": {
+              "type": "object",
+              "properties": {
+                "turn_id": {
+                  "type": "string"
+                },
+                "work_item_id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "turn_id",
+                "work_item_id"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "TurnWorkItem"
+          ]
+        }
+      ]
+    },
+    "SettingsPage": {
+      "type": "string",
+      "enum": [
+        "general",
+        "remote_access",
+        "voice",
+        "memory",
+        "self_improvement"
+      ]
+    },
+    "SkillId": {
+      "type": "string",
+      "maxLength": 21,
+      "minLength": 21,
+      "pattern": "^[A-Za-z0-9]{21}$"
+    },
+    "SkillPackId": {
+      "type": "string",
+      "maxLength": 21,
+      "minLength": 21,
+      "pattern": "^[A-Za-z0-9]{21}$"
+    },
+    "StorageOutputPolicy": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "max_bytes": {
+              "type": "integer",
+              "format": "uint",
+              "minimum": 0
+            },
+            "mode": {
+              "type": "string",
+              "const": "full"
+            }
+          },
+          "required": [
+            "mode",
+            "max_bytes"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "max_chars": {
+              "type": "integer",
+              "format": "uint",
+              "minimum": 0
+            },
+            "mode": {
+              "type": "string",
+              "const": "summary"
+            }
+          },
+          "required": [
+            "mode",
+            "max_chars"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "mode": {
+              "type": "string",
+              "const": "metadata_only"
+            }
+          },
+          "required": [
+            "mode"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "mode": {
+              "type": "string",
+              "const": "none"
+            }
+          },
+          "required": [
+            "mode"
+          ]
+        }
+      ]
+    },
+    "SystemEventLabel": {
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "Timeout",
+            "Recovery",
+            "Retry",
+            "Recovered",
+            "Error",
+            "RetryResolved",
+            "RetriesExhausted",
+            "Checkpoint",
+            "Continued",
+            "Paused",
+            "Permissions"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "Level": {
+              "$ref": "#/$defs/SystemEventLevel"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "Level"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "Attempt": {
+              "type": "object",
+              "properties": {
+                "attempt": {
+                  "type": "integer",
+                  "format": "uint64",
+                  "minimum": 0
+                }
+              },
+              "required": [
+                "attempt"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "Attempt"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "ExecutionWindow": {
+              "type": "object",
+              "properties": {
+                "window_index": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "format": "uint64",
+                  "minimum": 0
+                }
+              }
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "ExecutionWindow"
+          ]
+        }
+      ]
+    },
+    "SystemEventLevel": {
+      "type": "string",
+      "enum": [
+        "info",
+        "warning",
+        "error"
+      ]
+    },
+    "TaskAttachmentMode": {
+      "type": "string",
+      "enum": [
+        "attached",
+        "detached"
+      ]
+    },
+    "TaskExecutorKind": {
+      "type": "string",
+      "enum": [
+        "agent",
+        "tool",
+        "workflow",
+        "webhook",
+        "system"
+      ]
+    },
+    "TaskStatus": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "scheduled",
+        "queued",
+        "running",
+        "waiting",
+        "waiting_review",
+        "completed",
+        "failed",
+        "blocked",
+        "cancelled"
+      ]
+    },
+    "TaskTriggerKind": {
+      "type": "string",
+      "enum": [
+        "immediate",
+        "scheduled_at",
+        "interval",
+        "cron",
+        "manual",
+        "external",
+        "dependency"
+      ]
+    },
+    "TaskWaitReviewDisplay": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TaskWaitReviewDisplayItem"
+          }
+        },
+        "mode": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "review_required_count": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "review_required_count",
+        "items"
+      ]
+    },
+    "TaskWaitReviewDisplayItem": {
+      "type": "object",
+      "properties": {
+        "allowed_actions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "candidate_id": {
+          "type": "string"
+        },
+        "candidate_status": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "diagnostics": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "extraction_error_preview": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "max_revision_rounds": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "minimum": 0
+        },
+        "owner_principal_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "permission_mode": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "permission_source": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "remaining_revision_rounds": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "minimum": 0
+        },
+        "result_preview": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "review_mode": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "revision_blocked_reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "round": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "minimum": 0
+        },
+        "run_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "status": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "summary": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "task_id": {
+          "type": "string"
+        },
+        "title": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "user_approval_required": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "task_id",
+        "candidate_id",
+        "user_approval_required",
+        "diagnostics",
+        "allowed_actions"
+      ]
+    },
+    "ThreadMode": {
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "Message",
+            "Agent"
+          ]
+        },
+        {
+          "description": "Compatibility default for pre-Epic-6 persisted and wire values. New\nuser-thread creation selects `Message` explicitly.",
+          "type": "string",
+          "const": "Chat"
+        }
+      ]
+    },
+    "TimelineAttachment": {
+      "type": "object",
+      "properties": {
+        "artifact": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ArtifactRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "id": {
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/TimelineAttachmentKind"
+        },
+        "parent_title": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "title": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "title"
+      ]
+    },
+    "TimelineAttachmentKind": {
+      "type": "string",
+      "enum": [
+        "artifact",
+        "file",
+        "image",
+        "audio",
+        "video",
+        "skill",
+        "mcp"
+      ]
+    },
+    "TimelineCapabilityKind": {
+      "type": "string",
+      "enum": [
+        "Skill",
+        "McpServer",
+        "McpTool",
+        "Unknown"
+      ]
+    },
+    "TimelineCapabilityRejection": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "kind": {
+          "$ref": "#/$defs/TimelineCapabilityKind"
+        },
+        "label": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "message": {
+          "type": "string"
+        },
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "kind",
+        "message"
+      ]
+    },
+    "TimelineChangeSet": {
+      "description": "Apply removals first, then replacements/insertions, then the complete new order.\nReplacements keep their identity. An absent order means membership/order is unchanged.",
+      "type": "object",
+      "properties": {
+        "from_revision": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "generation": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "inserted": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TimelineRowSnapshot"
+          }
+        },
+        "order": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          }
+        },
+        "removed": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "replaced": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TimelineRowSnapshot"
+          }
+        },
+        "thread_id": {
+          "type": "string"
+        },
+        "to_revision": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "thread_id",
+        "generation",
+        "from_revision",
+        "to_revision",
+        "inserted",
+        "removed",
+        "replaced"
+      ]
+    },
+    "TimelineCoalescedToolsKind": {
+      "type": "string",
+      "enum": [
+        "CompletedTaskTools",
+        "RepeatedTaskWait"
+      ]
+    },
+    "TimelineCoalescedToolsRow": {
+      "type": "object",
+      "properties": {
+        "count": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "is_open": {
+          "type": "boolean"
+        },
+        "kind": {
+          "$ref": "#/$defs/TimelineCoalescedToolsKind"
+        },
+        "toggle_key": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "toggle_key",
+        "count",
+        "is_open",
+        "kind"
+      ]
+    },
+    "TimelineCommandContent": {
+      "type": "object",
+      "properties": {
+        "command": {
+          "type": "string"
+        },
+        "duration_ms": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        },
+        "exit_code": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        },
+        "output": {
+          "$ref": "#/$defs/TimelineTextPreview"
+        },
+        "terminal_output": {
+          "$ref": "#/$defs/TimelineTextPreview"
+        },
+        "timed_out": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "truncated": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "command",
+        "output",
+        "terminal_output"
+      ]
+    },
+    "TimelineEntryStatus": {
+      "type": "string",
+      "enum": [
+        "Running",
+        "Completed",
+        "Blocked",
+        "Failed",
+        "Cancelled"
+      ]
+    },
+    "TimelineFinalStatus": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/TimelineFinalStatusKind"
+        },
+        "successful": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "kind",
+        "successful"
+      ]
+    },
+    "TimelineFinalStatusKind": {
+      "type": "string",
+      "enum": [
+        "Cancelled",
+        "Blocked",
+        "Failed",
+        "Running",
+        "Completed"
+      ]
+    },
+    "TimelineItemKind": {
+      "type": "string",
+      "enum": [
+        "UserMessage",
+        "AgentMessage",
+        "Reasoning",
+        "SystemEvent",
+        "Task",
+        "CommandExecution",
+        "FileChange",
+        "WebSearch",
+        "WebFetch",
+        "Download",
+        "DynamicToolCall",
+        "Unknown"
+      ]
+    },
+    "TimelineItemPresentation": {
+      "type": "object",
+      "properties": {
+        "attachments": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TimelineAttachment"
+          }
+        },
+        "capability_rejections": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TimelineCapabilityRejection"
+          }
+        },
+        "collapsed": {
+          "type": "boolean"
+        },
+        "command": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TimelineCommandContent"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "edited_timestamp": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "int64"
+        },
+        "file_output": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TimelineTextPreview"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "final_status": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TimelineFinalStatus"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "html_publications": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/HtmlPublication"
+          }
+        },
+        "kind": {
+          "$ref": "#/$defs/TimelineItemKind"
+        },
+        "markdown": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MarkdownDocument"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "markdown_presentation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MarkdownPresentation"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "streaming": {
+          "type": "boolean"
+        },
+        "system_label": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SystemEventLabel"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "task_timeline": {
+          "type": "boolean"
+        },
+        "text": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "int64"
+        },
+        "tool": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TimelineToolContent"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "kind",
+        "text",
+        "streaming",
+        "collapsed",
+        "task_timeline",
+        "attachments",
+        "capability_rejections"
+      ]
+    },
+    "TimelineLane": {
+      "type": "string",
+      "enum": [
+        "parent",
+        "task",
+        "child_agent",
+        "child_tool",
+        "child_reasoning",
+        "child_result"
+      ]
+    },
+    "TimelineOrigin": {
+      "type": "object",
+      "properties": {
+        "childThreadId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "childTurnId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "kind": {
+          "$ref": "#/$defs/TimelineOriginKind"
+        },
+        "lane": {
+          "$ref": "#/$defs/TimelineLane"
+        },
+        "occurredAt": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "originEventId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "originSequence": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "originTurnItemId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "runId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "taskId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "kind",
+        "originSequence",
+        "occurredAt",
+        "lane"
+      ]
+    },
+    "TimelineOriginKind": {
+      "type": "string",
+      "enum": [
+        "parent_turn",
+        "task_event",
+        "child_turn"
+      ]
+    },
+    "TimelineOutputPolicy": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "max_bytes": {
+              "type": "integer",
+              "format": "uint",
+              "minimum": 0
+            },
+            "mode": {
+              "type": "string",
+              "const": "full"
+            }
+          },
+          "required": [
+            "mode",
+            "max_bytes"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "max_chars": {
+              "type": "integer",
+              "format": "uint",
+              "minimum": 0
+            },
+            "mode": {
+              "type": "string",
+              "const": "summary"
+            }
+          },
+          "required": [
+            "mode",
+            "max_chars"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "mode": {
+              "type": "string",
+              "const": "metadata_only"
+            }
+          },
+          "required": [
+            "mode"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "mode": {
+              "type": "string",
+              "const": "hidden"
+            }
+          },
+          "required": [
+            "mode"
+          ]
+        }
+      ]
+    },
+    "TimelinePendingRequestRow": {
+      "type": "object",
+      "properties": {
+        "author": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TurnAuthorSnapshot"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "key": {
+          "type": "string"
+        },
+        "request": {
+          "$ref": "#/$defs/PendingRequest"
+        }
+      },
+      "required": [
+        "key",
+        "request"
+      ]
+    },
+    "TimelineRenderRow": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "Timeline": {
+              "$ref": "#/$defs/TimelineRow"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "Timeline"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "PendingRequest": {
+              "$ref": "#/$defs/TimelinePendingRequestRow"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "PendingRequest"
+          ]
+        }
+      ]
+    },
+    "TimelineReplyState": {
+      "type": "string",
+      "enum": [
+        "available",
+        "deleted",
+        "unavailable"
+      ]
+    },
+    "TimelineReplySummary": {
+      "type": "object",
+      "properties": {
+        "author": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TurnAuthorSnapshot"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "deleted": {
+          "type": "boolean",
+          "default": false
+        },
+        "text": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "turnId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "turnId"
+      ]
+    },
+    "TimelineRow": {
+      "type": "object",
+      "properties": {
+        "author": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TurnAuthorSnapshot"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "key": {
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/TimelineRowKind"
+        }
+      },
+      "required": [
+        "key",
+        "kind"
+      ]
+    },
+    "TimelineRowKind": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "Item": {
+              "type": "object",
+              "properties": {
+                "timeline_index": {
+                  "type": "integer",
+                  "format": "uint",
+                  "minimum": 0
+                }
+              },
+              "required": [
+                "timeline_index"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "Item"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "UserMessage": {
+              "type": "object",
+              "properties": {
+                "presentation": {
+                  "$ref": "#/$defs/UserMessagePresentation"
+                },
+                "timeline_index": {
+                  "type": "integer",
+                  "format": "uint",
+                  "minimum": 0
+                }
+              },
+              "required": [
+                "timeline_index",
+                "presentation"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "UserMessage"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "TurnWorkToggle": {
+              "$ref": "#/$defs/TurnWorkGroupRow"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "TurnWorkToggle"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "CoalescedTools": {
+              "$ref": "#/$defs/TimelineCoalescedToolsRow"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "CoalescedTools"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "RunningTurn": {
+              "$ref": "#/$defs/RunningTurnDisplay"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "RunningTurn"
+          ]
+        }
+      ]
+    },
+    "TimelineRowSnapshot": {
+      "description": "A self-contained row. Positional indexes in the value are local to this row.",
+      "type": "object",
+      "properties": {
+        "anchor_item_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "content": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TimelineItemPresentation"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "content_revision": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "id": {
+          "type": "string"
+        },
+        "item": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ItemView"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "metadata_revision": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "revision": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "semantic_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SemanticTimelineRowId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "turn_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "value": {
+          "$ref": "#/$defs/TimelineRenderRow"
+        }
+      },
+      "required": [
+        "id",
+        "revision",
+        "content_revision",
+        "metadata_revision",
+        "value"
+      ]
+    },
+    "TimelineTextPreview": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string"
+        },
+        "truncated": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "text",
+        "truncated"
+      ]
+    },
+    "TimelineToolContent": {
+      "type": "object",
+      "properties": {
+        "arguments_text": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TimelineTextPreview"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "bytes": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0
+        },
+        "detail": {
+          "type": "string"
+        },
+        "host": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "mcp": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/McpTimelineMetadata"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "result_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0
+        },
+        "result_text": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TimelineTextPreview"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "task_review": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TaskWaitReviewDisplay"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "url": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "detail"
+      ]
+    },
+    "TokenFamilyId": {
+      "type": "string",
+      "maxLength": 21,
+      "minLength": 21,
+      "pattern": "^[A-Za-z0-9]{21}$"
+    },
+    "ToolCallStatus": {
+      "type": "string",
+      "enum": [
+        "in_progress",
+        "completed",
+        "failed"
+      ]
+    },
+    "ToolDisplayPayload": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "aggregated_output": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "duration_ms": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint64",
+              "minimum": 0
+            },
+            "exit_code": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "int32"
+            },
+            "kind": {
+              "type": "string",
+              "const": "shell"
+            },
+            "stderr": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "stdout": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "timed_out": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "truncated": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "kind",
+            "truncated"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "summary"
+            }
+          },
+          "$ref": "#/$defs/ToolOutputSummary",
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "progress"
+            },
+            "metadata": {
+              "type": "object",
+              "additionalProperties": {
+                "$ref": "#/$defs/ToolMetadataValue"
+              }
+            },
+            "stage": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "stage",
+            "metadata"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "hidden"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        }
+      ]
+    },
+    "ToolErrorClass": {
+      "type": "string",
+      "enum": [
+        "invalid_arguments",
+        "not_found",
+        "tool_not_visible",
+        "permission_denied",
+        "command_not_found",
+        "timeout",
+        "cancelled",
+        "execution_failed",
+        "needs_narrowing",
+        "internal",
+        "output_truncated",
+        "unknown"
+      ]
+    },
+    "ToolMetadataRawKind": {
+      "type": "string",
+      "enum": [
+        "content",
+        "body",
+        "blob",
+        "base64",
+        "bytes",
+        "data",
+        "html",
+        "image",
+        "output",
+        "screenshot",
+        "stdout",
+        "stderr",
+        "text",
+        "unknown"
+      ]
+    },
+    "ToolMetadataValue": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "null"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "bool"
+            },
+            "value": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "kind",
+            "value"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "number"
+            },
+            "value": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "value"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "string"
+            },
+            "value": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "value"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "array"
+            },
+            "values": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/ToolMetadataValue"
+              }
+            }
+          },
+          "required": [
+            "kind",
+            "values"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "fields": {
+              "type": "object",
+              "additionalProperties": {
+                "$ref": "#/$defs/ToolMetadataValue"
+              }
+            },
+            "kind": {
+              "type": "string",
+              "const": "object"
+            }
+          },
+          "required": [
+            "kind",
+            "fields"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "bytes": {
+              "type": "integer",
+              "format": "uint",
+              "minimum": 0
+            },
+            "kind": {
+              "type": "string",
+              "const": "redacted_raw"
+            },
+            "raw_kind": {
+              "$ref": "#/$defs/ToolMetadataRawKind"
+            },
+            "sha256": {
+              "type": "string"
+            },
+            "value_kind": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "raw_kind",
+            "sha256",
+            "bytes",
+            "value_kind"
+          ]
+        }
+      ]
+    },
+    "ToolObservation": {
+      "type": "object",
+      "properties": {
+        "attemptId": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "eventSeq": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "monoNs": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "pipelineStage": {
+          "type": "string"
+        },
+        "toolCallId": {
+          "type": "string"
+        },
+        "traceId": {
+          "type": "string"
+        },
+        "tsUnixMs": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "turnId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "traceId",
+        "turnId",
+        "toolCallId",
+        "attemptId",
+        "pipelineStage",
+        "tsUnixMs",
+        "monoNs",
+        "eventSeq"
+      ]
+    },
+    "ToolOutcome": {
+      "type": "object",
+      "properties": {
+        "errorClass": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ToolErrorClass"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "incomplete": {
+          "type": "boolean"
+        },
+        "incompleteReason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "retryHint": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "shouldRetry": {
+          "type": "boolean"
+        },
+        "status": {
+          "$ref": "#/$defs/ToolOutcomeStatus"
+        }
+      },
+      "required": [
+        "status",
+        "shouldRetry",
+        "incomplete"
+      ]
+    },
+    "ToolOutcomeStatus": {
+      "type": "string",
+      "enum": [
+        "ok",
+        "recoverable_error",
+        "fatal_error",
+        "partial_success"
+      ]
+    },
+    "ToolOutputPolicySnapshot": {
+      "type": "object",
+      "properties": {
+        "deltas": {
+          "$ref": "#/$defs/DeltaOutputPolicy"
+        },
+        "llm": {
+          "$ref": "#/$defs/LlmOutputPolicy"
+        },
+        "llmRetention": {
+          "$ref": "#/$defs/LlmRetentionPolicy"
+        },
+        "recovery": {
+          "$ref": "#/$defs/RecoveryOutputPolicy"
+        },
+        "storage": {
+          "$ref": "#/$defs/StorageOutputPolicy"
+        },
+        "timeline": {
+          "$ref": "#/$defs/TimelineOutputPolicy"
+        }
+      },
+      "required": [
+        "llm",
+        "llmRetention",
+        "timeline",
+        "storage",
+        "recovery",
+        "deltas"
+      ]
+    },
+    "ToolOutputSummary": {
+      "type": "object",
+      "properties": {
+        "lines": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/ToolMetadataValue"
+          }
+        },
+        "title": {
+          "type": "string"
+        },
+        "truncated": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "title",
+        "metadata",
+        "truncated"
+      ]
+    },
+    "ToolPermissionPolicySnapshot": {
+      "type": "object",
+      "properties": {
+        "agent_action": {
+          "$ref": "#/$defs/PermissionBehavior"
+        },
+        "allowed_paths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "allowed_paths_restricted": {
+          "description": "See `allowed_tools_restricted`.  A restricted empty path set is a\ndurable deny-all result, while an unrestricted empty set is the legacy\nwildcard.",
+          "type": "boolean"
+        },
+        "allowed_tools": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "allowed_tools_restricted": {
+          "description": "`allowed_tools = []` historically means \"no allow-list\".  This bit\npreserves the distinct result of intersecting two disjoint allow-lists:\na restricted empty set must deny every tool rather than reopen all of\nthem.",
+          "type": "boolean"
+        },
+        "computer_use": {
+          "$ref": "#/$defs/PermissionBehavior"
+        },
+        "default_behavior": {
+          "$ref": "#/$defs/PermissionBehavior"
+        },
+        "denied_tools": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "dynamic_skill_tool": {
+          "$ref": "#/$defs/PermissionBehavior"
+        },
+        "file_read": {
+          "$ref": "#/$defs/PermissionBehavior"
+        },
+        "file_write": {
+          "$ref": "#/$defs/PermissionBehavior"
+        },
+        "mcp_read": {
+          "$ref": "#/$defs/PermissionBehavior"
+        },
+        "mcp_write_or_unknown": {
+          "$ref": "#/$defs/PermissionBehavior"
+        },
+        "memory_write": {
+          "$ref": "#/$defs/PermissionBehavior"
+        },
+        "network": {
+          "$ref": "#/$defs/PermissionBehavior"
+        },
+        "shell_command": {
+          "$ref": "#/$defs/PermissionBehavior"
+        },
+        "task_subagent": {
+          "$ref": "#/$defs/PermissionBehavior"
+        }
+      },
+      "required": [
+        "default_behavior",
+        "file_read",
+        "file_write",
+        "shell_command",
+        "network",
+        "mcp_read",
+        "mcp_write_or_unknown",
+        "dynamic_skill_tool",
+        "computer_use",
+        "task_subagent",
+        "memory_write",
+        "agent_action"
+      ]
+    },
+    "ToolRecoveryIdempotencyMode": {
+      "type": "string",
+      "enum": [
+        "none",
+        "safe",
+        "requires_key",
+        "session_bound"
+      ]
+    },
+    "ToolRecoveryPolicySnapshot": {
+      "type": "object",
+      "properties": {
+        "baseBackoffSecs": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "canResume": {
+          "type": "boolean"
+        },
+        "idempotencyMode": {
+          "$ref": "#/$defs/ToolRecoveryIdempotencyMode"
+        },
+        "maxAttempts": {
+          "type": "integer",
+          "format": "uint8",
+          "maximum": 255,
+          "minimum": 0
+        },
+        "maxWallClockSecs": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "noProgressLimit": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "resolvedAction": {
+          "$ref": "#/$defs/RecoveryAction"
+        },
+        "retryClass": {
+          "$ref": "#/$defs/ToolRecoveryRetryClass"
+        }
+      },
+      "required": [
+        "retryClass",
+        "idempotencyMode",
+        "maxAttempts",
+        "canResume",
+        "resolvedAction",
+        "baseBackoffSecs",
+        "maxWallClockSecs",
+        "noProgressLimit"
+      ]
+    },
+    "ToolRecoveryRetryClass": {
+      "type": "string",
+      "enum": [
+        "never",
+        "transient",
+        "arguments",
+        "session",
+        "network"
+      ]
+    },
+    "ToolRecoveryView": {
+      "type": "object",
+      "properties": {
+        "contentFingerprint": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "continuation": true,
+        "diagnosticExcerpt": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "diagnosticSummary": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "errorClass": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "incompleteReason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "outputFingerprint": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "retryHint": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "wasTruncated": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "wasTruncated"
+      ]
+    },
+    "ToolStoragePayload": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "aggregated_output": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "duration_ms": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint64",
+              "minimum": 0
+            },
+            "exit_code": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "int32"
+            },
+            "kind": {
+              "type": "string",
+              "const": "shell"
+            },
+            "stderr": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "stdout": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "timed_out": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "truncated": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "kind",
+            "truncated"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "summary"
+            }
+          },
+          "$ref": "#/$defs/ToolOutputSummary",
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "metadata"
+            },
+            "metadata": {
+              "type": "object",
+              "additionalProperties": {
+                "$ref": "#/$defs/ToolMetadataValue"
+              }
+            }
+          },
+          "required": [
+            "kind",
+            "metadata"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "none"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        }
+      ]
+    },
+    "TurnAuthorSnapshot": {
+      "type": "object",
+      "properties": {
+        "actor": {
+          "$ref": "#/$defs/PersistedActorRef"
+        },
+        "agent": {
+          "description": "Full immutable identity presentation for an agent-authored Turn.  This\nis carried with the Turn instead of being reconstructed from mutable\nidentity/runtime state. Non-agent actors leave it absent.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AgentPresentationSnapshot"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "avatar_revision": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "display_name": {
+          "type": "string",
+          "maxLength": 128,
+          "minLength": 1
+        },
+        "nickname": {
+          "type": "string",
+          "maxLength": 32,
+          "minLength": 2,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{1,31}$"
+        }
+      },
+      "required": [
+        "actor",
+        "display_name",
+        "nickname"
+      ]
+    },
+    "TurnItem": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "attachments": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/UserMessageAttachment"
+              }
+            },
+            "id": {
+              "type": "string"
+            },
+            "text": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "const": "userMessage"
+            }
+          },
+          "required": [
+            "type",
+            "id",
+            "text"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "markdown": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/MarkdownDocument"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "markdownVersion": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint16",
+              "maximum": 65535,
+              "minimum": 0
+            },
+            "phase": {
+              "$ref": "#/$defs/AgentMessagePhase"
+            },
+            "text": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "const": "agentMessage"
+            }
+          },
+          "required": [
+            "type",
+            "id",
+            "text"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "content": {
+              "type": "array",
+              "default": [],
+              "items": {
+                "type": "string"
+              }
+            },
+            "id": {
+              "type": "string"
+            },
+            "summary": {
+              "type": "array",
+              "default": [],
+              "items": {
+                "type": "string"
+              }
+            },
+            "type": {
+              "type": "string",
+              "const": "reasoning"
+            }
+          },
+          "required": [
+            "type",
+            "id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "code": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "details": true,
+            "id": {
+              "type": "string"
+            },
+            "level": {
+              "$ref": "#/$defs/SystemEventLevel"
+            },
+            "message": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "const": "systemEvent"
+            }
+          },
+          "required": [
+            "type",
+            "id",
+            "level",
+            "message"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "agentRole": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "attachment": {
+              "$ref": "#/$defs/TaskAttachmentMode",
+              "default": "attached"
+            },
+            "childThreadId": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "childTurnId": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "createdAt": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "createdByTurnId": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "depth": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "errorPreview": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "executorKind": {
+              "$ref": "#/$defs/TaskExecutorKind"
+            },
+            "id": {
+              "type": "string"
+            },
+            "maxDepth": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "nextFireAt": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "int64"
+            },
+            "parentTaskId": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "progressPreview": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "resultPreview": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "rootTaskId": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "runId": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "startedAt": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "int64"
+            },
+            "status": {
+              "$ref": "#/$defs/TaskStatus"
+            },
+            "taskId": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            },
+            "triggerKind": {
+              "$ref": "#/$defs/TaskTriggerKind"
+            },
+            "type": {
+              "type": "string",
+              "const": "task"
+            },
+            "updatedAt": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          "required": [
+            "type",
+            "id",
+            "taskId",
+            "title",
+            "status",
+            "triggerKind",
+            "executorKind",
+            "depth",
+            "maxDepth",
+            "createdAt",
+            "updatedAt"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "arguments": true,
+            "command": {
+              "type": "array",
+              "default": [],
+              "items": {
+                "type": "string"
+              }
+            },
+            "cwd": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "display": {
+              "$ref": "#/$defs/ToolDisplayPayload"
+            },
+            "id": {
+              "type": "string"
+            },
+            "observation": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/ToolObservation"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "outcome": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/ToolOutcome"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "outputPolicy": {
+              "$ref": "#/$defs/ToolOutputPolicySnapshot"
+            },
+            "recovery": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/ToolRecoveryView"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "recoveryPolicy": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/ToolRecoveryPolicySnapshot"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "status": {
+              "$ref": "#/$defs/ToolCallStatus"
+            },
+            "storage": {
+              "$ref": "#/$defs/ToolStoragePayload"
+            },
+            "success": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "toolName": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "const": "commandExecution"
+            }
+          },
+          "required": [
+            "type",
+            "id",
+            "toolName",
+            "arguments",
+            "status",
+            "outputPolicy",
+            "display",
+            "storage"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "arguments": true,
+            "changedFiles": {
+              "type": "array",
+              "default": [],
+              "items": {
+                "type": "string"
+              }
+            },
+            "display": {
+              "$ref": "#/$defs/ToolDisplayPayload"
+            },
+            "exitCode": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "int32"
+            },
+            "id": {
+              "type": "string"
+            },
+            "observation": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/ToolObservation"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "outcome": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/ToolOutcome"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "outputPolicy": {
+              "$ref": "#/$defs/ToolOutputPolicySnapshot"
+            },
+            "recovery": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/ToolRecoveryView"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "recoveryPolicy": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/ToolRecoveryPolicySnapshot"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "status": {
+              "$ref": "#/$defs/ToolCallStatus"
+            },
+            "stderr": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "stdout": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "storage": {
+              "$ref": "#/$defs/ToolStoragePayload"
+            },
+            "success": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "toolName": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "const": "fileChange"
+            }
+          },
+          "required": [
+            "type",
+            "id",
+            "toolName",
+            "arguments",
+            "status",
+            "outputPolicy",
+            "display",
+            "storage"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "arguments": true,
+            "display": {
+              "$ref": "#/$defs/ToolDisplayPayload"
+            },
+            "id": {
+              "type": "string"
+            },
+            "observation": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/ToolObservation"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "outcome": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/ToolOutcome"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "outputPolicy": {
+              "$ref": "#/$defs/ToolOutputPolicySnapshot"
+            },
+            "provider": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "query": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "recovery": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/ToolRecoveryView"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "recoveryPolicy": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/ToolRecoveryPolicySnapshot"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "resultCount": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint",
+              "minimum": 0
+            },
+            "results": {
+              "type": "array",
+              "default": [],
+              "items": {
+                "$ref": "#/$defs/WebSearchResultItem"
+              }
+            },
+            "status": {
+              "$ref": "#/$defs/ToolCallStatus"
+            },
+            "storage": {
+              "$ref": "#/$defs/ToolStoragePayload"
+            },
+            "success": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "tookMs": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint64",
+              "minimum": 0
+            },
+            "toolName": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "const": "webSearch"
+            }
+          },
+          "required": [
+            "type",
+            "id",
+            "toolName",
+            "arguments",
+            "status",
+            "outputPolicy",
+            "display",
+            "storage"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "arguments": true,
+            "bytesReceived": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint",
+              "minimum": 0
+            },
+            "contentType": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "display": {
+              "$ref": "#/$defs/ToolDisplayPayload"
+            },
+            "elapsedMs": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint64",
+              "minimum": 0
+            },
+            "extractMode": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "finalUrl": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "id": {
+              "type": "string"
+            },
+            "links": {
+              "type": "array",
+              "default": [],
+              "items": {
+                "$ref": "#/$defs/WebFetchLink"
+              }
+            },
+            "observation": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/ToolObservation"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "outcome": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/ToolOutcome"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "outputPolicy": {
+              "$ref": "#/$defs/ToolOutputPolicySnapshot"
+            },
+            "recovery": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/ToolRecoveryView"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "recoveryPolicy": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/ToolRecoveryPolicySnapshot"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "resolvedMode": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "status": {
+              "$ref": "#/$defs/ToolCallStatus"
+            },
+            "statusCode": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint16",
+              "maximum": 65535,
+              "minimum": 0
+            },
+            "storage": {
+              "$ref": "#/$defs/ToolStoragePayload"
+            },
+            "success": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "title": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "toolName": {
+              "type": "string"
+            },
+            "truncated": true,
+            "type": {
+              "type": "string",
+              "const": "webFetch"
+            },
+            "url": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "wordCount": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "type",
+            "id",
+            "toolName",
+            "arguments",
+            "status",
+            "outputPolicy",
+            "display",
+            "storage"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "arguments": true,
+            "bytesWritten": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint64",
+              "minimum": 0
+            },
+            "contentType": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "display": {
+              "$ref": "#/$defs/ToolDisplayPayload"
+            },
+            "elapsedMs": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint64",
+              "minimum": 0
+            },
+            "finalUrl": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "id": {
+              "type": "string"
+            },
+            "observation": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/ToolObservation"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "outcome": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/ToolOutcome"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "outputPolicy": {
+              "$ref": "#/$defs/ToolOutputPolicySnapshot"
+            },
+            "path": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "recovery": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/ToolRecoveryView"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "recoveryPolicy": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/ToolRecoveryPolicySnapshot"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "sha256": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "status": {
+              "$ref": "#/$defs/ToolCallStatus"
+            },
+            "statusCode": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint16",
+              "maximum": 65535,
+              "minimum": 0
+            },
+            "storage": {
+              "$ref": "#/$defs/ToolStoragePayload"
+            },
+            "success": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "toolName": {
+              "type": "string"
+            },
+            "truncated": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "type": {
+              "type": "string",
+              "const": "download"
+            },
+            "url": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "type",
+            "id",
+            "toolName",
+            "arguments",
+            "status",
+            "outputPolicy",
+            "display",
+            "storage"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "arguments": true,
+            "display": {
+              "$ref": "#/$defs/ToolDisplayPayload"
+            },
+            "executionClass": {
+              "description": "Operational supervision semantics declared by the tool contract.\nThis is independent from the presentation-level item type.",
+              "$ref": "#/$defs/TurnItemExecutionClass"
+            },
+            "id": {
+              "type": "string"
+            },
+            "observation": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/ToolObservation"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "outcome": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/ToolOutcome"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "outputPolicy": {
+              "$ref": "#/$defs/ToolOutputPolicySnapshot"
+            },
+            "recovery": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/ToolRecoveryView"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "recoveryPolicy": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/ToolRecoveryPolicySnapshot"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "status": {
+              "$ref": "#/$defs/ToolCallStatus"
+            },
+            "storage": {
+              "$ref": "#/$defs/ToolStoragePayload"
+            },
+            "success": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "toolName": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "const": "dynamicToolCall"
+            }
+          },
+          "required": [
+            "type",
+            "id",
+            "toolName",
+            "arguments",
+            "status",
+            "outputPolicy",
+            "display",
+            "storage"
+          ]
+        }
+      ]
+    },
+    "TurnItemExecutionClass": {
+      "description": "Operational execution semantics persisted with a turn-item attempt.\n\nThis is intentionally independent from [`TurnItemType`]: multiple runtime\noperations may project to the same presentation item while requiring\ndifferent supervision policies.",
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "standard",
+            "context_compaction"
+          ]
+        },
+        {
+          "description": "A durable observation whose lifetime is renewed only by confirmed\nactivity from the external execution it is joining.",
+          "type": "string",
+          "const": "durable_wait"
+        }
+      ]
+    },
+    "TurnMcpServerCapabilitySummary": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "scopeKind": {
+          "$ref": "#/$defs/McpScopeKind"
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "name",
+        "scopeKind"
+      ]
+    },
+    "TurnMcpToolCapabilitySummary": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "rawToolName": {
+          "type": "string"
+        },
+        "scopeKind": {
+          "$ref": "#/$defs/McpScopeKind"
+        },
+        "serverName": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "serverName",
+        "rawToolName",
+        "scopeKind"
+      ]
+    },
+    "TurnMention": {
+      "type": "object",
+      "properties": {
+        "nickname": {
+          "type": "string",
+          "maxLength": 32,
+          "minLength": 2,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{1,31}$"
+        },
+        "principal_id": {
+          "$ref": "#/$defs/PrincipalId"
+        }
+      },
+      "required": [
+        "principal_id",
+        "nickname"
+      ]
+    },
+    "TurnNetworkMode": {
+      "type": "string",
+      "enum": [
+        "disabled",
+        "restricted",
+        "enabled"
+      ]
+    },
+    "TurnPermissionActionKind": {
+      "type": "string",
+      "enum": [
+        "file_read",
+        "file_write",
+        "shell_command",
+        "network",
+        "mcp_read",
+        "mcp_write_or_unknown",
+        "dynamic_skill_tool",
+        "computer_use",
+        "task_subagent",
+        "memory_write",
+        "agent_action",
+        "internal",
+        "unknown"
+      ]
+    },
+    "TurnPermissionApprovalRequest": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "$ref": "#/$defs/TurnPermissionActionKind"
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TurnPermissionApprovalRequestDetail"
+          }
+        },
+        "reason": {
+          "$ref": "#/$defs/TurnPermissionDecisionReason"
+        },
+        "request_id": {
+          "type": "string"
+        },
+        "scope_hash": {
+          "type": "string"
+        },
+        "summary": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "thread_id": {
+          "type": "string"
+        },
+        "tool_name": {
+          "type": "string"
+        },
+        "turn_id": {
+          "type": "string"
+        },
+        "visible_thread_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "workspace_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "request_id",
+        "workspace_id",
+        "thread_id",
+        "turn_id",
+        "tool_name",
+        "action",
+        "scope_hash",
+        "reason"
+      ]
+    },
+    "TurnPermissionApprovalRequestDetail": {
+      "type": "object",
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "monospace": {
+          "type": "boolean",
+          "default": false
+        },
+        "value": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "label",
+        "value"
+      ]
+    },
+    "TurnPermissionDecisionReason": {
+      "type": "string",
+      "enum": [
+        "full_access",
+        "policy_allows_action",
+        "policy_requires_approval",
+        "policy_denies_action",
+        "cached_approval",
+        "user_approved",
+        "user_denied",
+        "cancelled",
+        "expired",
+        "unknown_action_default",
+        "sandbox_denied"
+      ]
+    },
+    "TurnPermissionMode": {
+      "type": "string",
+      "enum": [
+        "full_access",
+        "auto_accept_edits",
+        "supervised"
+      ]
+    },
+    "TurnPermissionProfileSnapshot": {
+      "type": "object",
+      "properties": {
+        "effective_policy": {
+          "$ref": "#/$defs/ToolPermissionPolicySnapshot"
+        },
+        "mode": {
+          "$ref": "#/$defs/TurnPermissionMode"
+        },
+        "source": {
+          "$ref": "#/$defs/TurnPermissionProfileSource"
+        }
+      },
+      "required": [
+        "mode",
+        "source",
+        "effective_policy"
+      ]
+    },
+    "TurnPermissionProfileSource": {
+      "type": "string",
+      "enum": [
+        "composer",
+        "defaulted",
+        "inherited_from_parent_turn",
+        "task_permission_cap",
+        "system"
+      ]
+    },
+    "TurnSandboxMode": {
+      "type": "string",
+      "enum": [
+        "unrestricted",
+        "read_only",
+        "workspace_write"
+      ]
+    },
+    "TurnSecurityCapabilityKind": {
+      "type": "string",
+      "enum": [
+        "filesystem",
+        "network",
+        "process",
+        "approval",
+        "sandbox_backend"
+      ]
+    },
+    "TurnSecurityExecutionBackendKind": {
+      "type": "string",
+      "enum": [
+        "native",
+        "codex_cli",
+        "claude_cli",
+        "opencode_cli"
+      ]
+    },
+    "TurnSkillCapabilitySummary": {
+      "type": "object",
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "owner": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "pack": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TurnSkillPackPresentationSummary"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "skillId": {
+          "$ref": "#/$defs/SkillId"
+        },
+        "slug": {
+          "type": "string"
+        },
+        "sourceKind": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "skillId",
+        "label",
+        "slug",
+        "sourceKind"
+      ]
+    },
+    "TurnSkillPackCapabilitySummary": {
+      "type": "object",
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "packId": {
+          "$ref": "#/$defs/SkillPackId"
+        }
+      },
+      "required": [
+        "packId",
+        "label"
+      ]
+    },
+    "TurnSkillPackPresentationSummary": {
+      "type": "object",
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "packId": {
+          "$ref": "#/$defs/SkillPackId"
+        }
+      },
+      "required": [
+        "packId",
+        "label"
+      ]
+    },
+    "TurnWorkGroupRow": {
+      "type": "object",
+      "properties": {
+        "anchor_entry_id": {
+          "type": "string"
+        },
+        "elapsed_ms": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0
+        },
+        "is_open": {
+          "type": "boolean"
+        },
+        "state": {
+          "description": "Server-owned lifecycle state; clients must not infer it from row order.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TurnWorkState"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "toggle_key": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "toggle_key",
+        "anchor_entry_id",
+        "is_open"
+      ]
+    },
+    "TurnWorkState": {
+      "type": "string",
+      "enum": [
+        "starting",
+        "running",
+        "waiting_for_approval",
+        "stalled",
+        "completed",
+        "blocked",
+        "failed",
+        "interrupted"
+      ]
+    },
+    "UserMessageAttachment": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "image"
+            },
+            "url": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "url"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "const": "localImage"
+            }
+          },
+          "required": [
+            "type",
+            "path"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "file"
+            },
+            "url": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "url"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "const": "localFile"
+            }
+          },
+          "required": [
+            "type",
+            "path"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "audio"
+            },
+            "url": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "url"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "const": "localAudio"
+            }
+          },
+          "required": [
+            "type",
+            "path"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "video"
+            },
+            "url": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "url"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "const": "localVideo"
+            }
+          },
+          "required": [
+            "type",
+            "path"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "artifact": {
+              "$ref": "#/$defs/ArtifactRef"
+            },
+            "type": {
+              "type": "string",
+              "const": "artifact"
+            }
+          },
+          "required": [
+            "type",
+            "artifact"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "capability": {
+              "$ref": "#/$defs/TurnSkillCapabilitySummary"
+            },
+            "type": {
+              "type": "string",
+              "const": "skill"
+            }
+          },
+          "required": [
+            "type",
+            "capability"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "capability": {
+              "$ref": "#/$defs/TurnSkillPackCapabilitySummary"
+            },
+            "type": {
+              "type": "string",
+              "const": "skillPack"
+            }
+          },
+          "required": [
+            "type",
+            "capability"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "capability": {
+              "$ref": "#/$defs/TurnMcpServerCapabilitySummary"
+            },
+            "type": {
+              "type": "string",
+              "const": "mcpServer"
+            }
+          },
+          "required": [
+            "type",
+            "capability"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "capability": {
+              "$ref": "#/$defs/TurnMcpToolCapabilitySummary"
+            },
+            "type": {
+              "type": "string",
+              "const": "mcpTool"
+            }
+          },
+          "required": [
+            "type",
+            "capability"
+          ]
+        }
+      ]
+    },
+    "UserMessagePresentation": {
+      "description": "Authoritative collaboration metadata attached to a rendered user-message\nrow. It mirrors disclosed server fields; shells must not reconstruct it by\nparsing text or by joining a mutable member directory.",
+      "type": "object",
+      "properties": {
+        "attachments": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/UserMessageAttachment"
+          }
+        },
+        "author": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TurnAuthorSnapshot"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "block_id": {
+          "type": "string"
+        },
+        "deleted": {
+          "type": "boolean"
+        },
+        "edited": {
+          "type": "boolean"
+        },
+        "item_id": {
+          "type": "string"
+        },
+        "mentions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TurnMention"
+          }
+        },
+        "mode": {
+          "$ref": "#/$defs/ThreadMode"
+        },
+        "reply": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TimelineReplySummary"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reply_state": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TimelineReplyState"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "revision": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "route": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SafeRouteProvenance"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "thread_id": {
+          "type": "string"
+        },
+        "turn_id": {
+          "type": "string"
+        },
+        "workspace_id": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "workspace_id",
+        "thread_id",
+        "block_id",
+        "turn_id",
+        "item_id",
+        "mode",
+        "revision",
+        "edited",
+        "deleted"
+      ]
+    },
+    "WebFetchLink": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "text",
+        "url"
+      ]
+    },
+    "WebSearchResultItem": {
+      "type": "object",
+      "properties": {
+        "publishedAt": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "rank": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "snippet": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "rank",
+        "title",
+        "url",
+        "snippet",
+        "source"
+      ]
+    },
+    "WorkspaceId": {
+      "type": "string",
+      "maxLength": 21,
+      "minLength": 21,
+      "pattern": "^[A-Za-z0-9]{21}$"
+    }
+  }
+}

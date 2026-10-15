@@ -1,28 +1,21 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { useForm } from 'react-hook-form';
 import { StyleSheet } from 'react-native-unistyles';
-
-import { ControlledInput } from '@/components/forms/controlled/input';
-import { ControlledOtpInput } from '@/components/forms/controlled/otp-input';
-import { useGateway } from '@/hooks/use-gateway';
+import { Input } from '@/components/forms/input';
+import { OtpInput } from '@/components/forms/otp-input';
+import {
+    dispatchGatewaySetup,
+    useGatewaySetup,
+    useGatewayDestinations,
+    hydrateOnboarding,
+} from '@/client/onboarding';
+import { mobileClientBinding } from '@/client/mobile-client-binding';
+import type { GatewaySetupPublication } from '@/client/generated/gateway_setup_publication';
 import { Title } from '@/components/typography/title';
 import { Box } from '@/components/primitives/box';
-import { GatewayOperationError } from '@/services/gateway/registry';
-import type { GatewayOperationErrorCode } from '@/services/gateway/registry';
 import { Container } from '@/screens/editor/components/container';
-import { MobileDeviceActivationError } from '@/services/gateway/device-activation';
-import type { MobileDeviceActivationErrorCode } from '@/services/gateway/device-activation';
-import { normalizeDeviceActivationCode } from '@/services/gateway/device-activation-code';
-
-type GatewaySetupFormValues = {
-    name: string;
-    gateway_base_url: string;
-    activationCode: string;
-};
-
 type GatewaySetupScreenProps = {
     activationPrefill?: GatewayActivationPrefill;
     authenticateOnly?: boolean;
@@ -37,22 +30,6 @@ export type GatewayActivationPrefill = {
     serverGatewayId: string | null;
 };
 
-const gatewayErrorTranslationKeys: Record<GatewayOperationErrorCode, string> = {
-    invalidAddress: 'invalidAddress',
-    invalidActivation: 'invalidActivation',
-    notFound: 'notFound',
-    unreachable: 'validationUnreachable',
-    connectionFailed: 'connectionFailed',
-    operationFailed: 'operationFailed',
-};
-
-const activationErrorTranslationKeys: Record<MobileDeviceActivationErrorCode, string> = {
-    invalid_presentation: 'activation.invalidPresentation',
-    gateway_mismatch: 'activation.gatewayMismatch',
-    activation_failed: 'activation.activationFailed',
-    storage_failed: 'activation.storageFailed',
-};
-
 const GatewayEditorScreen = ({
     activationPrefill,
     authenticateOnly = false,
@@ -62,150 +39,111 @@ const GatewayEditorScreen = ({
 }: GatewaySetupScreenProps) => {
     const { t } = useTranslation('gateway');
     const router = useRouter();
-    const {
-        addRemote,
-        authenticateRemote,
-        updateRemote,
-        registry,
-        busy,
-        error: storeError,
-    } = useGateway();
-    const hasExistingGateway = Boolean(gatewayId);
-    const isEdit = hasExistingGateway && !authenticateOnly;
-    const editingGateway = useMemo(
-        () =>
-            gatewayId ? (registry.remotes ?? []).find((remote) => remote.id === gatewayId) : null,
-        [gatewayId, registry.remotes],
-    );
-
-    const [formError, setFormError] = useState<string | null>(initialError);
-
-    const {
-        control,
-        handleSubmit,
-        reset,
-        formState: { isSubmitting },
-    } = useForm<GatewaySetupFormValues>({
-        defaultValues: {
-            name: '',
-            gateway_base_url: '',
-            activationCode: '',
-        },
-    });
-    const submitting = busy || isSubmitting;
-    const clearFormError = useCallback(() => {
-        setFormError(null);
-    }, []);
-
+    const publication = useGatewaySetup();
+    const [openedOwner, setOpenedOwner] = useState<number | null>(null);
+    const [initializeAttempt, setInitializeAttempt] = useState(0);
+    const form = publication?.owner_generation === openedOwner ? publication : null;
+    const destinations = useGatewayDestinations();
+    const owner = useRef<number | null>(null);
+    const completed = useRef(false);
+    // Native secret input/selection buffer; Client owns validation and submission.
+    const [activation, setActivation] = useState(activationPrefill?.activationCode ?? '');
+    const [initialErrorDismissed, setInitialErrorDismissed] = useState(false);
+    const isEdit = Boolean(gatewayId) && !authenticateOnly;
+    const prefillAddress = activationPrefill?.gateway_base_url;
+    const prefillActivation = activationPrefill?.activationCode;
+    const prefillGateway = activationPrefill?.serverGatewayId;
     useEffect(() => {
-        if (activationPrefill) {
-            reset({
-                name: '',
-                gateway_base_url: activationPrefill.gateway_base_url,
-                activationCode: activationPrefill.activationCode,
-            });
-            return;
-        }
-
-        if (!hasExistingGateway || !editingGateway) {
-            reset({ name: '', gateway_base_url: '', activationCode: '' });
-            return;
-        }
-
-        reset({
-            name: editingGateway.name,
-            gateway_base_url: editingGateway.gateway_base_url,
-            activationCode: '',
-        });
-    }, [activationPrefill, editingGateway, hasExistingGateway, reset]);
-
-    const requiredAddress = useCallback(
-        (value: string) => {
-            return value.trim() ? true : t('addressRequired');
-        },
-        [t],
-    );
-    const validActivationCode = useCallback(
-        (value: string) => normalizeDeviceActivationCode(value) !== null || t('invalidActivation'),
-        [t],
-    );
-
-    const gatewayErrorMessage = useCallback(
-        (code: GatewayOperationErrorCode) => {
-            return t(gatewayErrorTranslationKeys[code]);
-        },
-        [t],
-    );
-
-    const unknownGatewayErrorMessage = useCallback(
-        (error: unknown) => {
-            if (error instanceof GatewayOperationError) {
-                if (error.source instanceof MobileDeviceActivationError) {
-                    return t(activationErrorTranslationKeys[error.source.code]);
-                }
-                return gatewayErrorMessage(error.code);
-            }
-            if (error instanceof MobileDeviceActivationError) {
-                return t(activationErrorTranslationKeys[error.code]);
-            }
-
-            return t('operationFailed');
-        },
-        [gatewayErrorMessage, t],
-    );
-
-    const onSubmit = handleSubmit(async (values) => {
-        setFormError(null);
-
-        const activationCode = values.activationCode.trim();
-
-        try {
-            if (authenticateOnly) {
-                if (!gatewayId || !editingGateway) {
-                    throw new GatewayOperationError('notFound');
-                }
-                if (!activationCode) {
-                    throw new GatewayOperationError('invalidActivation');
-                }
-                await authenticateRemote(gatewayId, activationCode);
-                router.back();
-                return;
-            }
-
-            if (isEdit) {
-                if (!gatewayId || !editingGateway) {
-                    throw new GatewayOperationError('notFound');
-                }
-
-                await updateRemote({
-                    gatewayId,
-                    name: values.name,
-                    gateway_base_url: values.gateway_base_url.trim(),
+        let disposed = false;
+        const open = async () => {
+            await hydrateOnboarding();
+            if (disposed) return;
+            const mode = gatewayId
+                ? authenticateOnly
+                    ? {
+                          kind: 'reauthenticate_gateway' as const,
+                          endpoint_id: gatewayId,
+                          close_on_success: true,
+                      }
+                    : { kind: 'edit_gateway' as const, endpoint_id: gatewayId }
+                : {
+                      kind: blocker ? ('initial' as const) : ('add_gateway' as const),
+                      allow_local: false,
+                  };
+            dispatchGatewaySetup({ kind: 'open', mode });
+            const opened = mobileClientBinding.scope({ kind: 'gateway_setup' }).getSnapshot()
+                ?.payload as GatewaySetupPublication | null;
+            owner.current = opened?.owner_generation ?? null;
+            setOpenedOwner(owner.current);
+            completed.current = false;
+            if (prefillAddress && prefillActivation)
+                dispatchGatewaySetup({
+                    kind: 'prefill',
+                    address: prefillAddress,
+                    activation: prefillActivation,
+                    gateway_id: prefillGateway ?? null,
                 });
-
-                router.back();
-                return;
-            }
-
-            if (!activationCode) {
-                throw new GatewayOperationError('invalidActivation');
-            }
-
-            await addRemote({
-                name: values.name,
-                gateway_base_url: values.gateway_base_url.trim(),
-                activationCode,
-                activationGatewayId: activationPrefill?.serverGatewayId,
-            });
-
-            router.replace('/');
-        } catch (error) {
-            setFormError(unknownGatewayErrorMessage(error));
+            setActivation(prefillActivation ?? '');
+        };
+        void open().catch(() => {
+            /* Initialization errors are published by Client. */
+        });
+        return () => {
+            disposed = true;
+            const expected_owner = owner.current;
+            if (expected_owner !== null) dispatchGatewaySetup({ kind: 'close', expected_owner });
+        };
+    }, [
+        gatewayId,
+        authenticateOnly,
+        blocker,
+        prefillAddress,
+        prefillActivation,
+        prefillGateway,
+        initializeAttempt,
+    ]);
+    useEffect(() => {
+        if (
+            !form ||
+            form.owner_generation !== owner.current ||
+            !form.completed_endpoint ||
+            form.pending ||
+            form.error ||
+            completed.current
+        )
+            return;
+        completed.current = true;
+        setActivation('');
+        if (authenticateOnly || isEdit) router.back();
+        else router.replace('/');
+    }, [form, authenticateOnly, isEdit, router]);
+    const submitting = form?.pending ?? false;
+    const initializationFailed = Boolean(destinations?.error && !destinations.installation_id);
+    const onSubmit = () => {
+        if (initializationFailed) {
+            setInitializeAttempt((attempt) => attempt + 1);
+            return;
         }
-    });
-
-    const storeErrorMessage = storeError ? gatewayErrorMessage(storeError) : null;
-    const handleClose = () => router.back();
+        if (form && form.owner_generation === owner.current)
+            dispatchGatewaySetup({
+                kind: 'submit_for_owner',
+                expected_owner: form.owner_generation,
+                local: false,
+            });
+    };
+    const addressError = form?.address_error ? t('invalidAddress') : null;
+    const activationError = form?.activation_error ? t('invalidActivation') : null;
+    const error = destinations?.error
+        ? t('operationFailed')
+        : form?.error
+          ? t(
+                form.error === 'gateway_identity_mismatch'
+                    ? 'activation.gatewayMismatch'
+                    : 'operationFailed',
+            )
+          : !initialErrorDismissed
+            ? initialError
+            : null;
     const title = authenticateOnly
         ? t('authenticateTitle')
         : isEdit
@@ -216,58 +154,85 @@ const GatewayEditorScreen = ({
         : isEdit
           ? t('saveButton')
           : t('addButton');
-    const submitDisabled = submitting || (hasExistingGateway && !editingGateway);
-
+    const edit = (change: () => void) => {
+        if (!form) return;
+        setInitialErrorDismissed(true);
+        change();
+    };
     return (
         <Container
-            handleSubmit={() => void onSubmit()}
-            handleClose={!blocker ? handleClose : null}
+            handleSubmit={onSubmit}
+            handleClose={!blocker ? () => router.back() : null}
             loading={submitting}
-            submitDisabled={submitDisabled}
+            submitDisabled={
+                Boolean(destinations?.loading) ||
+                submitting ||
+                (!initializationFailed && (!form || form.error === 'gateway_not_found'))
+            }
             buttonLabel={buttonLabel}
         >
             <Box style={styles.container}>
                 <View style={styles.header}>
                     <Title type="h2">{title}</Title>
                 </View>
-
-                <ControlledInput
-                    control={control}
-                    name="name"
+                <Input
+                    value={form?.name ?? ''}
                     label={t('nameLabel')}
                     autoCapitalize="words"
-                    editable={!authenticateOnly}
-                    onValueChange={clearFormError}
+                    editable={Boolean(form) && !authenticateOnly && !submitting}
+                    onChangeText={(value) =>
+                        edit(() =>
+                            dispatchGatewaySetup({
+                                kind: 'edit_name_for_owner',
+                                expected_owner: openedOwner!,
+                                value,
+                            }),
+                        )
+                    }
+                    onSubmitEditing={onSubmit}
                 />
-                <ControlledInput
-                    control={control}
-                    name="gateway_base_url"
-                    rules={{
-                        validate: requiredAddress,
-                    }}
+                <Input
+                    value={form?.address ?? ''}
                     label={t('addressLabel')}
                     autoCapitalize="none"
                     autoCorrect={false}
                     spellCheck={false}
                     keyboardType="url"
-                    editable={!authenticateOnly && !activationPrefill}
-                    onValueChange={clearFormError}
+                    editable={
+                        Boolean(form) && !authenticateOnly && !activationPrefill && !submitting
+                    }
+                    error={addressError}
+                    onChangeText={(value) =>
+                        edit(() =>
+                            dispatchGatewaySetup({
+                                kind: 'edit_address_for_owner',
+                                expected_owner: openedOwner!,
+                                value,
+                            }),
+                        )
+                    }
+                    onSubmitEditing={onSubmit}
                 />
                 {!isEdit ? (
-                    <ControlledOtpInput
-                        control={control}
-                        name="activationCode"
-                        rules={{ validate: validActivationCode }}
+                    <OtpInput
+                        value={form ? activation : ''}
                         label={t('activationCodeLabel')}
-                        disabled={submitting}
+                        disabled={!form || submitting}
                         readOnly={Boolean(activationPrefill)}
-                        onValueChange={clearFormError}
+                        error={activationError}
+                        onChangeText={(value) =>
+                            edit(() => {
+                                setActivation(value);
+                                dispatchGatewaySetup({
+                                    kind: 'edit_activation_for_owner',
+                                    expected_owner: openedOwner!,
+                                    value,
+                                });
+                            })
+                        }
                     />
                 ) : null}
-
-                {formError || storeErrorMessage ? (
-                    <Text style={styles.error}>{formError ?? storeErrorMessage}</Text>
-                ) : null}
+                {error ? <Text style={styles.error}>{error}</Text> : null}
             </Box>
         </Container>
     );

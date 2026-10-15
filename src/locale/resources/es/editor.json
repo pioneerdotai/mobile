@@ -14,5 +14,14 @@
     "local": "Local",
     "remote": "Remoto",
     "reloadRemote": "Recargar remoto",
-    "overwriteRemote": "Sobrescribir remoto"
+    "overwriteRemote": "Sobrescribir remoto",
+    "fileViewerTitle": "Archivo",
+    "fileViewerLoading": "Abriendo archivo…",
+    "fileViewerLargeFileNotice": "El resaltado de sintaxis está desactivado para este archivo grande.",
+    "fileViewerErrors": {
+        "expired": "El enlace a este archivo ha caducado. Intenta abrirlo de nuevo.",
+        "invalid_content": "Este archivo no se puede mostrar.",
+        "too_large": "Este archivo supera los 10 MB y no se puede abrir.",
+        "unavailable": "El archivo no está disponible."
+    }
 }

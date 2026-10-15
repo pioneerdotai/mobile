@@ -302,6 +302,11 @@ export type GatewayNotification =
       [k: string]: unknown;
     }
   | {
+      kind: 'mcp_o_auth_changed';
+      params: McpOAuthNotification;
+      [k: string]: unknown;
+    }
+  | {
       kind: 'mcp_changed';
       params: McpChangedNotification;
       [k: string]: unknown;
@@ -684,6 +689,24 @@ export type ThreadParticipantChangeKind = 'added' | 'removed';
 export type ThreadAgentsDocStatus = 'draft' | 'active' | 'archived';
 export type TimelineChangeReason = 'backfill' | 'live_event' | 'state_changed' | 'page_invalidated';
 export type AgentWorkNodeState = 'queued' | 'running' | 'completed' | 'failed' | 'cancelled' | 'blocked';
+export type ArtifactKind =
+  | 'file'
+  | 'text'
+  | 'image'
+  | 'audio'
+  | 'video'
+  | 'pdf'
+  | 'spreadsheet'
+  | 'archive'
+  | 'json'
+  | 'generated_image'
+  | 'screenshot'
+  | 'workspace_file'
+  | 'directory_manifest'
+  | 'unknown';
+export type ArtifactProjectionKind = 'plain_text' | 'thumbnail' | 'json_summary' | 'pdf_text';
+export type ArtifactProjectionStatus = 'pending' | 'ready' | 'failed' | 'stale';
+export type ArtifactStatus = 'ready' | 'pending' | 'quarantined' | 'deleted' | 'missing_external_source' | 'failed';
 export type TurnWorkPresentation = 'expanded_live' | 'collapsed_after_final' | 'expanded_terminal_no_final';
 export type TurnWorkState =
   'starting' | 'running' | 'waiting_for_approval' | 'stalled' | 'completed' | 'blocked' | 'failed' | 'interrupted';
@@ -697,6 +720,8 @@ export type TurnPermissionActionKind =
   | 'dynamic_skill_tool'
   | 'computer_use'
   | 'task_subagent'
+  | 'memory_write'
+  | 'agent_action'
   | 'internal'
   | 'unknown';
 export type TurnPermissionDecisionReason =
@@ -980,24 +1005,6 @@ export type UserMessageAttachment =
       type: 'mcpTool';
       [k: string]: unknown;
     };
-export type ArtifactKind =
-  | 'file'
-  | 'text'
-  | 'image'
-  | 'audio'
-  | 'video'
-  | 'pdf'
-  | 'spreadsheet'
-  | 'archive'
-  | 'json'
-  | 'generated_image'
-  | 'screenshot'
-  | 'workspace_file'
-  | 'directory_manifest'
-  | 'unknown';
-export type ArtifactProjectionKind = 'plain_text' | 'thumbnail' | 'json_summary' | 'pdf_text';
-export type ArtifactProjectionStatus = 'pending' | 'ready' | 'failed' | 'stale';
-export type ArtifactStatus = 'ready' | 'pending' | 'quarantined' | 'deleted' | 'missing_external_source' | 'failed';
 export type SkillPackId = string;
 export type SkillId = string;
 export type McpScopeKind = 'workspace' | 'user';
@@ -1019,6 +1026,14 @@ export type MarkdownBlock =
       language?: string | null;
       text: string;
       type: 'code';
+      [k: string]: unknown;
+    }
+  | {
+      alignments: MarkdownTableAlignment[];
+      headers: MarkdownInline1[];
+      rows: MarkdownInline1[][];
+      source: string;
+      type: 'table';
       [k: string]: unknown;
     }
   | {
@@ -1047,6 +1062,7 @@ export type MarkdownMarkKind =
       url: string;
       [k: string]: unknown;
     };
+export type MarkdownTableAlignment = 'none' | 'left' | 'center' | 'right';
 export type AgentMessagePhase = 'final_answer' | 'commentary';
 export type SystemEventLevel = 'info' | 'warning' | 'error';
 export type TaskExecutorKind = 'agent' | 'tool' | 'workflow' | 'webhook' | 'system';
@@ -1357,6 +1373,21 @@ export type ToolRetryExhaustionKind = 'total_retry_rounds' | 'error_class' | 'to
 export type ToolLoopBudgetAction = 'continue_in_next_window';
 export type ToolLoopBudgetLimitKind =
   'agent_rounds' | 'tool_calls' | 'wall_clock_ms' | 'provider_tokens' | 'provider_returned_tools_after_tools_disabled';
+export type McpOAuthState =
+  | 'idle'
+  | 'preparing'
+  | 'awaiting_callback'
+  | 'exchanging'
+  | 'resolving'
+  | 'retired'
+  | 'cleanup_required'
+  | 'authorized'
+  | 'auth_required'
+  | 'insufficient_scope'
+  | 'denied'
+  | 'cancelled'
+  | 'timed_out'
+  | 'failed';
 export type McpChangedAction = 'install' | 'policy' | 'update' | 'uninstall';
 export type McpSourceKind = 'config';
 export type McpRuntimeState =
@@ -1441,6 +1472,66 @@ export type TaskValue =
       };
       [k: string]: unknown;
     };
+export type ProviderFailureClass =
+  | 'network_transient'
+  | 'rate_limit'
+  | 'provider_5xx'
+  | 'auth_expired'
+  | 'auth_or_permission'
+  | 'model_not_found'
+  | 'prompt_too_long'
+  | 'context_too_large'
+  | 'max_output_tokens'
+  | 'stream_stall'
+  | 'stream_truncated'
+  | 'empty_response'
+  | 'provider_rejected'
+  | 'unsupported_parameter'
+  | 'unsupported_capability'
+  | 'unsupported_image_input'
+  | 'unsupported_tool_calling'
+  | 'unsupported_streaming'
+  | 'malformed_provider_request'
+  | 'invalid_request'
+  | 'permission_denied'
+  | 'unknown';
+/**
+ * Allowlisted OpenRouter Chat Completions metadata.error_type values.
+ * Diagnostic only: these values must not drive recovery policy.
+ */
+export type ProviderErrorReason =
+  | 'context_length_exceeded'
+  | 'max_tokens_exceeded'
+  | 'token_limit_exceeded'
+  | 'string_too_long'
+  | 'authentication'
+  | 'permission_denied'
+  | 'payment_required'
+  | 'rate_limit_exceeded'
+  | 'provider_overloaded'
+  | 'provider_unavailable'
+  | 'invalid_request'
+  | 'invalid_prompt'
+  | 'not_found'
+  | 'precondition_failed'
+  | 'payload_too_large'
+  | 'unprocessable'
+  | 'content_policy_violation'
+  | 'refusal'
+  | 'invalid_image'
+  | 'image_too_large'
+  | 'image_too_small'
+  | 'unsupported_image_format'
+  | 'image_not_found'
+  | 'image_download_failed'
+  | 'server'
+  | 'timeout'
+  | 'unmapped';
+export type ProviderRequestId = string;
+export type ProviderFailureStage = 'connect' | 'first_chunk' | 'mid_stream' | 'finalize';
+export type ProviderTransportKind = 'stream' | 'non_stream' | 'ws' | 'sse';
+export type RecoveryStopReason =
+  'attempts_exhausted' | 'wall_clock_exhausted' | 'no_progress' | 'policy_rejected' | 'terminal_failure';
 export type TaskAttachmentMode = 'attached' | 'detached';
 export type TaskCompletionBehavior = 'complete_on_terminal_run' | 'keep_active_for_recurring' | 'manual';
 export type TaskParentTerminalAction = 'cancel' | 'detach' | 'keep_running';
@@ -1682,6 +1773,7 @@ export type TurnFilesystemSandboxPath =
     };
 export type TurnSecurityRuleProvenance =
   'composer_selection' | 'workspace' | 'project' | 'runtime' | 'task_cap' | 'system';
+export type TurnFilesystemSandboxKind = 'restricted' | 'unrestricted';
 export type TurnNetworkMode = 'disabled' | 'restricted' | 'enabled';
 export type TurnSandboxMode = 'unrestricted' | 'read_only' | 'workspace_write';
 export type TaskAgentWriteMode = 'read_only' | 'workspace_write' | 'scoped_write' | 'full_access';
@@ -1791,10 +1883,15 @@ export type RuntimeStatus =
       state: 'error';
       [k: string]: unknown;
     };
-export type CLIRuntimeRequestKind = 'command_approval' | 'file_change_approval' | 'user_input' | 'other';
+export type CLIRuntimeRequestKind =
+  'command_approval' | 'file_change_approval' | 'permission_approval' | 'user_input' | 'other';
 export type CLIRuntimeRequestResolution =
   | {
       status: 'approved';
+      [k: string]: unknown;
+    }
+  | {
+      status: 'approved_for_session';
       [k: string]: unknown;
     }
   | {
@@ -2002,8 +2099,22 @@ export interface TurnPermissionProfileSnapshot {
   [k: string]: unknown;
 }
 export interface ToolPermissionPolicySnapshot {
+  agent_action: PermissionBehavior;
   allowed_paths?: string[];
+  /**
+   * See `allowed_tools_restricted`.  A restricted empty path set is a
+   * durable deny-all result, while an unrestricted empty set is the legacy
+   * wildcard.
+   */
+  allowed_paths_restricted?: boolean;
   allowed_tools?: string[];
+  /**
+   * `allowed_tools = []` historically means "no allow-list".  This bit
+   * preserves the distinct result of intersecting two disjoint allow-lists:
+   * a restricted empty set must deny every tool rather than reopen all of
+   * them.
+   */
+  allowed_tools_restricted?: boolean;
   computer_use: PermissionBehavior;
   default_behavior: PermissionBehavior;
   denied_tools?: string[];
@@ -2012,6 +2123,7 @@ export interface ToolPermissionPolicySnapshot {
   file_write: PermissionBehavior;
   mcp_read: PermissionBehavior;
   mcp_write_or_unknown: PermissionBehavior;
+  memory_write: PermissionBehavior;
   network: PermissionBehavior;
   shell_command: PermissionBehavior;
   task_subagent: PermissionBehavior;
@@ -2117,11 +2229,23 @@ export interface ThreadTimelineBlocksChangedNotification {
   reason: TimelineChangeReason;
   removedBlockIds?: string[];
   threadId: string;
+  /**
+   * Revisioned removals prevent delayed pages or state notifications from
+   * resurrecting a work row after its authoritative projection disappeared.
+   */
+  turnWorkTombstones?: TurnWorkTombstone[];
   workspaceId: string;
   [k: string]: unknown;
 }
 export interface TimelineCursor {
   value: string;
+  [k: string]: unknown;
+}
+export interface TurnWorkTombstone {
+  blockId: string;
+  projectionUpdatedAtUnixMicros?: number;
+  sourceHighWatermark?: number;
+  turnId: string;
   [k: string]: unknown;
 }
 export interface ThreadReadCursorChangedNotification {
@@ -2211,6 +2335,7 @@ export interface TurnWorkBlock {
   hasMoreAfter: boolean;
   hasMoreBefore: boolean;
   hiddenWorkCount: number;
+  htmlPublications?: HtmlPublication[];
   lastWorkItemId?: string | null;
   presentation: TurnWorkPresentation;
   startedAtUnixMs?: number | null;
@@ -2247,6 +2372,41 @@ export interface AgentWorkNodeProjection {
   progressLabel?: string | null;
   progressRevision: number;
   state: AgentWorkNodeState;
+}
+/**
+ * An exact Gateway-created HTML publication. Generic HTML attachments never
+ * acquire this descriptor based on MIME alone.
+ */
+export interface HtmlPublication {
+  artifact: ArtifactRef;
+  callId: string;
+  threadId: string;
+  title: string;
+  turnId: string;
+  workspaceId: string;
+}
+export interface ArtifactRef {
+  artifact_id: string;
+  display_name: string;
+  kind: ArtifactKind;
+  mime_type?: string | null;
+  preview?: ArtifactPreviewRef | null;
+  sha256?: string | null;
+  size_bytes?: number | null;
+  status: ArtifactStatus;
+  version_id?: string | null;
+  [k: string]: unknown;
+}
+export interface ArtifactPreviewRef {
+  artifact_id: string;
+  blob_id?: string | null;
+  mime_type?: string | null;
+  projection_kind: ArtifactProjectionKind;
+  sha256?: string | null;
+  size_bytes?: number | null;
+  status: ArtifactProjectionStatus;
+  version_id: string;
+  [k: string]: unknown;
 }
 export interface TurnPermissionRequestOpenedNotification {
   request: TurnPermissionApprovalRequest;
@@ -2354,29 +2514,6 @@ export interface ItemStartedNotification {
   thread_id: string;
   turn_id: string;
   workspace_id: string;
-  [k: string]: unknown;
-}
-export interface ArtifactRef {
-  artifact_id: string;
-  display_name: string;
-  kind: ArtifactKind;
-  mime_type?: string | null;
-  preview?: ArtifactPreviewRef | null;
-  sha256?: string | null;
-  size_bytes?: number | null;
-  status: ArtifactStatus;
-  version_id?: string | null;
-  [k: string]: unknown;
-}
-export interface ArtifactPreviewRef {
-  artifact_id: string;
-  blob_id?: string | null;
-  mime_type?: string | null;
-  projection_kind: ArtifactProjectionKind;
-  sha256?: string | null;
-  size_bytes?: number | null;
-  status: ArtifactProjectionStatus;
-  version_id: string;
   [k: string]: unknown;
 }
 export interface TurnSkillCapabilitySummary {
@@ -2727,6 +2864,20 @@ export interface SkillsUploadChunkAckNotification {
   upload_id: string;
   [k: string]: unknown;
 }
+export interface McpOAuthNotification {
+  /**
+   * Authorization URLs contain ephemeral state. Debug must redact them.
+   */
+  authorization_url?: string | null;
+  diagnostic?: string | null;
+  flow_id?: string | null;
+  name: string;
+  scope_kind: McpScopeKind;
+  server_id: string;
+  state: McpOAuthState;
+  workspace_id: string;
+  [k: string]: unknown;
+}
 export interface McpChangedNotification {
   changed?: McpChangedItem[];
   snapshot_version: number;
@@ -2804,6 +2955,7 @@ export interface ArtifactBindingSummary {
   tool_call_id?: string | null;
   turn_id?: string | null;
   turn_item_id?: string | null;
+  version_id?: string | null;
   workspace_id: string;
   [k: string]: unknown;
 }
@@ -2918,7 +3070,21 @@ export interface TaskError {
   details?: TaskValue | null;
   failedRunId?: string | null;
   message: string;
+  recoveryDiagnostic?: RecoveryDiagnostic | null;
   [k: string]: unknown;
+}
+export interface RecoveryDiagnostic {
+  lastFailure?: RecoveryProviderFailure | null;
+  stopReason?: RecoveryStopReason | null;
+}
+export interface RecoveryProviderFailure {
+  class: ProviderFailureClass;
+  errorReason?: ProviderErrorReason | null;
+  httpStatus?: number | null;
+  requestId?: ProviderRequestId | null;
+  retryAfterMs?: number | null;
+  stage: ProviderFailureStage;
+  transport: ProviderTransportKind;
 }
 export interface TaskLifecyclePolicy {
   attachment: TaskAttachmentMode;
@@ -3015,6 +3181,11 @@ export interface AgentExecutionSelection {
   permissionProfile?: TurnPermissionProfileSelection | null;
   profile: AgentExecutionProfileSelection;
   reasoning?: TurnReasoningSelection | null;
+  /**
+   * Exact normalized capabilities for a durable Task launch. Legacy launches
+   * use skill_ids and mcp_server_ids when this field is empty.
+   */
+  selectedCapabilities?: TurnCapability[];
   skillIds?: SkillId[];
 }
 export interface TurnPermissionProfileSelection {
@@ -3315,6 +3486,12 @@ export interface TaskResultReviewerSpec {
 }
 export interface TaskAgentSecurityCap {
   maxFilesystemEntries?: TurnFilesystemSandboxEntry[];
+  /**
+   * Distinguishes a restricted cap with zero roots from an unrestricted
+   * cap, whose bounded-root list is also empty. Legacy records omit this
+   * field and are interpreted conservatively by the Gateway.
+   */
+  maxFilesystemKind?: TurnFilesystemSandboxKind | null;
   maxNetworkPolicy: TurnNetworkPolicySnapshot;
   maxPermissionProfile: TurnPermissionProfileCap;
   maxProcessPolicy: TurnProcessPolicySnapshot;
@@ -3491,6 +3668,7 @@ export interface TaskUserNotificationDeliveredNotification {
 export interface PublicTaskFailure {
   class: TaskErrorClass;
   error: PublicError;
+  recoveryDiagnostic?: RecoveryDiagnostic | null;
   [k: string]: unknown;
 }
 /**
@@ -3552,6 +3730,10 @@ export interface MemoryRecord {
   };
   namespace?: string | null;
   provenance: MemoryProvenance;
+  /**
+   * Response-only assessment for this read; absence means not assessed.
+   */
+  recall_eligibility?: MemoryRecallEligibility | null;
   scope: MemoryScope;
   sensitivity: MemorySensitivity;
   source_context_kind?: MemorySourceContextKind | null;
@@ -3570,6 +3752,14 @@ export interface MemoryProvenance {
 export interface MemoryActor {
   id?: string | null;
   kind: MemoryActorKind;
+  [k: string]: unknown;
+}
+export interface MemoryRecallEligibility {
+  eligible: boolean;
+  /**
+   * Low-cardinality policy reason, never a payload or identifier.
+   */
+  reason: string;
   [k: string]: unknown;
 }
 export interface MemoryScope {
@@ -3606,6 +3796,18 @@ export interface MemoryForgottenNotification {
   [k: string]: unknown;
 }
 export interface CLIRuntimeStatusChangedNotification {
+  /**
+   * Removes `runtime` from the client snapshot. The runtime payload remains
+   * present so older clients safely render it as disabled instead of
+   * retaining a stale ready entry.
+   */
+  removed?: boolean;
+  /**
+   * Monotonic workspace change revision. Every emitted delta has a distinct
+   * revision, so clients can detect a dropped notification and reload the
+   * complete authoritative snapshot.
+   */
+  revision?: number;
   runtime: RuntimeSummary;
   workspace_id: string;
   [k: string]: unknown;
@@ -3683,6 +3885,11 @@ export interface CLIRuntimeRequestOpenedNotification {
   runtime_id: string;
   thread_id?: string | null;
   turn_id?: string | null;
+  /**
+   * Additional ancestor Thread capsules in which this child execution
+   * request is intentionally visible and actionable.
+   */
+  visible_thread_ids?: string[];
   workspace_id: string;
   [k: string]: unknown;
 }
@@ -3701,6 +3908,11 @@ export interface CLIRuntimeRequestResolvedNotification {
   runtime_id: string;
   thread_id?: string | null;
   turn_id?: string | null;
+  /**
+   * Mirrors the opened notification so clients can remove an ancestor-
+   * projected request without waiting for a separate timeline refresh.
+   */
+  visible_thread_ids?: string[];
   workspace_id: string;
   [k: string]: unknown;
 }

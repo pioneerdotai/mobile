@@ -1,16 +1,12 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { LegendList, type LegendListRenderItemProps } from '@legendapp/list/react-native';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { dispatchThreadMember, useThreadMembers } from '@/client/thread-members';
 import { Alert } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Trash } from 'lucide-react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 
-import type {
-    ClientActiveThreadSnapshot,
-    ComposerMentionCandidate,
-    ThreadScopePresentation,
-} from '@/client';
+import type { ComposerMentionCandidate, ThreadScopePresentation } from '@/client';
 import { MemberAvatar } from '@/components/member-avatar';
 import { ActionsSheet } from '@/components/overlays/actions';
 import { MenuItem } from '@/components/overlays/actions/menu-item';
@@ -21,15 +17,7 @@ import { HStack } from '@/components/primitives/hstack';
 import { Pressable } from '@/components/primitives/pressable';
 import { Text } from '@/components/primitives/text';
 import { VStack } from '@/components/primitives/vstack';
-import { useAdministrationPrincipal } from '@/hooks/use-administration-capabilities';
-import {
-    addThreadParticipant,
-    loadThreadScopePresentation,
-    removeThreadParticipant,
-    threadScopeQueryKeys,
-} from '@/services/threads/scope';
-import { timelineQueryKeys } from '@/services/threads/timeline-query';
-import { useGatewayStore } from '@/stores/gateway';
+import { useActiveThreadSnapshotQuery } from '@/hooks/use-active-thread-snapshot-query';
 import { useThreadTreeStore } from '@/stores/thread-tree';
 
 type ThreadMembersScreenProps = {
@@ -37,11 +25,6 @@ type ThreadMembersScreenProps = {
     pickerOpen: boolean;
     onPickerClose: () => void;
     onCanAddMemberChange?: (canAdd: boolean) => void;
-};
-
-type MemberMutation = {
-    kind: 'add' | 'remove';
-    principalId: string;
 };
 
 type ThreadParticipantRow = ThreadScopePresentation['participants'][number];
@@ -59,87 +42,84 @@ const ThreadMembersScreen = ({
 }: ThreadMembersScreenProps) => {
     const { t } = useTranslation('threads');
     const { theme } = useUnistyles();
-    const queryClient = useQueryClient();
-    const auth = useAdministrationPrincipal();
     const treeSnapshot = useThreadTreeStore((state) => state.snapshot);
-    const connectionId = useGatewayStore((state) => state.connectionId);
-    const connected = useGatewayStore((state) => state.connectionState === 'Connected');
-    const cachedSnapshot = queryClient.getQueryData<ClientActiveThreadSnapshot>(
-        timelineQueryKeys.threadSnapshot(threadId),
-    );
+    const cachedSnapshot = useActiveThreadSnapshotQuery(threadId).data;
     const thread = treeSnapshot?.threads_by_id[threadId] ?? cachedSnapshot?.thread ?? null;
-    const [selectedMember, setSelectedMember] = useState<ThreadParticipantRow | null>(null);
-    const [manualRefreshing, setManualRefreshing] = useState(false);
-    const queryKey = useMemo(
-        () => [...threadScopeQueryKeys.detail(threadId), connectionId] as const,
-        [connectionId, threadId],
+    const publication = useThreadMembers(threadId, true, thread?.workspace_id ?? null);
+    const presentation = publication?.presentation;
+    const [selection, setSelection] = useState<{ threadId: string; principalId: string } | null>(
+        null,
     );
-    // connectionId is the authorization epoch; the thread-scoped prefix is
-    // intentionally stable so participant events can invalidate it exactly.
-    // eslint-disable-next-line @tanstack/query/exhaustive-deps
-    const membersQuery = useQuery({
-        queryKey,
-        queryFn: async () => {
-            if (!auth.data || !thread) throw new Error('thread_members_unavailable');
-            return loadThreadScopePresentation(auth.data, thread);
-        },
-        enabled: connected && Boolean(auth.data && thread),
-        refetchOnMount: 'always',
-        refetchOnReconnect: true,
-    });
-    const mutation = useMutation({
-        mutationFn: (input: MemberMutation) => {
-            if (!thread) return Promise.reject(new Error('thread_members_unavailable'));
-            return input.kind === 'add'
-                ? addThreadParticipant(thread.workspace_id, thread.id, input.principalId)
-                : removeThreadParticipant(thread.workspace_id, thread.id, input.principalId);
-        },
-        onSuccess: async () => {
-            await queryClient.invalidateQueries({ queryKey });
-        },
-        onError: () => {
-            Alert.alert(t('members.actionFailed'));
-        },
-    });
-    const mutationPending = mutation.isPending;
-    const mutateMember = mutation.mutate;
-    const refetchMembers = membersQuery.refetch;
-
-    const refreshMembers = useCallback(async () => {
-        if (manualRefreshing) return;
-        setManualRefreshing(true);
-        try {
-            await refetchMembers();
-        } finally {
-            setManualRefreshing(false);
-        }
-    }, [manualRefreshing, refetchMembers]);
-
+    const selectedMember =
+        selection?.threadId === threadId
+            ? (presentation?.participants.find(
+                  (member) => member.principal_id === selection.principalId,
+              ) ?? null)
+            : null;
+    const [refreshGeneration, setRefreshGeneration] = useState<number | null>(null);
+    const requestedAction = useRef<number | null>(null);
+    const mutationPending =
+        publication?.request.kind === 'loading' &&
+        publication.request.action.kind !== 'list_participants';
+    const manualRefreshing =
+        publication?.generation === refreshGeneration && publication?.request.kind === 'loading';
+    const initialLoading =
+        !publication ||
+        (publication.request.kind === 'loading' &&
+            publication.request.action.kind === 'list_participants' &&
+            (!presentation ||
+                (presentation.participants.length === 0 &&
+                    (publication.workspace_request.kind === 'loading' ||
+                        publication.participants_request.kind === 'loading'))));
+    const loadFailed = publication?.request.kind === 'failed';
+    useEffect(() => {
+        if (
+            publication?.generation !== requestedAction.current ||
+            publication?.request.kind !== 'failed'
+        )
+            return;
+        requestedAction.current = null;
+        Alert.alert(t('members.actionFailed'));
+    }, [publication, t]);
+    const refreshMembers = useCallback(() => {
+        setRefreshGeneration(
+            dispatchThreadMember({ kind: 'retry', thread_id: threadId }) ??
+                publication?.generation ??
+                null,
+        );
+    }, [threadId, publication?.generation]);
     const addMember = useCallback(
         (member: ComposerMentionCandidate) => {
-            if (mutationPending || !membersQuery.data?.capabilities.can_manage_private_participants)
+            if (mutationPending || !presentation?.capabilities.can_manage_private_participants)
                 return;
-            mutateMember({ kind: 'add', principalId: member.principal_id });
+            requestedAction.current = dispatchThreadMember({
+                kind: 'perform',
+                thread_id: threadId,
+                action: { kind: 'add_participant', principal_id: member.principal_id },
+            });
         },
-        [
-            membersQuery.data?.capabilities.can_manage_private_participants,
-            mutateMember,
-            mutationPending,
-        ],
+        [mutationPending, presentation?.capabilities.can_manage_private_participants, threadId],
     );
     const deleteSelectedMember = useCallback(() => {
         if (!selectedMember?.can_remove || mutationPending) return;
-        const principalId = selectedMember.principal_id;
-        setSelectedMember(null);
-        mutateMember({ kind: 'remove', principalId });
-    }, [mutateMember, mutationPending, selectedMember]);
+        requestedAction.current = dispatchThreadMember({
+            kind: 'perform',
+            thread_id: threadId,
+            action: { kind: 'remove_participant', principal_id: selectedMember.principal_id },
+        });
+        setSelection(null);
+    }, [mutationPending, selectedMember, threadId]);
 
     const renderMember = useCallback(
         ({ item }: LegendListRenderItemProps<ThreadParticipantRow>) => (
             <Pressable
                 accessibilityLabel={`${item.display_name}, @${item.nickname}`}
                 delayLongPress={350}
-                onLongPress={item.can_remove ? () => setSelectedMember(item) : undefined}
+                onLongPress={
+                    item.can_remove
+                        ? () => setSelection({ threadId, principalId: item.principal_id })
+                        : undefined
+                }
             >
                 {({ pressed }) => (
                     <HStack style={styles.member}>
@@ -161,10 +141,9 @@ const ThreadMembersScreen = ({
                 )}
             </Pressable>
         ),
-        [theme],
+        [theme, threadId],
     );
 
-    const presentation = membersQuery.data;
     const canAddMember = presentation?.capabilities.can_manage_private_participants ?? false;
     useEffect(() => {
         onCanAddMemberChange?.(canAddMember);
@@ -172,7 +151,6 @@ const ThreadMembersScreen = ({
     }, [canAddMember, onCanAddMemberChange]);
     const members = presentation?.participants ?? EMPTY_MEMBERS;
     const candidates = presentation?.candidate_members ?? EMPTY_CANDIDATES;
-    const initialLoading = auth.isPending || membersQuery.isPending;
 
     return (
         <Box style={styles.container}>
@@ -196,12 +174,10 @@ const ThreadMembersScreen = ({
                             </>
                         ) : (
                             <Text
-                                accessibilityRole={membersQuery.isError ? 'alert' : undefined}
-                                style={membersQuery.isError ? styles.error : styles.stateText}
+                                accessibilityRole={loadFailed ? 'alert' : undefined}
+                                style={loadFailed ? styles.error : styles.stateText}
                             >
-                                {membersQuery.isError
-                                    ? t('members.loadFailed')
-                                    : t('members.empty')}
+                                {loadFailed ? t('members.loadFailed') : t('members.empty')}
                             </Text>
                         )}
                     </VStack>
@@ -216,7 +192,7 @@ const ThreadMembersScreen = ({
                 onClose={onPickerClose}
                 onSelect={addMember}
             />
-            <ActionsSheet open={selectedMember !== null} onClose={() => setSelectedMember(null)}>
+            <ActionsSheet open={selectedMember !== null} onClose={() => setSelection(null)}>
                 <VStack>
                     <MenuItem
                         Icon={Trash}

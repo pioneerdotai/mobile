@@ -1,31 +1,33 @@
+import { dispatchComposerCatalog, useComposerCatalog } from '@/client/composer-catalog';
+import { beginMessageDeletion } from '@/client/message-deletion';
+import { artifactActionPresentation } from '@/services/artifacts/mobile-action-state';
+import { useThreadArtifacts } from '@/client/thread-artifacts';
+import {
+    beginComposerOperation,
+    composerSnapshot,
+    dispatchComposer,
+    completeComposerOperation,
+    composerOperationPlan,
+    useComposerPublication,
+    type ComposerOperationIdentity,
+} from '@/client/composer';
+import { dispatchNavigation, navigationSnapshot } from '@/client/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { router, useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { AppState, type AppStateStatus, type LayoutChangeEvent, Text, View } from 'react-native';
+import { type LayoutChangeEvent, Text, View } from 'react-native';
 import { KeyboardGestureArea, KeyboardStickyView } from 'react-native-keyboard-controller';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useKeyboardChatComposerInset } from '@legendapp/list/keyboard';
 import type { LegendListRef } from '@legendapp/list/react-native';
-import { skipToken, useQuery, useQueryClient } from '@tanstack/react-query';
 import { customAlphabet } from 'nanoid';
 
 import {
     pioneerClient,
-    PioneerClientNativeError,
-    type ClientActiveThreadSnapshot,
-    type CLIRuntimeThreadBinding,
     type ComposerSkillChip,
     type ComposerMentionCandidate,
     type ComposerSkillPickerProjection,
-    type ComposerSkillSelection,
-    type VoiceSessionStartContext,
     type Thread,
-    type TimelineBlock,
-    type TurnWorkBlock,
-    type TurnWorkItem,
-    type UserInput,
-    type VoiceSessionResultReduction,
-    type VoiceStatusResponse,
     type VoiceTurnContext,
 } from '@/client';
 import Spinner from '@/components/feedback/spinner';
@@ -33,41 +35,18 @@ import {
     ThreadComposer,
     THREAD_COMPOSER_MIN_INPUT_HEIGHT,
 } from '@/components/thread/composer/thread-composer';
-import {
-    ThreadTimeline,
-    type TimelineTurnWorkBoundaryHint,
-    type TimelineViewportPrefetchPlan,
-} from '@/components/thread/timeline/thread-timeline';
+import { ThreadTimeline } from '@/components/thread/timeline/thread-timeline';
 import {
     DEFAULT_TIMELINE_PRESENTATION_CONTEXT,
     TASK_CHILD_TIMELINE_PRESENTATION_CONTEXT,
 } from '@/components/thread/timeline/timeline-grouping';
 import { useActiveThread } from '@/hooks/use-active-thread';
 import { useGateway } from '@/hooks/use-gateway';
-import { useTimelineReconnectInvalidation } from '@/hooks/use-timeline-reconnect-invalidation';
 import { useThreadTimelineBlocksQuery } from '@/hooks/use-thread-timeline-blocks-query';
-import { useTimelineQueryCancellation } from '@/hooks/use-timeline-query-cancellation';
-import { useTurnWorkItemsQuery } from '@/hooks/use-turn-work-items-query';
-import {
-    useProviderModelDisplayName,
-    useProviderModelReasoningEffortLabel,
-} from '@/hooks/use-provider-model-display-name';
-import {
-    NATIVE_COMPOSER_CAPABILITY_POLICY,
-    UNSUPPORTED_CLI_COMPOSER_CAPABILITY_POLICY,
-    composerSubmissionPlanForProvider,
-    composerCapabilityTargetForProvider,
-    isCliRuntimeProvider,
-} from '@/services/providers/cli-runtime';
-import { refreshCliRuntimeSummaries } from '@/services/providers/cli-runtime-live';
-import { projectConversationToRows } from '@/services/threads/conversation/projector';
-import { activeThreadSnapshot } from '@/services/threads/active';
+import { composerSubmissionPlanForProvider } from '@/services/providers/cli-runtime';
+import { useThreadPresentation } from '@/hooks/use-thread-presentation';
 import { projectAgentActionCapabilities } from '@/services/threads/agent-capabilities';
-import { seedEmptyThreadTimelineCache } from '@/services/threads/semantic-cache-patch';
-import { cacheActiveThreadSnapshot } from '@/services/threads/timeline-query';
-import { selectedReasoningEffortRequestFields } from '@/services/threads/reasoning-effort';
-import { skillSelectionRequestFields } from '@/services/threads/skill-selection-request';
-import type { TimelinePendingRequest, TimelineRow } from '@/services/threads/conversation/timeline';
+import type { TimelineRow } from '@/services/threads/conversation/timeline';
 import {
     MobileVoiceCaptureError,
     type MobileVoiceCaptureSession,
@@ -75,33 +54,22 @@ import {
 } from '@/services/voice/mobile-capture';
 import { resolveVoiceComposerAvailability } from '@/services/voice-input/composer';
 import { useVoiceInputDataSourceState } from '@/services/voice-input/data-source';
-import { requireVoiceInputGatewayTarget } from '@/services/voice-input/gateway-target';
 import {
     cancelMobileArtifactDownload,
     downloadAndShareMobileArtifact,
-    mobileArtifactActionKey,
     openMobileArtifact,
-    reduceMobileArtifactAction,
-    type MobileArtifactActionEvent,
-    type MobileArtifactActionState,
 } from '@/services/artifacts/mobile-actions';
+import { registerThreadFileIntent, releaseThreadFileIntent } from '@/services/thread-files/intent';
 import { useActiveThreadStore } from '@/stores/active-thread';
 import { useGatewayStore } from '@/stores/gateway';
 import { useThreadTreeStore } from '@/stores/thread-tree';
 import { useWorkspaceStore } from '@/stores/workspace';
-import {
-    useCurrentPrincipalPresentation,
-    useThreadAuthorizationCapabilities,
-} from '@/hooks/use-administration-capabilities';
-import { applyThreadReadResponse } from '@/services/threads/tree';
+import { useThreadCapabilities, retryThreadCapabilities } from '@/client/thread-capabilities';
 import {
     MessageMutationModal,
     type MessageMutationTarget,
 } from '@/components/thread/timeline/message-mutation-modal';
-import { administrationQueryKeys } from '@/services/administration/query';
-import { loadAllMembers, loadAllWorkspaceMembers } from '@/services/administration/members';
-import { projectWorkspaceMentionCandidates } from '@/services/threads/mentions';
-import { composerPermissionModeIsAllowed } from '@/services/threads/permission-modes';
+import { useThreadMembers } from '@/client/thread-members';
 import { ThreadActionsSheet } from '@/components/overlays/thread-actions';
 
 type ThreadScreenProps = {
@@ -113,71 +81,13 @@ type ThreadScreenProps = {
     onOpenMembers?: () => void;
 };
 
-type MessageEditTarget = {
-    threadId: string;
-    row: Extract<TimelineRow, { type: 'user-message' }>;
-};
-
-type SemanticTurnWorkRange = {
-    work: TurnWorkBlock | null;
-    items: TurnWorkItem[];
-    hasLoadedPage: boolean;
-};
-
 const THREAD_COMPOSER_INPUT_NATIVE_ID = 'thread-composer-input';
 const STICKY_KEYBOARD_OFFSET_CLOSED = 0;
 const EMPTY_MCP_SERVER_ID_BY_NAME: Readonly<Record<string, string>> = {};
 const EMPTY_SKILL_PICKER: ComposerSkillPickerProjection = { packs: [], standalone: [] };
-const SEMANTIC_TURN_WORK_GROUP_PREFIX = 'semantic-turn-work-group::';
-const EMPTY_SEMANTIC_WORK_RANGES: Readonly<Record<string, SemanticTurnWorkRange>> = {};
 const VOICE_TURN_ID_LEN = 21;
 const VOICE_TURN_ID_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890';
-const MESSAGE_REVISION_CONFLICT_CODE = 'pioneer_turn_message_revision_conflict';
-const generateVoiceTurnId = customAlphabet(VOICE_TURN_ID_ALPHABET, VOICE_TURN_ID_LEN);
 const generateArtifactOperationId = customAlphabet(VOICE_TURN_ID_ALPHABET, VOICE_TURN_ID_LEN);
-
-type ComposerModelSelection = {
-    provider: string;
-    model: string;
-    selectedReasoningEffort: string | null;
-};
-
-type SemanticWorkRangesState = {
-    threadId: string | null;
-    ranges: Record<string, SemanticTurnWorkRange>;
-};
-
-type CliRuntimeSupportsSteerState = {
-    workspaceId: string | null;
-    runtimeId: string;
-    supportsSteer: boolean | null;
-};
-
-type VoiceCommitPendingTurn = {
-    threadId: string;
-    turnId: string;
-};
-
-type GatewayVoiceStatusSnapshot = Readonly<{
-    gatewayId: string;
-    connectionId: number;
-    response: VoiceStatusResponse;
-}>;
-
-const modelSelectionFromThread = (
-    thread: Thread | null | undefined,
-): ComposerModelSelection | null => {
-    const provider = thread?.model_provider.trim();
-    const model = thread?.model.trim();
-
-    if (!provider || !model) {
-        return null;
-    }
-
-    const selectedReasoningEffort = thread?.reasoning_effort?.trim() || null;
-
-    return { provider, model, selectedReasoningEffort };
-};
 
 const ThreadScreen = ({
     threadId,
@@ -189,23 +99,15 @@ const ThreadScreen = ({
 }: ThreadScreenProps) => {
     const { t } = useTranslation('threads');
     const { theme, rt } = useUnistyles();
-    const queryClient = useQueryClient();
 
     const [focused, setFocused] = useState(false);
-    const [appState, setAppState] = useState<AppStateStatus>(AppState.currentState);
     const [messageMutationTarget, setMessageMutationTarget] =
         useState<MessageMutationTarget | null>(null);
-    const [messageEditTarget, setMessageEditTarget] = useState<MessageEditTarget | null>(null);
-    const [messageEditPending, setMessageEditPending] = useState(false);
-    const [messageEditError, setMessageEditError] = useState<string | null>(null);
-    const messageEditPendingRef = useRef(false);
-    const requestedReadThroughRef = useRef(new Set<string>());
 
     const treeSnapshot = useThreadTreeStore((state) => state.snapshot);
-    const currentPrincipal = useCurrentPrincipalPresentation();
+    const currentPrincipalId = useGatewayStore((state) => state.sessionPrincipalId);
 
     const activeWorkspaceId = useWorkspaceStore((state) => state.activeWorkspaceId);
-    const expandedKeys = useActiveThreadStore((state) => state.expandedKeys);
 
     const thread = treeSnapshot?.threads_by_id[threadId] ?? null;
     const activeThread = thread ?? initialThread ?? null;
@@ -241,54 +143,14 @@ const ThreadScreen = ({
         sendText,
         stopTurn,
         setComposerText,
-        setComposerSkillSelections,
         setExpandedKeys,
     } = useActiveThread(activeThread, activeWorkspaceId, focused, threadId);
 
-    // Use the workspace reported by the native active-thread snapshot first.
-    // The tree/store workspace can briefly describe the previous screen while
-    // a thread is opening; that produced a valid but unrelated empty query.
-    const mentionSnapshot = snapshot?.thread_id === threadId ? snapshot : null;
-    const mentionWorkspaceId =
-        mentionSnapshot?.workspace_id?.trim() ||
-        mentionSnapshot?.thread?.workspace_id?.trim() ||
-        activeThread?.workspace_id?.trim() ||
-        activeWorkspaceId?.trim() ||
-        null;
-    // Workspace ids are not globally unique across Gateway instances (the
-    // local development gateway and the production gateway can both expose
-    // the default workspace id). Keep their member directories in separate
-    // query entries so an empty response from one gateway cannot leak into
-    // another connection.
-    const mentionDirectoryQueryKey = mentionWorkspaceId
-        ? [...administrationQueryKeys.workspaceMembers(mentionWorkspaceId), connectionId]
-        : [...administrationQueryKeys.all, 'composer-offline', connectionId];
-    const mentionDirectoryQuery = useQuery({
-        queryKey: mentionDirectoryQueryKey,
-        queryFn: mentionWorkspaceId ? () => loadAllWorkspaceMembers(mentionWorkspaceId) : skipToken,
-        enabled: focused && connectionState === 'Connected' && Boolean(mentionWorkspaceId),
-        refetchOnMount: 'always',
-        refetchOnReconnect: true,
-    });
-    const gatewayMemberDirectoryQuery = useQuery({
-        queryKey: [...administrationQueryKeys.members(), connectionId],
-        queryFn: loadAllMembers,
-        enabled: focused && connectionState === 'Connected' && Boolean(mentionWorkspaceId),
-        refetchOnMount: 'always',
-        refetchOnReconnect: true,
-    });
-    const mentionCandidates = useMemo(
-        () =>
-            projectWorkspaceMentionCandidates(
-                mentionDirectoryQuery.data?.members ?? [],
-                gatewayMemberDirectoryQuery.data?.members ?? [],
-                currentPrincipal.data?.principal_id,
-            ),
-        [
-            currentPrincipal.data?.principal_id,
-            gatewayMemberDirectoryQuery.data?.members,
-            mentionDirectoryQuery.data?.members,
-        ],
+    const dismissedSteerErrorGeneration = useActiveThreadStore(
+        (state) => state.dismissedSteerErrorGeneration,
+    );
+    const dismissedVoiceErrorGeneration = useActiveThreadStore(
+        (state) => state.dismissedVoiceErrorGeneration,
     );
     const syncComposerModelSelection = useActiveThreadStore(
         (state) => state.syncComposerModelSelection,
@@ -296,21 +158,9 @@ const ThreadScreen = ({
     const setComposerPermissionModeSwitcherOpen = useActiveThreadStore(
         (state) => state.setComposerPermissionModeSwitcherOpen,
     );
-    const reconcileComposerAuthorization = useActiveThreadStore(
-        (state) => state.reconcileComposerAuthorization,
-    );
     const setComposerError = useActiveThreadStore((state) => state.setComposerError);
-    const markComposerAttachmentsUploading = useActiveThreadStore(
-        (state) => state.markComposerAttachmentsUploading,
-    );
-    const markComposerAttachmentsFailed = useActiveThreadStore(
-        (state) => state.markComposerAttachmentsFailed,
-    );
-    const applyUploadedComposerAttachments = useActiveThreadStore(
-        (state) => state.applyUploadedComposerAttachments,
-    );
-    const removeComposerAttachmentAt = useActiveThreadStore(
-        (state) => state.removeComposerAttachmentAt,
+    const removeComposerAttachment = useActiveThreadStore(
+        (state) => state.removeComposerAttachment,
     );
     const removeComposerCapability = useActiveThreadStore(
         (state) => state.removeComposerCapability,
@@ -352,75 +202,41 @@ const ThreadScreen = ({
             messageMode,
         ],
     );
-    const [composerSkillPicker, setComposerSkillPicker] =
-        useState<ComposerSkillPickerProjection>(EMPTY_SKILL_PICKER);
-    useEffect(() => {
-        let cancelled = false;
-
-        if (!focused || !connected || !activeWorkspaceId) {
-            return () => {
-                cancelled = true;
-            };
-        }
-
-        void pioneerClient
-            .composerSkillPackPicker({ workspace_id: activeWorkspaceId, query: '' })
-            .then((picker) => {
-                if (!cancelled) {
-                    setComposerSkillPicker(picker);
-                }
-            })
-            .catch(() => {
-                if (!cancelled) {
-                    setComposerSkillPicker(EMPTY_SKILL_PICKER);
-                }
-            });
-
-        return () => {
-            cancelled = true;
-        };
-    }, [activeWorkspaceId, connected, focused]);
-    const activeComposerSkillPicker =
-        focused && connected && activeWorkspaceId && !messageMode
-            ? composerSkillPicker
-            : EMPTY_SKILL_PICKER;
-    const composerSkillChips = useMemo(
-        () =>
-            pioneerClient.composerSkillChips({
-                selections: messageMode ? [] : composerSkillSelections,
-                picker: activeComposerSkillPicker,
-            }),
-        [activeComposerSkillPicker, composerSkillSelections, messageMode],
-    );
     const timelineRef = useRef<LegendListRef>(null);
     const composerRef = useRef<View>(null);
-    const [steering, setSteering] = useState(false);
-    const [cliRuntimeThreadBinding, setCliRuntimeThreadBinding] =
-        useState<CLIRuntimeThreadBinding | null>(null);
-    const [activeCliRuntimeSupportsSteerLookup, setActiveCliRuntimeSupportsSteerLookup] =
-        useState<CliRuntimeSupportsSteerState | null>(null);
-    const [viewportPrefetchPlan, setViewportPrefetchPlan] =
-        useState<TimelineViewportPrefetchPlan | null>(null);
-    const [semanticWorkRangesState, setSemanticWorkRangesState] = useState<SemanticWorkRangesState>(
-        {
-            threadId: null,
-            ranges: {},
-        },
-    );
-
     const [composerHeight, setComposerHeight] = useState(THREAD_COMPOSER_MIN_INPUT_HEIGHT);
-    const [voiceStatusSnapshot, setVoiceStatusSnapshot] =
-        useState<GatewayVoiceStatusSnapshot | null>(null);
     const [voiceLevel, setVoiceLevel] = useState(0);
     const [voiceCaptureBusy, setVoiceCaptureBusy] = useState(false);
-    const [voiceCommitPendingTurn, setVoiceCommitPendingTurn] =
-        useState<VoiceCommitPendingTurn | null>(null);
     const voiceMountedRef = useRef(true);
+    const voiceOperationRef = useRef<ComposerOperationIdentity | null>(null);
+    const voiceScopeRef = useRef(visibleThreadId);
+    voiceScopeRef.current = visibleThreadId;
+    const ownsVoiceCapture = useCallback((identity: ComposerOperationIdentity) => {
+        const owner = voiceOperationRef.current;
+        return (
+            voiceMountedRef.current &&
+            voiceScopeRef.current === identity.thread_id &&
+            useActiveThreadStore.getState().activeComposerThreadId === identity.thread_id &&
+            owner?.thread_id === identity.thread_id &&
+            owner.draft_id === identity.draft_id &&
+            owner.generation === identity.generation
+        );
+    }, []);
+    const ownsVoiceOperation = useCallback(
+        (identity: ComposerOperationIdentity) => {
+            const current = composerSnapshot(identity.thread_id)?.operation?.identity;
+            return (
+                ownsVoiceCapture(identity) &&
+                current?.thread_id === identity.thread_id &&
+                current.draft_id === identity.draft_id &&
+                current.generation === identity.generation
+            );
+        },
+        [ownsVoiceCapture],
+    );
     const voiceSessionRef = useRef<MobileVoiceCaptureSession | null>(null);
     const voiceStartPromiseRef = useRef<Promise<MobileVoiceCaptureSession> | null>(null);
     const voiceReleaseIntentRef = useRef<'commit' | 'cancel' | null>(null);
-    const voiceOwnedSessionIdsRef = useRef<Set<string>>(new Set());
-    const voiceOwnedTurnIdsRef = useRef<Set<string>>(new Set());
 
     const keyboardOffset = rt.insets.bottom;
     const timelineContentBottomInset = composerHeight;
@@ -440,33 +256,84 @@ const ThreadScreen = ({
     );
     const visibleSnapshot = snapshot?.thread_id === threadId ? snapshot : null;
     const visibleThreadId = visibleSnapshot?.thread_id ?? threadId;
-    const threadAuthorization = useThreadAuthorizationCapabilities(visibleThreadId);
+    const composerPublication = useComposerPublication(visibleThreadId);
+    const presentedPolicyNotice = useRef<string | null>(null);
+    const steerOperation =
+        composerPublication?.operation?.kind === 'steer' ? composerPublication.operation : null;
+    const steering =
+        !!steerOperation && ['pending', 'preparing'].includes(steerOperation.status.kind);
+    const steerError =
+        steerOperation?.status.kind === 'failed' &&
+        steerOperation.identity.generation !== dismissedSteerErrorGeneration
+            ? steerOperation.status.message
+            : null;
+    const messageEditTarget = composerPublication?.message_edit ?? null;
+    const messageEditPending =
+        composerPublication?.operation?.kind === 'edit_message' &&
+        ['pending', 'preparing'].includes(composerPublication.operation.status.kind);
+    const messageEditError = messageEditTarget?.failed
+        ? t(
+              messageEditTarget.conflicted
+                  ? 'timelineMessageMutationConflict'
+                  : 'timelineMessageEditFailed',
+          )
+        : null;
+    const threadMembers = useThreadMembers(
+        visibleThreadId,
+        focused,
+        visibleSnapshot?.workspace_id ?? null,
+    );
+    const mentionCandidates = threadMembers?.mention_candidates ?? [];
+
+    const threadAuthorization = useThreadCapabilities(
+        visibleThreadId,
+        focused,
+        visibleSnapshot?.workspace_id ?? null,
+    );
+    const composerCatalog = useComposerCatalog(
+        visibleThreadId,
+        composerPublication?.draft_id ?? null,
+        { kind: 'skills' },
+        focused &&
+            connected &&
+            !messageMode &&
+            threadAuthorization?.snapshot?.workspace?.capabilities.can_use_skills === true,
+    );
+    const activeComposerSkillPicker = useMemo(
+        () =>
+            composerCatalog
+                ? pioneerClient.composerSkillPackPicker({
+                      thread_id: composerCatalog.thread_id,
+                      draft_id: composerCatalog.draft_id,
+                      query: '',
+                  })
+                : EMPTY_SKILL_PICKER,
+        [composerCatalog],
+    );
+    const composerSkillChips = useMemo(
+        () =>
+            pioneerClient.composerSkillChips({
+                selections: messageMode ? [] : composerSkillSelections,
+                picker: activeComposerSkillPicker,
+            }),
+        [activeComposerSkillPicker, composerSkillSelections, messageMode],
+    );
     const isLiveDraftThread = Boolean(
         visibleSnapshot?.draft_thread_id && visibleSnapshot.draft_thread_id === visibleThreadId,
     );
-    const workspaceAgentCapabilities = threadAuthorization.data?.workspace?.capabilities;
-    const threadAgentCapabilities = threadAuthorization.data?.thread?.capabilities;
-    const executionDraftPolicy =
-        threadAuthorization.data?.workspace?.execution_draft_policy ?? null;
+    const workspaceAgentCapabilities = threadAuthorization?.snapshot?.workspace?.capabilities;
+    const threadAgentCapabilities = threadAuthorization?.snapshot?.thread?.capabilities;
     const agentActionCapabilities = projectAgentActionCapabilities({
         isDraftThread: isLiveDraftThread,
         workspace: workspaceAgentCapabilities,
         thread: threadAgentCapabilities,
     });
-    const permissionModeOptions = useMemo(
-        () =>
-            (workspaceAgentCapabilities?.agent_permission_options ?? []).map((option) => ({
-                mode: option.mode,
-                label: option.label,
-                description: option.description,
-            })),
-        [workspaceAgentCapabilities?.agent_permission_options],
-    );
+    const permissionModeOptions = composerPublication?.permission_options ?? [];
     const canReadArtifacts = isLiveDraftThread
         ? (workspaceAgentCapabilities?.can_read_artifacts ?? false)
         : (threadAgentCapabilities?.can_read_artifacts ?? false);
     const canAttachArtifacts = isLiveDraftThread
-        ? (threadAuthorization.data?.workspace?.execution_draft_policy.can_attach_artifacts ??
+        ? (threadAuthorization?.snapshot?.workspace?.execution_draft_policy.can_attach_artifacts ??
           false)
         : Boolean(
               threadAgentCapabilities?.can_write_artifacts &&
@@ -481,13 +348,6 @@ const ThreadScreen = ({
             }),
         [canAttachArtifacts, canReadArtifacts, connected],
     );
-    useEffect(() => {
-        const subscription = AppState.addEventListener('change', setAppState);
-        return () => subscription.remove();
-    }, []);
-    useEffect(() => {
-        requestedReadThroughRef.current.clear();
-    }, [visibleThreadId]);
 
     const handleOpenMessageRevisions = useCallback(
         (turnId: string) => {
@@ -499,162 +359,76 @@ const ThreadScreen = ({
         [visibleThreadId],
     );
 
-    const handleViewedThroughUserTurn = useCallback(
-        (turnId: string) => {
-            if (!focused || !connected || appState !== 'active' || !visibleSnapshot) return;
-            const authoritativeUnread = useThreadTreeStore
-                .getState()
-                .snapshot?.unread.find(
-                    (entry) => entry.thread_id === visibleThreadId,
-                )?.unread_count;
-            if (!authoritativeUnread || authoritativeUnread <= 0) return;
-            const requestKey = `${visibleThreadId}:${turnId}`;
-            if (requestedReadThroughRef.current.has(requestKey)) return;
-            requestedReadThroughRef.current.add(requestKey);
+    const handleOpenThreadFile = useCallback(
+        (turnId: string, itemId: string, href: string) => {
+            if (!visibleThreadId) return;
 
-            void pioneerClient
-                .threadRead({
-                    thread_id: visibleThreadId,
-                    through_turn_id: turnId,
-                })
-                .then((response) => {
-                    const current = useThreadTreeStore.getState().snapshot;
-                    if (current) {
-                        useThreadTreeStore
-                            .getState()
-                            .setSnapshot(applyThreadReadResponse(current, response));
-                    }
-                })
-                .catch(() => {
-                    requestedReadThroughRef.current.delete(requestKey);
+            const intent = registerThreadFileIntent({
+                threadId: visibleThreadId,
+                turnId,
+                itemId,
+                href,
+            });
+            try {
+                router.push({
+                    pathname: '/source-file',
+                    params: { intent },
                 });
+            } catch {
+                releaseThreadFileIntent(intent);
+            }
         },
-        [appState, connected, focused, visibleSnapshot, visibleThreadId],
+        [visibleThreadId],
     );
-    const [artifactActionStateByKey, setArtifactActionStateByKey] = useState<
-        Record<string, MobileArtifactActionState>
-    >({});
-    const artifactActionGenerationRef = useRef(0);
-    const artifactActionGenerationByKeyRef = useRef(new Map<string, number>());
-    const dispatchArtifactAction = useCallback(
-        (
-            workspaceId: string,
-            artifactId: string,
-            versionId: string | null,
-            event: MobileArtifactActionEvent,
-            generation?: number,
-        ) => {
-            const key = mobileArtifactActionKey(workspaceId, artifactId, versionId);
-            if (
-                generation !== undefined &&
-                artifactActionGenerationByKeyRef.current.get(key) !== generation
-            ) {
-                return;
-            }
-            if (
-                generation !== undefined &&
-                (event.type === 'completed' || event.type === 'failed')
-            ) {
-                artifactActionGenerationByKeyRef.current.delete(key);
-            }
-            setArtifactActionStateByKey((current) => ({
-                ...current,
-                [key]: reduceMobileArtifactAction(current[key] ?? { kind: 'idle' }, event),
-            }));
-        },
-        [],
+
+    const artifactInput = useThreadArtifacts(
+        visibleThreadId,
+        focused,
+        visibleSnapshot?.workspace_id ?? activeWorkspaceId,
     );
-    const beginArtifactAction = useCallback(
-        (
-            workspaceId: string,
-            artifactId: string,
-            versionId: string | null,
-        ): ((event: MobileArtifactActionEvent) => void) | null => {
-            const key = mobileArtifactActionKey(workspaceId, artifactId, versionId);
-            if (artifactActionGenerationByKeyRef.current.has(key)) {
-                return null;
-            }
-            artifactActionGenerationRef.current += 1;
-            const generation = artifactActionGenerationRef.current;
-            artifactActionGenerationByKeyRef.current.set(key, generation);
-            return (event) =>
-                dispatchArtifactAction(workspaceId, artifactId, versionId, event, generation);
-        },
-        [dispatchArtifactAction],
+    const artifactActionStateByKey = useMemo(
+        () => artifactActionPresentation(artifactInput),
+        [artifactInput],
     );
     const artifactWorkspaceId = visibleSnapshot?.workspace_id ?? activeWorkspaceId;
     const handleOpenArtifact = useCallback(
         (artifactId: string, versionId: string | null = null) => {
-            if (!artifactWorkspaceId || !artifactPresentationPolicy.can_open) {
-                dispatchArtifactAction(artifactWorkspaceId ?? '', artifactId, versionId, {
-                    type: 'failed',
-                    code: 'reconfiguration_required',
-                });
-                return;
-            }
-            const dispatch = beginArtifactAction(artifactWorkspaceId, artifactId, versionId);
-            if (!dispatch) {
-                return;
-            }
-            void openMobileArtifact(
-                { workspaceId: artifactWorkspaceId, artifactId, versionId },
-                dispatch,
-            );
+            if (!artifactWorkspaceId || !artifactPresentationPolicy.can_open) return;
+            void openMobileArtifact({
+                workspaceId: artifactWorkspaceId,
+                artifactId,
+                versionId,
+                threadId: visibleThreadId,
+            });
         },
-        [
-            artifactPresentationPolicy.can_open,
-            artifactWorkspaceId,
-            beginArtifactAction,
-            dispatchArtifactAction,
-        ],
+        [artifactPresentationPolicy.can_open, artifactWorkspaceId, visibleThreadId],
     );
     const handleShareArtifact = useCallback(
         (artifactId: string, versionId: string | null = null) => {
-            if (!artifactWorkspaceId || !artifactPresentationPolicy.can_share) {
-                dispatchArtifactAction(artifactWorkspaceId ?? '', artifactId, versionId, {
-                    type: 'failed',
-                    code: 'reconfiguration_required',
-                });
-                return;
-            }
-            const dispatch = beginArtifactAction(artifactWorkspaceId, artifactId, versionId);
-            if (!dispatch) {
-                return;
-            }
+            if (!artifactWorkspaceId || !artifactPresentationPolicy.can_share) return;
             void downloadAndShareMobileArtifact(
-                { workspaceId: artifactWorkspaceId, artifactId, versionId },
+                {
+                    workspaceId: artifactWorkspaceId,
+                    artifactId,
+                    versionId,
+                    threadId: visibleThreadId,
+                },
                 `artifact-${generateArtifactOperationId()}`,
-                dispatch,
             );
         },
-        [
-            artifactPresentationPolicy.can_share,
-            artifactWorkspaceId,
-            beginArtifactAction,
-            dispatchArtifactAction,
-        ],
+        [artifactPresentationPolicy.can_share, artifactWorkspaceId, visibleThreadId],
     );
     const handleCancelArtifactDownload = useCallback(
         (artifactId: string, versionId: string | null, operationId: string) => {
-            if (!artifactWorkspaceId) {
-                return;
-            }
-            const key = mobileArtifactActionKey(artifactWorkspaceId, artifactId, versionId);
-            const generation = artifactActionGenerationByKeyRef.current.get(key);
-            if (generation === undefined) {
-                return;
-            }
-            void cancelMobileArtifactDownload(operationId, (event) => {
-                dispatchArtifactAction(
-                    artifactWorkspaceId,
-                    artifactId,
-                    versionId,
-                    event,
-                    generation,
-                );
-            });
+            const action = artifactInput?.actions.find(
+                (a) =>
+                    a.identity.artifact_id === artifactId &&
+                    (a.identity.version_id ?? null) === versionId &&
+                    (a.download?.operation_id ?? '') === operationId,
+            );
+            if (action) cancelMobileArtifactDownload(action.identity);
         },
-        [artifactWorkspaceId, dispatchArtifactAction],
+        [artifactInput],
     );
     const [composerMeasurement, setComposerMeasurement] = useState<{
         threadId: string;
@@ -664,89 +438,30 @@ const ThreadScreen = ({
         composerMeasurement?.threadId === visibleThreadId && composerMeasurement.measured;
     const timelineIdentityKey = visibleThreadId;
     const visibleTurnId = visibleSnapshot?.projection.in_flight_turn_id ?? null;
-    const semanticWorkRangesByTurn =
-        semanticWorkRangesState.threadId === visibleThreadId
-            ? semanticWorkRangesState.ranges
-            : EMPTY_SEMANTIC_WORK_RANGES;
-    const nativeSemanticWorkItemKeys = useMemo(() => {
-        const keys = new Set<string>();
-        for (const range of Object.values(semanticWorkRangesByTurn)) {
-            for (const item of range.items) {
-                keys.add(item.workItemId);
-            }
-        }
-        return keys;
-    }, [semanticWorkRangesByTurn]);
-
-    useTimelineQueryCancellation(visibleThreadId, focused);
-    useTimelineReconnectInvalidation(visibleThreadId, focused);
-
-    useEffect(() => {
-        if (!isLiveDraftThread || !visibleSnapshot?.workspace_id) {
-            return;
-        }
-
-        seedEmptyThreadTimelineCache(queryClient, visibleSnapshot.workspace_id, visibleThreadId);
-    }, [isLiveDraftThread, queryClient, visibleSnapshot?.workspace_id, visibleThreadId]);
 
     const threadTimelineBlocksQuery = useThreadTimelineBlocksQuery({
         threadId: visibleThreadId,
-        enabled: focused && connected && !isLiveDraftThread,
+        enabled:
+            focused && connected && !isLiveDraftThread && Boolean(visibleSnapshot?.domain_revision),
     });
     const { refetch: refetchThreadTimelineBlocks } = threadTimelineBlocksQuery;
-    const threadTimelineBlocksQueryRef = useRef(threadTimelineBlocksQuery);
-    useEffect(() => {
-        threadTimelineBlocksQueryRef.current = threadTimelineBlocksQuery;
-    }, [threadTimelineBlocksQuery]);
-    const refreshNativeActiveThreadSnapshot = useCallback(() => {
-        const nextSnapshot = activeThreadSnapshot({
-            expanded_keys: useActiveThreadStore.getState().expandedKeys,
-        });
-        if (nextSnapshot.thread_id !== visibleThreadId) {
-            return;
-        }
-
-        cacheActiveThreadSnapshot(queryClient, nextSnapshot);
-    }, [queryClient, visibleThreadId]);
-    useEffect(() => {
-        if (
-            !focused ||
-            !connected ||
-            isLiveDraftThread ||
-            !threadTimelineBlocksQuery.hasLoadedPage
-        ) {
-            return;
-        }
-
-        refreshNativeActiveThreadSnapshot();
-    }, [
-        connected,
-        focused,
-        isLiveDraftThread,
-        refreshNativeActiveThreadSnapshot,
-        threadTimelineBlocksQuery.hasLoadedPage,
-        threadTimelineBlocksQuery.pages,
-    ]);
-    const semanticTurnWorkQueryTargets = useMemo(
-        () =>
-            activeSemanticTurnWorkQueryTargets(
-                threadTimelineBlocksQuery.blocks,
-                expandedKeys,
-                visibleTurnId,
-                visibleSnapshot,
-            ),
-        [expandedKeys, threadTimelineBlocksQuery.blocks, visibleSnapshot, visibleTurnId],
-    );
-    const hasNativeTimelineRows = Boolean((visibleSnapshot?.rows.length ?? 0) > 0);
-    const renderedTimelineRowsForVoice = useMemo<TimelineRow[]>(() => {
-        if (!visibleSnapshot) {
-            return [];
-        }
-
-        return projectConversationToRows(visibleSnapshot);
-    }, [visibleSnapshot]);
-    const voiceCommitPendingTurnId =
-        voiceCommitPendingTurn?.threadId === visibleThreadId ? voiceCommitPendingTurn.turnId : null;
+    const { rows: renderedTimelineRowsForVoice } = useThreadPresentation(visibleThreadId);
+    const hasNativeTimelineRows = renderedTimelineRowsForVoice.length > 0;
+    const voiceOperation =
+        composerPublication?.operation?.kind === 'voice' ? composerPublication.operation : null;
+    const voiceCommitPendingTurnId = voiceOperation?.voice_committing
+        ? voiceOperation.voice_turn_id
+        : null;
+    const voiceResult =
+        voiceOperation?.identity.generation === dismissedVoiceErrorGeneration
+            ? null
+            : voiceOperation?.voice_result;
+    const voiceResultError =
+        voiceResult?.action === 'show_no_speech_error'
+            ? voiceResult.error?.message || t('voiceNoSpeech')
+            : voiceResult?.action === 'show_finalize_error'
+              ? voiceResult.error?.message || t('voiceTranscriptionFailed')
+              : null;
     const voiceCommitUserMessageVisible = useMemo(() => {
         if (!voiceCommitPendingTurnId) {
             return false;
@@ -786,43 +501,24 @@ const ThreadScreen = ({
     const contentTopInset = theme.screenContentPadding('child').paddingTop;
     const avatarRailTopInset = theme.screenHeaderHeight();
 
-    const activeThreadModelSelection = useMemo(() => {
-        const activeThreadSnapshot = visibleSnapshot?.thread ?? activeThread;
-
-        return modelSelectionFromThread(activeThreadSnapshot);
-    }, [activeThread, visibleSnapshot]);
-
-    const activeThreadModelProvider = activeThreadModelSelection?.provider ?? null;
-    const activeThreadModel = activeThreadModelSelection?.model ?? null;
-    const activeThreadReasoningEffort = activeThreadModelSelection?.selectedReasoningEffort ?? null;
-    const shouldUseThreadModelSelection =
-        Boolean(activeThreadModelSelection) && !composerModelManuallySelected && !isLiveDraftThread;
     const shouldUseDraftComposerSelection = isLiveDraftThread && !composerModelManuallySelected;
-    const selectedProvider = shouldUseThreadModelSelection
-        ? activeThreadModelProvider
-        : composerModelManuallySelected || shouldUseDraftComposerSelection
-          ? composerSelectedProvider
-          : null;
-    const selectedModel = shouldUseThreadModelSelection
-        ? activeThreadModel
-        : composerModelManuallySelected || shouldUseDraftComposerSelection
-          ? composerSelectedModel
-          : null;
+    const selectedProviderReady = composerPublication?.selected_provider_ready ?? false;
+    const selectedProvider = selectedProviderReady ? composerSelectedProvider : null;
+    const selectedModel = selectedProviderReady ? composerSelectedModel : null;
+    const selectedReasoningEffort = selectedProviderReady ? composerSelectedReasoningEffort : null;
     const modelSelectionComplete = messageMode || Boolean(selectedProvider && selectedModel);
-    const selectedReasoningEffort = shouldUseThreadModelSelection
-        ? activeThreadReasoningEffort
-        : composerModelManuallySelected || shouldUseDraftComposerSelection
-          ? composerSelectedReasoningEffort
-          : null;
-    const { label: selectedModelDisplayName, loading: modelDisplayNameLoading } =
-        useProviderModelDisplayName(activeWorkspaceId, selectedProvider, selectedModel);
-    const { label: selectedReasoningEffortLabel, loading: reasoningEffortLabelLoading } =
-        useProviderModelReasoningEffortLabel(
-            activeWorkspaceId,
-            selectedProvider,
-            selectedModel,
-            selectedReasoningEffort,
-        );
+    const modelDisplay = composerPublication?.model_display;
+    const matchingModelDisplay =
+        modelDisplay?.key.provider === selectedProvider && modelDisplay?.key.model === selectedModel
+            ? modelDisplay
+            : null;
+    const selectedModelDisplayName = matchingModelDisplay?.label ?? null;
+    const modelDisplayNameLoading = matchingModelDisplay?.request.kind === 'loading';
+    const selectedReasoningEffortLabel =
+        matchingModelDisplay?.reasoning_effort === selectedReasoningEffort
+            ? matchingModelDisplay.reasoning_effort_label
+            : null;
+    const reasoningEffortLabelLoading = modelDisplayNameLoading;
     const modelSelectionLoading =
         modelDisplayNameLoading ||
         (shouldUseDraftComposerSelection &&
@@ -832,15 +528,18 @@ const ThreadScreen = ({
     const modelSelectionEffortLabel =
         modelSelectionLoading || reasoningEffortLabelLoading ? null : selectedReasoningEffortLabel;
     useEffect(() => {
-        const reconciliation = reconcileComposerAuthorization(executionDraftPolicy);
-        if (reconciliation?.reasons?.some((reason) => reason.kind !== 'policy_generation')) {
+        const reconciliation = composerPublication?.reconciliation;
+        const notice = `${composerPublication?.thread_id}:${composerPublication?.draft_id}:${reconciliation?.draft.policy_fingerprint}`;
+        if (
+            presentedPolicyNotice.current !== notice &&
+            reconciliation?.reasons?.some((reason) => reason.kind !== 'policy_generation')
+        ) {
+            presentedPolicyNotice.current = notice;
             setComposerError(t('composerAuthorizationSelectionsUpdated'));
         }
-    }, [reconcileComposerAuthorization, setComposerError, t, executionDraftPolicy]);
-    const selectedPermissionModeAllowed = composerPermissionModeIsAllowed(
-        composerSelectedPermissionMode,
-        permissionModeOptions,
-    );
+    }, [composerPublication, setComposerError, t]);
+    const selectedPermissionModeAllowed =
+        composerPublication?.selected_permission_mode_allowed ?? false;
     const canWriteInActiveThread = Boolean(
         isLiveDraftThread
             ? workspaceAgentCapabilities?.can_create_thread
@@ -865,12 +564,9 @@ const ThreadScreen = ({
         setComposerModeSwitcherOpen(true);
     }, [composerDisabled, setComposerModeSwitcherOpen]);
     const modelSelectionDisabled = Boolean(sending || !canUseAgentModels);
-    const voiceStatusResponse =
-        voiceInputTarget &&
-        voiceStatusSnapshot?.gatewayId === voiceInputTarget.gatewayId &&
-        voiceStatusSnapshot.connectionId === voiceInputTarget.connectionId
-            ? voiceStatusSnapshot.response
-            : null;
+    const voiceStatusResponse = voiceInputTarget
+        ? composerPublication?.voice_readiness?.response
+        : null;
     const voiceStatus = voiceStatusResponse?.status ?? null;
     const voiceAvailability = resolveVoiceComposerAvailability({
         online: voiceInputDataSource.kind === 'online',
@@ -888,35 +584,17 @@ const ThreadScreen = ({
         voiceReady,
     );
 
-    const pendingRequests = useMemo(() => {
-        const byRequestId = new Map<string, TimelinePendingRequest>();
-
-        for (const request of visibleSnapshot?.pending_requests ?? []) {
-            byRequestId.set(request.request_id, {
-                thread_id: request.thread_id ?? null,
-                turn_id: request.turn_id ?? null,
-                request,
-            });
-        }
-
-        return Array.from(byRequestId.values());
-    }, [visibleSnapshot?.pending_requests]);
-    const activeCliRuntimeThreadBinding =
-        cliRuntimeThreadBinding?.workspace_id === activeWorkspaceId &&
-        cliRuntimeThreadBinding.thread_id === visibleThreadId
-            ? cliRuntimeThreadBinding
-            : null;
-    const activeCliRuntimeId = activeCliRuntimeThreadBinding?.runtime_id ?? null;
+    const activeRuntimeSelection = composerPublication?.runtime_selection;
     const activeCliRuntimeSupportsSteer =
-        activeCliRuntimeSupportsSteerLookup?.workspaceId === activeWorkspaceId &&
-        activeCliRuntimeSupportsSteerLookup.runtimeId === activeCliRuntimeId
-            ? activeCliRuntimeSupportsSteerLookup.supportsSteer
+        connected &&
+        activeRuntimeSelection?.workspace_id === activeWorkspaceId &&
+        activeRuntimeSelection.identity.thread_id === visibleThreadId
+            ? (activeRuntimeSelection.active_runtime_supports_steer ?? null)
             : null;
     const activeCliRuntimeCanSteer = activeCliRuntimeSupportsSteer ?? false;
     const canSteerCliRuntimeTurn = Boolean(
         connected &&
         agentActionCapabilities.canSteer &&
-        activeCliRuntimeThreadBinding &&
         activeCliRuntimeCanSteer &&
         visibleThreadId &&
         visibleTurnId &&
@@ -929,27 +607,66 @@ const ThreadScreen = ({
     useFocusEffect(
         useCallback(() => {
             setFocused(true);
-            if (!isLiveDraftThread && threadTimelineBlocksQueryRef.current.hasLoadedPage) {
-                void threadTimelineBlocksQueryRef.current.refetch();
-            }
 
             return () => {
                 setFocused(false);
             };
-        }, [isLiveDraftThread]),
+        }, []),
     );
 
     useEffect(() => {
+        voiceMountedRef.current = true;
+        setVoiceCaptureBusy(false);
+        setVoiceLevel(0);
         return () => {
             voiceMountedRef.current = false;
+            if (voiceOperationRef.current)
+                completeComposerOperation(voiceOperationRef.current, { kind: 'cancelled' });
+            voiceOperationRef.current = null;
             voiceReleaseIntentRef.current = 'cancel';
+            voiceStartPromiseRef.current = null;
             const session = voiceSessionRef.current;
             voiceSessionRef.current = null;
-            if (session) {
-                void session.cancel('mobile_screen_unmounted').catch(() => null);
-            }
+            if (session) void session.cancel('mobile_screen_unmounted').catch(() => null);
         };
-    }, []);
+    }, [visibleThreadId]);
+
+    useEffect(() => {
+        const identity = voiceOperationRef.current;
+        if (!identity || !ownsVoiceCapture(identity)) return;
+        const operation = composerPublication?.operation;
+        const matching =
+            operation?.identity.thread_id === identity.thread_id &&
+            operation.identity.draft_id === identity.draft_id &&
+            operation.identity.generation === identity.generation;
+        if (matching && !['cancelled', 'failed', 'completed'].includes(operation.status.kind))
+            return;
+        if (matching && operation.status.kind === 'failed' && !operation.voice_result) {
+            useActiveThreadStore.getState().setComposerError(t('voiceFailed'));
+        }
+        voiceReleaseIntentRef.current = 'cancel';
+        const session = voiceSessionRef.current;
+        // A replaced Client operation still leaves this exact native capture to
+        // clean up. Keep it owned until its existing ending task releases resources.
+        const cleanup =
+            session?.cancel('composer_operation_terminal') ??
+            voiceStartPromiseRef.current?.then((started) =>
+                started.cancel('composer_operation_terminal'),
+            ) ??
+            Promise.resolve();
+        setVoiceCaptureBusy(true);
+        void cleanup
+            .catch(() => null)
+            .finally(() => {
+                if (!ownsVoiceCapture(identity)) return;
+                voiceOperationRef.current = null;
+                voiceSessionRef.current = null;
+                voiceStartPromiseRef.current = null;
+                voiceReleaseIntentRef.current = null;
+                setVoiceCaptureBusy(false);
+                setVoiceLevel(0);
+            });
+    }, [composerPublication, ownsVoiceCapture, t]);
 
     const updateComposerHeight = useCallback((height: number) => {
         const nextHeight = Math.max(height, THREAD_COMPOSER_MIN_INPUT_HEIGHT);
@@ -969,118 +686,38 @@ const ThreadScreen = ({
     );
 
     const refreshThreadTimeline = useCallback(async () => {
+        if (visibleThreadId) retryThreadCapabilities(visibleThreadId);
         await open();
         if (!isLiveDraftThread) {
             await refetchThreadTimelineBlocks();
         }
-    }, [isLiveDraftThread, open, refetchThreadTimelineBlocks]);
+    }, [isLiveDraftThread, open, refetchThreadTimelineBlocks, visibleThreadId]);
 
-    const refreshVoiceStatus = useCallback(async () => {
-        if (!connected || !activeWorkspaceId || !voiceInputTarget) {
-            setVoiceStatusSnapshot(null);
-            return;
-        }
-
-        const requestTarget = voiceInputTarget;
-        try {
-            const response = await pioneerClient.voiceStatus({ workspace_id: activeWorkspaceId });
-            requireVoiceInputGatewayTarget(requestTarget);
-            if (voiceMountedRef.current) {
-                setVoiceStatusSnapshot({
-                    gatewayId: requestTarget.gatewayId,
-                    connectionId: requestTarget.connectionId,
-                    response,
-                });
-            }
-        } catch {
-            if (voiceMountedRef.current) {
-                setVoiceStatusSnapshot((current) =>
-                    current?.gatewayId === requestTarget.gatewayId &&
-                    current.connectionId === requestTarget.connectionId
-                        ? null
-                        : current,
-                );
-            }
-        }
-    }, [activeWorkspaceId, connected, voiceInputTarget]);
-
+    const voiceReadinessDraftId = composerPublication?.draft_id;
     useEffect(() => {
-        let cancelled = false;
-
-        if (!focused || !connected || !activeWorkspaceId) {
-            return () => {
-                cancelled = true;
-            };
-        }
-
-        const load = async () => {
-            if (voiceSessionRef.current || voiceStartPromiseRef.current || voiceCaptureBusy) {
-                return;
-            }
-
-            await refreshVoiceStatus();
-            if (cancelled) {
-                return;
-            }
-        };
-
-        void load();
-        const intervalId = setInterval(load, 15_000);
-
+        if (!visibleThreadId || voiceReadinessDraftId === undefined) return;
+        dispatchComposer({
+            kind: 'set_voice_readiness_demand',
+            thread_id: visibleThreadId,
+            draft_id: voiceReadinessDraftId,
+            demand: focused && connected && activeWorkspaceId ? 'while_visible' : 'suspended',
+        });
         return () => {
-            cancelled = true;
-            clearInterval(intervalId);
-        };
-    }, [activeWorkspaceId, connected, connectionId, focused, refreshVoiceStatus, voiceCaptureBusy]);
-
-    const handleTurnWorkRangeChange = useCallback(
-        (turnId: string, range: SemanticTurnWorkRange | null) => {
-            setSemanticWorkRangesState((current) => {
-                const currentRanges =
-                    current.threadId === visibleThreadId
-                        ? current.ranges
-                        : EMPTY_SEMANTIC_WORK_RANGES;
-
-                if (range === null) {
-                    if (!(turnId in currentRanges)) {
-                        return current;
-                    }
-
-                    const next = { ...currentRanges };
-                    delete next[turnId];
-                    return {
-                        threadId: visibleThreadId,
-                        ranges: next,
-                    };
-                }
-
-                if (current.threadId === visibleThreadId && currentRanges[turnId] === range) {
-                    return current;
-                }
-
-                return {
-                    threadId: visibleThreadId,
-                    ranges: {
-                        ...currentRanges,
-                        [turnId]: range,
-                    },
-                };
+            dispatchComposer({
+                kind: 'set_voice_readiness_demand',
+                thread_id: visibleThreadId,
+                draft_id: voiceReadinessDraftId,
+                demand: 'suspended',
             });
-        },
-        [visibleThreadId],
-    );
-
-    const handleViewportPrefetchPlanChange = useCallback((plan: TimelineViewportPrefetchPlan) => {
-        setViewportPrefetchPlan(plan);
-
-        const query = threadTimelineBlocksQueryRef.current;
-        if (plan.nearStart && query.hasNextPage && !query.isFetchingNextPage) {
-            void query.fetchNextPage();
-        }
-        if (plan.nearEnd && query.hasPreviousPage && !query.isFetchingPreviousPage) {
-            void query.fetchPreviousPage();
-        }
-    }, []);
+        };
+    }, [
+        visibleThreadId,
+        voiceReadinessDraftId,
+        focused,
+        connected,
+        connectionId,
+        activeWorkspaceId,
+    ]);
 
     const handleOpenTaskThread = useCallback(
         (row: Extract<TimelineRow, { type: 'task-anchor' }>) => {
@@ -1088,6 +725,18 @@ const ThreadScreen = ({
                 return;
             }
 
+            const workspaceId = navigationSnapshot()?.workspace_id;
+            if (!workspaceId) return;
+            const transition = dispatchNavigation({
+                kind: 'push_task_thread',
+                entry: {
+                    parent_thread_id: visibleThreadId,
+                    child_thread_id: row.childThreadId,
+                    workspace_id: workspaceId,
+                    title: row.title,
+                },
+            });
+            if (transition.outcome !== 'changed') return;
             router.push({
                 pathname: '/thread/child/[threadId]',
                 params: {
@@ -1101,98 +750,29 @@ const ThreadScreen = ({
     );
 
     const cancelMessageEdit = useCallback(() => {
-        if (messageEditPendingRef.current) {
+        const input = composerSnapshot(visibleThreadId);
+        if (
+            !input ||
+            (input.operation?.kind === 'edit_message' &&
+                ['pending', 'preparing'].includes(input.operation.status.kind))
+        )
             return;
-        }
+        dispatchComposer({ kind: 'clear', thread_id: input.thread_id, draft_id: input.draft_id });
+    }, [visibleThreadId]);
 
-        setMessageEditTarget(null);
-        setMessageEditError(null);
-        useActiveThreadStore.getState().clearComposerPayload();
-    }, []);
-
-    const submitMessageEdit = useCallback(async () => {
-        const target = messageEditTarget;
-        if (!target || messageEditPendingRef.current) {
-            return;
-        }
-
-        const normalizedText = composerText.trim();
-        const artifactInputs: UserInput[] = target.row.attachments.flatMap((attachment) => {
-            const artifact = attachment.artifact;
-            const versionId = artifact?.version_id?.trim();
-            if (!artifact || !versionId) {
-                return [];
-            }
-            return [
-                {
-                    type: 'artifact' as const,
-                    artifactId: artifact.artifact_id,
-                    versionId,
-                },
-            ];
+    const submitMessageEdit = useCallback(() => {
+        const input = composerSnapshot(visibleThreadId);
+        if (!input?.message_edit) return;
+        dispatchComposer({
+            kind: 'submit_message_edit',
+            thread_id: input.thread_id,
+            draft_id: input.draft_id,
         });
-        if (!normalizedText && artifactInputs.length === 0) {
-            return;
-        }
-
-        const input: UserInput[] = [
-            ...(normalizedText
-                ? [{ type: 'text' as const, text: normalizedText, textElements: [] }]
-                : []),
-            ...artifactInputs,
-        ];
-        const selectedMentions = useActiveThreadStore.getState().composerSelectedMentions;
-        const mentionedPrincipalIds = Array.from(
-            new Set(
-                [...target.row.mentions, ...selectedMentions]
-                    .filter((mention) => normalizedText.includes(`@${mention.nickname.trim()}`))
-                    .map((mention) => mention.principal_id),
-            ),
-        );
-
-        messageEditPendingRef.current = true;
-        setMessageEditPending(true);
-        setMessageEditError(null);
-        try {
-            await pioneerClient.turnMessageEdit({
-                thread_id: target.threadId,
-                turn_id: target.row.turnId,
-                expected_revision: target.row.revision,
-                input,
-                mentioned_principal_ids: mentionedPrincipalIds,
-            });
-            await refreshThreadTimeline().catch(() => undefined);
-            setMessageEditTarget(null);
-            useActiveThreadStore.getState().clearComposerPayload();
-        } catch (mutationError) {
-            const conflict =
-                mutationError instanceof PioneerClientNativeError &&
-                mutationError.code === MESSAGE_REVISION_CONFLICT_CODE;
-            if (conflict) {
-                await refreshThreadTimeline().catch(() => undefined);
-            }
-            setMessageEditError(
-                conflict ? t('timelineMessageMutationConflict') : t('timelineMessageEditFailed'),
-            );
-        } finally {
-            messageEditPendingRef.current = false;
-            setMessageEditPending(false);
-        }
-    }, [composerText, messageEditTarget, refreshThreadTimeline, t]);
+    }, [visibleThreadId]);
 
     const handleSend = useCallback(() => {
         if (messageEditTarget) {
             void submitMessageEdit();
-            return;
-        }
-
-        const reconciliation = reconcileComposerAuthorization(executionDraftPolicy);
-        if (!executionDraftPolicy) {
-            setComposerError(t('sendFailed'));
-            return;
-        }
-        if (reconciliation?.reasons?.some((reason) => reason.kind !== 'policy_generation')) {
-            setComposerError(t('composerAuthorizationSelectionsUpdated'));
             return;
         }
 
@@ -1204,20 +784,14 @@ const ThreadScreen = ({
             return;
         }
 
-        void sendText(composerText, activeComposerSkillPicker, executionDraftPolicy);
+        void sendText();
     }, [
-        composerText,
-        activeComposerSkillPicker,
         composerSkillSelections.length,
-        executionDraftPolicy,
         messageEditTarget,
         messageMode,
-        reconcileComposerAuthorization,
         renderedComposerSubmissionPlan.has_composer_payload,
         sendText,
-        setComposerError,
         submitMessageEdit,
-        t,
     ]);
 
     const handleReplyToMessage = useCallback(
@@ -1225,12 +799,10 @@ const ThreadScreen = ({
             if (row.deleted || !row.turnId.trim()) {
                 return;
             }
-            if (messageEditPendingRef.current) {
+            if (messageEditPending) {
                 return;
             }
             if (messageEditTarget) {
-                setMessageEditTarget(null);
-                setMessageEditError(null);
                 useActiveThreadStore.getState().clearComposerPayload();
             }
             const preview = Array.from(row.text.trim()).slice(0, 160).join('');
@@ -1243,56 +815,43 @@ const ThreadScreen = ({
                 preview: preview || null,
             });
         },
-        [composerSelectedMode, messageEditTarget, setComposerMode, setComposerReplyTarget],
+        [
+            composerSelectedMode,
+            messageEditTarget,
+            messageEditPending,
+            setComposerMode,
+            setComposerReplyTarget,
+        ],
     );
 
     const handleEditMessage = useCallback(
         (row: Extract<TimelineRow, { type: 'user-message' }>) => {
-            if (!visibleThreadId || row.deleted || row.mode !== 'Message') return;
-            if (messageEditPendingRef.current) return;
-
-            useActiveThreadStore.getState().clearComposerPayload();
-            clearComposerReplyTarget();
-            if (composerSelectedMode !== 'Message') {
-                setComposerMode('Message');
-            }
-            setMessageEditError(null);
-            setComposerText(row.text);
-            setMessageEditTarget({ threadId: visibleThreadId, row });
+            const input = composerSnapshot(visibleThreadId);
+            if (!input) return;
+            dispatchComposer({
+                kind: 'start_message_edit',
+                thread_id: input.thread_id,
+                draft_id: input.draft_id,
+                turn_id: row.turnId,
+            });
         },
-        [
-            clearComposerReplyTarget,
-            composerSelectedMode,
-            setComposerMode,
-            setComposerText,
-            visibleThreadId,
-        ],
+        [visibleThreadId],
     );
 
     const handleDeleteMessage = useCallback(
         (row: Extract<TimelineRow, { type: 'user-message' }>) => {
             if (!visibleThreadId || row.deleted || row.mode !== 'Message') return;
-            setMessageMutationTarget({ kind: 'delete', threadId: visibleThreadId, row });
+            const plan = beginMessageDeletion(visibleThreadId, row.turnId, row.revision);
+            if (plan) setMessageMutationTarget({ kind: 'delete', plan });
         },
         [visibleThreadId],
     );
 
     const handleSelectMention = useCallback(
         (candidate: ComposerMentionCandidate) => {
-            const token = `@${candidate.nickname.trim()}`;
-            if (token === '@') {
-                return;
-            }
-            const currentText = useActiveThreadStore.getState().composerText;
-            const nextText = currentText.includes(token)
-                ? currentText
-                : currentText.trim()
-                  ? `${currentText.trimEnd()} ${token} `
-                  : `${token} `;
             selectComposerMention(candidate);
-            setComposerText(nextText);
         },
-        [selectComposerMention, setComposerText],
+        [selectComposerMention],
     );
 
     const voiceComposerErrorMessage = useCallback(
@@ -1310,146 +869,86 @@ const ThreadScreen = ({
                     case 'recorder_start_failed':
                     case 'finalize_failed':
                     case 'cancel_failed':
-                        return captureError.message || t('voiceFailed');
+                        return t('voiceFailed');
                 }
             }
 
-            return captureError instanceof Error && captureError.message.trim()
-                ? captureError.message
-                : t('voiceFailed');
+            return t('voiceFailed');
         },
         [t],
     );
 
     const prepareVoiceContext = useCallback(
-        async (scope: VoiceSessionStartContext): Promise<VoiceTurnContext> => {
-            const reconciliation = reconcileComposerAuthorization(executionDraftPolicy);
-            if (!executionDraftPolicy) {
-                throw new Error('authorization_context_unavailable');
-            }
-            if (reconciliation?.reasons?.some((reason) => reason.kind !== 'policy_generation')) {
-                throw new Error(t('composerAuthorizationSelectionsUpdated'));
-            }
-            const storeState = useActiveThreadStore.getState();
-            const hasCompleteComposerModelSelection = Boolean(
-                storeState.composerSelectedProvider && storeState.composerSelectedModel,
-            );
-            const selectedProviderForVoice = hasCompleteComposerModelSelection
-                ? storeState.composerSelectedProvider
-                : null;
-            const selectedModelForVoice = hasCompleteComposerModelSelection
-                ? storeState.composerSelectedModel
-                : null;
-            const selectedReasoningEffortForVoice = hasCompleteComposerModelSelection
-                ? storeState.composerSelectedReasoningEffort
-                : null;
-
-            const attachments = storeState.composerAttachments;
-            const authorizationFingerprint = storeState.composerAuthorizationFingerprint;
-            if (!authorizationFingerprint) {
-                throw new Error('authorization_context_unavailable');
-            }
-            const submissionPlan = composerSubmissionPlanForProvider(
-                selectedProviderForVoice,
-                '',
-                storeState.composerAttachments.length > 0,
-                storeState.composerCapabilities,
-            );
-            const attachmentsForVoice =
-                attachments.length > 0 ? markComposerAttachmentsUploading() : attachments;
-
-            try {
-                const snapshot = await pioneerClient.prepareVoiceComposerSnapshot({
-                    authorization_fingerprint: authorizationFingerprint,
-                    thread_id: scope.thread_id,
-                    workspace_id: scope.workspace_id,
-                    turn_id: scope.turn_id,
-                    selected_model: selectedModelForVoice,
-                    selected_provider: selectedProviderForVoice,
-                    ...selectedReasoningEffortRequestFields(selectedReasoningEffortForVoice),
-                    selected_mode: composerSelectedMode,
-                    permission_mode: composerSelectedPermissionMode,
-                    attachments: attachmentsForVoice,
-                    capabilities: submissionPlan.capabilities,
-                    ...skillSelectionRequestFields(
-                        storeState.composerSkillSelections,
-                        activeComposerSkillPicker,
-                    ),
-                });
-
-                applyUploadedComposerAttachments(snapshot.uploaded_attachment_artifacts);
-
-                return snapshot.context;
-            } catch (prepareError) {
-                if (attachmentsForVoice.length > 0) {
-                    const message = voiceComposerErrorMessage(prepareError);
-                    markComposerAttachmentsFailed(message);
-                }
-                throw prepareError;
-            }
+        async (operation: ComposerOperationIdentity): Promise<VoiceTurnContext> => {
+            const snapshot = await pioneerClient.prepareVoiceComposerSnapshot({
+                operation,
+            });
+            if (!composerOperationPlan(operation)) throw new Error('voice_operation_cancelled');
+            return snapshot.context;
         },
-        [
-            applyUploadedComposerAttachments,
-            activeComposerSkillPicker,
-            composerSelectedMode,
-            composerSelectedPermissionMode,
-            executionDraftPolicy,
-            markComposerAttachmentsFailed,
-            markComposerAttachmentsUploading,
-            reconcileComposerAuthorization,
-            t,
-            voiceComposerErrorMessage,
-        ],
+        [],
     );
 
     const finishVoiceCapture = useCallback(
         (intent: 'commit' | 'cancel') => {
             const session = voiceSessionRef.current;
-            if (!session) {
+            const identity = voiceOperationRef.current;
+            if (!session || !identity) {
                 if (voiceStartPromiseRef.current) {
                     voiceReleaseIntentRef.current = intent;
+                    if (intent === 'cancel' && identity) {
+                        completeComposerOperation(identity, { kind: 'cancelled' });
+                    }
                 }
                 return;
             }
 
-            voiceSessionRef.current = null;
             voiceReleaseIntentRef.current = null;
             setVoiceCaptureBusy(true);
             if (intent === 'commit') {
-                setVoiceCommitPendingTurn({
-                    threadId: visibleThreadId,
-                    turnId: session.turnId,
-                });
+                const accepted = dispatchComposer({ kind: 'commit_voice_capture', identity });
+                if (accepted.outcome !== 'changed') return;
             }
 
+            if (intent === 'cancel') completeComposerOperation(identity, { kind: 'cancelled' });
             const operation =
                 intent === 'commit'
-                    ? session.commit(() => prepareVoiceContext(session.startContext))
+                    ? session.commit(() => prepareVoiceContext(identity))
                     : session.cancel('mobile_release_cancel');
 
             void operation
                 .then(() => undefined)
                 .catch((captureError) => {
-                    if (voiceMountedRef.current) {
-                        if (intent === 'commit') {
-                            setVoiceCommitPendingTurn(null);
-                        }
+                    const current = composerSnapshot(identity.thread_id)?.operation;
+                    if (
+                        !ownsVoiceOperation(identity) ||
+                        ['cancelled', 'completed'].includes(current?.status.kind ?? '') ||
+                        current?.voice_result
+                    )
+                        return;
+                    completeComposerOperation(identity, {
+                        kind: 'failed',
+                        message: voiceComposerErrorMessage(captureError),
+                    });
+                    if (ownsVoiceOperation(identity)) {
                         useActiveThreadStore
                             .getState()
                             .setComposerError(voiceComposerErrorMessage(captureError));
                     }
                 })
                 .finally(() => {
-                    if (!voiceMountedRef.current) {
+                    if (!ownsVoiceCapture(identity)) {
                         return;
                     }
 
+                    voiceSessionRef.current = null;
+                    voiceOperationRef.current = null;
+                    voiceReleaseIntentRef.current = null;
                     setVoiceCaptureBusy(false);
                     setVoiceLevel(0);
-                    void refreshVoiceStatus();
                 });
         },
-        [refreshVoiceStatus, prepareVoiceContext, visibleThreadId, voiceComposerErrorMessage],
+        [ownsVoiceCapture, ownsVoiceOperation, prepareVoiceContext, voiceComposerErrorMessage],
     );
 
     const handleVoiceStart = useCallback(() => {
@@ -1474,28 +973,40 @@ const ThreadScreen = ({
             return;
         }
 
+        const plan = beginComposerOperation(visibleThreadId, 'voice');
+        if (!plan) return;
+        if (!plan.voice_start) {
+            completeComposerOperation(plan.identity, { kind: 'cancelled' });
+            return;
+        }
+        const identity = plan.identity;
+        voiceOperationRef.current = identity;
         storeState.setComposerError(null);
         setVoiceLevel(0);
         setVoiceCaptureBusy(true);
-        setVoiceCommitPendingTurn(null);
         voiceReleaseIntentRef.current = null;
-        const turnId = generateVoiceTurnId();
 
         const startPromise = startMobileVoiceCapture({
-            workspaceId: activeWorkspaceId,
-            startContext: {
-                workspace_id: activeWorkspaceId,
-                thread_id: visibleThreadId,
-                turn_id: turnId,
-            },
+            operation: identity,
             callbacks: {
                 onLevel: (level) => {
-                    if (voiceMountedRef.current) {
+                    if (ownsVoiceOperation(identity)) {
                         setVoiceLevel(level);
                     }
                 },
                 onError: (captureError) => {
-                    if (voiceMountedRef.current) {
+                    const current = composerSnapshot(identity.thread_id)?.operation;
+                    if (
+                        !ownsVoiceOperation(identity) ||
+                        ['cancelled', 'completed'].includes(current?.status.kind ?? '') ||
+                        current?.voice_result
+                    )
+                        return;
+                    completeComposerOperation(identity, {
+                        kind: 'failed',
+                        message: voiceComposerErrorMessage(captureError),
+                    });
+                    if (ownsVoiceOperation(identity)) {
                         useActiveThreadStore
                             .getState()
                             .setComposerError(voiceComposerErrorMessage(captureError));
@@ -1506,16 +1017,14 @@ const ThreadScreen = ({
         voiceStartPromiseRef.current = startPromise;
 
         void startPromise
-            .then((session) => {
-                if (!voiceMountedRef.current) {
-                    void session.cancel('mobile_screen_unmounted').catch(() => null);
+            .then(async (session) => {
+                if (!ownsVoiceOperation(identity) || !composerOperationPlan(identity)) {
+                    await session.cancel('mobile_screen_unmounted').catch(() => null);
                     return;
                 }
 
                 voiceStartPromiseRef.current = null;
                 voiceSessionRef.current = session;
-                voiceOwnedSessionIdsRef.current.add(session.sessionId);
-                voiceOwnedTurnIdsRef.current.add(session.turnId);
                 setVoiceCaptureBusy(false);
 
                 const releaseIntent = voiceReleaseIntentRef.current;
@@ -1524,23 +1033,34 @@ const ThreadScreen = ({
                 }
             })
             .catch((captureError) => {
-                if (!voiceMountedRef.current) {
+                const current = composerSnapshot(identity.thread_id)?.operation;
+                if (
+                    !ownsVoiceOperation(identity) ||
+                    ['cancelled', 'completed'].includes(current?.status.kind ?? '') ||
+                    current?.voice_result
+                )
+                    return;
+                completeComposerOperation(identity, {
+                    kind: 'failed',
+                    message: voiceComposerErrorMessage(captureError),
+                });
+                if (!ownsVoiceOperation(identity)) {
                     return;
                 }
 
                 voiceStartPromiseRef.current = null;
+                voiceOperationRef.current = null;
                 voiceReleaseIntentRef.current = null;
                 setVoiceCaptureBusy(false);
                 setVoiceLevel(0);
                 useActiveThreadStore
                     .getState()
                     .setComposerError(voiceComposerErrorMessage(captureError));
-                void refreshVoiceStatus();
             });
     }, [
         activeWorkspaceId,
         finishVoiceCapture,
-        refreshVoiceStatus,
+        ownsVoiceOperation,
         t,
         visibleThreadId,
         voiceCaptureBusy,
@@ -1556,141 +1076,24 @@ const ThreadScreen = ({
         finishVoiceCapture('cancel');
     }, [finishVoiceCapture]);
 
-    const voiceSessionResultReductionMessage = useCallback(
-        (reduction: VoiceSessionResultReduction): string => {
-            if (reduction.action === 'show_no_speech_error') {
-                return reduction.error?.message || t('voiceNoSpeech');
-            }
-
-            return reduction.error?.message || t('voiceTranscriptionFailed');
-        },
-        [t],
-    );
-
-    useEffect(() => {
-        if (!focused) {
-            return;
-        }
-
-        return useGatewayStore.subscribe((state, previousState) => {
-            if (state.lastEventSerial === previousState.lastEventSerial) {
-                return;
-            }
-
-            const event = state.lastEvent;
-            if (!event) {
-                return;
-            }
-
-            if ('GatewayNotification' in event) {
-                const notification = event.GatewayNotification;
-                if (notification.kind !== 'turn_started') {
-                    return;
-                }
-
-                const turnId = notification.params.turn.id;
-                if (!voiceOwnedTurnIdsRef.current.delete(turnId)) {
-                    return;
-                }
-                useActiveThreadStore.getState().clearComposerPayload();
-                return;
-            }
-
-            if (!('VoiceSessionResultReduced' in event)) {
-                return;
-            }
-
-            const reduction = event.VoiceSessionResultReduced;
-            if (!voiceOwnedSessionIdsRef.current.has(reduction.session_id)) {
-                return;
-            }
-
-            voiceOwnedSessionIdsRef.current.delete(reduction.session_id);
-            if (reduction.turn_id) {
-                voiceOwnedTurnIdsRef.current.delete(reduction.turn_id);
-            }
-            void refreshVoiceStatus();
-
-            if (reduction.action === 'clear_finalizing') {
-                if (reduction.outcome !== 'turn_started') {
-                    setVoiceCommitPendingTurn(null);
-                    return;
-                }
-                useActiveThreadStore.getState().clearComposerPayload();
-                return;
-            }
-
-            if (
-                reduction.action === 'show_no_speech_error' ||
-                reduction.action === 'show_finalize_error'
-            ) {
-                setVoiceCommitPendingTurn(null);
-                useActiveThreadStore
-                    .getState()
-                    .setComposerError(voiceSessionResultReductionMessage(reduction));
-            }
-        });
-    }, [focused, refreshVoiceStatus, voiceSessionResultReductionMessage]);
-
     const handleStopTurn = useCallback(() => {
         void stopTurn();
     }, [stopTurn]);
 
     const handleSteerTurn = useCallback(() => {
-        const message = composerText.trim();
-
-        if (
-            !message ||
-            !activeWorkspaceId ||
-            !visibleThreadId ||
-            !visibleTurnId ||
-            !activeCliRuntimeThreadBinding
-        ) {
-            return;
-        }
-
-        setSteering(true);
+        if (!composerPublication) return;
         useActiveThreadStore.getState().setComposerError(null);
-
-        void pioneerClient
-            .cliRuntimeTurnSteer({
-                workspace_id: activeWorkspaceId,
-                runtime_id: activeCliRuntimeThreadBinding.runtime_id,
-                thread_id: visibleThreadId,
-                turn_id: visibleTurnId,
-                message,
-            })
-            .then(() => {
-                setComposerText('');
-            })
-            .catch((steerError) => {
-                useActiveThreadStore.getState().setComposerError(errorMessage(steerError));
-            })
-            .finally(() => {
-                setSteering(false);
-            });
-    }, [
-        activeCliRuntimeThreadBinding,
-        activeWorkspaceId,
-        composerText,
-        setComposerText,
-        visibleThreadId,
-        visibleTurnId,
-    ]);
+        dispatchComposer({
+            kind: 'submit_steer',
+            thread_id: composerPublication.thread_id,
+            draft_id: composerPublication.draft_id,
+        });
+    }, [composerPublication]);
 
     const openModelSelector = useCallback(() => {
-        if (selectedProvider && selectedModel) {
-            useActiveThreadStore
-                .getState()
-                .syncComposerModelSelection(
-                    selectedProvider,
-                    selectedModel,
-                    selectedReasoningEffort,
-                );
-        }
-
+        useActiveThreadStore.getState().syncComposerModelSelection();
         router.push({ pathname: '/model-selector' });
-    }, [selectedModel, selectedProvider, selectedReasoningEffort]);
+    }, []);
 
     const openAttachmentMenu = useCallback(() => {
         useActiveThreadStore.getState().setComposerAttachmentMenuOpen(true);
@@ -1701,191 +1104,37 @@ const ThreadScreen = ({
     }, [setComposerPermissionModeSwitcherOpen]);
 
     const removeAttachment = useCallback(
-        (index: number) => {
-            removeComposerAttachmentAt(index);
+        (path: string) => {
+            removeComposerAttachment(path);
         },
-        [removeComposerAttachmentAt],
+        [removeComposerAttachment],
     );
 
     const removeCapability = useCallback(
-        (index: number) => {
-            const capability = renderedComposerSubmissionPlan.capabilities[index];
-            if (!capability) {
-                return;
-            }
-            removeComposerCapability(capability.id);
+        (id: string) => {
+            removeComposerCapability(id);
         },
-        [removeComposerCapability, renderedComposerSubmissionPlan.capabilities],
+        [removeComposerCapability],
     );
 
     const removeSkillChip = useCallback(
         (chip: ComposerSkillChip) => {
-            let selection: ComposerSkillSelection | null = null;
-            if (chip.kind === 'skill_pack' && chip.pack_id) {
-                selection = { kind: 'skill_pack', pack_id: chip.pack_id };
-            } else if (chip.skill_id) {
-                selection = {
-                    kind: 'skill',
-                    skill_id: chip.skill_id,
-                    pack_id: chip.kind === 'packed_skill' ? (chip.pack_id ?? null) : null,
-                };
-            }
-            if (!selection) {
-                return;
-            }
-
-            const result = pioneerClient.composerSkillSelectionToggle({
-                selections: useActiveThreadStore.getState().composerSkillSelections,
-                picker: activeComposerSkillPicker,
-                selection,
+            if (!composerPublication) return;
+            dispatchComposerCatalog({
+                kind: 'remove_skill_chip',
+                thread_id: composerPublication.thread_id,
+                draft_id: composerPublication.draft_id,
+                key: chip.key,
             });
-            setComposerSkillSelections(result.selections);
         },
-        [activeComposerSkillPicker, setComposerSkillSelections],
+        [composerPublication],
     );
 
     useFocusEffect(
         useCallback(() => {
-            let cancelled = false;
-
-            if (isLiveDraftThread) {
-                return () => {
-                    cancelled = true;
-                };
-            }
-
-            if (!activeThreadModelProvider || !activeThreadModel) {
-                return () => {
-                    cancelled = true;
-                };
-            }
-
-            if (!isCliRuntimeProvider(activeThreadModelProvider)) {
-                syncComposerModelSelection(
-                    activeThreadModelProvider,
-                    activeThreadModel,
-                    activeThreadReasoningEffort,
-                    NATIVE_COMPOSER_CAPABILITY_POLICY,
-                );
-            } else if (activeWorkspaceId) {
-                void refreshCliRuntimeSummaries(activeWorkspaceId)
-                    .then((runtimes) => {
-                        if (!cancelled) {
-                            syncComposerModelSelection(
-                                activeThreadModelProvider,
-                                activeThreadModel,
-                                activeThreadReasoningEffort,
-                                composerCapabilityTargetForProvider(
-                                    activeThreadModelProvider,
-                                    runtimes,
-                                ),
-                            );
-                        }
-                    })
-                    .catch(() => {
-                        if (!cancelled) {
-                            syncComposerModelSelection(
-                                activeThreadModelProvider,
-                                activeThreadModel,
-                                activeThreadReasoningEffort,
-                                UNSUPPORTED_CLI_COMPOSER_CAPABILITY_POLICY,
-                            );
-                        }
-                    });
-            } else {
-                syncComposerModelSelection(
-                    activeThreadModelProvider,
-                    activeThreadModel,
-                    activeThreadReasoningEffort,
-                    UNSUPPORTED_CLI_COMPOSER_CAPABILITY_POLICY,
-                );
-            }
-
-            return () => {
-                cancelled = true;
-            };
-        }, [
-            activeThreadModel,
-            activeThreadModelProvider,
-            activeThreadReasoningEffort,
-            activeWorkspaceId,
-            isLiveDraftThread,
-            syncComposerModelSelection,
-        ]),
+            syncComposerModelSelection();
+        }, [syncComposerModelSelection]),
     );
-
-    useEffect(() => {
-        let cancelled = false;
-
-        if (!connected || !activeWorkspaceId || !visibleThreadId) {
-            return () => {
-                cancelled = true;
-            };
-        }
-
-        void pioneerClient
-            .cliRuntimeThreadBindingGet({
-                workspace_id: activeWorkspaceId,
-                thread_id: visibleThreadId,
-            })
-            .then((response) => {
-                if (cancelled) {
-                    return;
-                }
-
-                const binding = response.binding ?? null;
-                setCliRuntimeThreadBinding(binding);
-            })
-            .catch(() => {
-                if (!cancelled) {
-                    setCliRuntimeThreadBinding(null);
-                }
-            });
-
-        return () => {
-            cancelled = true;
-        };
-    }, [activeWorkspaceId, connected, visibleThreadId, visibleTurnId]);
-
-    useEffect(() => {
-        let cancelled = false;
-
-        if (!connected || !activeWorkspaceId || !activeCliRuntimeId) {
-            return () => {
-                cancelled = true;
-            };
-        }
-
-        void pioneerClient
-            .cliRuntimeList({ workspace_id: activeWorkspaceId })
-            .then((response) => {
-                if (cancelled) {
-                    return;
-                }
-
-                const runtime = response.runtimes.find(
-                    (item) => item.runtime_id === activeCliRuntimeId,
-                );
-                setActiveCliRuntimeSupportsSteerLookup({
-                    workspaceId: activeWorkspaceId,
-                    runtimeId: activeCliRuntimeId,
-                    supportsSteer: runtime?.capabilities.supports_steer ?? null,
-                });
-            })
-            .catch(() => {
-                if (!cancelled) {
-                    setActiveCliRuntimeSupportsSteerLookup({
-                        workspaceId: activeWorkspaceId,
-                        runtimeId: activeCliRuntimeId,
-                        supportsSteer: null,
-                    });
-                }
-            });
-
-        return () => {
-            cancelled = true;
-        };
-    }, [activeCliRuntimeId, activeWorkspaceId, connected, connectionId]);
 
     if (!activeThread && !visibleSnapshot && !treeSnapshot) {
         return <ThreadState loading label={t('loadingThread')} />;
@@ -1897,19 +1146,6 @@ const ThreadScreen = ({
 
     return (
         <View style={styles.container}>
-            {semanticTurnWorkQueryTargets.map((target) => (
-                <TurnWorkItemsQueryBridge
-                    key={target.work.turnId}
-                    threadId={visibleThreadId}
-                    enabled={focused && connected && !isLiveDraftThread}
-                    expanded={target.expanded}
-                    liveVisible={target.liveVisible}
-                    boundaryHint={viewportPrefetchPlan?.turnWork[target.work.turnId] ?? null}
-                    onRangeChange={handleTurnWorkRangeChange}
-                    onNativeSnapshotRefresh={refreshNativeActiveThreadSnapshot}
-                    work={target.work}
-                />
-            ))}
             <KeyboardGestureArea
                 interpolator="ios"
                 offset={composerHeight}
@@ -1935,8 +1171,7 @@ const ThreadScreen = ({
                             closedLabel={t('threadClosed')}
                             disconnectedLabel={t('disconnected')}
                             loadingLabel={t('loadingThread')}
-                            pendingRequests={pendingRequests}
-                            semanticWorkItemKeys={nativeSemanticWorkItemKeys}
+                            presentationActive={focused}
                             contentTopInset={contentTopInset}
                             avatarRailTopInset={avatarRailTopInset}
                             contentBottomInset={timelineContentBottomInset}
@@ -1955,7 +1190,7 @@ const ThreadScreen = ({
                             mcpServerIdByName={EMPTY_MCP_SERVER_ID_BY_NAME}
                             artifactWorkspaceId={artifactWorkspaceId}
                             artifactActionStateByKey={artifactActionStateByKey}
-                            currentPrincipalId={currentPrincipal.data?.principal_id ?? null}
+                            currentPrincipalId={currentPrincipalId}
                             canReviewTasks={threadAgentCapabilities?.can_review_tasks ?? false}
                             canCancelTasks={threadAgentCapabilities?.can_cancel_tasks ?? false}
                             canRespondToAgentRequests={
@@ -1969,6 +1204,7 @@ const ThreadScreen = ({
                             onOpenArtifact={
                                 artifactPresentationPolicy.can_open ? handleOpenArtifact : undefined
                             }
+                            onOpenThreadFile={handleOpenThreadFile}
                             onShareArtifact={
                                 artifactPresentationPolicy.can_share
                                     ? handleShareArtifact
@@ -1976,13 +1212,12 @@ const ThreadScreen = ({
                             }
                             onCancelArtifactDownload={handleCancelArtifactDownload}
                             onExpandedKeysChange={setExpandedKeys}
-                            onViewportPrefetchPlanChange={handleViewportPrefetchPlanChange}
+
                             onOpenTaskThread={handleOpenTaskThread}
                             onOpenMessageRevisions={handleOpenMessageRevisions}
                             onReplyToMessage={handleReplyToMessage}
                             onEditMessage={handleEditMessage}
                             onDeleteMessage={handleDeleteMessage}
-                            onViewedThroughUserTurn={handleViewedThroughUserTurn}
                             onRefresh={refreshThreadTimeline}
                         />
                     ) : (
@@ -2015,14 +1250,19 @@ const ThreadScreen = ({
                                 modeAccessibilityLabel={composerModeLabel}
                                 modeSwitcherDisabled={composerDisabled}
                                 messageMode={messageMode}
-                                error={messageEditError ?? composerError}
+                                error={
+                                    messageEditError ??
+                                    voiceResultError ??
+                                    steerError ??
+                                    composerError
+                                }
                                 modeNotice={composerModeNotice}
                                 replyTarget={composerReplyTarget}
                                 editTarget={
                                     messageEditTarget
                                         ? {
-                                              turnId: messageEditTarget.row.turnId,
-                                              preview: messageEditTarget.row.text,
+                                              turnId: messageEditTarget.presentation.turn_id,
+                                              preview: messageEditTarget.preview,
                                           }
                                         : null
                                 }
@@ -2087,16 +1327,17 @@ const ThreadScreen = ({
                     </KeyboardStickyView>
                 ) : null}
             </KeyboardGestureArea>
-            {messageMutationTarget ? (
+            {messageMutationTarget &&
+            messageMutationTarget.plan.identity.thread_id === visibleThreadId ? (
                 <MessageMutationModal
-                    key={`${messageMutationTarget.kind}:${messageMutationTarget.threadId}:${messageMutationTarget.row.turnId}:${messageMutationTarget.row.revision}`}
+                    key={`${messageMutationTarget.plan.identity.thread_id}:${messageMutationTarget.plan.identity.generation}`}
                     target={messageMutationTarget}
-                    onAuthoritativeRefresh={refreshThreadTimeline}
                     onClose={() => setMessageMutationTarget(null)}
                 />
             ) : null}
             {onThreadActionsClose ? (
                 <ThreadActionsSheet
+                    publication={threadMembers}
                     open={threadActionsOpen}
                     // The tree is updated directly by scope mutations and thread_updated events.
                     // The active snapshot can briefly retain the pre-mutation thread while this
@@ -2108,176 +1349,6 @@ const ThreadScreen = ({
             ) : null}
         </View>
     );
-};
-
-type SemanticTurnWorkQueryTarget = {
-    work: TurnWorkBlock;
-    expanded: boolean;
-    liveVisible: boolean;
-};
-
-const TurnWorkItemsQueryBridge = ({
-    threadId,
-    enabled,
-    expanded,
-    liveVisible,
-    boundaryHint,
-    onRangeChange,
-    onNativeSnapshotRefresh,
-    work,
-}: {
-    threadId: string | null;
-    enabled: boolean;
-    expanded: boolean;
-    liveVisible: boolean;
-    boundaryHint: TimelineTurnWorkBoundaryHint | null;
-    onRangeChange: (turnId: string, range: SemanticTurnWorkRange | null) => void;
-    onNativeSnapshotRefresh: () => void;
-    work: TurnWorkBlock;
-}) => {
-    const workItemsQuery = useTurnWorkItemsQuery({
-        threadId,
-        turnId: work.turnId,
-        enabled,
-        expanded,
-        liveVisible,
-        work,
-    });
-    const workItemsQueryRef = useRef(workItemsQuery);
-    const lastBoundaryHintKeyRef = useRef<string | null>(null);
-    const workRange = useMemo<SemanticTurnWorkRange>(
-        () => ({
-            work: workItemsQuery.work,
-            items: workItemsQuery.items,
-            hasLoadedPage: workItemsQuery.hasLoadedPage,
-        }),
-        [workItemsQuery.hasLoadedPage, workItemsQuery.items, workItemsQuery.work],
-    );
-
-    useEffect(() => {
-        workItemsQueryRef.current = workItemsQuery;
-    }, [workItemsQuery]);
-
-    useEffect(() => {
-        onRangeChange(work.turnId, workRange);
-    }, [onRangeChange, work.turnId, workRange]);
-
-    useEffect(() => {
-        if (!workItemsQuery.hasLoadedPage) {
-            return;
-        }
-
-        onNativeSnapshotRefresh();
-    }, [onNativeSnapshotRefresh, workItemsQuery.hasLoadedPage, workItemsQuery.pages]);
-
-    useEffect(() => {
-        if (!boundaryHint?.visible || boundaryHint.key === lastBoundaryHintKeyRef.current) {
-            return;
-        }
-
-        lastBoundaryHintKeyRef.current = boundaryHint.key;
-        const query = workItemsQueryRef.current;
-        if (boundaryHint.nearStart && query.hasNextPage && !query.isFetchingNextPage) {
-            void query.fetchNextPage();
-        }
-        if (boundaryHint.nearEnd && query.hasPreviousPage && !query.isFetchingPreviousPage) {
-            void query.fetchPreviousPage();
-        }
-    }, [boundaryHint]);
-
-    return null;
-};
-
-const activeSemanticTurnWorkQueryTargets = (
-    blocks: readonly TimelineBlock[],
-    expandedKeys: readonly string[],
-    liveTurnId: string | null,
-    snapshot: ClientActiveThreadSnapshot | null,
-): SemanticTurnWorkQueryTarget[] => {
-    const expandedTurnIds = new Set(
-        expandedKeys
-            .map(semanticTurnWorkTurnIdFromKey)
-            .filter((turnId): turnId is string => turnId !== null),
-    );
-    const targetsByTurnId = new Map<string, SemanticTurnWorkQueryTarget>();
-
-    for (const block of blocks) {
-        if (block.kind.kind !== 'turn_work') {
-            continue;
-        }
-
-        const work = block.kind.work;
-        const expanded = expandedTurnIds.has(work.turnId);
-        const protocolVisible = work.presentation === 'expanded_live';
-        const liveVisible = protocolVisible || work.turnId === liveTurnId;
-
-        if (!expanded && !liveVisible) {
-            continue;
-        }
-
-        targetsByTurnId.set(work.turnId, {
-            work,
-            expanded,
-            liveVisible,
-        });
-    }
-
-    if (snapshot) {
-        for (const row of snapshot.rows) {
-            if (!('TurnWorkToggle' in row.kind)) {
-                continue;
-            }
-
-            const group = row.kind.TurnWorkToggle;
-            const turnId = semanticTurnWorkTurnIdFromKey(group.toggle_key || row.key);
-            if (!turnId || targetsByTurnId.has(turnId)) {
-                continue;
-            }
-
-            const expanded = expandedTurnIds.has(turnId) || group.is_open;
-            const liveVisible = turnId === liveTurnId;
-            if (!expanded && !liveVisible) {
-                continue;
-            }
-
-            targetsByTurnId.set(turnId, {
-                work: fallbackTurnWorkBlockFromNativeGroup(turnId, group.elapsed_ms ?? null),
-                expanded,
-                liveVisible,
-            });
-        }
-    }
-
-    return Array.from(targetsByTurnId.values());
-};
-
-const fallbackTurnWorkBlockFromNativeGroup = (
-    turnId: string,
-    elapsedMs: number | null,
-): TurnWorkBlock => ({
-    turnId,
-    presentation: 'collapsed_after_final',
-    state: 'completed',
-    elapsedMs,
-    workCount: 1,
-    visibleWorkCount: 0,
-    hiddenWorkCount: 1,
-    hasMoreBefore: false,
-    hasMoreAfter: false,
-    beforeCursor: null,
-    afterCursor: null,
-    firstWorkItemId: null,
-    lastWorkItemId: null,
-    startedAtUnixMs: null,
-    completedAtUnixMs: null,
-});
-
-const semanticTurnWorkTurnIdFromKey = (key: string): string | null => {
-    if (!key.startsWith(SEMANTIC_TURN_WORK_GROUP_PREFIX)) {
-        return null;
-    }
-
-    return key.slice(SEMANTIC_TURN_WORK_GROUP_PREFIX.length) || null;
 };
 
 const ThreadState = ({
@@ -2355,8 +1426,5 @@ const styles = StyleSheet.create((theme) => ({
         opacity: 0.7,
     },
 }));
-
-const errorMessage = (error: unknown) =>
-    error instanceof Error ? error.message : 'CLI runtime operation failed.';
 
 export default ThreadScreen;

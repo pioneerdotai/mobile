@@ -1,3 +1,8 @@
+import type { View } from 'react-native';
+import { HtmlViewportContext } from './html-viewport';
+import { useTimelineDemand } from '@/client/timeline-demand';
+import { mobileClientBinding } from '@/client/mobile-client-binding';
+import { useThreadPresentation } from '@/hooks/use-thread-presentation';
 import {
     forwardRef,
     useCallback,
@@ -22,11 +27,8 @@ import type { LegendListRef, OnViewableItemsChanged } from '@legendapp/list/reac
 import { useTranslation } from 'react-i18next';
 
 import type { ClientActiveThreadSnapshot } from '@/client';
-import {
-    formatElapsedMs,
-    projectConversationToRows,
-} from '@/services/threads/conversation/projector';
-import type { TimelinePendingRequest, TimelineRow } from '@/services/threads/conversation/timeline';
+import { formatElapsedMs } from '@/services/threads/conversation/localization';
+import type { TimelineRow } from '@/services/threads/conversation/timeline';
 import { PendingRequestCard } from '@/components/thread/cli-runtime-pending-requests';
 import { Box } from '@/components/primitives/box';
 import { HStack } from '@/components/primitives/hstack';
@@ -49,12 +51,10 @@ import {
     UserMessageRow,
     WorkGroupRow,
 } from './rows';
-import { viewportPrefetchPlan } from './viewport-prefetch';
-import type { TimelineViewportPrefetchPlan } from './viewport-prefetch';
 import { defaultTimelineRowExpanded } from './row-expansion';
+import { TIMELINE_SCROLL_BEHAVIOR, useTimelineScroll } from './use-timeline-scroll';
 import { timelineRowsAreEqual } from './timeline-row-equality';
 import { viewedThroughLatestUserTurn } from './read-viewability';
-import { ensureTimelineRowRenderFingerprint } from '@/services/threads/conversation/render-fingerprint';
 import { VStack } from '@/components/primitives/vstack';
 import {
     mobileArtifactActionKey,
@@ -72,15 +72,9 @@ import {
 } from './timeline-grouping';
 import { timelineAgentAuthorLabel, timelineAgentAuthorPresentation } from './timeline-author-label';
 
-export type {
-    TimelineTurnWorkBoundaryHint,
-    TimelineViewportPrefetchPlan,
-} from './viewport-prefetch';
-
 type ThreadTimelineProps = {
     conversation: ClientActiveThreadSnapshot;
     timelineIdentityKey: string;
-    rowsOverride?: TimelineRow[] | null;
     loading: boolean;
     closed: boolean;
     connected: boolean;
@@ -88,8 +82,6 @@ type ThreadTimelineProps = {
     closedLabel: string;
     disconnectedLabel: string;
     loadingLabel: string;
-    pendingRequests: TimelinePendingRequest[];
-    semanticWorkItemKeys?: ReadonlySet<string>;
     contentTopInset?: number;
     avatarRailTopInset?: number;
     contentBottomInset?: number;
@@ -100,6 +92,7 @@ type ThreadTimelineProps = {
     mcpServerIdByName: Readonly<Record<string, string>>;
     artifactWorkspaceId?: string | null;
     onOpenArtifact?: (artifactId: string, versionId: string | null) => void;
+    onOpenThreadFile?: (turnId: string, itemId: string, href: string) => void;
     onShareArtifact?: (artifactId: string, versionId: string | null) => void;
     onCancelArtifactDownload?: (
         artifactId: string,
@@ -116,15 +109,13 @@ type ThreadTimelineProps = {
     onReplyToMessage?: (row: Extract<TimelineRow, { type: 'user-message' }>) => void;
     onEditMessage?: (row: Extract<TimelineRow, { type: 'user-message' }>) => void;
     onDeleteMessage?: (row: Extract<TimelineRow, { type: 'user-message' }>) => void;
-    onViewedThroughUserTurn?: (turnId: string) => void;
     onOpenMcpServer?: (serverId: string) => void;
     onOpenTaskThread?: (row: Extract<TimelineRow, { type: 'task-anchor' }>) => void;
     onExpandedKeysChange: (keys: string[]) => void;
-    onViewportPrefetchPlanChange?: (plan: TimelineViewportPrefetchPlan) => void;
+    presentationActive?: boolean;
     onRefresh: () => Promise<void>;
 };
 
-const BOTTOM_FOLLOW_THRESHOLD_RATIO = 0.12;
 const TIMELINE_DRAW_DISTANCE = 640;
 const TIMELINE_ESTIMATED_ITEM_SIZE = 64;
 const TIMELINE_CONTENT_BOTTOM_PADDING_UNITS = 6;
@@ -140,7 +131,7 @@ type MessageActionsTarget = {
     row: MessageActionsTimelineRow;
 };
 export const ThreadTimeline = forwardRef<LegendListRef, ThreadTimelineProps>((props, ref) => {
-    return <ThreadTimelineContent {...props} timelineRef={ref} />;
+    return <ThreadTimelineContent key={props.timelineIdentityKey} {...props} timelineRef={ref} />;
 });
 
 ThreadTimeline.displayName = 'ThreadTimeline';
@@ -151,8 +142,8 @@ type ThreadTimelineContentProps = ThreadTimelineProps & {
 
 const ThreadTimelineContent = ({
     conversation,
+    presentationActive = true,
     timelineIdentityKey,
-    rowsOverride,
     loading,
     closed,
     connected,
@@ -160,8 +151,6 @@ const ThreadTimelineContent = ({
     closedLabel,
     disconnectedLabel,
     loadingLabel,
-    pendingRequests,
-    semanticWorkItemKeys,
     contentTopInset = 0,
     avatarRailTopInset = 0,
     contentBottomInset = 0,
@@ -172,6 +161,7 @@ const ThreadTimelineContent = ({
     mcpServerIdByName,
     artifactWorkspaceId,
     onOpenArtifact,
+    onOpenThreadFile,
     onShareArtifact,
     onCancelArtifactDownload,
     artifactActionStateByKey,
@@ -184,11 +174,9 @@ const ThreadTimelineContent = ({
     onReplyToMessage,
     onEditMessage,
     onDeleteMessage,
-    onViewedThroughUserTurn,
     onOpenMcpServer,
     onOpenTaskThread,
     onExpandedKeysChange,
-    onViewportPrefetchPlanChange,
     onRefresh,
     timelineRef,
 }: ThreadTimelineContentProps) => {
@@ -198,10 +186,45 @@ const ThreadTimelineContent = ({
         null,
     );
     const [timelineNowMs, setTimelineNowMs] = useState(() => Date.now());
-    const lastViewportPrefetchPlanKeyRef = useRef<string | null>(null);
-    const viewportScrollIntentGenerationRef = useRef(0);
-    const consumedViewportScrollIntentGenerationRef = useRef(0);
     const internalTimelineRef = useRef<LegendListRef | null>(null);
+    const htmlViewportView = useRef<View>(null);
+    const htmlMeasurements = useRef(new Set<(top: number, height: number) => void>());
+    const htmlFrame = useRef<number | null>(null);
+    const htmlGeneration = useRef(0);
+    const measureHtmlViewport = useCallback(() => {
+        if (htmlFrame.current !== null || htmlMeasurements.current.size === 0) return;
+        htmlFrame.current = requestAnimationFrame(() => {
+            htmlFrame.current = null;
+            const generation = ++htmlGeneration.current;
+            htmlViewportView.current?.measureInWindow(
+                (_x: number, top: number, _width: number, height: number) => {
+                    if (generation !== htmlGeneration.current) return;
+                    for (const measure of htmlMeasurements.current) measure(top, height);
+                },
+            );
+        });
+    }, []);
+    const htmlViewport = useMemo(
+        () => ({
+            subscribe: (measure: (top: number, height: number) => void) => {
+                htmlMeasurements.current.add(measure);
+                measureHtmlViewport();
+                return () => {
+                    htmlMeasurements.current.delete(measure);
+                };
+            },
+        }),
+        [measureHtmlViewport],
+    );
+    useEffect(
+        () => () => {
+            ++htmlGeneration.current;
+            if (htmlFrame.current !== null) cancelAnimationFrame(htmlFrame.current);
+            htmlMeasurements.current.clear();
+        },
+        [],
+    );
+
     const avatarRailController = useMemo(() => new TimelineAvatarRailController(), []);
     const listScrollOffset = useSharedValue(0);
     const listSharedValues = useMemo(
@@ -211,9 +234,6 @@ const ThreadTimelineContent = ({
     useImperativeHandle(timelineRef, () => internalTimelineRef.current as LegendListRef);
 
     useEffect(() => {
-        lastViewportPrefetchPlanKeyRef.current = null;
-        viewportScrollIntentGenerationRef.current = 0;
-        consumedViewportScrollIntentGenerationRef.current = 0;
         avatarRailController.setVisibleGroups(timelineIdentityKey, []);
     }, [avatarRailController, timelineIdentityKey]);
 
@@ -237,40 +257,37 @@ const ThreadTimelineContent = ({
         [expandedRows],
     );
 
+    const { rows: publishedRows, snapshot: timelineSnapshot } = useThreadPresentation(
+        conversation.thread_id,
+    );
+    const publishTimelineDemand = useTimelineDemand(
+        timelineSnapshot,
+        presentationActive && connected,
+    );
+    const timelineScroll = useTimelineScroll(
+        timelineIdentityKey,
+        publishedRows,
+        internalTimelineRef,
+    );
     const hasLiveTimelineItems = useMemo(
-        () =>
-            rowsOverride
-                ? rowsOverride.some((row) => row.type === 'running' || timelineRowIsStreaming(row))
-                : conversation.projection.items.some((item) => item.status === 'Running'),
-        [conversation, rowsOverride],
+        () => publishedRows.some((row) => row.type === 'running' || timelineRowIsStreaming(row)),
+        [publishedRows],
     );
 
     const projectedRows = useMemo(
-        () =>
-            rowsOverride
-                ? insertPendingRequestRows(
-                      hydrateRunningRowsElapsed(rowsOverride, timelineNowMs),
-                      pendingRequests,
-                  )
-                : projectConversationToRows(conversation, {
-                      expandedKeys: expandedRows,
-                      nowMs: timelineNowMs,
-                      pendingRequests,
-                      semanticWorkItemKeys,
-                  }),
-        [
-            conversation,
-            expandedRows,
-            pendingRequests,
-            rowsOverride,
-            semanticWorkItemKeys,
-            timelineNowMs,
-        ],
+        () => hydrateRunningRowsElapsed(publishedRows, timelineNowMs),
+        [publishedRows, timelineNowMs],
     );
     const rows = projectedRows;
     const timelineGrouping = useMemo(
-        () => TimelineGroupingIndex.build(rows, currentPrincipalId, presentationContext),
-        [currentPrincipalId, presentationContext, rows],
+        () =>
+            TimelineGroupingIndex.fromSnapshot(
+                rows,
+                timelineSnapshot?.groups ?? [],
+                currentPrincipalId,
+                presentationContext,
+            ),
+        [currentPrincipalId, presentationContext, rows, timelineSnapshot?.groups],
     );
     const updateVisibleAvatarGroups = useCallback(
         (visibleIndices: number[]) => {
@@ -299,6 +316,20 @@ const ThreadTimelineContent = ({
     useEffect(() => {
         onExpandedKeysChange(expandedKeys);
     }, [expandedKeys, onExpandedKeysChange]);
+    useEffect(() => {
+        if (presentationActive && conversation.thread_id)
+            mobileClientBinding.dispatch({
+                schema_version: 1,
+                intent: {
+                    kind: 'set_timeline_expansion',
+                    thread_id: conversation.thread_id,
+                    row_ids: expandedKeys,
+                    collapsed_row_ids: Object.keys(expandedRows).filter(
+                        (key) => !expandedRows[key],
+                    ),
+                },
+            });
+    }, [conversation.thread_id, expandedKeys, expandedRows, presentationActive]);
 
     useEffect(() => {
         if (!hasLiveTimelineItems && !hasRunningTimelineRow) {
@@ -323,16 +354,20 @@ const ThreadTimelineContent = ({
         }
     }, [onRefresh]);
 
-    const toggleExpandedRow = useCallback((row: TimelineRow) => {
-        setExpandedRows((current) => ({
-            ...current,
-            [row.key]: !(current[row.key] ?? defaultTimelineRowExpanded(row)),
-        }));
-    }, []);
-
-    const markViewportScrollIntent = useCallback(() => {
-        viewportScrollIntentGenerationRef.current += 1;
-    }, []);
+    const toggleExpandedRow = useCallback(
+        (row: TimelineRow) => {
+            const expanded = !(expandedRows[row.key] ?? defaultTimelineRowExpanded(row));
+            publishTimelineDemand.consumeScroll(timelineScroll.scrollGeneration());
+            timelineScroll.prepareExpansion(
+                row,
+                expanded,
+                publishedRows,
+                internalTimelineRef.current,
+            );
+            setExpandedRows((current) => ({ ...current, [row.key]: expanded }));
+        },
+        [expandedRows, publishedRows, timelineScroll, publishTimelineDemand],
+    );
 
     const listExtraData = useMemo(
         () => ({
@@ -345,7 +380,7 @@ const ThreadTimelineContent = ({
             canCancelTasks,
             canRespondToAgentRequests,
             messageActionsRowKey,
-            timelineGroupingFingerprint: timelineGrouping.renderFingerprint,
+            timelineGrouping,
         }),
         [
             artifactActionStateByKey,
@@ -357,7 +392,7 @@ const ThreadTimelineContent = ({
             expandedRows,
             messageActionsRowKey,
             mcpServerIdByName,
-            timelineGrouping.renderFingerprint,
+            timelineGrouping,
         ],
     );
 
@@ -374,6 +409,7 @@ const ThreadTimelineContent = ({
                 mcpServerIdByName={mcpServerIdByName}
                 artifactWorkspaceId={artifactWorkspaceId}
                 onOpenArtifact={onOpenArtifact}
+                onOpenThreadFile={onOpenThreadFile}
                 onShareArtifact={onShareArtifact}
                 onCancelArtifactDownload={onCancelArtifactDownload}
                 artifactActionState={
@@ -407,6 +443,7 @@ const ThreadTimelineContent = ({
             mcpServerIdByName,
             artifactWorkspaceId,
             onOpenArtifact,
+            onOpenThreadFile,
             onShareArtifact,
             onCancelArtifactDownload,
             artifactActionStateByKey,
@@ -443,102 +480,91 @@ const ThreadTimelineContent = ({
                 .filter((index) => index >= 0 && index < rows.length);
             updateVisibleAvatarGroups(visibleIndices);
             const viewedThroughTurnId = viewedThroughLatestUserTurn(rows, visibleIndices);
-            if (viewedThroughTurnId) {
-                onViewedThroughUserTurn?.(viewedThroughTurnId);
-            }
-
-            if (!onViewportPrefetchPlanChange) return;
-            const scrollIntentGeneration = viewportScrollIntentGenerationRef.current;
-            if (scrollIntentGeneration <= consumedViewportScrollIntentGenerationRef.current) {
-                return;
-            }
-            const plan = viewportPrefetchPlan(rows, visibleIndices, info.start, info.end);
-            if (!plan || plan.key === lastViewportPrefetchPlanKeyRef.current) {
-                return;
-            }
-
-            lastViewportPrefetchPlanKeyRef.current = plan.key;
-            consumedViewportScrollIntentGenerationRef.current = scrollIntentGeneration;
-            onViewportPrefetchPlanChange(plan);
+            const indices = visibleIndices.length ? visibleIndices : [info.start, info.end];
+            const rowIds = indices.flatMap((index) => (rows[index] ? [rows[index].key] : []));
+            const latest = [...rows].reverse().find((row) => row.type === 'user-message');
+            publishTimelineDemand.update(
+                rowIds,
+                latest?.type === 'user-message' ? latest.turnId : null,
+                viewedThroughTurnId,
+                timelineScroll.scrollGeneration(),
+            );
         },
-        [onViewedThroughUserTurn, onViewportPrefetchPlanChange, rows, updateVisibleAvatarGroups],
+        [publishTimelineDemand, rows, timelineScroll, updateVisibleAvatarGroups],
     );
 
     return (
-        <Box style={styles.timelineRoot}>
-            <KeyboardAwareLegendList<TimelineRow>
-                key={timelineIdentityKey}
-                ref={internalTimelineRef}
-                alignItemsAtEnd
-                contentInsetEndAdjustment={contentInsetEndAdjustment}
-                data={rows}
-                drawDistance={TIMELINE_DRAW_DISTANCE}
-                estimatedItemSize={TIMELINE_ESTIMATED_ITEM_SIZE}
-                extraData={listExtraData}
-                getItemType={getTimelineItemType}
-                initialScrollAtEnd
-                itemsAreEqual={timelineRowsAreEqual}
-                keyExtractor={(row) => row.key}
-                keyboardDismissMode="interactive"
-                keyboardLiftBehavior={TIMELINE_KEYBOARD_LIFT_BEHAVIOR}
-                keyboardOffset={keyboardOffset}
-                ListHeaderComponent={ListHeaderComponent}
-                maintainScrollAtEnd={{
-                    animated: false,
-                    on: { dataChange: true, itemLayout: true, layout: true },
-                }}
-                maintainScrollAtEndThreshold={BOTTOM_FOLLOW_THRESHOLD_RATIO}
-                maintainVisibleContentPosition
-                onMomentumScrollBegin={markViewportScrollIntent}
-                onItemSizeChanged={handleTimelineItemSizeChanged}
-                onScrollBeginDrag={markViewportScrollIntent}
-                onViewableItemsChanged={handleViewableItemsChanged}
-                onRefresh={handleRefresh}
-                recycleItems
-                refreshing={refreshing}
-                renderItem={renderTimelineItem}
-                sharedValues={listSharedValues}
-                scrollEnabled={rowCount > 0}
-                scrollEventThrottle={16}
-                showsVerticalScrollIndicator={false}
-                style={styles.timelineList}
-                viewabilityConfig={TIMELINE_VIEWABILITY_CONFIG}
-                contentContainerStyle={[
-                    styles.content,
-                    contentTopInset > 0 && { paddingTop: contentTopInset },
-                ]}
-            />
-            <TimelineAvatarRail
-                controller={avatarRailController}
-                connected={connected}
-                contentInsetEndAdjustment={contentInsetEndAdjustment}
-                contentTopInset={contentTopInset}
-                grouping={timelineGrouping}
-                listRef={internalTimelineRef}
-                scrollOffset={listScrollOffset}
-                timelineIdentityKey={timelineIdentityKey}
-                viewportTopInset={avatarRailTopInset}
-            />
-            {rowCount === 0 && emptyReady ? (
-                <TimelineEmptyOverlay
-                    loading={loading}
-                    message={emptyMessage}
-                    loadingLabel={loadingLabel}
-                    contentTopInset={contentTopInset}
-                    contentBottomInset={contentBottomInset}
+        <HtmlViewportContext.Provider value={htmlViewport}>
+            <Box ref={htmlViewportView} collapsable={false} style={styles.timelineRoot}>
+                <KeyboardAwareLegendList<TimelineRow>
+                    key={timelineIdentityKey}
+                    ref={internalTimelineRef}
+                    {...TIMELINE_SCROLL_BEHAVIOR}
+                    contentInsetEndAdjustment={contentInsetEndAdjustment}
+                    data={rows}
+                    drawDistance={TIMELINE_DRAW_DISTANCE}
+                    estimatedItemSize={TIMELINE_ESTIMATED_ITEM_SIZE}
+                    extraData={listExtraData}
+                    getItemType={getTimelineItemType}
+                    itemsAreEqual={timelineRowsAreEqual}
+                    keyExtractor={(row) => row.key}
+                    keyboardDismissMode="interactive"
+                    keyboardLiftBehavior={TIMELINE_KEYBOARD_LIFT_BEHAVIOR}
                     keyboardOffset={keyboardOffset}
+                    ListHeaderComponent={ListHeaderComponent}
+                    onMomentumScrollBegin={timelineScroll.markScrollIntent}
+                    onItemSizeChanged={handleTimelineItemSizeChanged}
+                    onScroll={measureHtmlViewport}
+                    onLayout={measureHtmlViewport}
+                    onScrollBeginDrag={timelineScroll.markScrollIntent}
+                    onViewableItemsChanged={handleViewableItemsChanged}
+                    onRefresh={handleRefresh}
+                    recycleItems
+                    refreshing={refreshing}
+                    renderItem={renderTimelineItem}
+                    sharedValues={listSharedValues}
+                    scrollEnabled={rowCount > 0}
+                    scrollEventThrottle={16}
+                    showsVerticalScrollIndicator={false}
+                    style={styles.timelineList}
+                    viewabilityConfig={TIMELINE_VIEWABILITY_CONFIG}
+                    contentContainerStyle={[
+                        styles.content,
+                        contentTopInset > 0 && { paddingTop: contentTopInset },
+                    ]}
                 />
-            ) : null}
-            <MessageActionsSheet
-                row={messageActionsRow}
-                currentPrincipalId={currentPrincipalId}
-                onClose={closeMessageActions}
-                onOpenRevisions={onOpenMessageRevisions}
-                onReply={onReplyToMessage}
-                onEdit={onEditMessage}
-                onDelete={onDeleteMessage}
-            />
-        </Box>
+                <TimelineAvatarRail
+                    controller={avatarRailController}
+                    connected={connected}
+                    contentInsetEndAdjustment={contentInsetEndAdjustment}
+                    contentTopInset={contentTopInset}
+                    grouping={timelineGrouping}
+                    listRef={internalTimelineRef}
+                    scrollOffset={listScrollOffset}
+                    timelineIdentityKey={timelineIdentityKey}
+                    viewportTopInset={avatarRailTopInset}
+                />
+                {rowCount === 0 && emptyReady ? (
+                    <TimelineEmptyOverlay
+                        loading={loading}
+                        message={emptyMessage}
+                        loadingLabel={loadingLabel}
+                        contentTopInset={contentTopInset}
+                        contentBottomInset={contentBottomInset}
+                        keyboardOffset={keyboardOffset}
+                    />
+                ) : null}
+                <MessageActionsSheet
+                    row={messageActionsRow}
+                    currentPrincipalId={currentPrincipalId}
+                    onClose={closeMessageActions}
+                    onOpenRevisions={onOpenMessageRevisions}
+                    onReply={onReplyToMessage}
+                    onEdit={onEditMessage}
+                    onDelete={onDeleteMessage}
+                />
+            </Box>
+        </HtmlViewportContext.Provider>
     );
 };
 
@@ -607,6 +633,7 @@ const TimelineRowContainer = ({
     mcpServerIdByName,
     artifactWorkspaceId,
     onOpenArtifact,
+    onOpenThreadFile,
     onShareArtifact,
     onCancelArtifactDownload,
     artifactActionState,
@@ -630,6 +657,7 @@ const TimelineRowContainer = ({
     mcpServerIdByName: Readonly<Record<string, string>>;
     artifactWorkspaceId?: string | null;
     onOpenArtifact?: (artifactId: string, versionId: string | null) => void;
+    onOpenThreadFile?: (turnId: string, itemId: string, href: string) => void;
     onShareArtifact?: (artifactId: string, versionId: string | null) => void;
     onCancelArtifactDownload?: (
         artifactId: string,
@@ -690,6 +718,7 @@ const TimelineRowContainer = ({
                 mcpServerIdByName={mcpServerIdByName}
                 artifactWorkspaceId={artifactWorkspaceId}
                 onOpenArtifact={onOpenArtifact}
+                onOpenThreadFile={onOpenThreadFile}
                 onShareArtifact={onShareArtifact}
                 onCancelArtifactDownload={onCancelArtifactDownload}
                 artifactActionStateByKey={artifactActionStateByKey}
@@ -717,6 +746,7 @@ const TimelineRowRenderer = ({
     mcpServerIdByName,
     artifactWorkspaceId,
     onOpenArtifact,
+    onOpenThreadFile,
     onShareArtifact,
     onCancelArtifactDownload,
     artifactActionState,
@@ -739,6 +769,7 @@ const TimelineRowRenderer = ({
     mcpServerIdByName: Readonly<Record<string, string>>;
     artifactWorkspaceId?: string | null;
     onOpenArtifact?: (artifactId: string, versionId: string | null) => void;
+    onOpenThreadFile?: (turnId: string, itemId: string, href: string) => void;
     onShareArtifact?: (artifactId: string, versionId: string | null) => void;
     onCancelArtifactDownload?: (
         artifactId: string,
@@ -766,6 +797,11 @@ const TimelineRowRenderer = ({
                     compactTopSpacing={compactTopSpacing}
                     artifactWorkspaceId={artifactWorkspaceId}
                     onOpenArtifact={onOpenArtifact}
+                    onOpenLocalFile={
+                        onOpenThreadFile
+                            ? (href) => onOpenThreadFile(row.turnId, row.itemId, href)
+                            : undefined
+                    }
                     onShareArtifact={onShareArtifact}
                     onCancelArtifactDownload={onCancelArtifactDownload}
                     artifactActionStateByKey={artifactActionStateByKey}
@@ -778,9 +814,15 @@ const TimelineRowRenderer = ({
             return (
                 <AssistantMessageRow
                     row={row}
+                    threadId={threadId}
                     expanded={expanded}
                     onToggle={onToggleExpanded}
                     onLongPress={() => onOpenMessageActions(row)}
+                    onOpenLocalFile={
+                        onOpenThreadFile
+                            ? (href) => onOpenThreadFile(row.turnId, row.itemId, href)
+                            : undefined
+                    }
                 />
             );
         case 'reasoning':
@@ -815,7 +857,13 @@ const TimelineRowRenderer = ({
         case 'running':
             return <RunningRow row={row} showDino={!presentationContext?.taskChildThread} />;
         case 'pending-request':
-            return <PendingRequestCard entry={row.entry} canRespond={canRespondToAgentRequests} />;
+            return (
+                <PendingRequestCard
+                    threadId={threadId}
+                    entry={row.entry}
+                    canRespond={canRespondToAgentRequests}
+                />
+            );
         case 'artifact':
             return (
                 <ArtifactRow
@@ -864,46 +912,6 @@ const timelineRowIsStreaming = (row: TimelineRow): row is StreamingTimelineRow =
         default:
             return false;
     }
-};
-
-const insertPendingRequestRows = (
-    rows: readonly TimelineRow[],
-    pendingRequests: readonly TimelinePendingRequest[],
-): TimelineRow[] => {
-    if (pendingRequests.length === 0) {
-        return [...rows];
-    }
-
-    const existingRequestKeys = new Set(
-        rows.filter((row) => row.type === 'pending-request').map((row) => row.key),
-    );
-    const requestRows = pendingRequests.flatMap((entry): TimelineRow[] => {
-        const key = `timeline-pending-request::${entry.request.request_id}`;
-        if (existingRequestKeys.has(key)) {
-            return [];
-        }
-
-        return [
-            ensureTimelineRowRenderFingerprint({
-                type: 'pending-request',
-                key,
-                turnId: entry.turn_id,
-                author: entry.author ?? null,
-                entry,
-            }),
-        ];
-    });
-    if (requestRows.length === 0) {
-        return [...rows];
-    }
-
-    const runningIndex = rows.findIndex((row) => row.type === 'running');
-
-    if (runningIndex < 0) {
-        return [...rows, ...requestRows];
-    }
-
-    return [...rows.slice(0, runningIndex), ...requestRows, ...rows.slice(runningIndex)];
 };
 
 const hydrateRunningRowsElapsed = (rows: readonly TimelineRow[], nowMs: number): TimelineRow[] =>

@@ -30,6 +30,10 @@ export type TimelineBlockKind =
     }
   | {
       author?: TurnAuthorSnapshot | null;
+      /**
+       * Exact HTML content of this canonical response; source ownership is unchanged.
+       */
+      htmlPublications?: HtmlPublication[];
       itemId: string;
       kind: 'assistant_message';
       markdown?: MarkdownDocument | null;
@@ -265,6 +269,14 @@ export type MarkdownBlock =
       [k: string]: unknown;
     }
   | {
+      alignments: MarkdownTableAlignment[];
+      headers: MarkdownInline1[];
+      rows: MarkdownInline1[][];
+      source: string;
+      type: 'table';
+      [k: string]: unknown;
+    }
+  | {
       type: 'rule';
       [k: string]: unknown;
     };
@@ -290,7 +302,9 @@ export type MarkdownMarkKind =
       url: string;
       [k: string]: unknown;
     };
-export type CLIRuntimeRequestKind = 'command_approval' | 'file_change_approval' | 'user_input' | 'other';
+export type MarkdownTableAlignment = 'none' | 'left' | 'center' | 'right';
+export type CLIRuntimeRequestKind =
+  'command_approval' | 'file_change_approval' | 'permission_approval' | 'user_input' | 'other';
 export type CLIRuntimePendingRequestStatus =
   | 'pending'
   | 'response_accepted'
@@ -477,6 +491,7 @@ export interface TurnWorkBlock {
   hasMoreAfter: boolean;
   hasMoreBefore: boolean;
   hiddenWorkCount: number;
+  htmlPublications?: HtmlPublication[];
   lastWorkItemId?: string | null;
   presentation: TurnWorkPresentation;
   startedAtUnixMs?: number | null;
@@ -517,6 +532,18 @@ export interface AgentWorkNodeProjection {
   progressLabel?: string | null;
   progressRevision: number;
   state: AgentWorkNodeState;
+}
+/**
+ * An exact Gateway-created HTML publication. Generic HTML attachments never
+ * acquire this descriptor based on MIME alone.
+ */
+export interface HtmlPublication {
+  artifact: ArtifactRef;
+  callId: string;
+  threadId: string;
+  title: string;
+  turnId: string;
+  workspaceId: string;
 }
 export interface TaskTurnItem {
   agentRole?: string | null;

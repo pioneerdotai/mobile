@@ -161,7 +161,7 @@ const styles = StyleSheet.create((theme) => ({
         flex: 1,
         minWidth: 0,
         alignItems: 'center',
-        gap: theme.space(3),
+        gap: theme.space(2),
     },
     dino: {
         width: theme.space(8),

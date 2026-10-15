@@ -1,23 +1,41 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "ClientDeviceActivationPresentationRequest",
-  "type": "object",
-  "properties": {
-    "app_url_scheme": {
-      "$ref": "#/$defs/PioneerAppUrlScheme"
+  "anyOf": [
+    {
+      "type": "object",
+      "properties": {
+        "generation": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "generation"
+      ]
     },
-    "created_device": {
-      "$ref": "#/$defs/AuthDeviceCreateResponse"
-    },
-    "gateway_base_url": {
-      "type": "string"
+    {
+      "type": "object",
+      "properties": {
+        "app_url_scheme": {
+          "$ref": "#/$defs/PioneerAppUrlScheme"
+        },
+        "created_device": {
+          "$ref": "#/$defs/AuthDeviceCreateResponse"
+        },
+        "gateway_base_url": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "gateway_base_url",
+        "created_device",
+        "app_url_scheme"
+      ]
     }
-  },
-  "additionalProperties": false,
-  "required": [
-    "gateway_base_url",
-    "created_device",
-    "app_url_scheme"
   ],
   "$defs": {
     "AuthDeviceCreateResponse": {

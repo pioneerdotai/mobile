@@ -1,9 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { FlashList, type ListRenderItem } from '@shopify/flash-list';
 import { ChevronDown, ChevronUp } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { useUnistyles } from 'react-native-unistyles';
-import { useShallow } from 'zustand/react/shallow';
 
 import {
     pioneerClient,
@@ -17,7 +16,8 @@ import { HStack } from '@/components/primitives/hstack';
 import { Pressable } from '@/components/primitives/pressable';
 import { Text } from '@/components/primitives/text';
 import { VStack } from '@/components/primitives/vstack';
-import { composerTargetThreadIsActive } from '@/services/threads/composer-target';
+import { composerSnapshot, useComposerPublication } from '@/client/composer';
+import { dispatchComposerCatalog, useComposerPicker } from '@/client/composer-catalog';
 import { useActiveThreadStore } from '@/stores/active-thread';
 import { useWorkspaceStore } from '@/stores/workspace';
 import { useAdministrationCapabilities } from '@/hooks/use-administration-capabilities';
@@ -29,6 +29,7 @@ type SkillDisplayRow =
     | { type: 'packed_skill'; child: SelectablePackedSkillCapability }
     | { type: 'standalone_skill'; skill: SelectableSkillCapability };
 
+const EMPTY_SELECTIONS: ComposerSkillSelection[] = [];
 const EMPTY_PICKER: ComposerSkillPickerProjection = { packs: [], standalone: [] };
 
 export const composerSkillSelectionKey = (selection: ComposerSkillSelection): string =>
@@ -82,70 +83,40 @@ const selectionForDisplayRow = (row: SkillDisplayRow): ComposerSkillSelection =>
 
 export const ComposerSkillCapabilitiesScreen = () => {
     const { t } = useTranslation('threads');
-    const targetThreadIdRef = useRef(useActiveThreadStore.getState().activeComposerThreadId);
+    const [target] = useState(() => {
+        const thread = useActiveThreadStore.getState().activeComposerThreadId;
+        return { thread, draft: composerSnapshot(thread)?.draft_id ?? null };
+    });
+    const activeThread = useActiveThreadStore((state) => state.activeComposerThreadId);
     const activeWorkspaceId = useWorkspaceStore((state) => state.activeWorkspaceId);
     const capabilities = useAdministrationCapabilities();
-    const canUseSkills = capabilities.data?.can_use_skills === true;
-    const { composerSkillSelections, setComposerSkillSelections } = useActiveThreadStore(
-        useShallow((state) => ({
-            composerSkillSelections: state.composerSkillSelections,
-            setComposerSkillSelections: state.setComposerSkillSelections,
-        })),
-    );
-
+    const enabled = capabilities.data?.can_use_skills === true && target.thread === activeThread;
+    const { input, identity } = useComposerPicker(target.thread, target.draft, 'skills', enabled);
+    const composer = useComposerPublication(target.thread);
+    const composerSkillSelections = composer?.draft.domain.skill_selections ?? EMPTY_SELECTIONS;
     const [query, setQuery] = useState('');
-    const [picker, setPicker] = useState<ComposerSkillPickerProjection>(EMPTY_PICKER);
     const [expandedPackIds, setExpandedPackIds] = useState<Set<string>>(new Set());
-    const [state, setState] = useState<LoadState>({ loading: false, error: null });
-
-    useEffect(() => {
-        let cancelled = false;
-        const timeout = setTimeout(() => {
-            if (!canUseSkills) {
-                setPicker(EMPTY_PICKER);
-                setState({ loading: capabilities.isPending, error: null });
-                return;
-            }
-            if (!activeWorkspaceId) {
-                setPicker(EMPTY_PICKER);
-                setState({ loading: false, error: t('modelSelectorNoWorkspace') });
-                return;
-            }
-
-            setState({ loading: true, error: null });
-            void pioneerClient
-                .composerSkillPackPicker({ workspace_id: activeWorkspaceId, query })
-                .then((nextPicker) => {
-                    if (
-                        !cancelled &&
-                        composerTargetThreadIsActive(
-                            targetThreadIdRef.current,
-                            useActiveThreadStore.getState().activeComposerThreadId,
-                        )
-                    ) {
-                        setPicker(nextPicker);
-                        setState({ loading: false, error: null });
-                    }
-                })
-                .catch(() => {
-                    if (
-                        !cancelled &&
-                        composerTargetThreadIsActive(
-                            targetThreadIdRef.current,
-                            useActiveThreadStore.getState().activeComposerThreadId,
-                        )
-                    ) {
-                        setPicker(EMPTY_PICKER);
-                        setState({ loading: false, error: t('composerSkillsFailed') });
-                    }
-                });
-        }, 0);
-
-        return () => {
-            cancelled = true;
-            clearTimeout(timeout);
-        };
-    }, [activeWorkspaceId, canUseSkills, capabilities.isPending, query, t]);
+    const picker = useMemo(
+        () =>
+            input
+                ? pioneerClient.composerSkillPackPicker({
+                      thread_id: input.thread_id,
+                      draft_id: input.draft_id,
+                      query,
+                  })
+                : EMPTY_PICKER,
+        [input, query],
+    );
+    const state: LoadState = {
+        loading:
+            capabilities.isPending ||
+            (enabled && (!input || input.skill_request.state.kind === 'loading')),
+        error: !activeWorkspaceId
+            ? t('modelSelectorNoWorkspace')
+            : input?.skill_request.state.kind === 'failed'
+              ? t('composerSkillsFailed')
+              : null,
+    };
 
     const searching = query.trim().length > 0;
     const displayRows = useMemo(
@@ -159,32 +130,14 @@ export const ComposerSkillCapabilitiesScreen = () => {
 
     const toggleSelection = useCallback(
         (row: SkillDisplayRow) => {
-            if (
-                !composerTargetThreadIsActive(
-                    targetThreadIdRef.current,
-                    useActiveThreadStore.getState().activeComposerThreadId,
-                )
-            ) {
-                return;
-            }
-            const selectable =
-                row.type === 'pack'
-                    ? row.pack.selectable
-                    : row.type === 'packed_skill'
-                      ? row.child.skill.selectable
-                      : row.skill.selectable;
-            if (!selectable) {
-                return;
-            }
-
-            const result = pioneerClient.composerSkillSelectionToggle({
-                selections: useActiveThreadStore.getState().composerSkillSelections,
-                picker,
-                selection: selectionForDisplayRow(row),
-            });
-            setComposerSkillSelections(result.selections);
+            if (identity)
+                dispatchComposerCatalog({
+                    kind: 'toggle_skill',
+                    identity,
+                    selection: selectionForDisplayRow(row),
+                });
         },
-        [picker, setComposerSkillSelections],
+        [identity],
     );
 
     const togglePackExpanded = useCallback((packId: string) => {

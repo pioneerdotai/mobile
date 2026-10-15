@@ -2,14 +2,12 @@ import React from 'react';
 import renderer, { act, type ReactTestRenderer } from 'react-test-renderer';
 import { describe, expect, it, jest } from '@jest/globals';
 
-import { pioneerClient } from '@/client';
+import { dispatchMessageRevisions, useMessageRevisions } from '@/client/message-revisions';
 import MessageRevisionsScreen, { formatRevisionDate } from './index';
 
-jest.mock('@/client', () => ({
-    pioneerClient: {
-        turnMessageRevisionsPage: jest.fn(),
-        messageRevisionPagePresentation: jest.fn((value: unknown) => value),
-    },
+jest.mock('@/client/message-revisions', () => ({
+    useMessageRevisions: jest.fn(),
+    dispatchMessageRevisions: jest.fn(),
 }));
 jest.mock('@shopify/flash-list', () => ({ FlashList: 'FlashList' }));
 jest.mock('react-native-unistyles', () => ({
@@ -43,41 +41,39 @@ const renderElement = async (element: React.ReactElement): Promise<ReactTestRend
 
 describe('mobile Message revision history screen', () => {
     it('paginates disclosed content and keeps redacted content hidden', async () => {
-        jest.mocked(pioneerClient.turnMessageRevisionsPage)
-            .mockResolvedValueOnce({
+        const identity = { thread_id: 'thread-a', turn_id: 'turn-a', generation: 7 };
+        const first = {
+            revision: 1,
+            change_kind: 'edit',
+            changed_by: { kind: 'principal', id: 'principal-a' },
+            created_at: 1,
+            text: 'First disclosed version',
+            mentions: [],
+            content_redacted: false,
+        };
+        const redacted = {
+            revision: 0,
+            change_kind: 'delete',
+            changed_by: { kind: 'system' },
+            created_at: 0,
+            text: 'must not render',
+            mentions: [{ principal_id: 'secret', nickname: 'secret' }],
+            content_redacted: true,
+        };
+        const publication = {
+            identity,
+            revision: 2,
+            request_generation: 8,
+            state: 'ready',
+            page: {
                 thread_id: 'thread-a',
                 turn_id: 'turn-a',
                 workspace_id: 'workspace-a',
-                revisions: [
-                    {
-                        revision: 1,
-                        change_kind: 'edit',
-                        changed_by: { kind: 'principal', id: 'principal-a' },
-                        created_at: 1,
-                        text: 'First disclosed version',
-                        mentions: [],
-                        content_redacted: false,
-                    },
-                ],
+                revisions: [first],
                 next_cursor: 'cursor-2',
-            } as never)
-            .mockResolvedValueOnce({
-                thread_id: 'thread-a',
-                turn_id: 'turn-a',
-                workspace_id: 'workspace-a',
-                revisions: [
-                    {
-                        revision: 0,
-                        change_kind: 'delete',
-                        changed_by: { kind: 'system' },
-                        created_at: 0,
-                        text: 'must not render',
-                        mentions: [{ principal_id: 'secret', nickname: 'secret' }],
-                        content_redacted: true,
-                    },
-                ],
-                next_cursor: null,
-            } as never);
+            },
+        };
+        jest.mocked(useMessageRevisions).mockReturnValue(publication as never);
 
         let tree: ReactTestRenderer;
         await act(async () => {
@@ -102,13 +98,16 @@ describe('mobile Message revision history screen', () => {
             await Promise.resolve();
         });
 
+        expect(dispatchMessageRevisions).toHaveBeenLastCalledWith({ kind: 'more', identity });
+        jest.mocked(useMessageRevisions).mockReturnValue({
+            ...publication,
+            revision: 3,
+            page: { ...publication.page, revisions: [first, redacted], next_cursor: null },
+        } as never);
+        await act(async () =>
+            tree!.update(<MessageRevisionsScreen threadId="thread-a" turnId="turn-a" />),
+        );
         list = tree!.root.findByType(FlashListMock);
-        expect(pioneerClient.turnMessageRevisionsPage).toHaveBeenLastCalledWith({
-            thread_id: 'thread-a',
-            turn_id: 'turn-a',
-            cursor: 'cursor-2',
-            limit: 50,
-        });
         expect(list.props.data).toHaveLength(2);
 
         const redactedRevision = await renderElement(
@@ -118,6 +117,12 @@ describe('mobile Message revision history screen', () => {
         expect(redactedOutput).toContain('timelineMessageHistoryRedacted');
         expect(redactedOutput).not.toContain('must not render');
         expect(redactedOutput).not.toContain('@secret');
+        await act(async () => {
+            tree.unmount();
+            firstRevision.unmount();
+            footer.unmount();
+            redactedRevision.unmount();
+        });
     });
 
     it('interprets the protocol timestamp as Unix seconds', () => {

@@ -12,11 +12,9 @@ import { Linking } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
 
 import type { TimelineRow } from '@/services/threads/conversation/timeline';
 import type { TaskWaitReviewDisplayItem } from '@/client/generated/task_wait_review_display_item';
-import { pioneerClient } from '@/client';
 import { McpIcon } from '@/components/icons/mcp-icon';
 import { HStack } from '@/components/primitives/hstack';
 import { Input } from '@/components/primitives/input';
@@ -24,11 +22,8 @@ import { Pressable } from '@/components/primitives/pressable';
 import { Text } from '@/components/primitives/text';
 import { VStack } from '@/components/primitives/vstack';
 import Spinner from '@/components/feedback/spinner';
-import { canManageTaskReviewItem, taskReviewUserControlsAllowed } from '@/services/tasks/review';
-import {
-    invalidateTimelineQueriesForThread,
-    invalidateTurnWorkQueries,
-} from '@/services/threads/timeline-query';
+import { dispatchTaskReview, useTaskReviewPublication } from '@/client/task-review';
+import type { TaskReviewAction } from '@/client/generated/task_review_publication';
 
 import { BodyText } from './status';
 import { TIMELINE_TECHNICAL_ROW_VERTICAL_PADDING_UNITS } from '../timeline-grouping';
@@ -157,7 +152,6 @@ export const ToolCallRow = ({
                         <TaskReviewPanel
                             review={row.taskReview}
                             threadId={threadId}
-                            turnId={row.turnId}
                             canReviewTasks={canReviewTasks}
                             canCancelTasks={canCancelTasks}
                         />
@@ -213,13 +207,11 @@ export const ToolCallRow = ({
 const TaskReviewPanel = ({
     review,
     threadId,
-    turnId,
     canReviewTasks,
     canCancelTasks,
 }: {
     review: NonNullable<Extract<TimelineRow, { type: 'tool-call' }>['taskReview']>;
     threadId: string;
-    turnId: string;
     canReviewTasks: boolean;
     canCancelTasks: boolean;
 }) => {
@@ -237,15 +229,6 @@ const TaskReviewPanel = ({
                     key={item.candidate_id}
                     item={item}
                     threadId={threadId}
-                    turnId={turnId}
-                    canManage={
-                        taskReviewUserControlsAllowed(item) &&
-                        canManageTaskReviewItem({
-                            item,
-                            canReviewTasks,
-                            canCancelTasks,
-                        })
-                    }
                     canReview={canReviewTasks}
                     canCancel={canCancelTasks}
                 />
@@ -257,74 +240,46 @@ const TaskReviewPanel = ({
 const TaskReviewItem = ({
     item,
     threadId,
-    turnId,
-    canManage,
     canReview,
     canCancel,
 }: {
     item: TaskWaitReviewDisplayItem;
     threadId: string;
-    turnId: string;
-    canManage: boolean;
     canReview: boolean;
     canCancel: boolean;
 }) => {
     const { t } = useTranslation('threads');
-    const queryClient = useQueryClient();
     const [feedback, setFeedback] = useState('');
-    const [pendingAction, setPendingAction] = useState<string | null>(null);
-    const [error, setError] = useState<string | null>(null);
-    const runId = item.run_id?.trim() ?? '';
-    const actions = new Set(item.allowed_actions);
-    const canAccept = canManage && canReview && actions.has('task_accept') && !!runId;
-    const canRevise =
-        canManage &&
-        canReview &&
-        actions.has('task_revise') &&
-        !!runId &&
-        feedback.trim().length > 0;
-    const canCancelAction = canManage && canCancel && actions.has('task_cancel');
-
-    const refresh = async () => {
-        await Promise.all([
-            invalidateTimelineQueriesForThread(queryClient, threadId),
-            invalidateTurnWorkQueries(queryClient, threadId, turnId),
-        ]);
-    };
-    const perform = async (action: 'accept' | 'revise' | 'cancel') => {
-        setPendingAction(action);
-        setError(null);
-        try {
-            if (action === 'accept') {
-                await pioneerClient.taskAccept({
-                    taskId: item.task_id,
-                    runId,
-                    candidateId: item.candidate_id,
-                });
-            } else if (action === 'revise') {
-                await pioneerClient.taskRevise({
-                    taskId: item.task_id,
-                    runId,
-                    candidateId: item.candidate_id,
-                    feedback: feedback.trim(),
-                    additionalInstructions: [],
-                });
-            } else {
-                await pioneerClient.taskCancel({
-                    taskId: item.task_id,
-                    scope: 'attached_subtree',
-                });
-            }
-            await refresh();
-        } catch (actionError) {
-            setError(
-                actionError instanceof Error
-                    ? actionError.message
-                    : t('timelineTaskReviewActionFailed'),
-            );
-        } finally {
-            setPendingAction(null);
-        }
+    const publication = useTaskReviewPublication(
+        threadId,
+        item.candidate_id,
+        item,
+        canReview,
+        canCancel,
+    );
+    const actions = new Set(publication?.visible_actions ?? []);
+    const enabled = new Set(publication?.allowed_actions ?? []);
+    const pendingAction =
+        publication?.request.kind === 'pending' ? publication.request.action : null;
+    const failure = publication?.request.kind === 'failed' ? publication.request.error : null;
+    const error = failure
+        ? failure.kind === 'transport'
+            ? failure.message
+            : t('timelineTaskReviewActionFailed')
+        : null;
+    const canManage = actions.size > 0;
+    const canAccept = enabled.has('Accept');
+    const canRevise = enabled.has('Revise') && feedback.trim().length > 0;
+    const canCancelAction = enabled.has('Cancel');
+    const perform = (action: TaskReviewAction) => {
+        dispatchTaskReview({
+            kind: 'perform',
+            thread_id: threadId,
+            candidate_id: item.candidate_id,
+            action,
+            feedback: action === 'Revise' ? feedback : null,
+            reason: null,
+        });
     };
 
     return (
@@ -353,7 +308,7 @@ const TaskReviewItem = ({
                     })}
                 </Text>
             ) : null}
-            {canManage && canReview && actions.has('task_revise') ? (
+            {actions.has('Revise') ? (
                 <Input
                     value={feedback}
                     editable={pendingAction === null}
@@ -366,27 +321,27 @@ const TaskReviewItem = ({
             {error ? <Text style={styles.taskReviewError}>{error}</Text> : null}
             {canManage ? (
                 <HStack style={styles.taskReviewActions}>
-                    {canReview && actions.has('task_accept') ? (
+                    {actions.has('Accept') ? (
                         <TaskReviewButton
                             label={t('timelineTaskReviewAccept')}
                             disabled={!canAccept || pendingAction !== null}
                             primary
-                            onPress={() => void perform('accept')}
+                            onPress={() => void perform('Accept')}
                         />
                     ) : null}
-                    {canReview && actions.has('task_revise') ? (
+                    {actions.has('Revise') ? (
                         <TaskReviewButton
                             label={t('timelineTaskReviewRevise')}
                             disabled={!canRevise || pendingAction !== null}
-                            onPress={() => void perform('revise')}
+                            onPress={() => void perform('Revise')}
                         />
                     ) : null}
-                    {canCancel && actions.has('task_cancel') ? (
+                    {actions.has('Cancel') ? (
                         <TaskReviewButton
                             label={t('timelineTaskReviewCancel')}
                             disabled={!canCancelAction || pendingAction !== null}
                             danger
-                            onPress={() => void perform('cancel')}
+                            onPress={() => void perform('Cancel')}
                         />
                     ) : null}
                 </HStack>

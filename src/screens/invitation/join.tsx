@@ -1,9 +1,8 @@
 import { router, useNavigation } from 'expo-router';
-import { useCallback, useLayoutEffect, useMemo, useState } from 'react';
+import { useCallback, useLayoutEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
-
-import type { InvitationAcceptParams } from '@/client';
+import { dispatchInvitation, useInvitation } from '@/client/onboarding';
 import { BackButton } from '@/components/buttons/back';
 import { HeaderCheckButton } from '@/components/buttons/header-action';
 import {
@@ -14,101 +13,53 @@ import {
 } from '@/components/forms/profile-editor';
 import { ScrollView } from '@/components/primitives/scrollview';
 import { Text } from '@/components/primitives/text';
-import { useInvitationProfile } from '@/screens/invitation/profile-context';
-import { MobileInvitationJoinError } from '@/services/gateway/invitation-join';
-import {
-    ProfileAvatarSelectionError,
-    selectProfileAvatar,
-    type SelectedProfileAvatar,
-} from '@/services/profile/avatar';
-import {
-    isValidProfileDisplayName,
-    isValidProfileNickname,
-    joinProfileDisplayName,
-} from '@/services/profile/update';
+import { selectProfileAvatar } from '@/services/profile/avatar';
 
-type InvitationJoinScreenProps = {
-    error?: string | null;
-    onCancel: () => void;
-    onSubmit: (profile: InvitationAcceptParams['profile']) => Promise<void>;
-};
-
-const InvitationJoinScreen = ({ error = null, onCancel, onSubmit }: InvitationJoinScreenProps) => {
+const InvitationJoinScreen = ({ onCancel }: { onCancel: () => void }) => {
     const { t } = useTranslation('gateway');
     const { t: settingsT } = useTranslation('settings');
     const { theme } = useUnistyles();
     const navigation = useNavigation();
-    const { nickname, nicknameError, setNicknameError } = useInvitationProfile();
-    const [firstName, setFirstName] = useState('');
-    const [lastName, setLastName] = useState('');
-    const [avatar, setAvatar] = useState<SelectedProfileAvatar | null>(null);
-    const [nameError, setNameError] = useState<string | null>(null);
-    const [avatarError, setAvatarError] = useState<string | null>(null);
-    const [submitError, setSubmitError] = useState<string | null>(error);
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const displayName = useMemo(
-        () => joinProfileDisplayName(firstName, lastName),
-        [firstName, lastName],
-    );
-    const normalizedNickname = nickname.trim();
-    const valid =
-        isValidProfileDisplayName(displayName) && isValidProfileNickname(normalizedNickname);
-
+    const value = useInvitation();
+    const owner = value?.owner_generation;
+    const displayName = [value?.first_name, value?.last_name].filter(Boolean).join(' ');
+    const valid = Boolean(value?.name_valid && value?.nickname_valid);
+    const isSubmitting = value?.submitting ?? false;
+    const nameError = value?.name_error ? t('invitation.join.errors.displayName') : null;
+    const nicknameError = value?.nickname_error
+        ? t(
+              value.nickname_error === 'nickname_unavailable'
+                  ? 'invitation.join.errors.nicknameUnavailable'
+                  : 'invitation.join.errors.nickname',
+          )
+        : null;
+    const avatarError = value?.avatar_error ? t('invitation.join.errors.avatar') : null;
+    const submitError = value?.error
+        ? t(
+              value.error.includes('storage') || value.error.includes('registry')
+                  ? 'invitation.join.errors.storage'
+                  : 'invitation.join.errors.unavailable',
+          )
+        : null;
     const pickAvatar = useCallback(async () => {
-        setAvatarError(null);
+        if (owner === undefined || isSubmitting) return;
         try {
             const selected = await selectProfileAvatar();
-            if (!selected) return;
-            setAvatar(selected);
-        } catch (failure) {
-            setAvatarError(
-                failure instanceof ProfileAvatarSelectionError
-                    ? t('invitation.join.errors.avatar')
-                    : settingsT('profile.errors.photoPicker'),
-            );
+            if (selected)
+                dispatchInvitation({
+                    kind: 'select_avatar',
+                    expected_owner: owner,
+                    preview: selected.uri,
+                    avatar: selected.input,
+                });
+        } catch {
+            dispatchInvitation({ kind: 'avatar_failed', expected_owner: owner });
         }
-    }, [settingsT, t]);
-
-    const submit = useCallback(async () => {
-        if (isSubmitting) return;
-        const validName = isValidProfileDisplayName(displayName);
-        const validNickname = isValidProfileNickname(normalizedNickname);
-        setNameError(validName ? null : t('invitation.join.errors.displayName'));
-        setNicknameError(validNickname ? null : t('invitation.join.errors.nickname'));
-        setSubmitError(null);
-        if (!validName || !validNickname) return;
-
-        setIsSubmitting(true);
-        try {
-            await onSubmit({
-                display_name: displayName,
-                nickname: normalizedNickname,
-                avatar: avatar?.input ?? null,
-            });
-        } catch (submitFailure) {
-            if (submitFailure instanceof MobileInvitationJoinError) {
-                if (submitFailure.code === 'nickname_unavailable') {
-                    setNicknameError(t('invitation.join.errors.nicknameUnavailable'));
-                    return;
-                }
-                if (submitFailure.code === 'invalid_profile') {
-                    setNameError(t('invitation.join.errors.displayName'));
-                    return;
-                }
-                if (submitFailure.code === 'avatar_invalid') {
-                    setAvatarError(t('invitation.join.errors.avatar'));
-                    return;
-                }
-                if (submitFailure.code === 'storage_failed') {
-                    setSubmitError(t('invitation.join.errors.storage'));
-                    return;
-                }
-            }
-            setSubmitError(t('invitation.join.errors.unavailable'));
-        } finally {
-            setIsSubmitting(false);
-        }
-    }, [avatar, displayName, isSubmitting, normalizedNickname, onSubmit, setNicknameError, t]);
+    }, [owner, isSubmitting]);
+    const submit = useCallback(() => {
+        if (owner !== undefined)
+            dispatchInvitation({ kind: 'submit_for_owner', expected_owner: owner });
+    }, [owner]);
 
     useLayoutEffect(() => {
         navigation.setOptions({
@@ -119,7 +70,9 @@ const InvitationJoinScreen = ({ error = null, onCancel, onSubmit }: InvitationJo
             headerStyle: { backgroundColor: 'transparent' },
             cardStyle: { backgroundColor: theme.colors.background },
             sceneStyle: { backgroundColor: theme.colors.background },
-            headerLeft: () => <BackButton onPressHandler={onCancel} />,
+            headerLeft: () => (
+                <BackButton disabled={value?.can_cancel === false} onPressHandler={onCancel} />
+            ),
             headerRight: () => (
                 <HeaderCheckButton
                     accessibilityLabel={t('invitation.join.accept')}
@@ -129,7 +82,7 @@ const InvitationJoinScreen = ({ error = null, onCancel, onSubmit }: InvitationJo
                 />
             ),
         });
-    }, [isSubmitting, navigation, onCancel, submit, t, theme.colors, valid]);
+    }, [isSubmitting, navigation, onCancel, submit, t, theme.colors, valid, value?.can_cancel]);
 
     return (
         <ScrollView
@@ -140,38 +93,49 @@ const InvitationJoinScreen = ({ error = null, onCancel, onSubmit }: InvitationJo
             <ProfileIdentityGroup>
                 <ProfileAvatarField
                     displayName={displayName || t('invitation.join.displayName')}
-                    imageUri={avatar?.uri ?? null}
+                    imageUri={value?.avatar_preview ?? null}
                     actionLabel={
-                        avatar ? settingsT('profile.changePhoto') : settingsT('profile.choosePhoto')
+                        value?.avatar_preview
+                            ? settingsT('profile.changePhoto')
+                            : settingsT('profile.choosePhoto')
                     }
                     error={avatarError}
                     onPress={() => void pickAvatar()}
                 />
                 <ProfileNameFields
-                    firstName={firstName}
-                    lastName={lastName}
+                    firstName={value?.first_name ?? ''}
+                    lastName={value?.last_name ?? ''}
                     firstNamePlaceholder={settingsT('profile.firstName')}
                     lastNamePlaceholder={settingsT('profile.lastName')}
                     hint={settingsT('profile.nameHint')}
                     error={nameError}
-                    onFirstNameChange={(value) => {
-                        setFirstName(value);
-                        setNameError(null);
-                        setSubmitError(null);
+                    onFirstNameChange={(text) => {
+                        if (owner !== undefined)
+                            dispatchInvitation({
+                                kind: 'edit_field',
+                                expected_owner: owner,
+                                field: 'first_name',
+                                value: text,
+                            });
                     }}
-                    onLastNameChange={(value) => {
-                        setLastName(value);
-                        setNameError(null);
-                        setSubmitError(null);
+                    onLastNameChange={(text) => {
+                        if (owner !== undefined)
+                            dispatchInvitation({
+                                kind: 'edit_field',
+                                expected_owner: owner,
+                                field: 'last_name',
+                                value: text,
+                            });
                     }}
                 />
             </ProfileIdentityGroup>
             <ProfileUsernameField
                 label={settingsT('profile.username')}
-                value={nickname}
+                value={value?.nickname ?? ''}
                 error={nicknameError}
                 onPress={() => {
-                    setSubmitError(null);
+                    if (owner === undefined) return;
+                    dispatchInvitation({ kind: 'open_username_for_owner', expected_owner: owner });
                     router.push('/invite/username');
                 }}
             />

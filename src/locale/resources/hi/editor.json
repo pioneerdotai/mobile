@@ -14,5 +14,14 @@
     "local": "लोकल",
     "remote": "रिमोट",
     "reloadRemote": "रिमोट फिर लोड करें",
-    "overwriteRemote": "रिमोट ओवरराइट करें"
+    "overwriteRemote": "रिमोट ओवरराइट करें",
+    "fileViewerTitle": "फ़ाइल",
+    "fileViewerLoading": "फ़ाइल खोली जा रही है…",
+    "fileViewerLargeFileNotice": "इस बड़ी फ़ाइल के लिए सिंटैक्स हाइलाइटिंग बंद है।",
+    "fileViewerErrors": {
+        "expired": "इस फ़ाइल का लिंक समाप्त हो गया है। इसे फिर से खोलें।",
+        "invalid_content": "यह फ़ाइल दिखाई नहीं जा सकती।",
+        "too_large": "यह फ़ाइल 10 MB से बड़ी है और खोली नहीं जा सकती।",
+        "unavailable": "फ़ाइल उपलब्ध नहीं है।"
+    }
 }

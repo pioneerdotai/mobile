@@ -1,121 +1,71 @@
 import React from 'react';
-import { describe, expect, it, jest } from '@jest/globals';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { expect, it, jest } from '@jest/globals';
 import renderer, { act, type ReactTestRenderer } from 'react-test-renderer';
-
-import type { ClientActiveThreadSnapshot } from '@/client';
-import {
-    cacheActiveThreadSnapshot,
-    newestActiveThreadSnapshot,
-    timelineQueryKeys,
-} from '@/services/threads/timeline-query';
-
 import { useActiveThreadSnapshotQuery } from './use-active-thread-snapshot-query';
+import { mobileClientBinding as mockBinding } from '@/client/mobile-client-binding';
 
-jest.mock('@/client', () => ({
-    PioneerClientNativeError: class PioneerClientNativeError extends Error {
-        code: string | null;
-
-        constructor(message: string, code: string | null = null) {
-            super(message);
-            this.code = code;
-        }
-    },
-}));
-
-type RenderedSnapshot = {
-    threadId: string | null;
-    revision: number | null;
-    fetching: boolean;
-};
-
-const snapshot = (threadId: string, revision: number): ClientActiveThreadSnapshot =>
-    ({
-        thread_id: threadId,
-        projection: { revision },
-    }) as unknown as ClientActiveThreadSnapshot;
-
-describe('useActiveThreadSnapshotQuery', () => {
-    it('shows the cached parent immediately and keeps it visible during background refresh', async () => {
-        const queryClient = new QueryClient({
-            defaultOptions: { queries: { gcTime: Infinity, retry: false } },
-        });
-        const renders: RenderedSnapshot[] = [];
-        let tree: ReactTestRenderer | null = null;
-
-        const Probe = ({ threadId }: { threadId: string }) => {
-            const query = useActiveThreadSnapshotQuery(threadId);
-            renders.push({
-                threadId: query.data?.thread_id ?? null,
-                revision: query.data?.projection.revision ?? null,
-                fetching: query.isFetching,
-            });
-            return null;
-        };
-
-        cacheActiveThreadSnapshot(queryClient, snapshot('parent', 1));
-        cacheActiveThreadSnapshot(queryClient, snapshot('child', 1));
-
-        await act(async () => {
-            tree = renderer.create(
-                <QueryClientProvider client={queryClient}>
-                    <Probe threadId="child" />
-                </QueryClientProvider>,
-            );
-        });
-        await act(async () => {
-            tree!.update(
-                <QueryClientProvider client={queryClient}>
-                    <Probe threadId="parent" />
-                </QueryClientProvider>,
-            );
-        });
-
-        expect(renders.at(-1)).toMatchObject({
-            threadId: 'parent',
-            revision: 1,
-        });
-
-        let resolveRefresh!: (value: ClientActiveThreadSnapshot) => void;
-        let refresh!: Promise<ClientActiveThreadSnapshot>;
-        await act(async () => {
-            refresh = queryClient.fetchQuery<ClientActiveThreadSnapshot>({
-                queryKey: timelineQueryKeys.threadSnapshot('parent'),
-                staleTime: 0,
-                queryFn: () =>
-                    new Promise<ClientActiveThreadSnapshot>((resolve) => {
-                        resolveRefresh = resolve;
-                    }),
-                structuralSharing: (current, incoming) =>
-                    newestActiveThreadSnapshot(
-                        current as ClientActiveThreadSnapshot | null | undefined,
-                        incoming as ClientActiveThreadSnapshot,
-                    ),
-            });
-            await new Promise((resolve) => setTimeout(resolve, 0));
-        });
-
-        expect(renders.at(-1)).toEqual({
-            threadId: 'parent',
-            revision: 1,
-            fetching: true,
-        });
-
-        await act(async () => {
-            resolveRefresh(snapshot('parent', 2));
-            await refresh;
-            await new Promise((resolve) => setTimeout(resolve, 0));
-        });
-
-        expect(renders.at(-1)).toEqual({
-            threadId: 'parent',
-            revision: 2,
-            fetching: false,
-        });
-
-        await act(async () => {
-            tree!.unmount();
-        });
-        queryClient.clear();
+import type { ClientScopedSnapshotDto } from '@/client/generated/client_scoped_snapshot_dto';
+const mockValue = (id: string, revision: number, loading = false): ClientScopedSnapshotDto => ({
+    schema_version: 1,
+    scope: { kind: 'thread', thread_id: id },
+    sequence: revision,
+    revisions: { scoped: revision, domain: revision, content: revision, presentation: revision },
+    payload: { thread_id: id, history_loading: loading, projection: { revision } },
+});
+jest.mock('@/client/mobile-client-binding', () => {
+    const actual = jest.requireActual<typeof import('@/client/mobile-client-binding')>(
+        '@/client/mobile-client-binding',
+    );
+    return {
+        ...actual,
+        mobileClientBinding: new actual.MobileClientBinding({
+            snapshot: (scope) => (scope.kind === 'thread' ? mockValue(scope.thread_id, 1) : null),
+            changes: () => ({ schema_version: 1, changes: [] }),
+            dispatch: () => ({ schema_version: 1, sequence: 1, outcome: 'noop', effects: [] }),
+            completeEffect: () => {
+                throw new Error('unexpected effect');
+            },
+            cancelEffect: () => {
+                throw new Error('unexpected effect');
+            },
+            resnapshot: () => null,
+        }),
+    };
+});
+it('reads parent and child publications without semantic cache copies and preserves visible content while Client loads', async () => {
+    const renders: unknown[] = [];
+    const Probe = ({ id }: { id: string }) => {
+        const value = useActiveThreadSnapshotQuery(id);
+        renders.push([value.data?.thread_id, value.data?.projection.revision, value.isFetching]);
+        return null;
+    };
+    let tree!: ReactTestRenderer;
+    await act(async () => {
+        tree = renderer.create(<Probe id="child" />);
     });
+    await act(async () => tree.update(<Probe id="parent" />));
+    expect(renders.at(-1)).toEqual(['parent', 1, false]);
+    act(() =>
+        mockBinding.applyProcessBatch({
+            schema_version: 1,
+            sequence: 2,
+            closed: false,
+            resnapshot: true,
+            effects: [],
+            changes: [{ sequence: 2, predecessor: 0, snapshots: [mockValue('parent', 2, true)] }],
+        }),
+    );
+    expect(renders.at(-1)).toEqual(['parent', 2, true]);
+    act(() =>
+        mockBinding.applyProcessBatch({
+            schema_version: 1,
+            sequence: 3,
+            closed: false,
+            resnapshot: false,
+            effects: [],
+            changes: [{ sequence: 3, predecessor: 2, snapshots: [mockValue('parent', 3)] }],
+        }),
+    );
+    expect(renders.at(-1)).toEqual(['parent', 3, false]);
+    await act(async () => tree.unmount());
 });

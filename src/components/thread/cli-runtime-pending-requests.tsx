@@ -1,6 +1,6 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet } from 'react-native-unistyles';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { dispatchApprovalAction, useApprovalAction } from '@/client/approval-actions';
 
 import {
     pioneerClient,
@@ -17,39 +17,34 @@ import { Text } from '@/components/primitives/text';
 import { VStack } from '@/components/primitives/vstack';
 import type { TimelinePendingRequest } from '@/services/threads/conversation/timeline';
 import {
-    invalidateTimelineQueriesForThread,
-    invalidateTurnWorkQueries,
-} from '@/services/threads/timeline-query';
+    pendingRequestActionLabel,
+    pendingRequestActionVariant,
+    pendingRequestQuestionInputSecurity,
+} from '@/components/thread/pending-request-actions';
 
 type PendingRequestCardProps = {
+    threadId: string;
     entry: TimelinePendingRequest;
     canRespond: boolean;
 };
 
-export const PendingRequestCard = ({ entry, canRespond }: PendingRequestCardProps) => {
-    const queryClient = useQueryClient();
+export const PendingRequestCard = ({ entry, canRespond, threadId }: PendingRequestCardProps) => {
     const [answers, setAnswers] = useState<Record<string, string>>({});
     const [fallbackAnswer, setFallbackAnswer] = useState('');
-    const [error, setError] = useState<string | null>(null);
-    const { mutateAsync: respondToPendingRequest, isPending: submitting } = useMutation({
-        mutationFn: async (resolution: PendingRequestResolution) => {
-            const plan = pioneerClient.pendingRequestResponsePlan({
-                request: entry.request,
-                resolution,
-            });
-
-            switch (plan.action.target) {
-                case 'cli_runtime':
-                    return pioneerClient.cliRuntimeRequestRespond(plan.action.params);
-                case 'native_permission_gate':
-                    return pioneerClient.turnPermissionRequestRespond(plan.action.params);
-            }
-        },
-        onSuccess: () => {
-            void invalidateTimelineQueriesForThread(queryClient, entry.thread_id);
-            void invalidateTurnWorkQueries(queryClient, entry.thread_id, entry.turn_id);
-        },
-    });
+    const action = useApprovalAction(threadId, entry.request.request_id);
+    const requestGeneration = action?.request_generation ?? null;
+    const previousGeneration = useRef<number | null>(null);
+    useEffect(() => {
+        const generation = action?.request_generation;
+        if (generation == null) return;
+        if (previousGeneration.current != null && previousGeneration.current !== generation) {
+            setAnswers({});
+            setFallbackAnswer('');
+        }
+        previousGeneration.current = generation;
+    }, [action?.request_generation]);
+    const submitting = action?.state.kind === 'pending';
+    const error = action?.state.kind === 'failed' ? action.state.message : null;
 
     const presentation = useMemo(
         () => pioneerClient.pendingRequestPresentation({ request: entry.request }).presentation,
@@ -64,17 +59,17 @@ export const PendingRequestCard = ({ entry, canRespond }: PendingRequestCardProp
         !submitting && (questions.length > 0 || fallbackAnswer.trim().length > 0);
 
     const respond = useCallback(
-        async (resolution: PendingRequestResolution) => {
-            if (!canRespond) return;
-            setError(null);
-
-            try {
-                await respondToPendingRequest(resolution);
-            } catch (requestError) {
-                setError(errorMessage(requestError));
-            }
+        (resolution: PendingRequestResolution) => {
+            if (!canRespond || requestGeneration == null) return;
+            dispatchApprovalAction({
+                kind: 'respond',
+                thread_id: threadId,
+                request_id: entry.request.request_id,
+                request_generation: requestGeneration,
+                resolution,
+            });
         },
-        [canRespond, respondToPendingRequest],
+        [canRespond, threadId, entry.request.request_id, requestGeneration],
     );
 
     const answerQuestion = useCallback((id: string, value: string) => {
@@ -207,6 +202,7 @@ const UserInputFields = ({
                         placeholder="Answer"
                         onChangeText={(value) => onAnswer(question.id, value)}
                         style={styles.answerInput}
+                        {...pendingRequestQuestionInputSecurity(question)}
                     />
                     {question.is_secret ? (
                         <Text style={styles.secretNote}>
@@ -236,7 +232,7 @@ const RequestActions = ({
         {actions.map((action) => (
             <ActionButton
                 key={action.kind}
-                label={actionLabel(action)}
+                label={pendingRequestActionLabel(action)}
                 disabled={
                     action.kind === 'answer'
                         ? !canSubmitAnswer
@@ -251,41 +247,11 @@ const RequestActions = ({
                         onRespond(action.resolution);
                     }
                 }}
-                variant={actionVariant(action)}
+                variant={pendingRequestActionVariant(action)}
             />
         ))}
     </HStack>
 );
-
-const actionLabel = (action: PendingRequestAvailableAction) => {
-    switch (action.kind) {
-        case 'cancel_turn':
-            return 'Cancel turn';
-        case 'deny':
-            return 'Deny';
-        case 'allow':
-            return 'Allow';
-        case 'allow_for_turn':
-            return 'Allow for turn';
-        case 'answer':
-            return 'Answer';
-    }
-};
-
-const actionVariant = (
-    action: PendingRequestAvailableAction,
-): 'danger' | 'primary' | 'secondary' => {
-    switch (action.kind) {
-        case 'cancel_turn':
-            return 'danger';
-        case 'allow':
-        case 'answer':
-            return 'primary';
-        case 'deny':
-        case 'allow_for_turn':
-            return 'secondary';
-    }
-};
 
 const ActionButton = ({
     disabled,
@@ -319,9 +285,6 @@ const ActionButton = ({
         </Text>
     </Pressable>
 );
-
-const errorMessage = (error: unknown) =>
-    error instanceof Error ? error.message : 'Failed to answer request.';
 
 const styles = StyleSheet.create((theme) => ({
     card: {

@@ -1,6 +1,5 @@
-import type { ClientArtifactDownloadProgressResult } from '@/client';
-
 export type MobileArtifactTarget = Readonly<{
+    threadId?: string | null;
     workspaceId: string;
     artifactId: string;
     versionId?: string | null;
@@ -36,40 +35,59 @@ export type MobileArtifactActionState =
     | { kind: 'sharing' }
     | { kind: 'failed'; code: MobileArtifactActionErrorCode };
 
-export type MobileArtifactActionEvent =
-    | { type: 'open-started' }
-    | { type: 'download-started'; operationId: string }
-    | { type: 'download-progress'; progress: ClientArtifactDownloadProgressResult }
-    | { type: 'share-started' }
-    | { type: 'completed' }
-    | { type: 'failed'; code: MobileArtifactActionErrorCode };
-
-export const reduceMobileArtifactAction = (
-    _state: MobileArtifactActionState,
-    event: MobileArtifactActionEvent,
-): MobileArtifactActionState => {
-    switch (event.type) {
-        case 'open-started':
-            return { kind: 'opening' };
-        case 'download-started':
-            return {
-                kind: 'downloading',
-                operationId: event.operationId,
-                downloadedBytes: 0,
-                totalBytes: 0,
-            };
-        case 'download-progress':
-            return {
-                kind: 'downloading',
-                operationId: event.progress.operation_id,
-                downloadedBytes: event.progress.downloaded_bytes,
-                totalBytes: event.progress.total_bytes,
-            };
-        case 'share-started':
-            return { kind: 'sharing' };
-        case 'completed':
-            return { kind: 'idle' };
-        case 'failed':
-            return { kind: 'failed', code: event.code };
+const presentationError = (code: string): MobileArtifactActionErrorCode => {
+    switch (code) {
+        case 'artifact_authentication_required':
+            return 'authentication_required';
+        case 'artifact_reconfiguration_required':
+            return 'reconfiguration_required';
+        case 'artifact_revoked_or_unavailable':
+            return 'revoked_or_unavailable';
+        case 'grant_expired':
+        case 'cancelled':
+        case 'integrity_failed':
+        case 'disk_full':
+        case 'viewer_failed':
+        case 'share_failed':
+            return code;
+        default:
+            return 'download_failed';
     }
 };
+
+export const artifactActionPresentation = (
+    publication: import('@/client/generated/artifact_publication').ArtifactPublication | null,
+): Record<string, MobileArtifactActionState> =>
+    Object.fromEntries(
+        (publication?.actions ?? []).map((action): [string, MobileArtifactActionState] => {
+            const key = mobileArtifactActionKey(
+                action.target.workspace_id,
+                action.target.artifact_id,
+                action.target.version_id,
+            );
+            switch (action.state.kind) {
+                case 'completed':
+                    return [key, { kind: 'idle' }];
+                case 'cancelled':
+                    return [key, { kind: 'failed', code: 'cancelled' }];
+                case 'failed':
+                    return [key, { kind: 'failed', code: presentationError(action.state.code) }];
+            }
+            if (action.action === 'open') return [key, { kind: 'opening' }];
+            if (action.state.kind === 'presenting') return [key, { kind: 'sharing' }];
+            const download = publication?.downloads.find(
+                (d) =>
+                    d.identity.operation_id === action.download?.operation_id &&
+                    d.identity.generation === action.download.generation,
+            );
+            return [
+                key,
+                {
+                    kind: 'downloading',
+                    operationId: action.download?.operation_id ?? '',
+                    downloadedBytes: download?.downloaded_bytes ?? 0,
+                    totalBytes: download?.total_bytes ?? 0,
+                },
+            ];
+        }),
+    );

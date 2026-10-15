@@ -47,6 +47,18 @@ export type RuntimeStatus =
     };
 
 export interface CLIRuntimeStatusChangedNotification {
+  /**
+   * Removes `runtime` from the client snapshot. The runtime payload remains
+   * present so older clients safely render it as disabled instead of
+   * retaining a stale ready entry.
+   */
+  removed?: boolean;
+  /**
+   * Monotonic workspace change revision. Every emitted delta has a distinct
+   * revision, so clients can detect a dropped notification and reload the
+   * complete authoritative snapshot.
+   */
+  revision?: number;
   runtime: RuntimeSummary;
   workspace_id: string;
   [k: string]: unknown;

@@ -7,16 +7,7 @@ const mockClose = jest.fn();
 const mockOpenMembers = jest.fn();
 let mockCanManageThread = false;
 
-jest.mock('@tanstack/react-query', () => ({
-    useMutation: () => ({ isPending: false, mutate: jest.fn() }),
-    useQuery: () => ({
-        data: { capabilities: { can_manage_thread: mockCanManageThread } },
-    }),
-    useQueryClient: () => ({
-        invalidateQueries: jest.fn(),
-        setQueryData: jest.fn(),
-    }),
-}));
+jest.mock('@/client/thread-members', () => ({ dispatchThreadMember: jest.fn(() => 7) }));
 jest.mock('react-i18next', () => ({
     useTranslation: () => ({ t: (key: string) => key }),
 }));
@@ -73,6 +64,16 @@ describe('thread actions members navigation', () => {
             tree = renderer.create(
                 <ThreadActionsSheet
                     open
+                    publication={
+                        {
+                            thread_id: 'thread-a',
+                            generation: 1,
+                            request: { kind: 'ready' },
+                            presentation: {
+                                capabilities: { can_manage_thread: mockCanManageThread },
+                            },
+                        } as never
+                    }
                     thread={
                         {
                             id: 'thread-a',
@@ -112,6 +113,16 @@ describe('thread actions members navigation', () => {
             tree = renderer.create(
                 <ThreadActionsSheet
                     open
+                    publication={
+                        {
+                            thread_id: 'thread-a',
+                            generation: 1,
+                            request: { kind: 'ready' },
+                            presentation: {
+                                capabilities: { can_manage_thread: mockCanManageThread },
+                            },
+                        } as never
+                    }
                     thread={
                         {
                             id: 'thread-a',

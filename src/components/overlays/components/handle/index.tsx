@@ -1,15 +1,13 @@
+import { ReactNode } from 'react';
 import { BottomSheetHandle, BottomSheetHandleProps } from '@gorhom/bottom-sheet';
-import { StyleSheet, useUnistyles, UnistylesVariants } from 'react-native-unistyles';
-import { X } from 'lucide-react-native';
-import type { StyleProp, ViewStyle } from 'react-native';
+import { StyleSheet } from 'react-native-unistyles';
 
 import { HStack } from '@/components/primitives/hstack';
 import { Box, BoxProps } from '@/components/primitives/box';
 import { Text } from '@/components/primitives/text';
-import { Pressable } from '@/components/primitives/pressable';
-import { ReactNode } from 'react';
+import { CloseButton } from '@/components/buttons/close';
 
-interface HandlePropsBase extends BottomSheetHandleProps {
+interface HandleProps extends BottomSheetHandleProps {
     title?: string;
     compact?: boolean;
     closeButton?: boolean;
@@ -17,8 +15,6 @@ interface HandlePropsBase extends BottomSheetHandleProps {
     leftButton?: ReactNode;
     handleClose: () => void;
 }
-
-type HandleProps = HandlePropsBase & UnistylesVariants<typeof styles>;
 
 const styles = StyleSheet.create((theme, rt) => ({
     container: {
@@ -44,47 +40,17 @@ const styles = StyleSheet.create((theme, rt) => ({
     rightAction: {
         justifyContent: 'flex-end',
     },
-    iconContainer: {
-        height: theme.space(11),
-        width: theme.space(11),
-        justifyContent: 'center',
-        alignItems: 'center',
-        borderRadius: theme.radius.full,
-        backgroundColor: rt.themeName === 'dark' ? theme.colors.white : theme.colors.neutral[950],
-        variants: {
-            closeButtonType: {
-                ghost: {
-                    backgroundColor: 'transparent',
-                },
-            },
-        },
-    },
-    closeIcon: {
-        color: rt.themeName === 'dark' ? theme.colors.neutral[950] : theme.colors.white,
-        variants: {
-            closeButtonType: {
-                ghost: {
-                    color: theme.colors.typography,
-                },
-            },
-        },
-    },
 }));
 
 const Handle = ({
     title,
     compact = false,
     closeButton = true,
-    closeButtonType,
     handleClose,
     containerStyle,
     leftButton,
     ...props
 }: HandleProps) => {
-    styles.useVariants({ closeButtonType });
-
-    const { theme } = useUnistyles();
-
     return (
         <>
             <BottomSheetHandle {...props} />
@@ -99,16 +65,7 @@ const Handle = ({
                         </Text>
                     </Box>
                     <HStack style={[styles.actionContainer, styles.rightAction]}>
-                        {closeButton && (
-                            <Box style={styles.iconContainer}>
-                                <Pressable onPress={handleClose}>
-                                    <X
-                                        size={theme.space(7)}
-                                        style={styles.closeIcon as unknown as StyleProp<ViewStyle>}
-                                    />
-                                </Pressable>
-                            </Box>
-                        )}
+                        {closeButton && <CloseButton onPressHandler={handleClose} />}
                     </HStack>
                 </HStack>
             )}

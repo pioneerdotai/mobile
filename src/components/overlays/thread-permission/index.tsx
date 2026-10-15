@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { BottomSheetModal, BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { ShieldAlert, ShieldCheck, ShieldX } from 'lucide-react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
@@ -13,9 +13,8 @@ import { Pressable } from '@/components/primitives/pressable';
 import { Text } from '@/components/primitives/text';
 import { VStack } from '@/components/primitives/vstack';
 import { stableOutlineWidth } from '@/helpers/styles';
-import { useAuthorizationCapabilitySnapshot } from '@/hooks/use-administration-capabilities';
+import { composerSnapshot, dispatchComposer, useComposerPublication } from '@/client/composer';
 import { useActiveThreadStore } from '@/stores/active-thread';
-import { reconcileComposerPermissionMode } from '@/services/threads/permission-modes';
 
 const permissionModeIcon = (mode: TurnPermissionMode) => {
     switch (mode) {
@@ -31,35 +30,18 @@ const permissionModeIcon = (mode: TurnPermissionMode) => {
 const ThreadPermissionModeSwitcherSheet = () => {
     const bottomSheetRef = useRef<BottomSheetModal>(null);
     const { theme, rt } = useUnistyles();
-    const capabilitySnapshot = useAuthorizationCapabilitySnapshot();
-    const options = useMemo(
-        () =>
-            (capabilitySnapshot.data?.workspace?.capabilities.agent_permission_options ?? []).map(
-                (option) => ({
-                    mode: option.mode,
-                    label: option.label,
-                    description: option.description,
-                }),
-            ),
-        [capabilitySnapshot.data?.workspace?.capabilities.agent_permission_options],
-    );
+    const threadId = useActiveThreadStore((state) => state.activeComposerThreadId);
+    const publication = useComposerPublication(threadId);
+    const options = publication?.permission_options ?? [];
 
-    const { selectedMode, showPermissionModeSwitcher, setMode, setPermissionModeSwitcherOpen } =
+    const { selectedMode, showPermissionModeSwitcher, setPermissionModeSwitcherOpen } =
         useActiveThreadStore(
             useShallow((state) => ({
                 selectedMode: state.composerSelectedPermissionMode,
                 showPermissionModeSwitcher: state.showComposerPermissionModeSwitcher,
-                setMode: state.setComposerPermissionMode,
                 setPermissionModeSwitcherOpen: state.setComposerPermissionModeSwitcherOpen,
             })),
         );
-
-    useEffect(() => {
-        const reconciledMode = reconcileComposerPermissionMode(selectedMode, options);
-        if (reconciledMode && reconciledMode !== selectedMode) {
-            setMode(reconciledMode);
-        }
-    }, [options, selectedMode, setMode]);
 
     useEffect(() => {
         if (bottomSheetRef.current) {
@@ -86,10 +68,21 @@ const ThreadPermissionModeSwitcherSheet = () => {
 
     const selectMode = useCallback(
         (mode: TurnPermissionMode) => {
-            setMode(mode);
+            if (
+                !publication ||
+                useActiveThreadStore.getState().activeComposerThreadId !== publication.thread_id ||
+                composerSnapshot(publication.thread_id)?.draft_id !== publication.draft_id
+            )
+                return;
+            dispatchComposer({
+                kind: 'domain',
+                thread_id: publication.thread_id,
+                draft_id: publication.draft_id,
+                action: { SetPermissionMode: { mode } },
+            });
             setPermissionModeSwitcherOpen(false);
         },
-        [setMode, setPermissionModeSwitcherOpen],
+        [publication, setPermissionModeSwitcherOpen],
     );
 
     return (

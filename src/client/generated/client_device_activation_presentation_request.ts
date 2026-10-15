@@ -1,5 +1,14 @@
 /* eslint-disable */
 
+export type ClientDeviceActivationPresentationRequest =
+  | {
+      generation: number;
+    }
+  | {
+      app_url_scheme: PioneerAppUrlScheme;
+      created_device: AuthDeviceCreateResponse;
+      gateway_base_url: string;
+    };
 /**
  * The custom URL scheme owned by a Pioneer application build.
  *
@@ -12,11 +21,6 @@ export type DeviceId = string;
 export type GatewayId = string;
 export type AuthSessionId = string;
 
-export interface ClientDeviceActivationPresentationRequest {
-  app_url_scheme: PioneerAppUrlScheme;
-  created_device: AuthDeviceCreateResponse;
-  gateway_base_url: string;
-}
 export interface AuthDeviceCreateResponse {
   activation_code: string;
   device_id: DeviceId;

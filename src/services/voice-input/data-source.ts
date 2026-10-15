@@ -1,12 +1,9 @@
-import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
-import { AppState } from 'react-native';
+import { useEffect, useMemo } from 'react';
 
 import { useGatewayStore } from '@/stores/gateway';
 import { useWorkspaceStore } from '@/stores/workspace';
 import type { VoiceInputGatewayTarget } from './gateway-target';
-import { handleVoiceInputGatewayEvent, refetchVoiceInputAfterResume } from './lifecycle';
-import { clearVoiceInputQueries } from './query';
+import { mobileClientBinding } from '@/client';
 
 export type VoiceInputDataSourceState =
     | Readonly<{
@@ -61,56 +58,9 @@ export const useVoiceInputDataSourceState = (): VoiceInputDataSourceState => {
     );
 };
 
-export const useVoiceInputGatewayQueryLifecycle = (): void => {
-    const queryClient = useQueryClient();
-    const state = useVoiceInputDataSourceState();
-    const lastEvent = useGatewayStore((store) => store.lastEvent);
-    const lastEventSerial = useGatewayStore((store) => store.lastEventSerial);
-    const lastEventGatewayId = useGatewayStore((store) => store.lastEventGatewayId);
-    const lastEventConnectionId = useGatewayStore((store) => store.lastEventConnectionId);
-    const identity =
-        state.kind === 'online' ? `${state.gatewayId}:${state.target.connectionId}` : null;
-    const previousIdentityRef = useRef<string | null | undefined>(undefined);
-    const previousAppStateRef = useRef(AppState.currentState);
-
-    useLayoutEffect(() => {
-        if (previousIdentityRef.current === identity) {
-            return;
-        }
-
-        previousIdentityRef.current = identity;
-        void clearVoiceInputQueries(queryClient);
-    }, [identity, queryClient]);
-
+export const useVoiceInputGatewayLifecycle = (): void => {
     useEffect(() => {
-        void handleVoiceInputGatewayEvent(
-            queryClient,
-            state.target,
-            {
-                gatewayId: lastEventGatewayId,
-                connectionId: lastEventConnectionId,
-            },
-            lastEvent,
-        );
-    }, [
-        lastEvent,
-        lastEventConnectionId,
-        lastEventGatewayId,
-        lastEventSerial,
-        queryClient,
-        state.target,
-    ]);
-
-    useEffect(() => {
-        const subscription = AppState.addEventListener('change', (nextState) => {
-            const resumed = nextState === 'active' && previousAppStateRef.current !== 'active';
-            previousAppStateRef.current = nextState;
-
-            if (resumed) {
-                void refetchVoiceInputAfterResume(queryClient, state.target);
-            }
-        });
-
-        return () => subscription.remove();
-    }, [queryClient, state.target]);
+        const store = mobileClientBinding.scope({ kind: 'settings' });
+        return store.subscribe(() => {});
+    }, []);
 };

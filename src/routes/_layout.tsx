@@ -1,3 +1,5 @@
+import { SemanticNavigationController } from '@/components/navigation/semantic-navigation';
+import { initializeMobilePlatformEffects } from '@/services/gateway/platform-effects';
 import 'react-native-reanimated';
 
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -10,11 +12,11 @@ import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { Stack } from 'expo-router/js-stack';
 import { SystemBars } from 'react-native-edge-to-edge';
-import { useShallow } from 'zustand/react/shallow';
 
 import i18n from '@/locale/i18n';
 
 import { pioneerClient } from '@/client';
+import { hydrateOnboarding } from '@/client/onboarding';
 import type { GatewayConnectionState, GatewayEndpoint } from '@/client';
 import { useGateway } from '@/hooks/use-gateway';
 import { useGatewaySession } from '@/hooks/use-gateway-session';
@@ -31,14 +33,11 @@ import { TerminalGatewaySessionNavigation } from '@/components/gateway/session-t
 import { initializeSentry, isSentryEnabled, Sentry } from '@/services/sentry';
 import { pioneerQueryClient } from '@/services/query/client';
 import { hideAppSplash, preventAppSplashAutoHide } from '@/services/app-splash';
-import { useVoiceInputGatewayQueryLifecycle } from '@/services/voice-input/data-source';
+import { useVoiceInputGatewayLifecycle } from '@/services/voice-input/data-source';
 import { TaskUserNotificationController } from '@/services/tasks/user-notifications';
 import { mobileStartup } from '@/services/telemetry/mobile-startup';
 import { mobileStartupReadinessOutcome } from '@/services/telemetry/mobile-startup-readiness';
-import { useActiveThreadStore } from '@/stores/active-thread';
-import { useGatewayStore } from '@/stores/gateway';
-import { useThreadTreeStore } from '@/stores/thread-tree';
-import { useWorkspaceStore } from '@/stores/workspace';
+import { useAuthorizationCapabilitySnapshot } from '@/hooks/use-administration-capabilities';
 
 export const unstable_settings = {
     initialRouteName: '(tabs)',
@@ -58,7 +57,6 @@ const normalizeStartupError = (error: unknown): Error => {
 };
 
 const RootLayout = () => {
-    const { hydrate: hydrateGateway } = useGateway();
     const bootstrapStartedRef = useRef(false);
 
     const [startupReady, setStartupReady] = useState(false);
@@ -86,6 +84,7 @@ const RootLayout = () => {
                 pioneerClient.initialize({
                     appDataDir: decodeURIComponent(Paths.cache.uri.replace(/^file:\/\//, '')),
                 });
+                initializeMobilePlatformEffects();
                 mobileStartup.succeed('client.initialize');
             } catch (error) {
                 mobileStartup.fail('client.initialize');
@@ -94,7 +93,7 @@ const RootLayout = () => {
 
             mobileStartup.begin('gateway_registry.hydrate');
             try {
-                await hydrateGateway();
+                await hydrateOnboarding();
                 mobileStartup.succeed('gateway_registry.hydrate');
             } catch (error) {
                 mobileStartup.fail('gateway_registry.hydrate');
@@ -109,7 +108,7 @@ const RootLayout = () => {
             .finally(() => {
                 setStartupReady(true);
             });
-    }, [hydrateGateway]);
+    }, []);
 
     useEffect(() => {
         if (fontsLoaded) {
@@ -163,7 +162,7 @@ const AppSystemBars = () => {
 
 const RootContent = () => {
     const { registry, bootstrapped, connectionId, connectionState, sessionRevision } = useGateway();
-    useVoiceInputGatewayQueryLifecycle();
+    useVoiceInputGatewayLifecycle();
 
     const remotes = registry.remotes ?? [];
     const activeGateway = bootstrapped
@@ -190,67 +189,33 @@ const RootContent = () => {
                 </>
             ) : null}
             <ThreadTreeController />
+            <AuthorizationProjectionController />
             <RootStack />
-            <MobileStartupReadinessController />
+            <SemanticNavigationController />
+            <MobileStartupReadinessController hasActiveGateway={activeGateway !== null} />
             <TaskUserNotificationController />
             <TerminalGatewaySessionNavigation />
         </>
     );
 };
 
-const MobileStartupReadinessController = () => {
-    const gateway = useGatewayStore(
-        useShallow((state) => ({
-            registry: state.registry,
-            bootstrapped: state.bootstrapped,
-            connectionId: state.connectionId,
-            connectionState: state.connectionState,
-            sessionError: state.sessionError,
-            sessionTerminalReason: state.sessionTerminalReason,
-        })),
-    );
-    const workspace = useWorkspaceStore(
-        useShallow((state) => ({
-            bootstrappedConnectionId: state.bootstrappedConnectionId,
-            activeWorkspaceId: state.activeWorkspaceId,
-            loading: state.loading,
-            error: state.error,
-        })),
-    );
-    const threadTree = useThreadTreeStore(
-        useShallow((state) => ({
-            snapshot: state.snapshot,
-            workspaceId: state.workspaceId,
-            loading: state.loading,
-            error: state.error,
-        })),
-    );
-    const composer = useActiveThreadStore(
-        useShallow((state) => ({
-            loading: state.defaultComposerSelectionLoading,
-        })),
-    );
-    // Mobile can establish sessions only to remote endpoints. A desktop-local
-    // registry entry must lead to setup UI instead of an endless startup wait.
-    const hasActiveGateway = (gateway.registry.remotes ?? []).some(
-        (remote) => remote.id === gateway.registry.active_gateway_id,
-    );
+/**
+ * Keeps the authenticated principal and active-workspace authorization
+ * projection warm independently of whichever screen happens to be mounted.
+ * The hook waits for workspace bootstrap, so this remains background work and
+ * never extends the splash/readiness boundary.
+ */
+const AuthorizationProjectionController = () => {
+    useAuthorizationCapabilitySnapshot();
+    return null;
+};
+
+// RootContent mounts this only after fonts, native initialization and the local
+// gateway registry are ready. Network state must never hold the switcher behind splash.
+const MobileStartupReadinessController = ({ hasActiveGateway }: { hasActiveGateway: boolean }) => {
     const outcome = mobileStartupReadinessOutcome({
-        registryBootstrapped: gateway.bootstrapped,
+        registryBootstrapped: true,
         hasActiveGateway,
-        connectionId: gateway.connectionId,
-        connectionState: gateway.connectionState,
-        sessionError: gateway.sessionError,
-        sessionTerminalReason: gateway.sessionTerminalReason,
-        workspaceBootstrappedConnectionId: workspace.bootstrappedConnectionId,
-        activeWorkspaceId: workspace.activeWorkspaceId,
-        workspaceLoading: workspace.loading,
-        workspaceError: workspace.error,
-        threadTreeWorkspaceId: threadTree.workspaceId,
-        threadTreeLoaded: threadTree.snapshot !== null,
-        threadTreeLoading: threadTree.loading,
-        threadTreeError: threadTree.error,
-        composerSelectionLoading: composer.loading,
     });
 
     useEffect(() => {
@@ -282,40 +247,25 @@ const WorkspaceBootstrapController = ({
     connectionId: number | null;
     connectionState: GatewayConnectionState;
 }) => {
-    const { bootstrappedConnectionId, bootstrapGatewayWorkspace, resetConnectionBootstrap } =
-        useWorkspace();
-    const pendingConnectionIdRef = useRef<number | null>(null);
-
+    const { bootstrappedConnectionId, bootstrapGatewayWorkspace, loading, error } = useWorkspace();
     useEffect(() => {
-        if (connectionState !== 'Connected' || connectionId === null) {
-            pendingConnectionIdRef.current = null;
-            resetConnectionBootstrap();
-            return;
-        }
-
         if (
-            bootstrappedConnectionId === connectionId ||
-            pendingConnectionIdRef.current === connectionId
-        ) {
+            connectionState !== 'Connected' ||
+            connectionId === null ||
+            loading ||
+            error ||
+            bootstrappedConnectionId === connectionId
+        )
             return;
-        }
-
-        pendingConnectionIdRef.current = connectionId;
-
-        void bootstrapGatewayWorkspace(activeGateway, connectionId)
-            .catch(() => {})
-            .finally(() => {
-                if (pendingConnectionIdRef.current === connectionId) {
-                    pendingConnectionIdRef.current = null;
-                }
-            });
+        void bootstrapGatewayWorkspace(activeGateway, connectionId).catch(() => {});
     }, [
         activeGateway,
         bootstrappedConnectionId,
         bootstrapGatewayWorkspace,
         connectionId,
         connectionState,
-        resetConnectionBootstrap,
+        loading,
+        error,
     ]);
 
     return null;
@@ -358,6 +308,15 @@ const RootStack = () => {
                 />
                 <Stack.Screen
                     name="agents-doc"
+                    options={{
+                        presentation: 'card',
+                        animationTypeForReplace: 'pop',
+                        cardOverlayEnabled: false,
+                        animation: 'slide_from_bottom',
+                    }}
+                />
+                <Stack.Screen
+                    name="source-file"
                     options={{
                         presentation: 'card',
                         animationTypeForReplace: 'pop',

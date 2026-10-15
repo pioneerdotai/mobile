@@ -1,10 +1,11 @@
+import { composerOperationPlan } from '@/client/composer';
+import type { ComposerOperationIdentity } from '@/client/generated/composer_publication';
 import { AudioManager, AudioRecorder, type AudioEventSubscription } from 'react-native-audio-api';
 
 import {
     pioneerClient,
     type VoiceAudioFormat,
     type VoiceSessionStartContext,
-    type VoiceStatus,
     type VoiceTurnContext,
 } from '@/client';
 import { acquireGatewayTransportLease } from '@/services/gateway/transport-coordinator';
@@ -55,64 +56,50 @@ export type MobileVoiceCaptureCallbacks = {
 };
 
 export type StartMobileVoiceCaptureParams = {
-    workspaceId: string;
-    startContext: VoiceSessionStartContext;
+    operation: ComposerOperationIdentity;
     callbacks?: MobileVoiceCaptureCallbacks;
 };
 
-export const canUseVoiceStatus = (status: VoiceStatus | null | undefined): boolean =>
-    status === 'ready';
-
-export const voiceStatusUnavailableMessage = (status: VoiceStatus | null | undefined): string => {
-    switch (status) {
-        case 'model_downloading':
-            return 'Voice model is still downloading.';
-        case 'model_loading':
-            return 'Voice model is still loading.';
-        case 'busy':
-        case 'recording':
-        case 'transcribing':
-            return 'Voice input is busy.';
-        case 'error':
-            return 'Voice input is unavailable.';
-        case 'unavailable':
-            return 'Voice input is unavailable.';
-        case 'ready':
-            return '';
-        default:
-            return 'Voice input is not ready.';
-    }
-};
-
 export const startMobileVoiceCapture = async ({
-    workspaceId,
-    startContext,
+    operation,
     callbacks,
 }: StartMobileVoiceCaptureParams): Promise<MobileVoiceCaptureSession> => {
     const releaseTransportLease = await acquireGatewayTransportLease();
     let sessionOwnsTransportLease = false;
     try {
-        const status = await pioneerClient.voiceStatus({ workspace_id: workspaceId });
-        if (!canUseVoiceStatus(status.status)) {
+        let plan;
+        try {
+            plan = await pioneerClient.composerVoiceCapturePlan(operation);
+        } catch (error) {
             throw new MobileVoiceCaptureError(
                 'voice_not_ready',
-                status.error?.message || voiceStatusUnavailableMessage(status.status),
+                errorMessage(error),
+                errorOptions(error),
             );
         }
+        const startContext = plan.voice_start;
+        if (!startContext)
+            throw new MobileVoiceCaptureError(
+                'session_start_failed',
+                'Voice requires an opened thread',
+            );
 
         await ensureRecordingPermission();
         await ensureInputDevice();
-        await activateRecordingSession();
+        if (!composerOperationPlan(operation)) {
+            throw new MobileVoiceCaptureError('session_start_failed', 'Voice operation cancelled');
+        }
+        await activateRecordingSession(operation);
 
         let sessionId: string;
         try {
             const response = await pioneerClient.voiceSessionStart({
-                context: startContext,
+                operation,
                 audio_format: MOBILE_VOICE_AUDIO_FORMAT,
             });
             sessionId = response.session_id;
         } catch (error) {
-            await deactivateRecordingSession();
+            await deactivateRecordingSession(operation);
             throw new MobileVoiceCaptureError(
                 'session_start_failed',
                 errorMessage(error),
@@ -124,19 +111,30 @@ export const startMobileVoiceCapture = async ({
             sessionId,
             startContext,
             releaseTransportLease,
+            operation,
             callbacks,
         );
         sessionOwnsTransportLease = true;
         try {
             await session.start();
         } catch (error) {
+            const captureError =
+                error instanceof MobileVoiceCaptureError
+                    ? error
+                    : new MobileVoiceCaptureError(
+                          'recorder_start_failed',
+                          errorMessage(error),
+                          errorOptions(error),
+                      );
+            callbacks?.onError?.(captureError);
             await session.cancel('mobile_capture_start_failed').catch(() => null);
-            throw error;
+            throw captureError;
         }
 
         return session;
     } finally {
         if (!sessionOwnsTransportLease) {
+            await deactivateRecordingSession(operation);
             releaseTransportLease();
         }
     }
@@ -144,6 +142,7 @@ export const startMobileVoiceCapture = async ({
 
 export class MobileVoiceCaptureSession {
     readonly sessionId: string;
+    readonly operation: ComposerOperationIdentity;
     readonly startContext: VoiceSessionStartContext;
     readonly turnId: string;
     private readonly releaseTransportLease: () => void;
@@ -155,6 +154,7 @@ export class MobileVoiceCaptureSession {
     private currentInputRouteKey: string | null = null;
     private sequence = 0;
     private ending = false;
+    private endingTask: Promise<void> | null = null;
     private chunkError: MobileVoiceCaptureError | null = null;
     private lastLevelUpdateUnixMs = 0;
 
@@ -162,9 +162,11 @@ export class MobileVoiceCaptureSession {
         sessionId: string,
         startContext: VoiceSessionStartContext,
         releaseTransportLease: () => void,
+        operation: ComposerOperationIdentity,
         callbacks?: MobileVoiceCaptureCallbacks,
     ) {
         this.sessionId = sessionId;
+        this.operation = operation;
         this.startContext = { ...startContext };
         this.turnId = startContext.turn_id;
         this.releaseTransportLease = releaseTransportLease;
@@ -173,7 +175,9 @@ export class MobileVoiceCaptureSession {
 
     async start(): Promise<void> {
         await this.startRecorder();
+        if (this.ending) return;
         this.currentInputRouteKey = await getCurrentInputRouteKey();
+        if (this.ending) return;
         this.routeChangeSubscription = AudioManager.addSystemEventListener(
             'routeChange',
             (event) => {
@@ -220,6 +224,12 @@ export class MobileVoiceCaptureSession {
         }
 
         const startResult = await recorder.start();
+        if (this.ending || this.recorder !== recorder) {
+            recorder.clearOnAudioReady();
+            recorder.clearOnError();
+            if (recorder.isRecording()) await recorder.stop().catch(() => null);
+            return;
+        }
         if (startResult.status === 'error') {
             throw new MobileVoiceCaptureError('recorder_start_failed', startResult.message);
         }
@@ -255,7 +265,7 @@ export class MobileVoiceCaptureSession {
     }
 
     private async restartRecorderIfInputRouteChanged(): Promise<void> {
-        if (this.ending) {
+        if (this.ending || !composerOperationPlan(this.operation)) {
             return;
         }
 
@@ -265,12 +275,21 @@ export class MobileVoiceCaptureSession {
         }
 
         await this.stopCurrentRecorder();
-        if (this.ending) {
+        if (this.ending || !composerOperationPlan(this.operation)) {
             return;
         }
 
-        await deactivateRecordingSession();
-        await activateRecordingSession();
+        await deactivateRecordingSession(this.operation);
+        // Deactivation may finish after cancellation or another capture's activation.
+        // Only this still-current operation can reclaim the now-unowned audio session.
+        if (
+            this.ending ||
+            !composerOperationPlan(this.operation) ||
+            recordingSessionOwner !== null
+        ) {
+            return;
+        }
+        await activateRecordingSession(this.operation);
         if (this.ending) {
             return;
         }
@@ -279,25 +298,25 @@ export class MobileVoiceCaptureSession {
         this.currentInputRouteKey = await getCurrentInputRouteKey();
     }
 
-    async commit(prepareContext: () => Promise<VoiceTurnContext>): Promise<void> {
-        if (this.ending) {
-            return;
-        }
+    commit(prepareContext: () => Promise<VoiceTurnContext>): Promise<void> {
+        if (this.ending) return this.endingTask ?? Promise.resolve();
         this.ending = true;
+        this.endingTask = this.commitEnding(prepareContext);
+        return this.endingTask;
+    }
 
+    private async commitEnding(prepareContext: () => Promise<VoiceTurnContext>): Promise<void> {
         const chunkError = this.chunkError;
-        await this.stopRecorder();
-        this.callbacks?.onLevel?.(0);
-
         try {
+            await this.stopRecorder();
+            this.callbacks?.onLevel?.(0);
             if (chunkError) {
                 await this.cancelGatewaySession('mobile_chunk_send_failed');
                 throw chunkError;
             }
 
-            let context: VoiceTurnContext;
             try {
-                context = await prepareContext();
+                await prepareContext();
             } catch (error) {
                 await this.cancelGatewaySession('mobile_prepare_failed').catch(() => null);
                 throw error;
@@ -305,8 +324,7 @@ export class MobileVoiceCaptureSession {
 
             try {
                 await pioneerClient.voiceSessionFinalize({
-                    session_id: this.sessionId,
-                    context,
+                    operation: this.operation,
                 });
             } catch (error) {
                 throw new MobileVoiceCaptureError(
@@ -317,26 +335,28 @@ export class MobileVoiceCaptureSession {
             }
         } finally {
             try {
-                await deactivateRecordingSession();
+                await deactivateRecordingSession(this.operation);
             } finally {
                 this.releaseTransportLease();
             }
         }
     }
 
-    async cancel(reason = 'mobile_release_cancel'): Promise<void> {
-        if (this.ending) {
-            return;
-        }
+    cancel(reason = 'mobile_release_cancel'): Promise<void> {
+        if (this.ending) return this.endingTask ?? Promise.resolve();
         this.ending = true;
+        this.endingTask = this.cancelEnding(reason);
+        return this.endingTask;
+    }
 
-        await this.stopRecorder();
-        this.callbacks?.onLevel?.(0);
+    private async cancelEnding(reason: string): Promise<void> {
         try {
+            await this.stopRecorder();
+            this.callbacks?.onLevel?.(0);
             await this.cancelGatewaySession(reason);
         } finally {
             try {
-                await deactivateRecordingSession();
+                await deactivateRecordingSession(this.operation);
             } finally {
                 this.releaseTransportLease();
             }
@@ -373,7 +393,6 @@ export class MobileVoiceCaptureSession {
 
     private sendVoiceChunk(samples: Float32Array, sampleOffset: number, sampleCount: number): void {
         const sequence = this.sequence;
-        this.sequence += 1;
         const pcmChunk = pcmS16LeFromFloat32(samples, sampleOffset, sampleCount);
         const durationMs = Math.max(
             1,
@@ -383,6 +402,7 @@ export class MobileVoiceCaptureSession {
         try {
             pioneerClient.voiceAudioChunk(
                 {
+                    operation: this.operation,
                     session_id: this.sessionId,
                     sequence,
                     audio_format: MOBILE_VOICE_AUDIO_FORMAT,
@@ -391,6 +411,7 @@ export class MobileVoiceCaptureSession {
                 },
                 pcmChunk,
             );
+            this.sequence += 1;
             this.updateLevel(samples, sampleOffset, sampleCount);
         } catch (error) {
             const captureError = new MobileVoiceCaptureError(
@@ -450,6 +471,7 @@ export class MobileVoiceCaptureSession {
     private async cancelGatewaySession(reason: string): Promise<void> {
         try {
             await pioneerClient.voiceSessionCancel({
+                operation: this.operation,
                 session_id: this.sessionId,
                 reason,
             });
@@ -507,7 +529,10 @@ const getCurrentInputRouteKey = async (): Promise<string | null> => {
         .join('|');
 };
 
-const activateRecordingSession = async (): Promise<void> => {
+let recordingSessionOwner: ComposerOperationIdentity | null = null;
+
+const activateRecordingSession = async (operation: ComposerOperationIdentity): Promise<void> => {
+    recordingSessionOwner = operation;
     AudioManager.setAudioSessionOptions({
         iosCategory: 'record',
         iosMode: 'default',
@@ -516,7 +541,14 @@ const activateRecordingSession = async (): Promise<void> => {
     await AudioManager.setAudioSessionActivity(true);
 };
 
-const deactivateRecordingSession = async (): Promise<void> => {
+const deactivateRecordingSession = async (operation: ComposerOperationIdentity): Promise<void> => {
+    if (
+        recordingSessionOwner?.thread_id !== operation.thread_id ||
+        recordingSessionOwner.draft_id !== operation.draft_id ||
+        recordingSessionOwner.generation !== operation.generation
+    )
+        return;
+    recordingSessionOwner = null;
     await AudioManager.setAudioSessionActivity(false).catch(() => null);
 };
 

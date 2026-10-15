@@ -200,6 +200,65 @@ const composerProps = (
 });
 
 describe('mobile Composer interactions', () => {
+    it('passes a capability identity from a retained callback after filtering', async () => {
+        const onRemoveCapability = jest.fn();
+        const target = {
+            id: 'mcp-server:workspace:mail',
+            label: 'Mail',
+            kind: { McpServer: { name: 'mail', scope_kind: 'workspace' as const } },
+        };
+        let tree: ReactTestRenderer;
+        await act(async () => {
+            tree = renderer.create(
+                <ThreadComposer
+                    {...composerProps({ capabilities: [target], onRemoveCapability })}
+                />,
+            );
+            mountedTrees.push(tree);
+        });
+        const remove = chipForLabel(tree!.root, target.label).find(
+            (node) => (node.type as unknown) === 'Pressable',
+        ).props.onPress;
+        await act(async () => {
+            tree!.update(
+                <ThreadComposer {...composerProps({ capabilities: [], onRemoveCapability })} />,
+            );
+        });
+        await act(async () => remove());
+        expect(onRemoveCapability).toHaveBeenCalledWith(target.id);
+    });
+
+    it('retains attachment identity through insertion and reordering and removes by path', async () => {
+        const onRemoveAttachment = jest.fn();
+        const attachment = (name: string) => ({
+            path: `/synthetic/${name}.txt`,
+            file_name: `${name}.txt`,
+            kind: 'File' as const,
+            upload_state: 'Local' as const,
+        });
+        const first = attachment('first');
+        const target = attachment('target');
+        const inserted = attachment('inserted');
+        let tree: ReactTestRenderer;
+        const render = (attachments: (typeof first)[]) => (
+            <ThreadComposer {...composerProps({ attachments, onRemoveAttachment })} />
+        );
+        await act(async () => {
+            tree = renderer.create(render([first, target]));
+            mountedTrees.push(tree);
+        });
+        const original = chipForLabel(tree!.root, target.file_name);
+        const retainedRemove = original.find((node) => (node.type as unknown) === 'Pressable').props
+            .onPress;
+        await act(async () => {
+            tree!.update(render([inserted, first, target]));
+        });
+        expect(chipForLabel(tree!.root, target.file_name)).toBe(original);
+        await act(async () => retainedRemove());
+        expect(onRemoveAttachment).toHaveBeenCalledWith(target.path);
+        expect(onRemoveAttachment).toHaveBeenCalledTimes(1);
+    });
+
     it('hides the mention action when no participants are available', async () => {
         let tree: ReactTestRenderer;
         await act(async () => {

@@ -1,4 +1,6 @@
+import { catalogSnapshot, useWorkspaceCatalog } from '@/client/workspaces';
 import { create } from 'zustand';
+import { navigationSnapshot, selectWorkspace, useClientNavigation } from '@/client/navigation';
 
 import type { Workspace } from '@/client';
 import type { WorkspaceOperationErrorCode } from '@/services/workspace/management';
@@ -11,47 +13,32 @@ type WorkspaceStoreState = {
     error: WorkspaceOperationErrorCode | null;
     bootstrappedConnectionId: number | null;
     showWorkspaceSwitcher: boolean;
-    setWorkspaces: (workspaces: Workspace[]) => void;
     setActiveWorkspaceId: (workspaceId: string | null) => void;
     setPreferredWorkspaceId: (workspaceId: string | null) => void;
-    setLoading: (loading: boolean) => void;
-    setError: (error: WorkspaceOperationErrorCode | null) => void;
-    setBootstrappedConnectionId: (connectionId: number | null) => void;
     setWorkspaceSwitcherOpen: (open: boolean) => void;
     resetConnectionBootstrap: () => void;
 };
 
-export const useWorkspaceStore = create<WorkspaceStoreState>((set) => ({
-    workspaces: [],
-    activeWorkspaceId: null,
-    preferredWorkspaceId: null,
-    loading: false,
-    error: null,
-    bootstrappedConnectionId: null,
+type WorkspacePresentationState = Omit<
+    WorkspaceStoreState,
+    | 'activeWorkspaceId'
+    | 'preferredWorkspaceId'
+    | 'workspaces'
+    | 'loading'
+    | 'error'
+    | 'bootstrappedConnectionId'
+>;
+const emptyWorkspaces: Workspace[] = [];
+
+const useWorkspacePresentationStore = create<WorkspacePresentationState>((set) => ({
     showWorkspaceSwitcher: false,
 
-    setWorkspaces: (workspaces) => {
-        set({ workspaces });
-    },
-
     setActiveWorkspaceId: (workspaceId) => {
-        set({ activeWorkspaceId: workspaceId });
+        selectWorkspace(workspaceId);
     },
 
     setPreferredWorkspaceId: (workspaceId) => {
-        set({ preferredWorkspaceId: workspaceId });
-    },
-
-    setLoading: (loading) => {
-        set({ loading });
-    },
-
-    setError: (error) => {
-        set({ error });
-    },
-
-    setBootstrappedConnectionId: (connectionId) => {
-        set({ bootstrappedConnectionId: connectionId });
+        selectWorkspace(workspaceId);
     },
 
     setWorkspaceSwitcherOpen: (open) => {
@@ -59,13 +46,63 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set) => ({
     },
 
     resetConnectionBootstrap: () => {
-        set({
-            workspaces: [],
-            activeWorkspaceId: null,
-            preferredWorkspaceId: null,
-            loading: false,
-            error: null,
-            bootstrappedConnectionId: null,
-        });
+        selectWorkspace(null);
     },
 }));
+
+// Selection is a Client publication; this facade preserves workspace presentation callers.
+export const useWorkspaceStore = Object.assign(
+    <T>(selector: (state: WorkspaceStoreState) => T): T => {
+        const navigation = useClientNavigation();
+        const catalog = useWorkspaceCatalog();
+        // Subscribe to stable store snapshots; compose the selected view during render.
+        const presentation = useWorkspacePresentationStore();
+        return selector({
+            ...presentation,
+            workspaces: catalog?.workspaces ?? emptyWorkspaces,
+            bootstrappedConnectionId: catalog?.bootstrapped_connection_id ?? null,
+            error: catalogError(catalog),
+            loading: (catalog?.loading || catalog?.action_pending) ?? false,
+            activeWorkspaceId: navigation?.workspace_id ?? null,
+            preferredWorkspaceId: navigation?.workspace_id ?? null,
+        });
+    },
+    {
+        getState: (): WorkspaceStoreState => ({
+            ...useWorkspacePresentationStore.getState(),
+            workspaces: catalogSnapshot()?.workspaces ?? emptyWorkspaces,
+            bootstrappedConnectionId: catalogSnapshot()?.bootstrapped_connection_id ?? null,
+            error: catalogError(catalogSnapshot()),
+            loading: (catalogSnapshot()?.loading || catalogSnapshot()?.action_pending) ?? false,
+            activeWorkspaceId: navigationSnapshot()?.workspace_id ?? null,
+            preferredWorkspaceId: navigationSnapshot()?.workspace_id ?? null,
+        }),
+        setState: (
+            patch: Partial<WorkspacePresentationState> & {
+                activeWorkspaceId?: string | null;
+                preferredWorkspaceId?: string | null;
+            },
+        ) => {
+            const { activeWorkspaceId, preferredWorkspaceId, ...presentation } = patch;
+            if (activeWorkspaceId !== undefined) selectWorkspace(activeWorkspaceId);
+            else if (preferredWorkspaceId !== undefined) selectWorkspace(preferredWorkspaceId);
+            useWorkspacePresentationStore.setState(presentation);
+        },
+    },
+);
+
+const catalogError = (
+    catalog: ReturnType<typeof catalogSnapshot>,
+): WorkspaceOperationErrorCode | null => {
+    if (!catalog?.error) return null;
+    switch (catalog.operation) {
+        case 'select':
+            return 'selectFailed';
+        case 'create':
+            return 'createFailed';
+        case 'rename':
+            return 'renameFailed';
+        default:
+            return 'bootstrapFailed';
+    }
+};

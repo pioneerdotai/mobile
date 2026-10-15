@@ -1,104 +1,93 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useMemo } from 'react';
-import { useShallow } from 'zustand/react/shallow';
-
-import { pioneerClient } from '@/client';
-import {
-    authorizationCapabilitySnapshotQueryOptions,
-    currentAdministrationPrincipalQueryOptions,
-    type AdministrationAuthorizationEpoch,
-} from '@/services/administration/query';
-import { useGatewayStore } from '@/stores/gateway';
+import { useCallback, useEffect, useMemo, useSyncExternalStore } from 'react';
+import { mobileClientBinding, pioneerClient } from '@/client';
+import type { IdentityAuthorizationPublication } from '@/client/generated/identity_authorization_publication';
 import { useWorkspaceStore } from '@/stores/workspace';
 
-const useAdministrationAuthorizationEpoch = () => {
-    const { connectionGatewayId, connectionId, connectionState } = useGatewayStore(
-        useShallow((state) => ({
-            connectionGatewayId: state.connectionGatewayId,
-            connectionId: state.connectionId,
-            connectionState: state.connectionState,
-        })),
-    );
-    const epoch = useMemo<AdministrationAuthorizationEpoch>(
-        () => ({ gatewayId: connectionGatewayId, connectionId }),
-        [connectionGatewayId, connectionId],
-    );
+const useIdentity = () => {
+    const store = mobileClientBinding.scope({ kind: 'administration', workspace_id: null });
+    const value = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot);
+    return value?.payload as IdentityAuthorizationPublication | null;
+};
+export const useAdministrationPrincipal = () => {
+    const identity = useIdentity();
+    const data = identity?.current_auth ?? undefined;
+    const refetch = useCallback(async () => {
+        await pioneerClient.gatewayAuthMe();
+        await mobileClientBinding.synchronize();
+    }, []);
     return {
-        epoch,
-        enabled:
-            connectionState === 'Connected' &&
-            connectionGatewayId !== null &&
-            connectionId !== null,
+        data,
+        error: identity?.identity_error ?? null,
+        isError: Boolean(identity?.identity_error),
+        isPending: !data && !identity?.identity_error,
+        isFetching: Boolean(identity?.identity_loading),
+        refetch,
     };
 };
-
-export const useAdministrationPrincipal = () => {
-    const { enabled, epoch } = useAdministrationAuthorizationEpoch();
-    return useQuery({
-        ...currentAdministrationPrincipalQueryOptions(epoch),
-        enabled,
-    });
-};
-
 export const useAuthorizationCapabilitySnapshot = (threadId: string | null = null) => {
-    const queryClient = useQueryClient();
-    const { enabled, epoch } = useAdministrationAuthorizationEpoch();
-    const principal = useAdministrationPrincipal();
+    const identity = useIdentity();
     const workspaceId = useWorkspaceStore((state) => state.activeWorkspaceId);
-    return useQuery({
-        ...authorizationCapabilitySnapshotQueryOptions(
-            queryClient,
-            epoch,
-            principal.data?.principal.id ?? '',
-            workspaceId,
-            threadId,
-        ),
-        enabled:
-            enabled && principal.data !== undefined && (threadId === null || workspaceId !== null),
-    });
+    const data = threadId
+        ? identity?.thread_snapshots?.[threadId]
+        : workspaceId
+          ? identity?.workspace_snapshots?.[workspaceId]
+          : undefined;
+    const refetch = useCallback(async () => {
+        if (!workspaceId) return;
+        await pioneerClient.gatewayAuthorizationCapabilities({
+            workspace_id: workspaceId,
+            thread_id: threadId,
+        });
+        await mobileClientBinding.synchronize();
+    }, [workspaceId, threadId]);
+    const read = identity?.capability_reads.find(
+        (read) =>
+            (read.workspace_id ?? null) === workspaceId && (read.thread_id ?? null) === threadId,
+    );
+    const connected = identity?.connection_id != null;
+    useEffect(() => {
+        if (connected) void refetch().catch(() => undefined);
+    }, [
+        connected,
+        identity?.connection_generation,
+        identity?.authorization_change_sequence,
+        refetch,
+    ]);
+    return {
+        data,
+        error: read?.error ?? null,
+        isError: Boolean(read?.error),
+        isPending: !data && !read?.error,
+        isFetching: Boolean(read?.loading),
+        refetch,
+    };
 };
-
 export const useAdministrationCapabilities = () => {
     const query = useAuthorizationCapabilitySnapshot();
-    return {
-        ...query,
-        capabilitySnapshot: query.data,
-        data: query.data ? pioneerClient.principalPresentationCapabilities(query.data) : undefined,
-    };
+    const data = useMemo(
+        () =>
+            query.data ? pioneerClient.principalPresentationCapabilities(query.data) : undefined,
+        [query.data],
+    );
+    return { ...query, capabilitySnapshot: query.data, data };
 };
-
-/** Resource-scoped operational capabilities for an active thread. Internal
- * task/subagent threads are resolved by the Gateway through persisted root
- * lineage; the client never infers that inheritance locally. */
-export const useThreadAuthorizationCapabilities = (threadId: string | null) =>
-    useAuthorizationCapabilitySnapshot(threadId);
-
 export const useCurrentPrincipalPresentation = () => {
     const principal = useAdministrationPrincipal();
-    const capabilitySnapshot = useAuthorizationCapabilitySnapshot();
-    const presentation = useMemo(() => {
-        if (!principal.data || !capabilitySnapshot.data) {
-            return { data: undefined, error: null };
-        }
-        try {
-            return {
-                data: pioneerClient.currentPrincipalPresentation({
-                    auth: principal.data,
-                    capability_snapshot: capabilitySnapshot.data,
-                }),
-                error: null,
-            };
-        } catch (error) {
-            return { data: undefined, error };
-        }
-    }, [capabilitySnapshot.data, principal.data]);
-
+    const capabilities = useAuthorizationCapabilitySnapshot();
+    const data = useMemo(
+        () =>
+            principal.data && capabilities.data
+                ? pioneerClient.currentPrincipalPresentation({
+                      auth: principal.data,
+                      capability_snapshot: capabilities.data,
+                  })
+                : undefined,
+        [principal.data, capabilities.data],
+    );
     return {
-        data: presentation.data,
-        error: presentation.error ?? principal.error ?? capabilitySnapshot.error,
-        isError: presentation.error !== null || principal.isError || capabilitySnapshot.isError,
-        isFetching: principal.isFetching || capabilitySnapshot.isFetching,
-        isPending: principal.isPending || capabilitySnapshot.isPending,
-        refetch: async () => Promise.all([principal.refetch(), capabilitySnapshot.refetch()]),
+        ...principal,
+        data,
+        isPending: !data,
+        refetch: async () => Promise.all([principal.refetch(), capabilities.refetch()]),
     };
 };

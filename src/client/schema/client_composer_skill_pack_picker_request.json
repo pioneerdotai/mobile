@@ -3,16 +3,22 @@
   "title": "ClientComposerSkillPackPickerRequest",
   "type": "object",
   "properties": {
+    "draft_id": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0
+    },
     "query": {
       "type": "string",
       "default": ""
     },
-    "workspace_id": {
+    "thread_id": {
       "type": "string"
     }
   },
   "additionalProperties": false,
   "required": [
-    "workspace_id"
+    "thread_id",
+    "draft_id"
   ]
 }

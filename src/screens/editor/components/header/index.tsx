@@ -1,13 +1,12 @@
 import { FC, ReactNode } from 'react';
-import { useUnistyles, StyleSheet } from 'react-native-unistyles';
-import { X } from 'lucide-react-native';
+import { StyleSheet } from 'react-native-unistyles';
 
 import { HStack } from '@/components/primitives/hstack';
-import { Pressable } from '@/components/primitives/pressable';
 import { VStack } from '@/components/primitives/vstack';
 import { Title } from '@/components/typography/title';
 import { Box } from '@/components/primitives/box';
 import { Text } from '@/components/primitives/text';
+import { CloseButton } from '@/components/buttons/close';
 
 interface HeaderProps {
     title?: string | null;
@@ -36,12 +35,8 @@ const styles = StyleSheet.create((theme) => ({
         gap: theme.space(2),
     },
     closeContainer: {
-        height: theme.space(11),
-        width: theme.space(11),
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: theme.colors.typography,
-        borderRadius: theme.radius.full,
     },
     description: {
         color: theme.colors.neutral[600],
@@ -55,8 +50,6 @@ const Header: FC<HeaderProps> = ({
     actions,
     closeDisabled = false,
 }) => {
-    const { theme, rt } = useUnistyles();
-
     const handleClosePress = () => {
         if (!closeDisabled && handleClose) handleClose();
     };
@@ -69,16 +62,7 @@ const Header: FC<HeaderProps> = ({
                     {actions && actions}
                     {handleClose && (
                         <Box style={styles.closeContainer}>
-                            <Pressable onPress={handleClosePress}>
-                                <X
-                                    size={theme.space(7)}
-                                    color={
-                                        rt.themeName === 'dark'
-                                            ? theme.colors.neutral[950]
-                                            : theme.colors.white
-                                    }
-                                />
-                            </Pressable>
+                            <CloseButton onPressHandler={handleClosePress} />
                         </Box>
                     )}
                 </HStack>

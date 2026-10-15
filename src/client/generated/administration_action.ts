@@ -2,6 +2,11 @@
 
 export type AdministrationAction =
   | {
+      kind: 'set_member_workspaces';
+      principal_id: PrincipalId;
+      [k: string]: unknown;
+    }
+  | {
       kind: 'create_invitation';
       [k: string]: unknown;
     }
@@ -42,6 +47,6 @@ export type AdministrationAction =
       workspace_id: WorkspaceId;
       [k: string]: unknown;
     };
-export type InvitationId = string;
 export type PrincipalId = string;
+export type InvitationId = string;
 export type WorkspaceId = string;

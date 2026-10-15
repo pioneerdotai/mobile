@@ -9,6 +9,8 @@ import {
     TIMELINE_TECHNICAL_ROW_VERTICAL_PADDING_UNITS,
     TASK_CHILD_TIMELINE_PRESENTATION_CONTEXT,
     TimelineGroupingIndex,
+    isCurrentPrincipalUserMessage,
+    type TimelinePresentationContext,
 } from './timeline-grouping';
 
 const timelineRow = (value: Record<string, unknown>): TimelineRow => value as TimelineRow;
@@ -52,7 +54,7 @@ describe('TimelineGroupingIndex', () => {
             userMessage({ key: 'two', optimistic: true }),
         ];
 
-        const grouping = TimelineGroupingIndex.build(rows, 'current-principal');
+        const grouping = fixtureGrouping(rows, 'current-principal');
 
         expect(grouping.rowLayout(0)).toEqual({
             groupKind: 'current-user',
@@ -60,6 +62,19 @@ describe('TimelineGroupingIndex', () => {
             startsAvatarGroup: false,
         });
         expect(grouping.rowLayout(1).compactTopSpacing).toBe(true);
+        expect(grouping.avatarGroups).toHaveLength(0);
+    });
+
+    it('renders an authoritative message from the authenticated principal as current-user', () => {
+        const row = userMessage({ key: 'persisted', authorId: 'current-principal' });
+
+        const grouping = fixtureGrouping([row], 'current-principal');
+
+        expect(grouping.rowLayout(0)).toEqual({
+            groupKind: 'current-user',
+            compactTopSpacing: false,
+            startsAvatarGroup: false,
+        });
         expect(grouping.avatarGroups).toHaveLength(0);
     });
 
@@ -71,7 +86,7 @@ describe('TimelineGroupingIndex', () => {
             userMessage({ key: 'alice-three', authorId: 'alice' }),
         ];
 
-        const grouping = TimelineGroupingIndex.build(rows, 'current-principal');
+        const grouping = fixtureGrouping(rows, 'current-principal');
 
         expect(
             grouping.avatarGroups.map(({ startIndex, endIndex }) => [startIndex, endIndex]),
@@ -106,7 +121,7 @@ describe('TimelineGroupingIndex', () => {
             }),
         ];
 
-        const grouping = TimelineGroupingIndex.build(rows, 'current-principal');
+        const grouping = fixtureGrouping(rows, 'current-principal');
 
         expect(
             grouping.avatarGroups.map(({ startIndex, endIndex }) => [startIndex, endIndex]),
@@ -141,8 +156,8 @@ describe('TimelineGroupingIndex', () => {
         });
         const otherUser = userMessage({ key: 'other-user', authorId: 'other-principal' });
 
-        const standard = TimelineGroupingIndex.build([childInput], 'current-principal');
-        const child = TimelineGroupingIndex.build(
+        const standard = fixtureGrouping([childInput], 'current-principal');
+        const child = fixtureGrouping(
             [childInput, otherUser],
             'current-principal',
             TASK_CHILD_TIMELINE_PRESENTATION_CONTEXT,
@@ -186,8 +201,8 @@ describe('TimelineGroupingIndex', () => {
             author,
         });
 
-        const rootGrouping = TimelineGroupingIndex.build([row], 'current-principal');
-        const childGrouping = TimelineGroupingIndex.build(
+        const rootGrouping = fixtureGrouping([row], 'current-principal');
+        const childGrouping = fixtureGrouping(
             [row],
             'current-principal',
             TASK_CHILD_TIMELINE_PRESENTATION_CONTEXT,
@@ -222,7 +237,7 @@ describe('TimelineGroupingIndex', () => {
             timelineRow({ type: 'running', key: 'running', turnId: 'turn-b' }),
         ];
 
-        const grouping = TimelineGroupingIndex.build(rows, 'current-principal');
+        const grouping = fixtureGrouping(rows, 'current-principal');
 
         expect(
             grouping.avatarGroups.map(({ source, startIndex, endIndex }) => ({
@@ -250,8 +265,8 @@ describe('TimelineGroupingIndex', () => {
             timelineRow({ type: 'running', key: 'running', turnId: 'turn-b' }),
         ];
 
-        const rootGrouping = TimelineGroupingIndex.build(rows, 'current-principal');
-        const childGrouping = TimelineGroupingIndex.build(
+        const rootGrouping = fixtureGrouping(rows, 'current-principal');
+        const childGrouping = fixtureGrouping(
             rows,
             'current-principal',
             TASK_CHILD_TIMELINE_PRESENTATION_CONTEXT,
@@ -282,7 +297,7 @@ describe('TimelineGroupingIndex', () => {
                 role_label: 'Researcher',
             },
         };
-        const grouping = TimelineGroupingIndex.build(
+        const grouping = fixtureGrouping(
             [
                 timelineRow({
                     type: 'running',
@@ -338,7 +353,7 @@ describe('TimelineGroupingIndex', () => {
             }),
         ];
 
-        const grouping = TimelineGroupingIndex.build(rows, 'current-principal');
+        const grouping = fixtureGrouping(rows, 'current-principal');
 
         expect(grouping.avatarGroups).toHaveLength(1);
         expect(grouping.avatarGroups[0]).toMatchObject({
@@ -369,7 +384,7 @@ describe('TimelineGroupingIndex', () => {
             timelineRow({ type: 'tool-call', key: 'tool', turnId: 'turn-tool' }),
         ];
 
-        const grouping = TimelineGroupingIndex.build(rows, null);
+        const grouping = fixtureGrouping(rows, null);
 
         expect(grouping.avatarGroups.map((group) => group.bottomInsetUnits)).toEqual([
             TIMELINE_AGENT_MESSAGE_VERTICAL_PADDING_UNITS,
@@ -384,10 +399,48 @@ describe('TimelineGroupingIndex', () => {
             timelineRow({ type: 'artifact', key: 'artifact-two' }),
         ];
 
-        const grouping = TimelineGroupingIndex.build(rows, null);
+        const grouping = fixtureGrouping(rows, null);
 
         expect(grouping.avatarGroups).toHaveLength(2);
         expect(grouping.rowLayout(0).compactTopSpacing).toBe(false);
         expect(grouping.rowLayout(1).compactTopSpacing).toBe(false);
     });
 });
+
+// Baseline group fixtures describe shell layout inputs; Client grouping is tested in Rust.
+function fixtureGrouping(
+    rows: readonly TimelineRow[],
+    principal?: string | null,
+    context?: TimelinePresentationContext,
+) {
+    const groups: import('@/client/generated/timeline_snapshot').TimelineGroup[] = [];
+    let previous = '';
+    rows.forEach((row, index) => {
+        const user = row.type === 'user-message';
+        const own = isCurrentPrincipalUserMessage(row, principal);
+        const turn = 'turnId' in row ? row.turnId : null;
+        const key = user
+            ? own
+                ? 'current'
+                : JSON.stringify(row.author?.actor ?? row.key)
+            : turn || row.key;
+        if (key === previous) {
+            groups[groups.length - 1].last_row = index;
+            groups[groups.length - 1].has_running ||= row.type === 'running';
+        } else
+            groups.push({
+                id: row.key,
+                first_row: index,
+                last_row: index,
+                user_message: user,
+                current_principal: own,
+                author:
+                    user || row.author?.actor.kind === 'agent_execution'
+                        ? (row.author ?? null)
+                        : null,
+                has_running: row.type === 'running',
+            });
+        previous = key;
+    });
+    return TimelineGroupingIndex.fromSnapshot(rows, groups, principal, context);
+}

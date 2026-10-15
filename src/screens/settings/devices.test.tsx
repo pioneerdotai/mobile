@@ -8,11 +8,21 @@ const mockT = jest.fn((key: string) => key);
 const mockSetOptions = jest.fn();
 const mockPresent = jest.fn();
 const mockClose = jest.fn();
-const mockListSessions = jest.fn<() => Promise<unknown>>();
-const mockCreateActivation = jest.fn<() => Promise<unknown>>();
-const mockCancelActivation = jest.fn<(sessionId: string) => Promise<void>>();
-const mockLogout = jest.fn<() => Promise<void>>();
-const mockRevoke = jest.fn<() => Promise<void>>();
+const mockDispatchSettings = jest.fn();
+const mockActivationPresentation = jest.fn<() => Promise<unknown>>();
+let mockSessionState = {
+    owner_generation: 7,
+    sessions: [] as (typeof currentSession)[],
+    loading: false,
+    revoking: null as string | null,
+    error: null as string | null,
+};
+let mockActivationState = {
+    generation: 1,
+    loading: false,
+    ready: false,
+    error: null as string | null,
+};
 const mockSessionPresentation = jest.fn((item: { session: { status: string } }) => ({
     status: item.session.status,
     actionable: item.session.status === 'active',
@@ -121,16 +131,17 @@ jest.mock('@/components/primitives/vstack', () => ({
     VStack: mockVStack,
 }));
 
-jest.mock('@/services/gateway/device-activation', () => ({
-    cancelMobileDeviceActivation: mockCancelActivation,
-    createMobileDeviceActivationPresentation: mockCreateActivation,
-    listMobileGatewaySessions: mockListSessions,
-    logoutMobileGatewaySession: mockLogout,
-    revokeMobileGatewaySession: mockRevoke,
+jest.mock('@/client/settings', () => ({
+    useAuthSessions: () => mockSessionState,
+    useDeviceActivation: () => mockActivationState,
+    dispatchSettings: mockDispatchSettings,
 }));
 
 jest.mock('@/client', () => ({
-    pioneerClient: { sessionListRowPresentation: mockSessionPresentation },
+    pioneerClient: {
+        sessionListRowPresentation: mockSessionPresentation,
+        gatewayDeviceActivationPresentation: mockActivationPresentation,
+    },
 }));
 
 jest.mock('@/stores/gateway', () => ({
@@ -180,11 +191,15 @@ const flushPromises = async () => {
 describe('DevicesSettingsScreen', () => {
     beforeEach(() => {
         jest.clearAllMocks();
-        mockListSessions.mockResolvedValue({ sessions: [currentSession, otherSession] });
-        mockCreateActivation.mockResolvedValue(activation);
-        mockCancelActivation.mockResolvedValue(undefined);
-        mockLogout.mockResolvedValue(undefined);
-        mockRevoke.mockResolvedValue(undefined);
+        mockSessionState = {
+            owner_generation: 7,
+            sessions: [currentSession, otherSession],
+            loading: false,
+            revoking: null,
+            error: null,
+        };
+        mockActivationState = { generation: 1, loading: false, ready: false, error: null };
+        mockActivationPresentation.mockResolvedValue(activation);
         jest.spyOn(Alert, 'alert').mockImplementation(jest.fn());
     });
 
@@ -237,8 +252,13 @@ describe('DevicesSettingsScreen', () => {
             await flushPromises();
         });
 
-        expect(mockLogout).toHaveBeenCalledTimes(1);
-        expect(mockRevoke).not.toHaveBeenCalled();
+        expect(mockDispatchSettings).toHaveBeenCalledTimes(1);
+        expect(mockDispatchSettings).toHaveBeenLastCalledWith({
+            kind: 'revoke_session',
+            session_id: 'current-session',
+            expected_status: 'active',
+            expected_owner: 7,
+        });
 
         actionTriggers = tree!.root
             .findAllByType(mockPressable)
@@ -259,11 +279,17 @@ describe('DevicesSettingsScreen', () => {
             await flushPromises();
         });
 
-        expect(mockRevoke).toHaveBeenCalledWith('gateway-1', 'other-session', false);
+        expect(mockDispatchSettings).toHaveBeenLastCalledWith({
+            kind: 'revoke_session',
+            session_id: 'other-session',
+            expected_status: 'active',
+            expected_owner: 7,
+        });
     });
 
     it('shows terminal session status and disables its action', async () => {
-        mockListSessions.mockResolvedValue({
+        mockSessionState = {
+            ...mockSessionState,
             sessions: [
                 currentSession,
                 {
@@ -272,7 +298,7 @@ describe('DevicesSettingsScreen', () => {
                     session: { ...otherSession.session, status: 'revoked' },
                 },
             ],
-        });
+        };
         let tree: ReactTestRenderer | null = null;
         await act(async () => {
             tree = renderer.create(<DevicesSettingsScreen />);
@@ -303,7 +329,14 @@ describe('DevicesSettingsScreen', () => {
         });
 
         expect(mockPresent).toHaveBeenCalledTimes(1);
-        expect(mockCreateActivation).toHaveBeenCalledTimes(1);
+        expect(mockDispatchSettings).toHaveBeenLastCalledWith({ kind: 'create_device_activation' });
+        expect(mockActivationPresentation).not.toHaveBeenCalled();
+        mockActivationState = { generation: 2, ready: true, loading: false, error: null };
+        await act(async () => {
+            tree!.update(<DevicesSettingsScreen />);
+            await flushPromises();
+        });
+        expect(mockActivationPresentation).toHaveBeenCalledWith({ generation: 2 });
         expect(tree!.root.findByType(mockDeviceActivationQr).props).toMatchObject({
             modules: [true],
             width: 1,

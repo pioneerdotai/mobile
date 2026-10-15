@@ -1,57 +1,11 @@
-import { useUnistyles, StyleSheet } from 'react-native-unistyles';
 import { Plus } from 'lucide-react-native';
 
-import { Pressable } from '../primitives/pressable';
-import { Box, BoxProps } from '../primitives/box';
+import { BaseIconButton, type BaseIconButtonProps } from './base-icon-button';
 
-interface CreateButtonProps {
-    onPressHandler: () => void;
-    containerStyle?: BoxProps['style'];
-    iconSize?: number;
-    iconColor?: string;
-    accessibilityLabel?: string;
-}
+export type CreateButtonProps = Omit<BaseIconButtonProps, 'Icon' | 'iconStyle'>;
 
-const styles = StyleSheet.create((theme, rt) => ({
-    createContainer: {
-        height: theme.space(11),
-        width: theme.space(11),
-        backgroundColor: rt.themeName === 'dark' ? theme.colors.white : theme.colors.neutral[950],
-        borderRadius: theme.radius.full,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-}));
-
-const CreateButton = ({
-    onPressHandler,
-    containerStyle,
-    iconSize,
-    iconColor,
-    accessibilityLabel,
-}: CreateButtonProps) => {
-    const { theme, rt } = useUnistyles();
-
-    return (
-        <Pressable
-            accessibilityLabel={accessibilityLabel}
-            accessibilityRole="button"
-            onPress={onPressHandler}
-        >
-            <Box style={[styles.createContainer, containerStyle]}>
-                <Plus
-                    size={iconSize || theme.space(7)}
-                    color={
-                        iconColor
-                            ? iconColor
-                            : rt.themeName === 'dark'
-                              ? theme.colors.neutral[950]
-                              : theme.colors.neutral[50]
-                    }
-                />
-            </Box>
-        </Pressable>
-    );
+const CreateButton = (props: CreateButtonProps) => {
+    return <BaseIconButton {...props} Icon={Plus} />;
 };
 
 export { CreateButton };

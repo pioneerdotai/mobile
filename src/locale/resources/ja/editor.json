@@ -14,5 +14,14 @@
     "local": "ローカル",
     "remote": "リモート",
     "reloadRemote": "リモートを再読み込み",
-    "overwriteRemote": "リモートを上書き"
+    "overwriteRemote": "リモートを上書き",
+    "fileViewerTitle": "ファイル",
+    "fileViewerLoading": "ファイルを開いています…",
+    "fileViewerLargeFileNotice": "この大きなファイルではシンタックスハイライトが無効になっています。",
+    "fileViewerErrors": {
+        "expired": "このファイルリンクは期限切れです。もう一度開いてください。",
+        "invalid_content": "このファイルは表示できません。",
+        "too_large": "このファイルは 10 MB を超えているため開けません。",
+        "unavailable": "ファイルを利用できません。"
+    }
 }

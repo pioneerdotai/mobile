@@ -47,6 +47,12 @@ export type RuntimeStatus =
     };
 
 export interface CLIRuntimeRefreshResponse {
+  /**
+   * Revision of the complete cached workspace snapshot. A later
+   * Gateway-owned reconciliation may publish a newer revision through
+   * `cli_runtime/status_changed`.
+   */
+  revision?: number;
   runtimes: RuntimeSummary[];
   [k: string]: unknown;
 }

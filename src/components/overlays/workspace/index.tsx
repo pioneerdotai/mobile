@@ -136,10 +136,12 @@ const WorkspaceSwitcherSheet = () => {
                     handleClose={() => setWorkspaceSwitcherOpen(false)}
                     title={t('manageTitle')}
                     closeButton={true}
-                    closeButtonType="ghost"
                     leftButton={
                         canCreateWorkspace ? (
-                            <CreateButton onPressHandler={handleWorkspaceCreate} />
+                            <CreateButton
+                                variant="primary"
+                                onPressHandler={handleWorkspaceCreate}
+                            />
                         ) : undefined
                     }
                     {...props}

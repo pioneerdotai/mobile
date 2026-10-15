@@ -1,3 +1,4 @@
+import type { TimelineGroup } from '@/client/generated/timeline_snapshot';
 import type { TimelineRow } from '@/services/threads/conversation/timeline';
 import type { TurnAuthorSnapshot } from '@/client/generated/timeline_row';
 
@@ -55,12 +56,6 @@ export type TimelineRowLayout = {
     startsAvatarGroup: boolean;
 };
 
-type TimelineClusterDescriptor = {
-    key: string;
-    kind: TimelineRowGroupKind;
-    avatarSource: TimelineAvatarSource | null;
-};
-
 const DEFAULT_ROW_LAYOUT: TimelineRowLayout = {
     groupKind: 'agent',
     compactTopSpacing: false,
@@ -69,7 +64,6 @@ const DEFAULT_ROW_LAYOUT: TimelineRowLayout = {
 
 export class TimelineGroupingIndex {
     readonly avatarGroups: readonly TimelineAvatarGroup[];
-    readonly renderFingerprint: string;
 
     private readonly rowLayouts: readonly TimelineRowLayout[];
     private readonly avatarGroupsByRow: readonly (TimelineAvatarGroup | null)[];
@@ -79,73 +73,59 @@ export class TimelineGroupingIndex {
         avatarGroups,
         avatarGroupsByKey,
         avatarGroupsByRow,
-        renderFingerprint,
         rowLayouts,
     }: {
         avatarGroups: TimelineAvatarGroup[];
         avatarGroupsByKey: Map<string, TimelineAvatarGroup>;
         avatarGroupsByRow: (TimelineAvatarGroup | null)[];
-        renderFingerprint: string;
         rowLayouts: TimelineRowLayout[];
     }) {
         this.avatarGroups = avatarGroups;
         this.avatarGroupsByKey = avatarGroupsByKey;
         this.avatarGroupsByRow = avatarGroupsByRow;
-        this.renderFingerprint = renderFingerprint;
         this.rowLayouts = rowLayouts;
     }
 
-    static build(
+    static fromSnapshot(
         rows: readonly TimelineRow[],
-        currentPrincipalId?: string | null,
+        groups: readonly TimelineGroup[],
+        _currentPrincipalId?: string | null,
         presentationContext: TimelinePresentationContext = DEFAULT_TIMELINE_PRESENTATION_CONTEXT,
     ): TimelineGroupingIndex {
-        const descriptors = rows.map((row) => timelineClusterDescriptor(row, currentPrincipalId));
         const rowLayouts = Array<TimelineRowLayout>(rows.length);
         const avatarGroupsByRow = Array<TimelineAvatarGroup | null>(rows.length).fill(null);
         const avatarGroupsByKey = new Map<string, TimelineAvatarGroup>();
         const avatarGroups: TimelineAvatarGroup[] = [];
-        const fingerprintParts: string[] = [];
-
-        let index = 0;
-        while (index < rows.length) {
-            const descriptor = descriptors[index];
-            const startIndex = index;
-            while (index + 1 < rows.length && descriptors[index + 1].key === descriptor.key) {
-                index += 1;
-            }
-            const endIndex = index;
-            const startsAvatarGroup = descriptor.avatarSource !== null;
-            const avatarSource =
-                descriptor.avatarSource?.kind === 'agent'
-                    ? {
-                          kind: 'agent' as const,
-                          author: descriptor.avatarSource.author,
-                          showsRunningDino:
-                              presentationContext.taskChildThread &&
-                              rows
-                                  .slice(startIndex, endIndex + 1)
-                                  .some((row) => row.type === 'running'),
-                      }
-                    : descriptor.avatarSource;
-
-            for (let rowIndex = startIndex; rowIndex <= endIndex; rowIndex += 1) {
-                rowLayouts[rowIndex] = {
-                    groupKind: descriptor.kind,
-                    compactTopSpacing: rowIndex > startIndex,
-                    startsAvatarGroup: startsAvatarGroup && rowIndex === startIndex,
+        for (const descriptor of groups) {
+            const startIndex = descriptor.first_row;
+            const endIndex = descriptor.last_row;
+            if (!rows[startIndex] || !rows[endIndex]) continue;
+            const own = descriptor.current_principal;
+            const kind = own
+                ? 'current-user'
+                : descriptor.user_message
+                  ? 'historical-user'
+                  : 'agent';
+            const avatarSource: TimelineAvatarSource | null = own
+                ? null
+                : descriptor.user_message
+                  ? { kind: 'historical-user', author: descriptor.author ?? null }
+                  : {
+                        kind: 'agent',
+                        author: descriptor.author ?? null,
+                        showsRunningDino:
+                            presentationContext.taskChildThread && descriptor.has_running,
+                    };
+            for (let index = startIndex; index <= endIndex; index++) {
+                rowLayouts[index] = {
+                    groupKind: kind,
+                    compactTopSpacing: index > startIndex,
+                    startsAvatarGroup: avatarSource !== null && index === startIndex,
                 };
             }
-
-            const groupKey = `${descriptor.kind}:${rows[startIndex].key}`;
-            const authorFingerprint =
-                avatarSource?.kind === 'agent' ? JSON.stringify(avatarSource.author) : '';
-            fingerprintParts.push(
-                `${groupKey}:${rows[endIndex].key}:${avatarSource?.kind === 'agent' && avatarSource.showsRunningDino ? 'running-dino' : 'avatar'}:${authorFingerprint}`,
-            );
-            if (avatarSource !== null) {
+            if (avatarSource) {
                 const group: TimelineAvatarGroup = {
-                    key: groupKey,
+                    key: `${kind}:${descriptor.id}`,
                     startIndex,
                     endIndex,
                     startKey: rows[startIndex].key,
@@ -155,19 +135,14 @@ export class TimelineGroupingIndex {
                 };
                 avatarGroups.push(group);
                 avatarGroupsByKey.set(group.key, group);
-                for (let rowIndex = startIndex; rowIndex <= endIndex; rowIndex += 1) {
-                    avatarGroupsByRow[rowIndex] = group;
-                }
+                for (let index = startIndex; index <= endIndex; index++)
+                    avatarGroupsByRow[index] = group;
             }
-
-            index += 1;
         }
-
         return new TimelineGroupingIndex({
             avatarGroups,
             avatarGroupsByKey,
             avatarGroupsByRow,
-            renderFingerprint: fingerprintParts.join('|'),
             rowLayouts,
         });
     }
@@ -215,58 +190,6 @@ export const isCurrentPrincipalUserMessage = (
         row.itemId === `turn:${row.turnId}:user` ||
         row.itemId === row.key
     );
-};
-
-const timelineClusterDescriptor = (
-    row: TimelineRow,
-    currentPrincipalId?: string | null,
-): TimelineClusterDescriptor => {
-    if (row.type === 'user-message') {
-        if (isCurrentPrincipalUserMessage(row, currentPrincipalId)) {
-            return {
-                key: 'current-user',
-                kind: 'current-user',
-                avatarSource: null,
-            };
-        }
-
-        const actor = row.author?.actor;
-        const actorKey = actor
-            ? actor.kind === 'system'
-                ? 'system'
-                : `${actor.kind}:${actor.id}`
-            : `unknown:${row.key}`;
-        return {
-            key: `historical-user:${actorKey}`,
-            kind: 'historical-user',
-            avatarSource: { kind: 'historical-user', author: row.author },
-        };
-    }
-
-    const turnId = timelineRowTurnId(row);
-    return {
-        key: turnId ? `agent:${turnId}` : `agent:standalone:${row.key}`,
-        kind: 'agent',
-        avatarSource: {
-            kind: 'agent',
-            author: timelineRowAgentAuthor(row),
-            showsRunningDino: false,
-        },
-    };
-};
-
-const exactAgentAuthor = (
-    author: TurnAuthorSnapshot | null | undefined,
-): TurnAuthorSnapshot | null => (author?.actor.kind === 'agent_execution' ? author : null);
-
-const timelineRowAgentAuthor = (row: TimelineRow): TurnAuthorSnapshot | null =>
-    row.type === 'user-message' ? null : exactAgentAuthor(row.author);
-
-const timelineRowTurnId = (row: Exclude<TimelineRow, { type: 'user-message' }>): string | null => {
-    if (!('turnId' in row)) return null;
-
-    const turnId = row.turnId?.trim();
-    return turnId || null;
 };
 
 const timelineAvatarGroupBottomInsetUnits = (row: TimelineRow): number => {

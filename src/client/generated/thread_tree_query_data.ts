@@ -56,7 +56,7 @@ export type ThreadVisibility = 'private' | 'workspace';
 
 export interface ClientThreadTreeQueryData {
   composer_model_selection?: ComposerModelSelection | null;
-  snapshot: ClientThreadTreeSnapshot;
+  snapshot: ThreadTreeSnapshot;
 }
 export interface ComposerModelSelection {
   model: string;
@@ -64,7 +64,7 @@ export interface ComposerModelSelection {
   selected_reasoning_effort?: string | null;
   [k: string]: unknown;
 }
-export interface ClientThreadTreeSnapshot {
+export interface ThreadTreeSnapshot {
   agents_doc_summaries_by_folder_key: {
     [k: string]: ThreadAgentsDocSummary;
   };
@@ -190,8 +190,22 @@ export interface TurnPermissionProfileSnapshot {
   [k: string]: unknown;
 }
 export interface ToolPermissionPolicySnapshot {
+  agent_action: PermissionBehavior;
   allowed_paths?: string[];
+  /**
+   * See `allowed_tools_restricted`.  A restricted empty path set is a
+   * durable deny-all result, while an unrestricted empty set is the legacy
+   * wildcard.
+   */
+  allowed_paths_restricted?: boolean;
   allowed_tools?: string[];
+  /**
+   * `allowed_tools = []` historically means "no allow-list".  This bit
+   * preserves the distinct result of intersecting two disjoint allow-lists:
+   * a restricted empty set must deny every tool rather than reopen all of
+   * them.
+   */
+  allowed_tools_restricted?: boolean;
   computer_use: PermissionBehavior;
   default_behavior: PermissionBehavior;
   denied_tools?: string[];
@@ -200,6 +214,7 @@ export interface ToolPermissionPolicySnapshot {
   file_write: PermissionBehavior;
   mcp_read: PermissionBehavior;
   mcp_write_or_unknown: PermissionBehavior;
+  memory_write: PermissionBehavior;
   network: PermissionBehavior;
   shell_command: PermissionBehavior;
   task_subagent: PermissionBehavior;

@@ -8,7 +8,8 @@ export type TurnNetworkMode = 'disabled' | 'restricted' | 'enabled';
 export type TurnPermissionMode = 'full_access' | 'auto_accept_edits' | 'supervised';
 export type SandboxBackendKind = 'nono' | 'windows_restricted_token' | 'provider_native';
 export type TurnSandboxMode = 'unrestricted' | 'read_only' | 'workspace_write';
-export type PendingRequestKind = 'command_approval' | 'file_change_approval' | 'user_input' | 'other';
+export type PendingRequestKind =
+  'command_approval' | 'file_change_approval' | 'permission_approval' | 'user_input' | 'other';
 export type PendingRequestOrigin =
   | {
       origin: 'cli_runtime';
@@ -35,7 +36,8 @@ export type PendingRequestPayload =
       source: 'other';
       [k: string]: unknown;
     };
-export type CLIRuntimeRequestKind = 'command_approval' | 'file_change_approval' | 'user_input' | 'other';
+export type CLIRuntimeRequestKind =
+  'command_approval' | 'file_change_approval' | 'permission_approval' | 'user_input' | 'other';
 export type TurnPermissionActionKind =
   | 'file_read'
   | 'file_write'
@@ -46,6 +48,8 @@ export type TurnPermissionActionKind =
   | 'dynamic_skill_tool'
   | 'computer_use'
   | 'task_subagent'
+  | 'memory_write'
+  | 'agent_action'
   | 'internal'
   | 'unknown';
 export type TurnPermissionDecisionReason =
@@ -81,6 +85,14 @@ export type MarkdownBlock =
       [k: string]: unknown;
     }
   | {
+      alignments: MarkdownTableAlignment[];
+      headers: MarkdownInline1[];
+      rows: MarkdownInline1[][];
+      source: string;
+      type: 'table';
+      [k: string]: unknown;
+    }
+  | {
       type: 'rule';
       [k: string]: unknown;
     };
@@ -106,6 +118,25 @@ export type MarkdownMarkKind =
       url: string;
       [k: string]: unknown;
     };
+export type MarkdownTableAlignment = 'none' | 'left' | 'center' | 'right';
+export type ArtifactKind =
+  | 'file'
+  | 'text'
+  | 'image'
+  | 'audio'
+  | 'video'
+  | 'pdf'
+  | 'spreadsheet'
+  | 'archive'
+  | 'json'
+  | 'generated_image'
+  | 'screenshot'
+  | 'workspace_file'
+  | 'directory_manifest'
+  | 'unknown';
+export type ArtifactProjectionKind = 'plain_text' | 'thumbnail' | 'json_summary' | 'pdf_text';
+export type ArtifactProjectionStatus = 'pending' | 'ready' | 'failed' | 'stale';
+export type ArtifactStatus = 'ready' | 'pending' | 'quarantined' | 'deleted' | 'missing_external_source' | 'failed';
 export type TurnItem =
   | {
       attachments?: UserMessageAttachment[];
@@ -365,24 +396,6 @@ export type UserMessageAttachment =
       type: 'mcpTool';
       [k: string]: unknown;
     };
-export type ArtifactKind =
-  | 'file'
-  | 'text'
-  | 'image'
-  | 'audio'
-  | 'video'
-  | 'pdf'
-  | 'spreadsheet'
-  | 'archive'
-  | 'json'
-  | 'generated_image'
-  | 'screenshot'
-  | 'workspace_file'
-  | 'directory_manifest'
-  | 'unknown';
-export type ArtifactProjectionKind = 'plain_text' | 'thumbnail' | 'json_summary' | 'pdf_text';
-export type ArtifactProjectionStatus = 'pending' | 'ready' | 'failed' | 'stale';
-export type ArtifactStatus = 'ready' | 'pending' | 'quarantined' | 'deleted' | 'missing_external_source' | 'failed';
 export type SkillPackId = string;
 export type SkillId = string;
 export type McpScopeKind = 'workspace' | 'user';
@@ -671,6 +684,7 @@ export type TurnPermissionProfileSource =
   'composer' | 'defaulted' | 'inherited_from_parent_turn' | 'task_permission_cap' | 'system';
 export type PermissionBehavior = 'allow' | 'ask' | 'deny';
 export type TurnPhase = 'Starting' | 'Running' | 'Completing' | 'Completed' | 'Blocked' | 'Failed' | 'Cancelled';
+export type ThreadMode = ('Message' | 'Agent') | 'Chat';
 export type PersistedActorRef =
   | {
       id: PrincipalId;
@@ -690,35 +704,6 @@ export type PrincipalId = string;
 export type AgentExecutionId = string;
 export type AgentIdentityId = string;
 export type AgentIdentitySourceKind = 'native_agent' | 'cli_runtime_instance' | 'ephemeral';
-export type TimelineRowKind =
-  | {
-      Item: {
-        timeline_index: number;
-        [k: string]: unknown;
-      };
-    }
-  | {
-      UserMessage: {
-        presentation: UserMessagePresentation;
-        timeline_index: number;
-        [k: string]: unknown;
-      };
-    }
-  | {
-      TurnWorkToggle: TurnWorkGroupRow;
-    }
-  | {
-      CoalescedTools: TimelineCoalescedToolsRow;
-    }
-  | {
-      RunningTurn: RunningTurnDisplay;
-    };
-export type ThreadMode = ('Message' | 'Agent') | 'Chat';
-export type TimelineReplyState = 'available' | 'deleted' | 'unavailable';
-export type TurnWorkState =
-  'starting' | 'running' | 'waiting_for_approval' | 'stalled' | 'completed' | 'blocked' | 'failed' | 'interrupted';
-export type TimelineCoalescedToolsKind = 'CompletedTaskTools' | 'RepeatedTaskWait';
-export type AgentWorkNodeState = 'queued' | 'running' | 'completed' | 'failed' | 'cancelled' | 'blocked';
 export type ThreadStatus = 'Active' | 'Idle' | 'Closed';
 export type PromptManifestDiagnosticCode =
   | 'missing_file'
@@ -749,23 +734,18 @@ export type TurnStatus = 'InProgress' | 'Completed' | 'Failed' | 'Interrupted' |
 export type ThreadVisibility = 'private' | 'workspace';
 
 export interface ClientActiveThreadSnapshot {
-  active_turn_security_diagnostics?: ClientSecurityDiagnosticRow[];
+  active_turn_security_diagnostics: ClientSecurityDiagnosticRow[];
   active_turn_security_summary?: ClientTurnSecuritySummary | null;
+  domain_revision: number;
   draft_thread_id?: string | null;
-  draft_workspace_id?: string | null;
   history_loaded: boolean;
   history_loading: boolean;
-  last_active_thread_id?: string | null;
-  pending_requests?: PendingRequest[];
+  pending_requests: PendingRequest[];
   projection: ConversationViewState;
-  row_render_fingerprints?: {
-    [k: string]: string;
-  };
-  rows: TimelineRow[];
-  session_revision?: number;
   thread?: Thread | null;
-  thread_id?: string | null;
-  workspace_id?: string | null;
+  thread_id: string;
+  timeline_revision: number;
+  workspace_id: string;
   [k: string]: unknown;
 }
 export interface ClientSecurityDiagnosticRow {
@@ -802,6 +782,7 @@ export interface PendingRequest {
   thread_id?: string | null;
   title?: string | null;
   turn_id?: string | null;
+  visible_thread_ids?: string[];
   workspace_id: string;
   [k: string]: unknown;
 }
@@ -850,6 +831,7 @@ export interface ItemView {
   completed_at_unix_ms?: number | null;
   final_markdown?: MarkdownDocument | null;
   final_text?: string | null;
+  html_publications?: HtmlPublication[];
   id: string;
   item: TurnItem;
   item_type: string;
@@ -886,6 +868,18 @@ export interface MarkdownMark {
 export interface MarkdownList {
   type: 'list';
   [k: string]: unknown;
+}
+/**
+ * An exact Gateway-created HTML publication. Generic HTML attachments never
+ * acquire this descriptor based on MIME alone.
+ */
+export interface HtmlPublication {
+  artifact: ArtifactRef;
+  callId: string;
+  threadId: string;
+  title: string;
+  turnId: string;
+  workspaceId: string;
 }
 export interface ArtifactRef {
   artifact_id: string;
@@ -1109,8 +1103,22 @@ export interface TurnPermissionProfileSnapshot {
   [k: string]: unknown;
 }
 export interface ToolPermissionPolicySnapshot {
+  agent_action: PermissionBehavior;
   allowed_paths?: string[];
+  /**
+   * See `allowed_tools_restricted`.  A restricted empty path set is a
+   * durable deny-all result, while an unrestricted empty set is the legacy
+   * wildcard.
+   */
+  allowed_paths_restricted?: boolean;
   allowed_tools?: string[];
+  /**
+   * `allowed_tools = []` historically means "no allow-list".  This bit
+   * preserves the distinct result of intersecting two disjoint allow-lists:
+   * a restricted empty set must deny every tool rather than reopen all of
+   * them.
+   */
+  allowed_tools_restricted?: boolean;
   computer_use: PermissionBehavior;
   default_behavior: PermissionBehavior;
   denied_tools?: string[];
@@ -1119,6 +1127,7 @@ export interface ToolPermissionPolicySnapshot {
   file_write: PermissionBehavior;
   mcp_read: PermissionBehavior;
   mcp_write_or_unknown: PermissionBehavior;
+  memory_write: PermissionBehavior;
   network: PermissionBehavior;
   shell_command: PermissionBehavior;
   task_subagent: PermissionBehavior;
@@ -1133,127 +1142,6 @@ export interface TurnBlockedResumeMetadata {
   resume_command: string;
   resume_requirements: string[];
   [k: string]: unknown;
-}
-export interface TimelineRow {
-  author?: TurnAuthorSnapshot | null;
-  key: string;
-  kind: TimelineRowKind;
-  [k: string]: unknown;
-}
-export interface TurnAuthorSnapshot {
-  actor: PersistedActorRef;
-  /**
-   * Full immutable identity presentation for an agent-authored Turn.  This
-   * is carried with the Turn instead of being reconstructed from mutable
-   * identity/runtime state. Non-agent actors leave it absent.
-   */
-  agent?: AgentPresentationSnapshot | null;
-  avatar_revision?: string | null;
-  display_name: string;
-  nickname: string;
-  [k: string]: unknown;
-}
-export interface AgentPresentationSnapshot {
-  agent_execution_id: AgentExecutionId;
-  agent_identity_id: AgentIdentityId;
-  avatar_revision?: string | null;
-  display_name: string;
-  identity_source_kind: AgentIdentitySourceKind;
-  identity_source_revision: number;
-  nickname: string;
-  role_label?: string | null;
-  [k: string]: unknown;
-}
-/**
- * Authoritative collaboration metadata attached to a rendered user-message
- * row. It mirrors disclosed server fields; shells must not reconstruct it by
- * parsing text or by joining a mutable member directory.
- */
-export interface UserMessagePresentation {
-  attachments?: UserMessageAttachment[];
-  author?: TurnAuthorSnapshot | null;
-  block_id: string;
-  deleted: boolean;
-  edited: boolean;
-  item_id: string;
-  mentions?: TurnMention[];
-  mode: ThreadMode;
-  reply?: TimelineReplySummary | null;
-  reply_state?: TimelineReplyState | null;
-  revision: number;
-  route?: SafeRouteProvenance | null;
-  thread_id: string;
-  turn_id: string;
-  workspace_id: string;
-}
-export interface TurnMention {
-  nickname: string;
-  principal_id: PrincipalId;
-  [k: string]: unknown;
-}
-export interface TimelineReplySummary {
-  author?: TurnAuthorSnapshot | null;
-  deleted?: boolean;
-  text?: string | null;
-  turnId: string;
-  [k: string]: unknown;
-}
-export interface TurnWorkGroupRow {
-  anchor_entry_id: string;
-  elapsed_ms?: number | null;
-  is_open: boolean;
-  /**
-   * Server-owned lifecycle state; clients must not infer it from row order.
-   */
-  state?: TurnWorkState | null;
-  toggle_key: string;
-  [k: string]: unknown;
-}
-export interface TimelineCoalescedToolsRow {
-  count: number;
-  is_open: boolean;
-  kind: TimelineCoalescedToolsKind;
-  toggle_key: string;
-  [k: string]: unknown;
-}
-export interface RunningTurnDisplay {
-  agent_work_graph?: AgentWorkGraphProjection | null;
-  message?: string | null;
-  permission_profile?: TurnPermissionProfileSnapshot | null;
-  route?: SafeRouteProvenance | null;
-  security_summary?: ClientTurnSecuritySummary | null;
-  started_at_unix_ms?: number | null;
-  state?: TurnWorkState | null;
-  turn_id: string;
-  [k: string]: unknown;
-}
-export interface AgentWorkGraphProjection {
-  /**
-   * Stable, bounded nodes in the exact root graph. No prompt, provider,
-   * model, thread title, runtime path, or other private payload is exposed.
-   */
-  nodes: AgentWorkNodeProjection[];
-  queuedCount: number;
-  rootExecutionId: AgentExecutionId;
-  runningCount: number;
-  /**
-   * True while one or more authorized nodes are durably queued for
-   * server-owned capacity. This is resource state, not an authorization
-   * failure and never implies that the whole graph is blocked.
-   */
-  saturated: boolean;
-  terminalCount: number;
-  /**
-   * Monotonic persisted resource-state timestamp used only to reject stale
-   * graph projections racing with live queue/promotion/finalization events.
-   */
-  updatedAtUnixMicros: number;
-}
-export interface AgentWorkNodeProjection {
-  executionId: AgentExecutionId;
-  progressLabel?: string | null;
-  progressRevision: number;
-  state: AgentWorkNodeState;
 }
 export interface Thread {
   agent_nickname?: string | null;
@@ -1281,6 +1169,30 @@ export interface Thread {
   workspace_id: string;
   [k: string]: unknown;
 }
+export interface TurnAuthorSnapshot {
+  actor: PersistedActorRef;
+  /**
+   * Full immutable identity presentation for an agent-authored Turn.  This
+   * is carried with the Turn instead of being reconstructed from mutable
+   * identity/runtime state. Non-agent actors leave it absent.
+   */
+  agent?: AgentPresentationSnapshot | null;
+  avatar_revision?: string | null;
+  display_name: string;
+  nickname: string;
+  [k: string]: unknown;
+}
+export interface AgentPresentationSnapshot {
+  agent_execution_id: AgentExecutionId;
+  agent_identity_id: AgentIdentityId;
+  avatar_revision?: string | null;
+  display_name: string;
+  identity_source_kind: AgentIdentitySourceKind;
+  identity_source_revision: number;
+  nickname: string;
+  role_label?: string | null;
+  [k: string]: unknown;
+}
 export interface Turn {
   author?: TurnAuthorSnapshot | null;
   error?: string | null;
@@ -1295,6 +1207,11 @@ export interface Turn {
   reply_to_turn_id?: string | null;
   status: TurnStatus;
   turn_kind?: 'conversation' | 'task_run';
+  [k: string]: unknown;
+}
+export interface TurnMention {
+  nickname: string;
+  principal_id: PrincipalId;
   [k: string]: unknown;
 }
 export interface PromptManifest {

@@ -1,24 +1,10 @@
 import * as SecureStore from 'expo-secure-store';
 
-import { isRefreshCredential } from './refresh-credential';
+import { pioneerClient } from '@/client';
 
 export const MOBILE_GATEWAY_SESSION_SCHEMA_VERSION = 2 as const;
 export const MOBILE_GATEWAY_SESSION_KEY_PREFIX = 'pioneer.gateway.session.v1';
 const RETIRED_MOBILE_GATEWAY_SESSION_SCHEMA_VERSION = 1;
-const MOBILE_GATEWAY_SESSION_ENVELOPE_KEYS = new Set([
-    'schema_version',
-    'gateway_id',
-    'principal_id',
-    'device_id',
-    'session_id',
-    'token_family_id',
-    'installation_id',
-    'refresh_generation',
-    'refresh_expires_at_unix',
-    'refresh_token',
-    'pending_refresh_request_id',
-]);
-
 export type MobileGatewaySessionEnvelope = {
     schema_version: typeof MOBILE_GATEWAY_SESSION_SCHEMA_VERSION;
     gateway_id: string;
@@ -81,10 +67,10 @@ export const readMobileGatewaySession = async (
             }
             return null;
         }
-        if (!isMobileGatewaySessionEnvelope(decoded)) {
+        if (!(await isMobileGatewaySessionEnvelope(decoded))) {
             throw new Error('invalid mobile Gateway session envelope');
         }
-        return decoded;
+        return decoded as MobileGatewaySessionEnvelope;
     } catch (error) {
         if (error instanceof MobileGatewaySessionStorageError) {
             throw error;
@@ -112,7 +98,7 @@ export const writeMobileGatewaySession = async (
     envelope: MobileGatewaySessionEnvelope,
     secureStore: MobileGatewaySecureStore = SecureStore,
 ): Promise<void> => {
-    if (!isMobileGatewaySessionEnvelope(envelope)) {
+    if (!(await isMobileGatewaySessionEnvelope(envelope))) {
         throw new MobileGatewaySessionStorageError('corrupted');
     }
     let serialized: string | null = JSON.stringify(envelope);
@@ -136,46 +122,10 @@ export const deleteMobileGatewaySession = async (
     }
 };
 
-export const isMobileGatewaySessionEnvelope = (
-    value: unknown,
-): value is MobileGatewaySessionEnvelope => {
-    if (!value || typeof value !== 'object' || Array.isArray(value)) {
-        return false;
-    }
-    const envelope = value as Partial<MobileGatewaySessionEnvelope> & Record<string, unknown>;
-    return (
-        Object.keys(envelope).every((key) => MOBILE_GATEWAY_SESSION_ENVELOPE_KEYS.has(key)) &&
-        envelope.schema_version === MOBILE_GATEWAY_SESSION_SCHEMA_VERSION &&
-        isAuthDomainId(envelope.gateway_id) &&
-        isAuthDomainId(envelope.principal_id) &&
-        isAuthDomainId(envelope.device_id) &&
-        isAuthDomainId(envelope.session_id) &&
-        isAuthDomainId(envelope.token_family_id) &&
-        isBoundedInstallationId(envelope.installation_id) &&
-        Number.isSafeInteger(envelope.refresh_generation) &&
-        (envelope.refresh_generation ?? -1) >= 0 &&
-        Number.isSafeInteger(envelope.refresh_expires_at_unix) &&
-        (envelope.refresh_expires_at_unix ?? 0) > 0 &&
-        isRefreshCredential(envelope.refresh_token) &&
-        (envelope.pending_refresh_request_id === undefined ||
-            isRefreshRequestId(envelope.pending_refresh_request_id))
-    );
-};
-
-const isAuthDomainId = (value: unknown): value is string => {
-    return typeof value === 'string' && /^[A-Za-z0-9]{21}$/.test(value);
-};
-
-const isBoundedInstallationId = (value: unknown): value is string => {
-    return (
-        typeof value === 'string' &&
-        value === value.trim() &&
-        value.length > 0 &&
-        value.length <= 255 &&
-        !/[\u0000-\u001F\u007F]/.test(value)
-    );
-};
-
-const isRefreshRequestId = (value: unknown): value is string => {
-    return typeof value === 'string' && /^[A-Za-z0-9]{21}$/.test(value);
+export const isMobileGatewaySessionEnvelope = async (value: unknown): Promise<boolean> => {
+    const result = await pioneerClient.gatewaySessionValidate({
+        kind: 'envelope',
+        envelope: value,
+    });
+    return result.valid;
 };

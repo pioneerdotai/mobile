@@ -1,17 +1,15 @@
 import { describe, expect, it, jest } from '@jest/globals';
 
-import { pioneerClient, type ComposerCapability, type SelectableMcpCapability } from '@/client';
+import { type SelectableMcpCapability } from '@/client';
 
-import { toggleMcpComposerCapabilitySelection } from './index';
+import { mcpKeyExtractor } from './index';
 
 jest.mock('react-native-unistyles', () => ({
     StyleSheet: { create: (styles: unknown) => styles },
     useUnistyles: () => ({ theme: {} }),
 }));
 jest.mock('@/client', () => ({
-    pioneerClient: {
-        composerMcpToggle: jest.fn(),
-    },
+    pioneerClient: {},
 }));
 jest.mock('@/hooks/use-administration-capabilities', () => ({
     useAdministrationCapabilities: () => ({
@@ -38,44 +36,22 @@ const row: SelectableMcpCapability = {
     unavailable_reason: null,
 };
 
-const skill: ComposerCapability = {
-    id: 'skill:DDDDDDDDDDDDDDDDDDDDD',
-    label: 'docs',
-    kind: {
-        Skill: {
-            skill_id: 'DDDDDDDDDDDDDDDDDDDDD',
-            owner: null,
-            slug: 'docs',
-            source_kind: 'user',
-        },
-    },
-};
-
-describe('mobile MCP picker native projection adapter', () => {
-    it('delegates the complete current selection to pioneer-client', () => {
-        const projected = {
-            capabilities: [
-                skill,
-                {
-                    id: row.key,
-                    label: row.label,
-                    kind: { McpServer: { name: 'docs', scope_kind: 'workspace' as const } },
-                },
-            ],
-            selected_keys: [row.key],
-            collapse_active_server: true,
+describe('mobile MCP picker row identity', () => {
+    it('keeps server and tool controls attached to their domain keys after insertion and reorder', () => {
+        const server = { type: 'server' as const, row };
+        const tool = {
+            type: 'tool' as const,
+            row: { ...row, key: 'tool:docs:read', raw_tool_name: 'read' },
         };
-        jest.mocked(pioneerClient.composerMcpToggle).mockReturnValue(projected);
-
-        expect(toggleMcpComposerCapabilitySelection([skill], [], [row], [], row)).toEqual(
-            projected,
-        );
-        expect(pioneerClient.composerMcpToggle).toHaveBeenCalledWith({
-            capabilities: [skill],
-            selected_keys: [],
-            server_rows: [row],
-            tool_rows: [],
-            row,
-        });
+        const section = { type: 'section' as const, id: 'servers' as const, title: 'Servers' };
+        expect([server, tool].map(mcpKeyExtractor)).toEqual([
+            `server:${row.key}`,
+            'tool:tool:docs:read',
+        ]);
+        expect([tool, section, server].map(mcpKeyExtractor)).toEqual([
+            'tool:tool:docs:read',
+            'section:servers',
+            `server:${row.key}`,
+        ]);
     });
 });

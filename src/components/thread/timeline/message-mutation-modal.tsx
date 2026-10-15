@@ -1,71 +1,59 @@
-import { useRef, useState } from 'react';
+import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 
-import { pioneerClient, PioneerClientNativeError } from '@/client';
+import { dispatchMessageDeletion, useMessageDeletion } from '@/client/message-deletion';
+import type { MessageDeletionPlan } from '@/client/generated/message_deletion_publication';
 import Spinner from '@/components/feedback/spinner';
 import { Notification } from '@/components/overlays/notification';
 import { Box } from '@/components/primitives/box';
 import { Pressable } from '@/components/primitives/pressable';
 import { Text } from '@/components/primitives/text';
 import { VStack } from '@/components/primitives/vstack';
-import type { TimelineRow } from '@/services/threads/conversation/timeline';
 
 export type MessageMutationTarget = {
     kind: 'delete';
-    threadId: string;
-    row: Extract<TimelineRow, { type: 'user-message' }>;
+    plan: MessageDeletionPlan;
 };
 
 type MessageMutationModalProps = {
     target: MessageMutationTarget;
     onClose: () => void;
-    onAuthoritativeRefresh: () => Promise<void>;
 };
 
-const REVISION_CONFLICT_CODE = 'pioneer_turn_message_revision_conflict';
-
-export const MessageMutationModal = ({
-    target,
-    onClose,
-    onAuthoritativeRefresh,
-}: MessageMutationModalProps) => {
+export const MessageMutationModal = ({ target, onClose }: MessageMutationModalProps) => {
     const { t } = useTranslation('threads');
     const { theme } = useUnistyles();
-    const [pending, setPending] = useState(false);
-    const pendingRef = useRef(false);
-    const [error, setError] = useState<string | null>(null);
-    const [conflicted, setConflicted] = useState(false);
-    const canSubmit = !pending && !conflicted;
+    const { identity } = target.plan;
+    const publication = useMessageDeletion(identity.thread_id);
+    const input =
+        publication?.plan.identity.generation === identity.generation &&
+        publication.plan.identity.thread_id === identity.thread_id
+            ? publication
+            : null;
+    const pending = input?.state.kind === 'pending';
+    const conflicted = input?.state.kind === 'failed' && input.state.conflicted;
+    const canSubmit =
+        input?.state.kind === 'confirming' || (input?.state.kind === 'failed' && !conflicted);
+    const error =
+        input?.state.kind === 'failed'
+            ? t(conflicted ? 'timelineMessageMutationConflict' : 'timelineMessageDeleteFailed')
+            : null;
 
-    const submit = async () => {
-        if (!canSubmit || pendingRef.current) return;
-        pendingRef.current = true;
-        setPending(true);
-        setError(null);
-        try {
-            await pioneerClient.turnMessageDelete({
-                thread_id: target.threadId,
-                turn_id: target.row.turnId,
-                expected_revision: target.row.revision,
-            });
-            await onAuthoritativeRefresh().catch(() => undefined);
+    useEffect(() => {
+        if (!input || input.state.kind === 'completed' || input.state.kind === 'cancelled') {
             onClose();
-        } catch (mutationError) {
-            const conflict =
-                mutationError instanceof PioneerClientNativeError &&
-                mutationError.code === REVISION_CONFLICT_CODE;
-            if (conflict) {
-                setConflicted(true);
-                await onAuthoritativeRefresh().catch(() => undefined);
-            }
-            setError(
-                conflict ? t('timelineMessageMutationConflict') : t('timelineMessageDeleteFailed'),
-            );
-        } finally {
-            pendingRef.current = false;
-            setPending(false);
         }
+    }, [publication, input, onClose]);
+    useEffect(
+        () => () => {
+            dispatchMessageDeletion({ kind: 'cancel', identity });
+        },
+        [identity],
+    );
+
+    const submit = () => {
+        if (canSubmit) dispatchMessageDeletion({ kind: 'confirm', identity });
     };
 
     return (
