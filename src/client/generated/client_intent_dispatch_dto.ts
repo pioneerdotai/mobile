@@ -2816,6 +2816,10 @@ export interface TimelineDemand {
   source_revision: number;
   thread_id: string;
   threshold: number;
+  /**
+   * Actual viewability, separate from pagination/prefetch row demand.
+   */
+  viewed_row_ids?: string[];
   viewed_through_turn_id?: string | null;
   work: boolean;
   [k: string]: unknown;
