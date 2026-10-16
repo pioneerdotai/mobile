@@ -13,6 +13,8 @@ export function useTimelineDemand(snapshot: TimelineSnapshot | null | undefined,
     const visible = useRef({
         threadId: snapshot?.thread_id,
         rowIds: [] as string[],
+        viewedRowIds: [] as string[],
+        rowOrder: [] as string[],
         latest: null as string | null,
         viewed: null as string | null,
         scrollGeneration: 0,
@@ -54,6 +56,16 @@ export function useTimelineDemand(snapshot: TimelineSnapshot | null | undefined,
             return;
         const input = visible.current;
         if (input.threadId !== snapshot.thread_id) return;
+        // Completion can move a late answer behind newer Turns. Old geometry
+        // cannot acknowledge it until the list reports viewability again.
+        const rowOrder = snapshot.rows?.map((row) => row.id) ?? [];
+        const lastViewedIndex = input.viewedRowIds.reduce(
+            (last, id) => Math.max(last, input.rowOrder.indexOf(id)),
+            -1,
+        );
+        const viewabilityIsCurrent = input.rowOrder
+            .slice(0, lastViewedIndex + 1)
+            .every((id, index) => id === rowOrder[index]);
         mobileClientBinding.dispatch({
             schema_version: 1,
             intent: {
@@ -66,6 +78,7 @@ export function useTimelineDemand(snapshot: TimelineSnapshot | null | undefined,
                         generation: generation.current,
                         source_revision: snapshot.source_revision,
                         row_ids: input.rowIds,
+                        viewed_row_ids: viewabilityIsCurrent ? input.viewedRowIds : [],
                         threshold: 6,
                         before: true,
                         after: true,
@@ -73,8 +86,8 @@ export function useTimelineDemand(snapshot: TimelineSnapshot | null | undefined,
                         presented_rows: true,
                         scroll_generation: input.scrollGeneration,
                         latest_user_turn_id: input.latest,
-                        viewed_through_turn_id: input.viewed,
-                        read_requires_unread: true,
+                        viewed_through_turn_id: viewabilityIsCurrent ? input.viewed : null,
+                        read_requires_unread: false,
                         prefetch_on_visibility: false,
                         boundary_request_limit: 4294967295,
                     },
@@ -97,10 +110,13 @@ export function useTimelineDemand(snapshot: TimelineSnapshot | null | undefined,
             latest: string | null,
             viewed: string | null,
             scrollGeneration: number,
+            viewedRowIds: string[] = rowIds,
         ) => {
             visible.current = {
                 threadId: snapshot?.thread_id,
                 rowIds,
+                viewedRowIds,
+                rowOrder: snapshot?.rows?.map((row) => row.id) ?? [],
                 latest,
                 viewed,
                 scrollGeneration,

@@ -54,7 +54,7 @@ import {
 import { defaultTimelineRowExpanded } from './row-expansion';
 import { TIMELINE_SCROLL_BEHAVIOR, useTimelineScroll } from './use-timeline-scroll';
 import { timelineRowsAreEqual } from './timeline-row-equality';
-import { viewedThroughLatestUserTurn } from './read-viewability';
+import { viewedThroughLatestUserTurn, viewedTimelineRowIds } from './read-viewability';
 import { VStack } from '@/components/primitives/vstack';
 import {
     mobileArtifactActionKey,
@@ -488,6 +488,7 @@ const ThreadTimelineContent = ({
                 latest?.type === 'user-message' ? latest.turnId : null,
                 viewedThroughTurnId,
                 timelineScroll.scrollGeneration(),
+                viewedTimelineRowIds(rows, visibleIndices),
             );
         },
         [publishTimelineDemand, rows, timelineScroll, updateVisibleAvatarGroups],
