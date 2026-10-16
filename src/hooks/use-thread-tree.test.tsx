@@ -8,6 +8,8 @@ let mockWorkspace = 'a';
 let mockSnapshot = {
     workspace_id: 'a',
     unread_by_folder_id: { parent: 9, child: 7 },
+    running_task_thread_ids: ['t'],
+    running_task_folder_ids: ['parent', 'child'],
 } as unknown as ClientThreadTreeSnapshot;
 jest.mock('@/stores/thread-tree', () => ({
     useThreadTreeStore: (select: (state: object) => unknown) =>
@@ -54,18 +56,34 @@ it('exposes authoritative folder totals at every level and updates without re-en
         tree = renderer.create(<Probe folderId={null} />);
     });
     expect(level!.unreadByFolderId).toBe(mockSnapshot.unread_by_folder_id);
+    expect(level!.runningTaskThreadIds).toBe(mockSnapshot.running_task_thread_ids);
+    expect(level!.runningTaskFolderIds).toBe(mockSnapshot.running_task_folder_ids);
     act(() => {
         tree!.update(<Probe folderId="parent" />);
     });
     expect(level!.unreadByFolderId.child).toBe(7);
-    mockSnapshot = { ...mockSnapshot, unread_by_folder_id: { parent: 0, child: 0 } };
+    expect(level!.runningTaskFolderIds).toEqual(['parent', 'child']);
+    mockSnapshot = {
+        ...mockSnapshot,
+        unread_by_folder_id: { parent: 0, child: 0 },
+        running_task_thread_ids: [],
+        running_task_folder_ids: [],
+    };
     act(() => {
         tree!.update(<Probe folderId="parent" />);
     });
     expect(level!.unreadByFolderId).toEqual({ parent: 0, child: 0 });
+    expect(level!.runningTaskFolderIds).toEqual([]);
+    mockSnapshot = {
+        ...mockSnapshot,
+        running_task_thread_ids: ['t'],
+        running_task_folder_ids: ['parent'],
+    };
     mockWorkspace = 'b';
     act(() => {
         tree!.update(<Probe folderId={null} />);
     });
     expect(level!.unreadByFolderId).toEqual({});
+    expect(level!.runningTaskThreadIds).toEqual([]);
+    expect(level!.runningTaskFolderIds).toEqual([]);
 });

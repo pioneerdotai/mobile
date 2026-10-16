@@ -1,6 +1,6 @@
 import React from 'react';
 import { afterEach, describe, expect, it, jest } from '@jest/globals';
-import renderer, { act, type ReactTestRenderer } from 'react-test-renderer';
+import renderer, { act, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 import { FlashList } from '@shopify/flash-list';
 import type { Thread, ThreadFolder } from '@/client';
 import { ThreadTreeList } from './thread-tree-list';
@@ -16,15 +16,27 @@ jest.mock('react-native-unistyles', () => ({
     }),
 }));
 jest.mock('react-i18next', () => ({
-    useTranslation: () => ({ t: (_: string, { count }: { count: number }) => `${count} unread` }),
+    useTranslation: () => ({
+        t: (key: string, options?: { count: number }) =>
+            options ? `${options.count} unread` : key,
+    }),
 }));
 jest.mock('lucide-react-native', () => ({
-    ChevronRight: () => null,
+    ChevronRight: () => {
+        const React = jest.requireActual<typeof import('react')>('react');
+        return React.createElement('ChevronRight');
+    },
     Folder: () => null,
     FileText: () => null,
 }));
 jest.mock('@/services/threads/tree', () => ({ threadTitle: (thread: Thread) => thread.name }));
-jest.mock('@/components/feedback/spinner', () => ({ __esModule: true, default: () => null }));
+jest.mock('@/components/feedback/spinner', () => ({
+    __esModule: true,
+    default: () => {
+        const React = jest.requireActual<typeof import('react')>('react');
+        return React.createElement('Spinner');
+    },
+}));
 jest.mock('@/components/primitives/box', () => ({
     Box: (props: { children?: React.ReactNode }) => {
         const React = jest.requireActual<typeof import('react')>('react');
@@ -140,5 +152,58 @@ describe('folder unread badges in every tree level', () => {
         );
         act(() => row.props.onPress());
         expect(props.onFolderPress).toHaveBeenCalledWith('archive');
+    });
+    it('keeps navigation, then unread, then one spinner at the right edge of each active row', () => {
+        act(() => {
+            tree = renderer.create(
+                <ThreadTreeList
+                    {...props}
+                    unreadByFolderId={{ work: 9 }}
+                    runningTaskThreadIds={['thread']}
+                    runningTaskFolderIds={['work']}
+                />,
+            );
+        });
+        expect(labels()).toEqual(['9 unread', 'tasksRunning', '2 unread', 'tasksRunning']);
+        expect(tree!.root.findAll((node) => (node.type as unknown) === 'Spinner')).toHaveLength(2);
+        const folderRow = tree!.root.find(
+            (node) => typeof node.type === 'string' && node.props.accessibilityRole === 'button',
+        );
+        const children = folderRow.children.filter((node) => typeof node !== 'string');
+        const last = children[children.length - 1] as ReactTestInstance;
+        expect(last.findAll((node) => (node.type as unknown) === 'Spinner')).toHaveLength(1);
+        const navigationIndex = children.findIndex(
+            (node) =>
+                (node as ReactTestInstance).findAll(
+                    (child) => (child.type as unknown) === 'ChevronRight',
+                ).length > 0,
+        );
+        const unreadIndex = children.findIndex(
+            (node) => (node as ReactTestInstance).props.accessibilityLabel === '9 unread',
+        );
+        expect(navigationIndex).toBeGreaterThanOrEqual(0);
+        expect(unreadIndex).toBeGreaterThanOrEqual(0);
+        expect(navigationIndex).toBeLessThan(unreadIndex);
+        act(() => folderRow.props.onPress());
+        expect(props.onFolderPress).toHaveBeenCalledWith('work');
+        const rows = tree!.root.findByType(FlashList).props.data;
+        act(() =>
+            tree!.update(
+                <ThreadTreeList
+                    {...props}
+                    unreadByThreadId={{}}
+                    runningTaskThreadIds={['thread']}
+                    runningTaskFolderIds={['work']}
+                />,
+            ),
+        );
+        expect(labels()).toEqual(['tasksRunning', 'tasksRunning']);
+        expect(tree!.root.findByType(FlashList).props.data).toBe(rows);
+        expect(tree!.root.findByType(FlashList).props.extraData.runningThreads.has('thread')).toBe(
+            true,
+        );
+        act(() => tree!.update(<ThreadTreeList {...props} unreadByFolderId={{ work: 9 }} />));
+        expect(labels()).toEqual(['9 unread', '2 unread']);
+        expect(tree!.root.findAll((node) => (node.type as unknown) === 'Spinner')).toHaveLength(0);
     });
 });
