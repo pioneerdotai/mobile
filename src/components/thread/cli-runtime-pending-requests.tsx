@@ -29,8 +29,9 @@ type PendingRequestCardProps = {
 };
 
 export const PendingRequestCard = ({ entry, canRespond, threadId }: PendingRequestCardProps) => {
-    const [answers, setAnswers] = useState<Record<string, string>>({});
+    const [answers, setAnswers] = useState<Record<string, string | string[]>>({});
     const [fallbackAnswer, setFallbackAnswer] = useState('');
+    const [customAnswers, setCustomAnswers] = useState<Record<string, string>>({});
     const action = useApprovalAction(threadId, entry.request.request_id);
     const requestGeneration = action?.request_generation ?? null;
     const previousGeneration = useRef<number | null>(null);
@@ -40,6 +41,7 @@ export const PendingRequestCard = ({ entry, canRespond, threadId }: PendingReque
         if (previousGeneration.current != null && previousGeneration.current !== generation) {
             setAnswers({});
             setFallbackAnswer('');
+            setCustomAnswers({});
         }
         previousGeneration.current = generation;
     }, [action?.request_generation]);
@@ -72,16 +74,26 @@ export const PendingRequestCard = ({ entry, canRespond, threadId }: PendingReque
         [canRespond, threadId, entry.request.request_id, requestGeneration],
     );
 
-    const answerQuestion = useCallback((id: string, value: string) => {
+    const answerQuestion = useCallback((id: string, value: string | string[]) => {
         setAnswers((current) => ({ ...current, [id]: value }));
     }, []);
 
     const submitAnswer = useCallback(() => {
         if (questions.length > 0) {
-            const responseAnswers = questions.reduce<Record<string, string>>((acc, question) => {
-                acc[question.id] = answers[question.id] ?? '';
-                return acc;
-            }, {});
+            const responseAnswers = questions.reduce<Record<string, string | string[]>>(
+                (acc, question) => {
+                    const selected = answers[question.id];
+                    const custom = customAnswers[question.id]?.trim();
+                    acc[question.id] = question.multiple
+                        ? [
+                              ...(Array.isArray(selected) ? selected : []),
+                              ...(question.allow_custom !== false && custom ? [custom] : []),
+                          ]
+                        : (selected ?? '');
+                    return acc;
+                },
+                {},
+            );
 
             void respond({
                 resolution: 'answered',
@@ -91,7 +103,7 @@ export const PendingRequestCard = ({ entry, canRespond, threadId }: PendingReque
         }
 
         void respond({ resolution: 'answered', response: fallbackAnswer });
-    }, [answers, fallbackAnswer, questions, respond]);
+    }, [answers, customAnswers, fallbackAnswer, questions, respond]);
 
     return (
         <VStack style={styles.card}>
@@ -115,6 +127,10 @@ export const PendingRequestCard = ({ entry, canRespond, threadId }: PendingReque
                     submitting={submitting}
                     values={answers}
                     onAnswer={answerQuestion}
+                    customValues={customAnswers}
+                    onCustomAnswer={(id, value) =>
+                        setCustomAnswers((current) => ({ ...current, [id]: value }))
+                    }
                     onFallbackAnswer={setFallbackAnswer}
                 />
             ) : null}
@@ -153,12 +169,16 @@ const UserInputFields = ({
     values,
     onAnswer,
     onFallbackAnswer,
+    customValues,
+    onCustomAnswer,
 }: {
+    customValues: Record<string, string>;
+    onCustomAnswer: (id: string, value: string) => void;
     fallbackAnswer: string;
     questions: PendingRequestUserInputQuestion[];
     submitting: boolean;
-    values: Record<string, string>;
-    onAnswer: (id: string, value: string) => void;
+    values: Record<string, string | string[]>;
+    onAnswer: (id: string, value: string | string[]) => void;
     onFallbackAnswer: (value: string) => void;
 }) => {
     if (questions.length === 0) {
@@ -186,9 +206,28 @@ const UserInputFields = ({
                                     key={option.label}
                                     label={option.label}
                                     disabled={submitting}
-                                    onPress={() => onAnswer(question.id, option.label)}
+                                    onPress={() => {
+                                        const value = values[question.id];
+                                        const selected = Array.isArray(value) ? value : [];
+                                        onAnswer(
+                                            question.id,
+                                            question.multiple
+                                                ? selected.includes(option.label)
+                                                    ? selected.filter(
+                                                          (label) => label !== option.label,
+                                                      )
+                                                    : [...selected, option.label]
+                                                : option.label,
+                                        );
+                                    }}
                                     variant={
-                                        values[question.id] === option.label
+                                        (
+                                            Array.isArray(values[question.id])
+                                                ? (values[question.id] as string[]).includes(
+                                                      option.label,
+                                                  )
+                                                : values[question.id] === option.label
+                                        )
                                             ? 'primary'
                                             : 'secondary'
                                     }
@@ -196,14 +235,24 @@ const UserInputFields = ({
                             ))}
                         </HStack>
                     ) : null}
-                    <Input
-                        value={values[question.id] ?? ''}
-                        editable={!submitting}
-                        placeholder="Answer"
-                        onChangeText={(value) => onAnswer(question.id, value)}
-                        style={styles.answerInput}
-                        {...pendingRequestQuestionInputSecurity(question)}
-                    />
+                    {question.allow_custom !== false ? (
+                        <Input
+                            value={
+                                question.multiple
+                                    ? (customValues[question.id] ?? '')
+                                    : ((values[question.id] as string | undefined) ?? '')
+                            }
+                            editable={!submitting}
+                            placeholder="Answer"
+                            onChangeText={(value) =>
+                                question.multiple
+                                    ? onCustomAnswer(question.id, value)
+                                    : onAnswer(question.id, value)
+                            }
+                            style={styles.answerInput}
+                            {...pendingRequestQuestionInputSecurity(question)}
+                        />
+                    ) : null}
                     {question.is_secret ? (
                         <Text style={styles.secretNote}>
                             This answer will be sent only to the active CLI runtime.

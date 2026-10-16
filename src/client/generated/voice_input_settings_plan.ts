@@ -34,8 +34,8 @@ export type GatewayModelSelection =
       source: 'explicit';
       transport: ModelSelectionTransport;
     };
-export type ModelSelectionTransport = 'api' | 'codex' | 'claude';
-export type CLIAgentRuntimeKind = 'codex' | 'claude';
+export type ModelSelectionTransport = 'api' | 'codex' | 'claude' | 'opencode';
+export type CLIAgentRuntimeKind = 'codex' | 'claude' | 'opencode';
 export type GatewayThreadEpisodicVectorProvider = 'openai' | 'openrouter' | 'local';
 export type GatewayVoiceInputProvider = 'local';
 export type VoiceInputSettingsPlanRejection = 'invalid_provider' | 'missing_model' | 'retry_unavailable';

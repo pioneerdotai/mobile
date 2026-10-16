@@ -32,7 +32,7 @@ export type CliRuntimeMcpReadinessReason =
   | 'continuityUnavailable'
   | 'readinessUnavailable';
 export type RuntimeDiagnosticLevel = 'info' | 'warning' | 'error';
-export type CLIAgentRuntimeKind = 'codex' | 'claude';
+export type CLIAgentRuntimeKind = 'codex' | 'claude' | 'opencode';
 export type RuntimeStatus =
   | {
       state: 'disabled';

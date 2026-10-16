@@ -1,4 +1,5 @@
 {
+    "tasksRunning": "Tareas en curso",
     "title": "Hilos",
     "threadTitle": "Hilo",
     "newThread": "Nuevo hilo",

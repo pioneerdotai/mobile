@@ -32,7 +32,8 @@
       "type": "string",
       "enum": [
         "codex",
-        "claude"
+        "claude",
+        "opencode"
       ]
     },
     "CLIRuntimeProviderSettingsRejection": {
@@ -789,6 +790,15 @@
                 "id": "claude",
                 "kind": "claude",
                 "nickname": "claude"
+              },
+              {
+                "binary_path": "opencode",
+                "display_name": "OpenCode",
+                "enabled": true,
+                "home_path": "~/.config/opencode",
+                "id": "opencode",
+                "kind": "opencode",
+                "nickname": "opencode"
               }
             ]
           }
@@ -1526,7 +1536,8 @@
       "enum": [
         "api",
         "codex",
-        "claude"
+        "claude",
+        "opencode"
       ]
     },
     "SelfImprovementPhase": {

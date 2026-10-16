@@ -774,7 +774,8 @@
       "enum": [
         "api",
         "codex",
-        "claude"
+        "claude",
+        "opencode"
       ]
     },
     "SelfImprovementPhase": {
