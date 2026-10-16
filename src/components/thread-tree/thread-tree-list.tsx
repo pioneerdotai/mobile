@@ -46,6 +46,7 @@ type ThreadTreeListProps = {
     showAgentsDoc: boolean;
     style?: ViewStyle;
     threads: Thread[];
+    unreadByFolderId?: Readonly<Record<string, number>>;
     unreadByThreadId?: Readonly<Record<string, number>>;
     untitledLabel: string;
 };
@@ -87,6 +88,7 @@ const ThreadTreeList = ({
     showAgentsDoc,
     style,
     threads,
+    unreadByFolderId = {},
     unreadByThreadId = {},
     untitledLabel,
 }: ThreadTreeListProps) => {
@@ -127,6 +129,7 @@ const ThreadTreeList = ({
                 return (
                     <ThreadTreeFolderRow
                         folder={item.folder}
+                        unreadCount={unreadByFolderId[item.folder.id] ?? 0}
                         onPress={() => onFolderPress(item.folder.id)}
                     />
                 );
@@ -146,6 +149,7 @@ const ThreadTreeList = ({
             onAgentsDocPress,
             onFolderPress,
             onThreadPress,
+            unreadByFolderId,
             unreadByThreadId,
             untitledLabel,
         ],
@@ -158,7 +162,7 @@ const ThreadTreeList = ({
             data={rows}
             getItemType={getItemType}
             keyExtractor={keyExtractor}
-            extraData={{ themeName: rt.themeName, unreadByThreadId }}
+            extraData={{ themeName: rt.themeName, unreadByThreadId, unreadByFolderId }}
             ListEmptyComponent={
                 hideEmptyState ? null : (
                     <ThreadTreeListState

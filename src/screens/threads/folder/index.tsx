@@ -25,6 +25,7 @@ const ThreadFolderScreen = ({ folderId }: ThreadTreeLevelScreenProps) => {
         folders,
         threads,
         unreadByThreadId,
+        unreadByFolderId,
         loading,
         error,
     } = useThreadTreeLevel(folderId);
@@ -82,6 +83,7 @@ const ThreadFolderScreen = ({ folderId }: ThreadTreeLevelScreenProps) => {
             showAgentsDoc={canManageWorkspace && !!currentAgentsDocSummary}
             style={styles.container}
             threads={threads}
+            unreadByFolderId={unreadByFolderId}
             unreadByThreadId={unreadByThreadId}
             untitledLabel={t('untitled')}
         />
