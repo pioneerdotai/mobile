@@ -193,7 +193,7 @@ export type AgentExecutionBackend =
       type: 'acpAgentRuntime';
       [k: string]: unknown;
     };
-export type CLIAgentRuntimeKind = 'codex' | 'claude';
+export type CLIAgentRuntimeKind = 'codex' | 'claude' | 'opencode';
 export type UserInput =
   | {
       text: string;

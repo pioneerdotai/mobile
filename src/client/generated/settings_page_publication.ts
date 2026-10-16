@@ -28,7 +28,7 @@ export type SettingsPageValue =
       status?: GatewaySelfImprovementStatus | null;
       [k: string]: unknown;
     };
-export type ModelSelectionTransport = 'api' | 'codex' | 'claude';
+export type ModelSelectionTransport = 'api' | 'codex' | 'claude' | 'opencode';
 export type GatewayRemoteAccessErrorKind =
   | 'invalid_settings'
   | 'missing_key'

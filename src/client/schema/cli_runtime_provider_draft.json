@@ -55,7 +55,8 @@
       "type": "string",
       "enum": [
         "codex",
-        "claude"
+        "claude",
+        "opencode"
       ]
     },
     "CLIRuntimeProviderDraftMode": {
@@ -162,7 +163,8 @@
       "enum": [
         "api",
         "codex",
-        "claude"
+        "claude",
+        "opencode"
       ]
     }
   }

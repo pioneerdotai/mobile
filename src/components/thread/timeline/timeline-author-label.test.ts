@@ -3,6 +3,26 @@ import { describe, expect, it } from '@jest/globals';
 import { timelineAgentAuthorLabel, timelineAgentDefaultAvatar } from './timeline-author-label';
 
 describe('timelineAuthorLabel', () => {
+    it('recognizes a direct CLI provider independently of avatar bytes and display labels', () => {
+        const author = {
+            actor: { kind: 'system' as const },
+            cli_runtime_kind: 'opencode' as const,
+            display_name: 'Renamed assistant',
+            nickname: 'renamed',
+            avatar_revision: 'a-new-image-every-day',
+        };
+        expect(timelineAgentDefaultAvatar(author)).toBe('opencode');
+        expect(timelineAgentDefaultAvatar({ ...author, avatar_revision: null })).toBe('opencode');
+        expect(timelineAgentAuthorLabel(author)).toBe('Renamed assistant · @renamed');
+        expect(timelineAgentDefaultAvatar({ ...author, cli_runtime_kind: null })).toBeNull();
+        expect(
+            timelineAgentDefaultAvatar({
+                ...author,
+                actor: { kind: 'principal', id: 'principal-a' },
+            }),
+        ).toBeNull();
+    });
+
     it('renders the current identity presentation while retaining the exact execution snapshot', () => {
         expect(
             timelineAgentAuthorLabel({
@@ -67,6 +87,7 @@ describe('timelineAuthorLabel', () => {
         expect(
             timelineAgentDefaultAvatar({
                 ...author,
+                cli_runtime_kind: 'codex',
                 agent: {
                     ...author.agent,
                     identity_source_kind: 'cli_runtime_instance',
@@ -77,6 +98,7 @@ describe('timelineAuthorLabel', () => {
         expect(
             timelineAgentDefaultAvatar({
                 ...author,
+                cli_runtime_kind: 'claude',
                 agent: {
                     ...author.agent,
                     identity_source_kind: 'cli_runtime_instance',
@@ -84,6 +106,18 @@ describe('timelineAuthorLabel', () => {
                 },
             }),
         ).toBe('claude');
+        expect(
+            timelineAgentDefaultAvatar({
+                ...author,
+                cli_runtime_kind: 'opencode',
+                agent: {
+                    ...author.agent,
+                    identity_source_kind: 'cli_runtime_instance',
+                    nickname: 'renamed-agent',
+                    role_label: 'Renamed role',
+                },
+            }),
+        ).toBe('opencode');
     });
 
     it('does not invent a generic agent label or accept a different execution snapshot', () => {

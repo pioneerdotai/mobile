@@ -1,7 +1,7 @@
 /* eslint-disable */
 
-export type ModelSelectionTransport = 'api' | 'codex' | 'claude';
-export type CLIAgentRuntimeKind = 'codex' | 'claude';
+export type ModelSelectionTransport = 'api' | 'codex' | 'claude' | 'opencode';
+export type CLIAgentRuntimeKind = 'codex' | 'claude' | 'opencode';
 export type CLIRuntimeProviderDraftMode =
   | 'Create'
   | {

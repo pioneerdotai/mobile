@@ -69,6 +69,8 @@ jest.mock('@/components/typography/title', () => ({
 jest.mock('@/hooks/use-thread-tree', () => ({
     useThreadTreeLevel: () => ({
         currentAgentsDocSummary: mockAgentsDocSummary,
+        runningTaskThreadIds: ['t'],
+        runningTaskFolderIds: ['folder'],
         folders: [],
         threads: [],
         loading: false,
@@ -131,6 +133,8 @@ describe('ThreadTree', () => {
 
         expect(tree!.root.findByType(mockThreadTreeList).props).toMatchObject({
             emptyLabel: 'emptyLevelTitle',
+            runningTaskThreadIds: [],
+            runningTaskFolderIds: [],
             folders: [],
             header: null,
             hideEmptyState: true,
@@ -185,6 +189,8 @@ describe('ThreadTree', () => {
         });
 
         const list = tree!.root.findByType(mockThreadTreeList);
+        expect(list.props.runningTaskThreadIds).toEqual(['t']);
+        expect(list.props.runningTaskFolderIds).toEqual(['folder']);
         expect(list.props.header).not.toBeNull();
         expect(list.props.hideEmptyState).toBe(false);
         expect(tree!.root.findAllByType(mockCreateButton)).toHaveLength(0);

@@ -608,7 +608,7 @@ export type GatewayModelSelection =
       source: 'explicit';
       transport: ModelSelectionTransport;
     };
-export type ModelSelectionTransport = 'api' | 'codex' | 'claude';
+export type ModelSelectionTransport = 'api' | 'codex' | 'claude' | 'opencode';
 export type MemorySettingToggle =
   'Enabled' | 'ActiveRecall' | 'ProactiveWrites' | 'BackgroundExtraction' | 'DebugTrace';
 export type MemoryModelSetting = 'PostTurnExtractor';
@@ -933,7 +933,7 @@ export type ProviderCommand =
       };
       [k: string]: unknown;
     };
-export type CLIAgentRuntimeKind = 'codex' | 'claude';
+export type CLIAgentRuntimeKind = 'codex' | 'claude' | 'opencode';
 export type CLIRuntimeProviderDraftMode =
   | 'Create'
   | {

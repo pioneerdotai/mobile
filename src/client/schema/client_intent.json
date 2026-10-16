@@ -1596,7 +1596,8 @@
       "type": "string",
       "enum": [
         "codex",
-        "claude"
+        "claude",
+        "opencode"
       ]
     },
     "CLIRuntimeLoginStartParams": {
@@ -5983,7 +5984,8 @@
       "enum": [
         "api",
         "codex",
-        "claude"
+        "claude",
+        "opencode"
       ]
     },
     "ModelSelectorSelection": {
