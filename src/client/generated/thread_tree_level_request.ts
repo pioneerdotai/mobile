@@ -79,6 +79,12 @@ export interface ThreadTreeSnapshot {
     [k: string]: Thread;
   };
   unread: ThreadUnreadSummary[];
+  /**
+   * Unread messages in each folder and all descendants, including zero totals.
+   */
+  unread_by_folder_id: {
+    [k: string]: number;
+  };
   workspace_id: string;
 }
 export interface ThreadAgentsDocSummary {

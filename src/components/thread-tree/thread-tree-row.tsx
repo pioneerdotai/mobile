@@ -12,6 +12,7 @@ import { threadTitle } from '@/services/threads/tree';
 
 type ThreadTreeFolderRowProps = {
     folder: ThreadFolder;
+    unreadCount?: number;
     onPress?: () => void;
 };
 
@@ -27,8 +28,10 @@ type ThreadTreeThreadRowProps = {
     onPress?: () => void;
 };
 
-const ThreadTreeFolderRow = ({ folder, onPress }: ThreadTreeFolderRowProps) => {
+const ThreadTreeFolderRow = ({ folder, unreadCount = 0, onPress }: ThreadTreeFolderRowProps) => {
     const { theme } = useUnistyles();
+    const { t } = useTranslation('threads');
+    const visibleUnreadCount = Math.max(0, Math.trunc(unreadCount));
 
     const content = (
         <>
@@ -42,6 +45,15 @@ const ThreadTreeFolderRow = ({ folder, onPress }: ThreadTreeFolderRowProps) => {
             >
                 {folder.name}
             </Text>
+            {visibleUnreadCount > 0 ? (
+                <Box
+                    accessible
+                    accessibilityLabel={t('threadUnreadCount', { count: visibleUnreadCount })}
+                    style={styles.unreadBadge}
+                >
+                    <Text style={styles.unreadBadgeText}>{visibleUnreadCount}</Text>
+                </Box>
+            ) : null}
             {onPress ? (
                 <ChevronRight size={theme.space(5.5)} color={theme.colors.typography} />
             ) : null}
