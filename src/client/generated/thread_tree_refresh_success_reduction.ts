@@ -63,6 +63,7 @@ export interface ThreadTreeRefreshSuccessReduction {
   folders: ThreadFolder[];
   placements: ThreadPlacement[];
   request_thread_start_if_needed: boolean;
+  running_task_thread_ids?: string[];
   set_active_thread_id?: string | null;
   set_preferred_workspace_id?: string | null;
   sync_composer_model_selection: boolean;

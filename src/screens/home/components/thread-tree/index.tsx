@@ -54,6 +54,8 @@ const ThreadTree = () => {
         threads,
         unreadByThreadId,
         unreadByFolderId,
+        runningTaskThreadIds,
+        runningTaskFolderIds,
         loading,
         error,
     } = useThreadTreeLevel(null);
@@ -123,6 +125,8 @@ const ThreadTree = () => {
                 showAgentsDoc={canBrowseThreads && canManageWorkspace && !!currentAgentsDocSummary}
                 style={styles.list}
                 threads={canBrowseThreads ? threads : []}
+                runningTaskThreadIds={canBrowseThreads ? runningTaskThreadIds : []}
+                runningTaskFolderIds={canBrowseThreads ? runningTaskFolderIds : []}
                 unreadByFolderId={canBrowseThreads ? unreadByFolderId : {}}
                 unreadByThreadId={canBrowseThreads ? unreadByThreadId : {}}
                 untitledLabel={t('untitled')}

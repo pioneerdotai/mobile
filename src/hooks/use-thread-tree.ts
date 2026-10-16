@@ -110,6 +110,12 @@ export const useThreadTreeLevel = (folderId: string | null) => {
         folders: level.folders,
         threads: level.threads,
         unreadByThreadId,
+        runningTaskThreadIds: snapshotMatchesActiveWorkspace
+            ? (tree.snapshot?.running_task_thread_ids ?? [])
+            : [],
+        runningTaskFolderIds: snapshotMatchesActiveWorkspace
+            ? (tree.snapshot?.running_task_folder_ids ?? [])
+            : [],
         unreadByFolderId: snapshotMatchesActiveWorkspace
             ? (tree.snapshot?.unread_by_folder_id ?? {})
             : {},

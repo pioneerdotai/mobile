@@ -68,6 +68,11 @@ export interface ThreadTreeSnapshot {
   placements_by_thread_id: {
     [k: string]: ThreadPlacement;
   };
+  running_task_folder_ids?: string[];
+  /**
+   * Authorized task activity, independent of conversation/selection state.
+   */
+  running_task_thread_ids?: string[];
   thread_ids_by_folder_id: {
     [k: string]: string[];
   };
