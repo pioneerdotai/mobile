@@ -129,6 +129,7 @@ export type PrincipalId = string;
 export type AgentExecutionId = string;
 export type AgentIdentityId = string;
 export type AgentIdentitySourceKind = 'native_agent' | 'cli_runtime_instance' | 'ephemeral';
+export type CLIAgentRuntimeKind = 'codex' | 'claude' | 'opencode';
 export type ThreadMode = ('Message' | 'Agent') | 'Chat';
 export type TimelineReplyState = 'available' | 'deleted' | 'unavailable';
 export type AgentRouteAction =
@@ -144,7 +145,7 @@ export type TurnPermissionProfileSource =
   'composer' | 'defaulted' | 'inherited_from_parent_turn' | 'task_permission_cap' | 'system';
 export type TurnSecurityCapabilityKind = 'filesystem' | 'network' | 'process' | 'approval' | 'sandbox_backend';
 export type ClientSecurityEnforcementStatus = 'active' | 'degraded' | 'unavailable';
-export type TurnSecurityExecutionBackendKind = 'native' | 'codex_cli' | 'claude_cli';
+export type TurnSecurityExecutionBackendKind = 'native' | 'codex_cli' | 'claude_cli' | 'opencode_cli';
 export type ClientSecurityFilesystemAccess = 'unrestricted' | 'read_only' | 'workspace_write';
 export type TurnNetworkMode = 'disabled' | 'restricted' | 'enabled';
 export type SandboxBackendKind = 'nono' | 'windows_restricted_token' | 'provider_native';
@@ -238,6 +239,10 @@ export interface TurnAuthorSnapshot {
    */
   agent?: AgentPresentationSnapshot | null;
   avatar_revision?: string | null;
+  /**
+   * CLI provider identity projected from persisted execution bindings, independent of artwork.
+   */
+  cli_runtime_kind?: CLIAgentRuntimeKind | null;
   display_name: string;
   nickname: string;
   [k: string]: unknown;
