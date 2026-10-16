@@ -477,6 +477,11 @@ export type GatewayNotification =
       [k: string]: unknown;
     }
   | {
+      kind: 'task_completion_inbox_changed';
+      params: TaskCompletionInboxChangedNotification;
+      [k: string]: unknown;
+    }
+  | {
       kind: 'task_tree_changed';
       params: TaskTreeChangedNotification;
       [k: string]: unknown;
@@ -3694,6 +3699,13 @@ export interface PublicTaskArtifact {
   artifactId?: string | null;
   mimeType?: string | null;
   versionId?: string | null;
+  [k: string]: unknown;
+}
+/**
+ * An invalidation only: clients reload authoritative rows and count.
+ */
+export interface TaskCompletionInboxChangedNotification {
+  workspaceId: string;
   [k: string]: unknown;
 }
 export interface TaskTreeChangedNotification {
