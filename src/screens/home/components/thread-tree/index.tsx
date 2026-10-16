@@ -48,8 +48,15 @@ const ThreadTree = () => {
         activeWorkspaceId !== null;
     const canBrowseThreads = hasActiveGateway && !requiresAuthentication && workspaceReady;
     const showGatewayAction = !hasActiveGateway || requiresAuthentication;
-    const { currentAgentsDocSummary, folders, threads, unreadByThreadId, loading, error } =
-        useThreadTreeLevel(null);
+    const {
+        currentAgentsDocSummary,
+        folders,
+        threads,
+        unreadByThreadId,
+        unreadByFolderId,
+        loading,
+        error,
+    } = useThreadTreeLevel(null);
 
     const openFolder = (folderId: string) => {
         router.push({
@@ -116,6 +123,7 @@ const ThreadTree = () => {
                 showAgentsDoc={canBrowseThreads && canManageWorkspace && !!currentAgentsDocSummary}
                 style={styles.list}
                 threads={canBrowseThreads ? threads : []}
+                unreadByFolderId={canBrowseThreads ? unreadByFolderId : {}}
                 unreadByThreadId={canBrowseThreads ? unreadByThreadId : {}}
                 untitledLabel={t('untitled')}
             />

@@ -110,5 +110,8 @@ export const useThreadTreeLevel = (folderId: string | null) => {
         folders: level.folders,
         threads: level.threads,
         unreadByThreadId,
+        unreadByFolderId: snapshotMatchesActiveWorkspace
+            ? (tree.snapshot?.unread_by_folder_id ?? {})
+            : {},
     };
 };
