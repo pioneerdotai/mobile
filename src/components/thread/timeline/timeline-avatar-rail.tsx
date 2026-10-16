@@ -23,6 +23,7 @@ import { MemberAvatar } from '@/components/member-avatar';
 import { Box } from '@/components/primitives/box';
 import {
     AGENT_AVATAR_REVISIONS,
+    agentAvatarRevisionForTheme,
     type ResolvedAgentAvatar,
 } from '@/services/members/resolve-agent-avatar';
 
@@ -121,6 +122,9 @@ export const TimelineAvatarRail = ({
     timelineIdentityKey,
     viewportTopInset,
 }: TimelineAvatarRailProps) => {
+    const { rt } = useUnistyles();
+    const dark = rt.themeName === 'dark';
+    const opencodeAvatarRevision = agentAvatarRevisionForTheme('opencode', dark);
     const visibleGroupsSnapshot = useSyncExternalStore(
         controller.subscribeToVisibleGroups,
         controller.getVisibleGroupsSnapshot,
@@ -146,7 +150,7 @@ export const TimelineAvatarRail = ({
             const author = timelineAvatarSourceAgentAuthor(group.source);
             if (!author && group.source.kind !== 'agent') return [];
             const avatar = timelineAgentDefaultAvatar(author);
-            return [avatar ? AGENT_AVATAR_REVISIONS[avatar] : AGENT_AVATAR_REVISIONS.pioneer];
+            return [agentAvatarRevisionForTheme(avatar ?? 'pioneer', dark)];
         }),
     );
     const pioneerAvatar = useAuthenticatedAvatar(
@@ -171,10 +175,10 @@ export const TimelineAvatarRail = ({
         true,
     );
     const opencodeAvatar = useAuthenticatedAvatar(
-        connected && displayedAgentRevisions.has(AGENT_AVATAR_REVISIONS.opencode)
-            ? `agent:${AGENT_AVATAR_REVISIONS.opencode}`
+        connected && displayedAgentRevisions.has(opencodeAvatarRevision)
+            ? `agent:${opencodeAvatarRevision}`
             : null,
-        AGENT_AVATAR_REVISIONS.opencode,
+        opencodeAvatarRevision,
         true,
     );
     const agentAvatars = useMemo<Readonly<Record<string, ResolvedAgentAvatar>>>(
@@ -184,12 +188,12 @@ export const TimelineAvatarRail = ({
                     [AGENT_AVATAR_REVISIONS.pioneer, pioneerAvatar],
                     [AGENT_AVATAR_REVISIONS.codex, codexAvatar],
                     [AGENT_AVATAR_REVISIONS.claude, claudeAvatar],
-                    [AGENT_AVATAR_REVISIONS.opencode, opencodeAvatar],
+                    [opencodeAvatarRevision, opencodeAvatar],
                 ].flatMap(([avatarRevision, uri]) =>
                     avatarRevision && uri ? [[avatarRevision, { avatarRevision, uri }]] : [],
                 ),
             ),
-        [pioneerAvatar, codexAvatar, claudeAvatar, opencodeAvatar],
+        [pioneerAvatar, codexAvatar, claudeAvatar, opencodeAvatar, opencodeAvatarRevision],
     );
     const handleViewportLayout = useCallback(
         (event: LayoutChangeEvent) => {
@@ -314,9 +318,13 @@ const TimelineAvatarRailItem = memo(
         const agentAuthor = timelineAvatarSourceAgentAuthor(group.source);
         const agentPresentation = agentAuthor ? agentAvatarPresentation(group.source) : null;
         const agentDisplayName =
-            agentPresentation && agentAuthor ? agentAuthor.display_name.trim() : '';
+            agentAuthor && (agentPresentation || agentAuthor.cli_runtime_kind)
+                ? agentAuthor.display_name.trim()
+                : '';
         const defaultAvatar = timelineAgentDefaultAvatar(agentAuthor);
-        const defaultAvatarRevision = defaultAvatar ? AGENT_AVATAR_REVISIONS[defaultAvatar] : null;
+        const defaultAvatarRevision = defaultAvatar
+            ? agentAvatarRevisionForTheme(defaultAvatar, rt.themeName === 'dark')
+            : null;
 
         const synchronizeGeometry = useCallback(() => {
             const state = listRef.current?.getState();
@@ -454,12 +462,20 @@ const timelineAvatarSourceAgentAuthor = (
     source: TimelineAvatarGroup['source'],
 ): Extract<TimelineAvatarGroup['source'], { kind: 'agent' }>['author'] => {
     const author = source.author;
-    return author?.actor.kind === 'agent_execution' ? author : null;
+    return author?.actor.kind === 'agent_execution' ||
+        (author?.actor.kind === 'system' && author.cli_runtime_kind != null && !author.agent)
+        ? author
+        : null;
 };
 
 const agentAvatarPresentation = (source: TimelineAvatarGroup['source']) => {
     const author = timelineAvatarSourceAgentAuthor(source);
-    if (!author || author.agent?.agent_execution_id !== author.actor.id) return null;
+    if (
+        !author ||
+        author.actor.kind !== 'agent_execution' ||
+        author.agent?.agent_execution_id !== author.actor.id
+    )
+        return null;
     return author.agent;
 };
 

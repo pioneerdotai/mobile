@@ -9,10 +9,16 @@ export type TimelineAgentAuthorPresentation = {
 export const timelineAgentAuthorPresentation = (
     author: TurnAuthorSnapshot | null,
 ): TimelineAgentAuthorPresentation | null => {
-    if (author?.actor.kind !== 'agent_execution') return null;
-
-    const agent = author.agent?.agent_execution_id === author.actor.id ? author.agent : null;
-    if (!agent) return null;
+    if (!author) return null;
+    const directCli =
+        author.actor.kind === 'system' && author.cli_runtime_kind != null && !author.agent;
+    if (!directCli && author.actor.kind !== 'agent_execution') return null;
+    const agent =
+        author.actor.kind === 'agent_execution' &&
+        author.agent?.agent_execution_id === author.actor.id
+            ? author.agent
+            : null;
+    if (!directCli && !agent) return null;
     const displayName = author.display_name.trim();
     const nickname = author.nickname.trim();
 
@@ -31,18 +37,12 @@ export const timelineAgentAuthorLabel = (author: TurnAuthorSnapshot | null): str
 export const timelineAgentDefaultAvatar = (
     author: TurnAuthorSnapshot | null,
 ): AgentAvatarKind | null => {
-    if (author?.actor.kind !== 'agent_execution') return null;
+    if (!author) return null;
+    if (author.actor.kind === 'system' && !author.agent) return author.cli_runtime_kind ?? null;
+    if (author.actor.kind !== 'agent_execution') return null;
 
     const agent = author.agent?.agent_execution_id === author.actor.id ? author.agent : null;
     if (agent?.identity_source_kind === 'native_agent') return 'pioneer';
     if (agent?.identity_source_kind !== 'cli_runtime_instance') return null;
-
-    const runtimeKind = (agent.role_label ?? agent.nickname)
-        .trim()
-        .toLowerCase()
-        .replace(/\s+cli$/u, '');
-    if (runtimeKind === 'codex') return 'codex';
-    if (runtimeKind === 'claude') return 'claude';
-    if (runtimeKind === 'opencode') return 'opencode';
-    return null;
+    return author.cli_runtime_kind ?? null;
 };
