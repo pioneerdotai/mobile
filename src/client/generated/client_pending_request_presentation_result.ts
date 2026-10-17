@@ -37,11 +37,13 @@ export type PendingRequestDetailStyle = 'field' | 'diff';
 
 export interface ClientPendingRequestPresentationResult {
   presentation: PendingRequestPresentation;
+  resolution?: PendingRequestResolution | null;
   [k: string]: unknown;
 }
 export interface PendingRequestPresentation {
   actions: PendingRequestAvailableAction[];
   details: PendingRequestDetailRow[];
+  external_url?: string | null;
   kind_label: string;
   message?: string | null;
   origin_label: string;
@@ -51,6 +53,7 @@ export interface PendingRequestPresentation {
 }
 export interface PendingRequestAvailableAction {
   kind: PendingRequestActionKind;
+  label?: string | null;
   resolution?: PendingRequestResolution | null;
   [k: string]: unknown;
 }
@@ -69,10 +72,12 @@ export interface PendingRequestUserInputQuestion {
   multiple?: boolean;
   options: PendingRequestUserInputOption[];
   question: string;
+  value_schema?: unknown;
   [k: string]: unknown;
 }
 export interface PendingRequestUserInputOption {
   description?: string | null;
   label: string;
+  value?: string | null;
   [k: string]: unknown;
 }

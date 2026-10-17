@@ -1,3 +1,3 @@
 /* eslint-disable */
 
-export type CLIAgentRuntimeKind = 'codex' | 'claude' | 'opencode';
+export type CLIAgentRuntimeKind = ('codex' | 'claude' | 'opencode') | 'acp';

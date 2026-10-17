@@ -422,11 +422,20 @@
       ]
     },
     "CLIAgentRuntimeKind": {
-      "type": "string",
-      "enum": [
-        "codex",
-        "claude",
-        "opencode"
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "codex",
+            "claude",
+            "opencode"
+          ]
+        },
+        {
+          "description": "The standard ACP transport, shared by every configured ACP instance.",
+          "type": "string",
+          "const": "acp"
+        }
       ]
     },
     "CLIRuntimePendingRequest": {
@@ -5221,6 +5230,7 @@
         "native",
         "codex_cli",
         "claude_cli",
+        "acp",
         "opencode_cli"
       ]
     },

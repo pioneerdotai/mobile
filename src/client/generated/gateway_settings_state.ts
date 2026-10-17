@@ -16,7 +16,7 @@ export type GatewayModelSelection =
       transport: ModelSelectionTransport;
     };
 export type ModelSelectionTransport = 'api' | 'codex' | 'claude' | 'opencode';
-export type CLIAgentRuntimeKind = 'codex' | 'claude' | 'opencode';
+export type CLIAgentRuntimeKind = ('codex' | 'claude' | 'opencode') | 'acp';
 export type GatewayRemoteAccessErrorKind =
   | 'invalid_settings'
   | 'missing_key'
@@ -84,6 +84,7 @@ export interface GatewayCliRuntimeSettings {
   [k: string]: unknown;
 }
 export interface GatewayCliRuntimeInstanceSettings {
+  args?: string[];
   binary_path: string;
   /**
    * Workspace override. Omission in updates preserves the stored value;
@@ -92,7 +93,14 @@ export interface GatewayCliRuntimeInstanceSettings {
   compaction_model?: GatewayModelSelection | null;
   display_name: string;
   enabled: boolean;
-  home_path: string;
+  /**
+   * Environment references only; resolved secret values never cross the
+   * shared settings/catalog boundary.
+   */
+  env_from?: {
+    [k: string]: string;
+  };
+  home_path?: string;
   id: string;
   kind: CLIAgentRuntimeKind;
   /**

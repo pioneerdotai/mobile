@@ -5,6 +5,16 @@
   "properties": {
     "presentation": {
       "$ref": "#/$defs/PendingRequestPresentation"
+    },
+    "resolution": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/PendingRequestResolution"
+        },
+        {
+          "type": "null"
+        }
+      ]
     }
   },
   "required": [
@@ -27,6 +37,12 @@
       "properties": {
         "kind": {
           "$ref": "#/$defs/PendingRequestActionKind"
+        },
+        "label": {
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "resolution": {
           "anyOf": [
@@ -87,6 +103,12 @@
           "items": {
             "$ref": "#/$defs/PendingRequestDetailRow"
           }
+        },
+        "external_url": {
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "kind_label": {
           "type": "string"
@@ -225,6 +247,12 @@
         },
         "label": {
           "type": "string"
+        },
+        "value": {
+          "type": [
+            "string",
+            "null"
+          ]
         }
       },
       "required": [
@@ -262,7 +290,8 @@
         },
         "question": {
           "type": "string"
-        }
+        },
+        "value_schema": true
       },
       "required": [
         "id",

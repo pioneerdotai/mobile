@@ -11,6 +11,12 @@
     },
     "label": {
       "type": "string"
+    },
+    "value": {
+      "type": [
+        "string",
+        "null"
+      ]
     }
   },
   "required": [

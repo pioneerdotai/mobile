@@ -335,5 +335,24 @@
         "loading": "Загрузка доступа…",
         "unavailable": "Настройки доступа к треду недоступны.",
         "actionFailed": "Изменение не применено. Будет загружено актуальное состояние."
-    }
+    },
+    "acpPrepare": "Подготовить сессию",
+    "acpPartialInput": "Терминал принял {{count}} байт. Оставшийся ввод не отправлен.",
+    "acpUrlCompleted": "Внешний процесс завершён",
+    "acpLogout": "Выйти",
+    "acpTerminalInput": "Ввод терминала",
+    "acpSendInput": "Отправить ввод",
+    "acpRefreshOutput": "Обновить вывод",
+    "acpCloseTerminal": "Закрыть терминал",
+    "acpListSessions": "Список сессий",
+    "acpSessionId": "ID сессии",
+    "acpLoad": "Загрузить",
+    "acpResume": "Продолжить",
+    "acpDelete": "Удалить",
+    "acpCloseSession": "Закрыть сессию",
+    "acpAdditionalDirectories": "Дополнительные каталоги (абсолютный путь на каждой строке)",
+    "acpMoreSessions": "Ещё сессии",
+    "acpAuthTruncated": "Начало вывода обрезано.",
+    "acpAuthFinished": "Вызов авторизации завершён (код {{code}}). Закройте терминал и переподключитесь для обновления авторизации.",
+    "acpReconnect": "Закрыть для переподключения"
 }

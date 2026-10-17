@@ -177,15 +177,44 @@
       "required": [
         "InvalidCompactionModel"
       ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "InvalidLaunchData": {
+          "type": "object",
+          "properties": {
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "message"
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "InvalidLaunchData"
+      ]
     }
   ],
   "$defs": {
     "CLIAgentRuntimeKind": {
-      "type": "string",
-      "enum": [
-        "codex",
-        "claude",
-        "opencode"
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "codex",
+            "claude",
+            "opencode"
+          ]
+        },
+        {
+          "description": "The standard ACP transport, shared by every configured ACP instance.",
+          "type": "string",
+          "const": "acp"
+        }
       ]
     }
   }

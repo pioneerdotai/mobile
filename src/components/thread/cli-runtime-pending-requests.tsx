@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Linking } from 'react-native';
+import { useCallback, useMemo, useState } from 'react';
 import { StyleSheet } from 'react-native-unistyles';
 import { dispatchApprovalAction, useApprovalAction } from '@/client/approval-actions';
 
@@ -20,6 +21,9 @@ import {
     pendingRequestActionLabel,
     pendingRequestActionVariant,
     pendingRequestQuestionInputSecurity,
+    pendingRequestQuestionEditableValue,
+    pendingRequestSelectedChoices,
+    togglePendingRequestChoice,
 } from '@/components/thread/pending-request-actions';
 
 type PendingRequestCardProps = {
@@ -28,25 +32,37 @@ type PendingRequestCardProps = {
     canRespond: boolean;
 };
 
-export const PendingRequestCard = ({ entry, canRespond, threadId }: PendingRequestCardProps) => {
+export const PendingRequestCard = (props: PendingRequestCardProps) => {
+    const action = useApprovalAction(props.threadId, props.entry.request.request_id);
+    // React owns this editable draft for exactly one request/generation. A new
+    // identity remounts before render/submit, without an effect's stale frame.
+    return (
+        <PendingRequestDraft
+            key={JSON.stringify([
+                props.threadId,
+                props.entry.request.request_id,
+                action?.request_generation ?? null,
+            ])}
+            {...props}
+            action={action}
+        />
+    );
+};
+
+const PendingRequestDraft = ({
+    entry,
+    canRespond,
+    threadId,
+    action,
+}: PendingRequestCardProps & { action: ReturnType<typeof useApprovalAction> }) => {
     const [answers, setAnswers] = useState<Record<string, string | string[]>>({});
     const [fallbackAnswer, setFallbackAnswer] = useState('');
     const [customAnswers, setCustomAnswers] = useState<Record<string, string>>({});
-    const action = useApprovalAction(threadId, entry.request.request_id);
+    const [validationError, setValidationError] = useState<string | null>(null);
     const requestGeneration = action?.request_generation ?? null;
-    const previousGeneration = useRef<number | null>(null);
-    useEffect(() => {
-        const generation = action?.request_generation;
-        if (generation == null) return;
-        if (previousGeneration.current != null && previousGeneration.current !== generation) {
-            setAnswers({});
-            setFallbackAnswer('');
-            setCustomAnswers({});
-        }
-        previousGeneration.current = generation;
-    }, [action?.request_generation]);
     const submitting = action?.state.kind === 'pending';
-    const error = action?.state.kind === 'failed' ? action.state.message : null;
+    const error =
+        validationError ?? (action?.state.kind === 'failed' ? action.state.message : null);
 
     const presentation = useMemo(
         () => pioneerClient.pendingRequestPresentation({ request: entry.request }).presentation,
@@ -79,6 +95,24 @@ export const PendingRequestCard = ({ entry, canRespond, threadId }: PendingReque
     }, []);
 
     const submitAnswer = useCallback(() => {
+        if (questions.some((question) => question.value_schema != null)) {
+            try {
+                const planned = pioneerClient.pendingRequestPresentation({
+                    request: entry.request,
+                    answers: Object.fromEntries(
+                        Object.entries(answers).map(([id, value]) => [
+                            id,
+                            Array.isArray(value) ? JSON.stringify(value) : value,
+                        ]),
+                    ),
+                });
+                if (planned.resolution) respond(planned.resolution);
+                setValidationError(null);
+            } catch (error) {
+                setValidationError(error instanceof Error ? error.message : String(error));
+            }
+            return;
+        }
         if (questions.length > 0) {
             const responseAnswers = questions.reduce<Record<string, string | string[]>>(
                 (acc, question) => {
@@ -103,7 +137,7 @@ export const PendingRequestCard = ({ entry, canRespond, threadId }: PendingReque
         }
 
         void respond({ resolution: 'answered', response: fallbackAnswer });
-    }, [answers, customAnswers, fallbackAnswer, questions, respond]);
+    }, [answers, customAnswers, fallbackAnswer, questions, respond, entry.request]);
 
     return (
         <VStack style={styles.card}>
@@ -120,6 +154,14 @@ export const PendingRequestCard = ({ entry, canRespond, threadId }: PendingReque
             {details.map((detail) => (
                 <RequestDetailRow key={detail.label} detail={detail} />
             ))}
+            {presentation.external_url ? (
+                <ActionButton
+                    label={presentation.external_url}
+                    variant="secondary"
+                    disabled={submitting}
+                    onPress={() => void Linking.openURL(presentation.external_url!)}
+                />
+            ) : null}
             {userInput ? (
                 <UserInputFields
                     fallbackAnswer={fallbackAnswer}
@@ -195,71 +237,91 @@ const UserInputFields = ({
 
     return (
         <VStack style={styles.questions}>
-            {questions.map((question) => (
-                <VStack key={question.id} style={styles.question}>
-                    <Text style={styles.detailLabel}>{question.header ?? question.question}</Text>
-                    <Text style={styles.message}>{question.question}</Text>
-                    {question.options.length > 0 ? (
-                        <HStack style={styles.optionRow}>
-                            {question.options.map((option) => (
-                                <ActionButton
-                                    key={option.label}
-                                    label={option.label}
-                                    disabled={submitting}
-                                    onPress={() => {
-                                        const value = values[question.id];
-                                        const selected = Array.isArray(value) ? value : [];
-                                        onAnswer(
-                                            question.id,
-                                            question.multiple
-                                                ? selected.includes(option.label)
-                                                    ? selected.filter(
-                                                          (label) => label !== option.label,
-                                                      )
-                                                    : [...selected, option.label]
-                                                : option.label,
-                                        );
-                                    }}
-                                    variant={
-                                        (
-                                            Array.isArray(values[question.id])
-                                                ? (values[question.id] as string[]).includes(
-                                                      option.label,
-                                                  )
-                                                : values[question.id] === option.label
-                                        )
-                                            ? 'primary'
-                                            : 'secondary'
-                                    }
-                                />
-                            ))}
-                        </HStack>
-                    ) : null}
-                    {question.allow_custom !== false ? (
-                        <Input
-                            value={
-                                question.multiple
-                                    ? (customValues[question.id] ?? '')
-                                    : ((values[question.id] as string | undefined) ?? '')
-                            }
-                            editable={!submitting}
-                            placeholder="Answer"
-                            onChangeText={(value) =>
-                                question.multiple
-                                    ? onCustomAnswer(question.id, value)
-                                    : onAnswer(question.id, value)
-                            }
-                            style={styles.answerInput}
-                            {...pendingRequestQuestionInputSecurity(question)}
-                        />
-                    ) : null}
-                    {question.is_secret ? (
-                        <Text style={styles.secretNote}>
-                            This answer will be sent only to the active CLI runtime.
+            {questions.map((question) => {
+                const hasSchema = question.value_schema != null;
+                const explicit = values[question.id];
+                const effective = pendingRequestQuestionEditableValue(
+                    question,
+                    Array.isArray(explicit) ? JSON.stringify(explicit) : explicit,
+                );
+                const multiple =
+                    question.multiple ||
+                    (question.value_schema as { type?: string } | undefined)?.type === 'array';
+                const selected = hasSchema
+                    ? pendingRequestSelectedChoices(effective)
+                    : Array.isArray(explicit)
+                      ? explicit
+                      : [];
+                return (
+                    <VStack key={question.id} style={styles.question}>
+                        <Text style={styles.detailLabel}>
+                            {question.header ?? question.question}
                         </Text>
-                    ) : null}
-                </VStack>
-            ))}
+                        <Text style={styles.message}>{question.question}</Text>
+                        {question.options.length > 0 ? (
+                            <HStack style={styles.optionRow}>
+                                {question.options.map((option) => (
+                                    <ActionButton
+                                        key={option.label}
+                                        label={option.label}
+                                        disabled={submitting}
+                                        onPress={() => {
+                                            const value = option.value ?? option.label;
+                                            onAnswer(
+                                                question.id,
+                                                multiple
+                                                    ? hasSchema
+                                                        ? togglePendingRequestChoice(
+                                                              effective,
+                                                              value,
+                                                          )
+                                                        : selected.includes(value)
+                                                          ? selected.filter((v) => v !== value)
+                                                          : [...selected, value]
+                                                    : value,
+                                            );
+                                        }}
+                                        variant={
+                                            (
+                                                multiple
+                                                    ? selected.includes(
+                                                          option.value ?? option.label,
+                                                      )
+                                                    : effective === (option.value ?? option.label)
+                                            )
+                                                ? 'primary'
+                                                : 'secondary'
+                                        }
+                                    />
+                                ))}
+                            </HStack>
+                        ) : null}
+                        {question.allow_custom !== false ? (
+                            <Input
+                                value={
+                                    multiple && !hasSchema
+                                        ? (customValues[question.id] ?? '')
+                                        : effective
+                                }
+                                editable={!submitting}
+                                placeholder="Answer"
+                                onChangeText={(value) =>
+                                    multiple && !hasSchema
+                                        ? onCustomAnswer(question.id, value)
+                                        : onAnswer(question.id, value)
+                                }
+                                style={styles.answerInput}
+                                {...pendingRequestQuestionInputSecurity(question)}
+                            />
+                        ) : null}
+                        {question.is_secret ? (
+                            <Text style={styles.secretNote}>
+                                This answer will be sent only to the active CLI runtime.
+                            </Text>
+                        ) : null}
+                    </VStack>
+                );
+            })}
         </VStack>
     );
 };
@@ -280,7 +342,7 @@ const RequestActions = ({
     <HStack style={styles.actionRow}>
         {actions.map((action) => (
             <ActionButton
-                key={action.kind}
+                key={`${action.kind}:${action.label ?? ''}:${JSON.stringify(action.resolution)}`}
                 label={pendingRequestActionLabel(action)}
                 disabled={
                     action.kind === 'answer'
