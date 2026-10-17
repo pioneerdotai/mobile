@@ -169,8 +169,8 @@ export type SessionConfigOptionValue =
       value: string;
       [k: string]: unknown;
     };
-export type ModelSelectionTransport = 'api' | 'codex' | 'claude';
-export type CLIAgentRuntimeKind = ('codex' | 'claude') | 'acp';
+export type ModelSelectionTransport = 'api' | 'codex' | 'claude' | 'opencode';
+export type CLIAgentRuntimeKind = ('codex' | 'claude' | 'opencode') | 'acp';
 export type CLIRuntimeProviderDraftMode =
   | 'Create'
   | {

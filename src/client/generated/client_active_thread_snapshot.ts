@@ -2,7 +2,7 @@
 
 export type TurnSecurityCapabilityKind = 'filesystem' | 'network' | 'process' | 'approval' | 'sandbox_backend';
 export type ClientSecurityEnforcementStatus = 'active' | 'degraded' | 'unavailable';
-export type TurnSecurityExecutionBackendKind = 'native' | 'codex_cli' | 'claude_cli' | 'acp';
+export type TurnSecurityExecutionBackendKind = 'native' | 'codex_cli' | 'claude_cli' | 'acp' | 'opencode_cli';
 export type ClientSecurityFilesystemAccess = 'unrestricted' | 'read_only' | 'workspace_write';
 export type TurnNetworkMode = 'disabled' | 'restricted' | 'enabled';
 export type TurnPermissionMode = 'full_access' | 'auto_accept_edits' | 'supervised';
@@ -704,6 +704,7 @@ export type PrincipalId = string;
 export type AgentExecutionId = string;
 export type AgentIdentityId = string;
 export type AgentIdentitySourceKind = 'native_agent' | 'cli_runtime_instance' | 'ephemeral';
+export type CLIAgentRuntimeKind = ('codex' | 'claude' | 'opencode') | 'acp';
 export type ThreadStatus = 'Active' | 'Idle' | 'Closed';
 export type PromptManifestDiagnosticCode =
   | 'missing_file'
@@ -1178,6 +1179,10 @@ export interface TurnAuthorSnapshot {
    */
   agent?: AgentPresentationSnapshot | null;
   avatar_revision?: string | null;
+  /**
+   * CLI provider identity projected from persisted execution bindings, independent of artwork.
+   */
+  cli_runtime_kind?: CLIAgentRuntimeKind | null;
   display_name: string;
   nickname: string;
   [k: string]: unknown;

@@ -1,3 +1,4 @@
+import { beginThreadOpening } from '@/services/telemetry/thread-opening';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet } from 'react-native-unistyles';
@@ -48,8 +49,17 @@ const ThreadTree = () => {
         activeWorkspaceId !== null;
     const canBrowseThreads = hasActiveGateway && !requiresAuthentication && workspaceReady;
     const showGatewayAction = !hasActiveGateway || requiresAuthentication;
-    const { currentAgentsDocSummary, folders, threads, unreadByThreadId, loading, error } =
-        useThreadTreeLevel(null);
+    const {
+        currentAgentsDocSummary,
+        folders,
+        threads,
+        unreadByThreadId,
+        unreadByFolderId,
+        runningTaskThreadIds,
+        runningTaskFolderIds,
+        loading,
+        error,
+    } = useThreadTreeLevel(null);
 
     const openFolder = (folderId: string) => {
         router.push({
@@ -59,6 +69,7 @@ const ThreadTree = () => {
     };
 
     const openThread = (thread: Thread) => {
+        beginThreadOpening(thread.id);
         router.push({
             pathname: '/thread/[threadId]',
             params: { threadId: thread.id },
@@ -116,6 +127,9 @@ const ThreadTree = () => {
                 showAgentsDoc={canBrowseThreads && canManageWorkspace && !!currentAgentsDocSummary}
                 style={styles.list}
                 threads={canBrowseThreads ? threads : []}
+                runningTaskThreadIds={canBrowseThreads ? runningTaskThreadIds : []}
+                runningTaskFolderIds={canBrowseThreads ? runningTaskFolderIds : []}
+                unreadByFolderId={canBrowseThreads ? unreadByFolderId : {}}
                 unreadByThreadId={canBrowseThreads ? unreadByThreadId : {}}
                 untitledLabel={t('untitled')}
             />

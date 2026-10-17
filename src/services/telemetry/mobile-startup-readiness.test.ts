@@ -1,47 +1,59 @@
 import { describe, expect, it } from '@jest/globals';
+import {
+    mobileStartupReadinessOutcome,
+    type MobileStartupReadinessState,
+} from './mobile-startup-readiness';
 
-import { mobileStartupReadinessOutcome } from './mobile-startup-readiness';
+const scope = { gatewayId: 'gateway', connectionId: 1, workspaceId: 'workspace' };
+const ready: MobileStartupReadinessState = {
+    registryBootstrapped: true,
+    hasActiveGateway: true,
+    authenticationRequired: false,
+    terminalError: false,
+    connected: true,
+    scope,
+    workspaceBootstrappedConnectionId: 1,
+    workspaceExpectedConnectionId: 1,
+    workspaceLoading: false,
+    treeLoading: false,
+    appliedTreeScope: scope,
+};
 
-describe('mobile startup readiness', () => {
-    it('waits for the local gateway registry', () => {
+describe('operational mobile startup', () => {
+    it('does not treat a revealed shell or retained snapshot as a loaded tree', () => {
+        expect(mobileStartupReadinessOutcome({ ...ready, connected: false })).toBeNull();
+        expect(mobileStartupReadinessOutcome({ ...ready, appliedTreeScope: null })).toBeNull();
+        expect(mobileStartupReadinessOutcome({ ...ready, registryBootstrapped: false })).toBeNull();
+    });
+    it('accepts a successfully applied empty tree without any composer input', () => {
+        expect(mobileStartupReadinessOutcome(ready)).toBe('ready');
+    });
+    it('waits for current bootstrap, scope and mandatory initial loading', () => {
+        expect(
+            mobileStartupReadinessOutcome({ ...ready, workspaceBootstrappedConnectionId: 2 }),
+        ).toBeNull();
         expect(
             mobileStartupReadinessOutcome({
-                registryBootstrapped: false,
-                hasActiveGateway: true,
+                ...ready,
+                appliedTreeScope: { ...scope, connectionId: 2 },
             }),
         ).toBeNull();
-    });
-
-    it.each(['Connecting', 'Reconnecting', 'Disconnected', 'Connected'])(
-        'reveals the shell while gateway is %s and remote data has not loaded',
-        (connectionState) => {
-            const state = {
-                registryBootstrapped: true,
-                hasActiveGateway: true,
-                connectionState,
-                connectionId: null,
-                sessionError: null,
-                sessionTerminalReason: null,
-                workspaceBootstrappedConnectionId: null,
-                activeWorkspaceId: null,
-                workspaceLoading: true,
-                workspaceError: null,
-                threadTreeWorkspaceId: null,
-                threadTreeLoaded: false,
-                threadTreeLoading: true,
-                threadTreeError: null,
-                composerSelectionLoading: true,
-            };
-            expect(mobileStartupReadinessOutcome(state)).toBe('ready');
-        },
-    );
-
-    it('reveals setup when no gateway has been selected', () => {
         expect(
             mobileStartupReadinessOutcome({
-                registryBootstrapped: true,
-                hasActiveGateway: false,
+                ...ready,
+                appliedTreeScope: { ...scope, workspaceId: 'other' },
             }),
-        ).toBe('setup_required');
+        ).toBeNull();
+        expect(mobileStartupReadinessOutcome({ ...ready, treeLoading: true })).toBeNull();
+        expect(mobileStartupReadinessOutcome({ ...ready, workspaceLoading: true })).toBeNull();
+    });
+    it('reports setup, authentication and confirmed error branches', () => {
+        expect(mobileStartupReadinessOutcome({ ...ready, hasActiveGateway: false })).toBe(
+            'setup_required',
+        );
+        expect(mobileStartupReadinessOutcome({ ...ready, authenticationRequired: true })).toBe(
+            'authentication_required',
+        );
+        expect(mobileStartupReadinessOutcome({ ...ready, terminalError: true })).toBe('degraded');
     });
 });

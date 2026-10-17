@@ -65,7 +65,8 @@
           "type": "string",
           "enum": [
             "codex",
-            "claude"
+            "claude",
+            "opencode"
           ]
         },
         {
@@ -179,7 +180,8 @@
       "enum": [
         "api",
         "codex",
-        "claude"
+        "claude",
+        "opencode"
       ]
     }
   }

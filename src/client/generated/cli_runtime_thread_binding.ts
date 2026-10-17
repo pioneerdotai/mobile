@@ -1,6 +1,6 @@
 /* eslint-disable */
 
-export type CLIAgentRuntimeKind = ('codex' | 'claude') | 'acp';
+export type CLIAgentRuntimeKind = ('codex' | 'claude' | 'opencode') | 'acp';
 
 export interface CLIRuntimeThreadBinding {
   runtime_id: string;

@@ -55,8 +55,9 @@ const PendingRequestDraft = ({
     threadId,
     action,
 }: PendingRequestCardProps & { action: ReturnType<typeof useApprovalAction> }) => {
-    const [answers, setAnswers] = useState<Record<string, string>>({});
+    const [answers, setAnswers] = useState<Record<string, string | string[]>>({});
     const [fallbackAnswer, setFallbackAnswer] = useState('');
+    const [customAnswers, setCustomAnswers] = useState<Record<string, string>>({});
     const [validationError, setValidationError] = useState<string | null>(null);
     const requestGeneration = action?.request_generation ?? null;
     const submitting = action?.state.kind === 'pending';
@@ -89,7 +90,7 @@ const PendingRequestDraft = ({
         [canRespond, threadId, entry.request.request_id, requestGeneration],
     );
 
-    const answerQuestion = useCallback((id: string, value: string) => {
+    const answerQuestion = useCallback((id: string, value: string | string[]) => {
         setAnswers((current) => ({ ...current, [id]: value }));
     }, []);
 
@@ -98,7 +99,12 @@ const PendingRequestDraft = ({
             try {
                 const planned = pioneerClient.pendingRequestPresentation({
                     request: entry.request,
-                    answers,
+                    answers: Object.fromEntries(
+                        Object.entries(answers).map(([id, value]) => [
+                            id,
+                            Array.isArray(value) ? JSON.stringify(value) : value,
+                        ]),
+                    ),
                 });
                 if (planned.resolution) respond(planned.resolution);
                 setValidationError(null);
@@ -108,10 +114,20 @@ const PendingRequestDraft = ({
             return;
         }
         if (questions.length > 0) {
-            const responseAnswers = questions.reduce<Record<string, string>>((acc, question) => {
-                acc[question.id] = answers[question.id] ?? '';
-                return acc;
-            }, {});
+            const responseAnswers = questions.reduce<Record<string, string | string[]>>(
+                (acc, question) => {
+                    const selected = answers[question.id];
+                    const custom = customAnswers[question.id]?.trim();
+                    acc[question.id] = question.multiple
+                        ? [
+                              ...(Array.isArray(selected) ? selected : []),
+                              ...(question.allow_custom !== false && custom ? [custom] : []),
+                          ]
+                        : (selected ?? '');
+                    return acc;
+                },
+                {},
+            );
 
             void respond({
                 resolution: 'answered',
@@ -121,7 +137,7 @@ const PendingRequestDraft = ({
         }
 
         void respond({ resolution: 'answered', response: fallbackAnswer });
-    }, [answers, fallbackAnswer, questions, respond, entry.request]);
+    }, [answers, customAnswers, fallbackAnswer, questions, respond, entry.request]);
 
     return (
         <VStack style={styles.card}>
@@ -153,6 +169,10 @@ const PendingRequestDraft = ({
                     submitting={submitting}
                     values={answers}
                     onAnswer={answerQuestion}
+                    customValues={customAnswers}
+                    onCustomAnswer={(id, value) =>
+                        setCustomAnswers((current) => ({ ...current, [id]: value }))
+                    }
                     onFallbackAnswer={setFallbackAnswer}
                 />
             ) : null}
@@ -191,12 +211,16 @@ const UserInputFields = ({
     values,
     onAnswer,
     onFallbackAnswer,
+    customValues,
+    onCustomAnswer,
 }: {
+    customValues: Record<string, string>;
+    onCustomAnswer: (id: string, value: string) => void;
     fallbackAnswer: string;
     questions: PendingRequestUserInputQuestion[];
     submitting: boolean;
-    values: Record<string, string>;
-    onAnswer: (id: string, value: string) => void;
+    values: Record<string, string | string[]>;
+    onAnswer: (id: string, value: string | string[]) => void;
     onFallbackAnswer: (value: string) => void;
 }) => {
     if (questions.length === 0) {
@@ -214,13 +238,20 @@ const UserInputFields = ({
     return (
         <VStack style={styles.questions}>
             {questions.map((question) => {
+                const hasSchema = question.value_schema != null;
+                const explicit = values[question.id];
                 const effective = pendingRequestQuestionEditableValue(
                     question,
-                    values[question.id],
+                    Array.isArray(explicit) ? JSON.stringify(explicit) : explicit,
                 );
                 const multiple =
+                    question.multiple ||
                     (question.value_schema as { type?: string } | undefined)?.type === 'array';
-                const selected = multiple ? pendingRequestSelectedChoices(effective) : [];
+                const selected = hasSchema
+                    ? pendingRequestSelectedChoices(effective)
+                    : Array.isArray(explicit)
+                      ? explicit
+                      : [];
                 return (
                     <VStack key={question.id} style={styles.question}>
                         <Text style={styles.detailLabel}>
@@ -239,7 +270,14 @@ const UserInputFields = ({
                                             onAnswer(
                                                 question.id,
                                                 multiple
-                                                    ? togglePendingRequestChoice(effective, value)
+                                                    ? hasSchema
+                                                        ? togglePendingRequestChoice(
+                                                              effective,
+                                                              value,
+                                                          )
+                                                        : selected.includes(value)
+                                                          ? selected.filter((v) => v !== value)
+                                                          : [...selected, value]
                                                     : value,
                                             );
                                         }}
@@ -258,14 +296,24 @@ const UserInputFields = ({
                                 ))}
                             </HStack>
                         ) : null}
-                        <Input
-                            value={effective}
-                            editable={!submitting}
-                            placeholder="Answer"
-                            onChangeText={(value) => onAnswer(question.id, value)}
-                            style={styles.answerInput}
-                            {...pendingRequestQuestionInputSecurity(question)}
-                        />
+                        {question.allow_custom !== false ? (
+                            <Input
+                                value={
+                                    multiple && !hasSchema
+                                        ? (customValues[question.id] ?? '')
+                                        : effective
+                                }
+                                editable={!submitting}
+                                placeholder="Answer"
+                                onChangeText={(value) =>
+                                    multiple && !hasSchema
+                                        ? onCustomAnswer(question.id, value)
+                                        : onAnswer(question.id, value)
+                                }
+                                style={styles.answerInput}
+                                {...pendingRequestQuestionInputSecurity(question)}
+                            />
+                        ) : null}
                         {question.is_secret ? (
                             <Text style={styles.secretNote}>
                                 This answer will be sent only to the active CLI runtime.

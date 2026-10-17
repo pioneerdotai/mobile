@@ -103,7 +103,7 @@ export type CliRuntimeMcpReadinessReason =
   | 'continuityUnavailable'
   | 'readinessUnavailable';
 export type RuntimeDiagnosticLevel = 'info' | 'warning' | 'error';
-export type CLIAgentRuntimeKind = ('codex' | 'claude') | 'acp';
+export type CLIAgentRuntimeKind = ('codex' | 'claude' | 'opencode') | 'acp';
 export type RuntimeStatus =
   | {
       state: 'disabled';

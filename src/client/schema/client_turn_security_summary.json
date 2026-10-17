@@ -130,7 +130,8 @@
         "native",
         "codex_cli",
         "claude_cli",
-        "acp"
+        "acp",
+        "opencode_cli"
       ]
     }
   }

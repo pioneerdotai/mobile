@@ -126,6 +126,23 @@
         "nickname"
       ]
     },
+    "CLIAgentRuntimeKind": {
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "codex",
+            "claude",
+            "opencode"
+          ]
+        },
+        {
+          "description": "The standard ACP transport, shared by every configured ACP instance.",
+          "type": "string",
+          "const": "acp"
+        }
+      ]
+    },
     "PermissionBehavior": {
       "type": "string",
       "enum": [
@@ -839,6 +856,17 @@
           "type": [
             "string",
             "null"
+          ]
+        },
+        "cli_runtime_kind": {
+          "description": "CLI provider identity projected from persisted execution bindings, independent of artwork.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CLIAgentRuntimeKind"
+            },
+            {
+              "type": "null"
+            }
           ]
         },
         "display_name": {

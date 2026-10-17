@@ -1,4 +1,5 @@
 {
+    "tasksRunning": "Tasks running",
     "title": "Threads",
     "threadTitle": "Thread",
     "newThread": "New thread",

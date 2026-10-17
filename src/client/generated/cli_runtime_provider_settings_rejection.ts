@@ -58,4 +58,4 @@ export type CLIRuntimeProviderSettingsRejection =
         [k: string]: unknown;
       };
     };
-export type CLIAgentRuntimeKind = ('codex' | 'claude') | 'acp';
+export type CLIAgentRuntimeKind = ('codex' | 'claude' | 'opencode') | 'acp';

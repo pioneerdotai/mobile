@@ -608,7 +608,7 @@ export type GatewayModelSelection =
       source: 'explicit';
       transport: ModelSelectionTransport;
     };
-export type ModelSelectionTransport = 'api' | 'codex' | 'claude';
+export type ModelSelectionTransport = 'api' | 'codex' | 'claude' | 'opencode';
 export type MemorySettingToggle =
   'Enabled' | 'ActiveRecall' | 'ProactiveWrites' | 'BackgroundExtraction' | 'DebugTrace';
 export type MemoryModelSetting = 'PostTurnExtractor';
@@ -1057,7 +1057,7 @@ export type SessionConfigOptionValue =
       value: string;
       [k: string]: unknown;
     };
-export type CLIAgentRuntimeKind = ('codex' | 'claude') | 'acp';
+export type CLIAgentRuntimeKind = ('codex' | 'claude' | 'opencode') | 'acp';
 export type CLIRuntimeProviderDraftMode =
   | 'Create'
   | {
@@ -2058,6 +2058,11 @@ export type TaskNotificationIntent =
       [k: string]: unknown;
     }
   | {
+      kind: 'load_more';
+      workspace_id: string;
+      [k: string]: unknown;
+    }
+  | {
       kind: 'dismiss';
       notification_id: string;
       revision: number;
@@ -2984,6 +2989,10 @@ export interface TimelineDemand {
   source_revision: number;
   thread_id: string;
   threshold: number;
+  /**
+   * Actual viewability, separate from pagination/prefetch row demand.
+   */
+  viewed_row_ids?: string[];
   viewed_through_turn_id?: string | null;
   work: boolean;
   [k: string]: unknown;

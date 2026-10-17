@@ -1989,7 +1989,8 @@
           "type": "string",
           "enum": [
             "codex",
-            "claude"
+            "claude",
+            "opencode"
           ]
         },
         {
@@ -3855,6 +3856,22 @@
             },
             "params": {
               "$ref": "#/$defs/TaskUserNotificationDeliveredNotification"
+            }
+          },
+          "required": [
+            "kind",
+            "params"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "task_completion_inbox_changed"
+            },
+            "params": {
+              "$ref": "#/$defs/TaskCompletionInboxChangedNotification"
             }
           },
           "required": [
@@ -8966,6 +8983,18 @@
         "manual"
       ]
     },
+    "TaskCompletionInboxChangedNotification": {
+      "description": "An invalidation only: clients reload authoritative rows and count.",
+      "type": "object",
+      "properties": {
+        "workspaceId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "workspaceId"
+      ]
+    },
     "TaskComposerWork": {
       "type": "object",
       "properties": {
@@ -12404,6 +12433,17 @@
           "type": [
             "string",
             "null"
+          ]
+        },
+        "cli_runtime_kind": {
+          "description": "CLI provider identity projected from persisted execution bindings, independent of artwork.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CLIAgentRuntimeKind"
+            },
+            {
+              "type": "null"
+            }
           ]
         },
         "display_name": {

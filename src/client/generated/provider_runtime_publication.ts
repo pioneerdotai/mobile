@@ -22,7 +22,7 @@ export type ProviderRuntimeRequestState =
       [k: string]: unknown;
     };
 export type RuntimeDiagnosticLevel = 'info' | 'warning' | 'error';
-export type CLIAgentRuntimeKind = ('codex' | 'claude') | 'acp';
+export type CLIAgentRuntimeKind = ('codex' | 'claude' | 'opencode') | 'acp';
 export type RuntimeStatus =
   | {
       state: 'disabled';

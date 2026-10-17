@@ -262,6 +262,10 @@
     "PendingRequestUserInputQuestion": {
       "type": "object",
       "properties": {
+        "allow_custom": {
+          "type": "boolean",
+          "default": true
+        },
         "header": {
           "type": [
             "string",
@@ -273,6 +277,10 @@
         },
         "is_secret": {
           "type": "boolean"
+        },
+        "multiple": {
+          "type": "boolean",
+          "default": false
         },
         "options": {
           "type": "array",

@@ -477,6 +477,11 @@ export type GatewayNotification =
       [k: string]: unknown;
     }
   | {
+      kind: 'task_completion_inbox_changed';
+      params: TaskCompletionInboxChangedNotification;
+      [k: string]: unknown;
+    }
+  | {
       kind: 'task_tree_changed';
       params: TaskTreeChangedNotification;
       [k: string]: unknown;
@@ -658,6 +663,7 @@ export type PersistedActorRef =
 export type AgentExecutionId = string;
 export type AgentIdentityId = string;
 export type AgentIdentitySourceKind = 'native_agent' | 'cli_runtime_instance' | 'ephemeral';
+export type CLIAgentRuntimeKind = ('codex' | 'claude' | 'opencode') | 'acp';
 export type ThreadStatus = 'Active' | 'Idle' | 'Closed';
 export type PermissionBehavior = 'allow' | 'ask' | 'deny';
 export type TurnPermissionMode = 'full_access' | 'auto_accept_edits' | 'supervised';
@@ -1634,7 +1640,6 @@ export type AgentExecutionBackend =
       type: 'acpAgentRuntime';
       [k: string]: unknown;
     };
-export type CLIAgentRuntimeKind = ('codex' | 'claude') | 'acp';
 export type UserInput =
   | {
       text: string;
@@ -2132,6 +2137,10 @@ export interface TurnAuthorSnapshot {
    */
   agent?: AgentPresentationSnapshot | null;
   avatar_revision?: string | null;
+  /**
+   * CLI provider identity projected from persisted execution bindings, independent of artwork.
+   */
+  cli_runtime_kind?: CLIAgentRuntimeKind | null;
   display_name: string;
   nickname: string;
   [k: string]: unknown;
@@ -3805,6 +3814,13 @@ export interface PublicTaskArtifact {
   artifactId?: string | null;
   mimeType?: string | null;
   versionId?: string | null;
+  [k: string]: unknown;
+}
+/**
+ * An invalidation only: clients reload authoritative rows and count.
+ */
+export interface TaskCompletionInboxChangedNotification {
+  workspaceId: string;
   [k: string]: unknown;
 }
 export interface TaskTreeChangedNotification {

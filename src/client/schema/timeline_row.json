@@ -384,6 +384,23 @@
         "failed"
       ]
     },
+    "CLIAgentRuntimeKind": {
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "codex",
+            "claude",
+            "opencode"
+          ]
+        },
+        {
+          "description": "The standard ACP transport, shared by every configured ACP instance.",
+          "type": "string",
+          "const": "acp"
+        }
+      ]
+    },
     "ClientSecurityDiagnostic": {
       "type": "object",
       "properties": {
@@ -942,6 +959,17 @@
             "null"
           ]
         },
+        "cli_runtime_kind": {
+          "description": "CLI provider identity projected from persisted execution bindings, independent of artwork.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CLIAgentRuntimeKind"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "display_name": {
           "type": "string",
           "maxLength": 128,
@@ -1097,7 +1125,8 @@
         "native",
         "codex_cli",
         "claude_cli",
-        "acp"
+        "acp",
+        "opencode_cli"
       ]
     },
     "TurnSkillCapabilitySummary": {

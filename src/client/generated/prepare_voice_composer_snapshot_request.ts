@@ -106,7 +106,7 @@ export type AgentExecutionBackend =
       type: 'acpAgentRuntime';
       [k: string]: unknown;
     };
-export type CLIAgentRuntimeKind = ('codex' | 'claude') | 'acp';
+export type CLIAgentRuntimeKind = ('codex' | 'claude' | 'opencode') | 'acp';
 export type TurnPermissionMode = 'full_access' | 'auto_accept_edits' | 'supervised';
 export type ThreadMode = ('Message' | 'Agent') | 'Chat';
 export type SkillPackId = string;

@@ -444,6 +444,7 @@ export type MobileStartupStageTiming = {
 };
 
 export type MobileStartupRecordRequest = {
+    kind?: 'app_startup' | 'thread_open';
     enabled: boolean;
     metrics_endpoint: string;
     traces_endpoint: string;
@@ -453,7 +454,7 @@ export type MobileStartupRecordRequest = {
     service_version?: string;
     started_at_unix_ms: number;
     duration_ms: number;
-    outcome: 'ready' | 'setup_required' | 'authentication_required' | 'degraded';
+    outcome: 'ready' | 'setup_required' | 'authentication_required' | 'degraded' | 'cancelled';
     stages: MobileStartupStageTiming[];
 };
 

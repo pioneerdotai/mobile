@@ -19,6 +19,16 @@
         "null"
       ]
     },
+    "load": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ThreadTreeLoadReceipt"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
     "loading": {
       "type": "boolean"
     },
@@ -101,6 +111,23 @@
         "identity_source_revision",
         "display_name",
         "nickname"
+      ]
+    },
+    "CLIAgentRuntimeKind": {
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "codex",
+            "claude",
+            "opencode"
+          ]
+        },
+        {
+          "description": "The standard ACP transport, shared by every configured ACP instance.",
+          "type": "string",
+          "const": "acp"
+        }
       ]
     },
     "DirectoryActionPublication": {
@@ -754,6 +781,32 @@
         "Closed"
       ]
     },
+    "ThreadTreeLoadReceipt": {
+      "description": "Evidence from the existing directory request owner. Local unread/metadata\nprojections may change `loading`, but cannot complete a full-tree request.",
+      "type": "object",
+      "properties": {
+        "generation": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "state": {
+          "$ref": "#/$defs/ThreadTreeLoadState"
+        }
+      },
+      "required": [
+        "generation",
+        "state"
+      ]
+    },
+    "ThreadTreeLoadState": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "ready",
+        "failed"
+      ]
+    },
     "ThreadTreeSnapshot": {
       "type": "object",
       "properties": {
@@ -784,6 +837,23 @@
             "$ref": "#/$defs/ThreadPlacement"
           }
         },
+        "running_task_folder_ids": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "running_task_thread_ids": {
+          "description": "Authorized task activity, independent of conversation/selection state.",
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
         "thread_ids_by_folder_id": {
           "type": "object",
           "additionalProperties": {
@@ -805,6 +875,15 @@
             "$ref": "#/$defs/ThreadUnreadSummary"
           }
         },
+        "unread_by_folder_id": {
+          "description": "Unread messages in each folder and all descendants, including zero totals.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "format": "uint64",
+            "minimum": 0
+          }
+        },
         "workspace_id": {
           "type": "string"
         }
@@ -814,6 +893,7 @@
         "workspace_id",
         "threads_by_id",
         "unread",
+        "unread_by_folder_id",
         "folders_by_id",
         "placements_by_thread_id",
         "child_folder_ids_by_parent_id",
@@ -1030,6 +1110,17 @@
           "type": [
             "string",
             "null"
+          ]
+        },
+        "cli_runtime_kind": {
+          "description": "CLI provider identity projected from persisted execution bindings, independent of artwork.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CLIAgentRuntimeKind"
+            },
+            {
+              "type": "null"
+            }
           ]
         },
         "display_name": {
