@@ -3,7 +3,7 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet } from 'react-native-unistyles';
 
-import type { TaskUserNotification } from '@/client';
+import type { TaskCompletionInboxEntry } from '@/client/generated/task_completion_inbox_entry';
 import { useTaskInbox, dispatchTaskNotification } from '@/client/task-inbox';
 import {
     useTaskNotificationNative,
@@ -18,7 +18,6 @@ import {
 } from '@/hooks/use-administration-capabilities';
 import { useGatewayStore } from '@/stores/gateway';
 import { useWorkspaceStore } from '@/stores/workspace';
-import { taskUserNotificationAuthorLabel } from './task-notification-presentation';
 export const TaskUserNotificationController = ({
     notificationPort,
 }: { notificationPort?: TaskNotificationNativePort } = {}) => {
@@ -53,7 +52,7 @@ export const TaskUserNotificationController = ({
         openedOperation.current = opened.operation_id;
         router.push({ pathname: '/thread/[threadId]', params: { threadId: opened.thread_id } });
     }, [enabled, inbox?.opened, router]);
-    const item = inbox?.items.find((item) => item.notification.acknowledgedAt == null);
+    const item = inbox?.items.find((item) => item.notification.readAt == null);
     const notification = item?.notification;
     const acknowledge = {
         isPending: item?.dismissing ?? false,
@@ -74,11 +73,7 @@ export const TaskUserNotificationController = ({
             <VStack style={styles.card}>
                 <Text style={styles.eyebrow}>{t('taskNotificationTitle')}</Text>
                 <Text numberOfLines={1} style={styles.author}>
-                    {taskUserNotificationAuthorLabel(notification, {
-                        agent: t('taskNotificationAgent'),
-                        system: t('taskNotificationSystem'),
-                        unknown: t('taskNotificationUnknownHistoricalActor'),
-                    })}
+                    {notification.title}
                 </Text>
                 <Text numberOfLines={3} style={styles.message}>
                     {taskUserNotificationSummary(notification, t('taskNotificationCompleted'))}
@@ -86,7 +81,7 @@ export const TaskUserNotificationController = ({
                 <Pressable
                     accessibilityRole="button"
                     disabled={!canAcknowledge || acknowledge.isPending}
-                    onPress={() => acknowledge.mutate(notification.notificationId)}
+                    onPress={() => acknowledge.mutate(notification.runId)}
                     style={({ pressed }) => [
                         styles.action,
                         pressed ? styles.actionPressed : null,
@@ -101,10 +96,10 @@ export const TaskUserNotificationController = ({
 };
 
 const taskUserNotificationSummary = (
-    notification: TaskUserNotification,
+    notification: TaskCompletionInboxEntry,
     fallback: string,
 ): string =>
-    notification.result?.summary?.trim() || notification.error?.error.message.trim() || fallback;
+    notification.error?.trim() || notification.summary?.trim() || fallback;
 
 const styles = StyleSheet.create((theme) => ({
     overlay: {
