@@ -19,6 +19,14 @@ type Attempt = {
 
 // One in-flight navigation, no retained history and no feature demand.
 export class ThreadOpeningTimeline {
+    private readonly listeners = new Set<() => void>();
+    subscribe = (listener: () => void): (() => void) => {
+        this.listeners.add(listener);
+        return () => {
+            this.listeners.delete(listener);
+        };
+    };
+    isCurrent = (token: number | null): boolean => token !== null && this.current?.token === token;
     private sequence = 0;
     private current: Attempt | null = null;
     private deadline: ReturnType<typeof setTimeout> | null = null;
@@ -40,6 +48,7 @@ export class ThreadOpeningTimeline {
             claimed: false,
         };
         this.deadline = setTimeout(() => this.finish(token, 'cancelled'), 590_000);
+        for (const listener of this.listeners) listener();
         return token;
     }
     claim(target: string, scope: StartupTreeScope): number {
@@ -62,14 +71,16 @@ export class ThreadOpeningTimeline {
     finish(token: number, outcome: MobileStartupOutcome): void {
         const attempt = this.current;
         if (!attempt || attempt.token !== token) return;
+        const finishedAt = this.now();
         this.current = null;
         if (this.deadline !== null) clearTimeout(this.deadline);
         this.deadline = null;
-        if (this.now() - attempt.started > 590_000) outcome = 'cancelled';
+        for (const listener of this.listeners) listener();
+        if (finishedAt - attempt.started > 590_000) outcome = 'cancelled';
         this.record({
             kind: 'thread_open',
             started_at_unix_ms: attempt.wall,
-            duration_ms: Math.min(590_000, Math.max(0, this.now() - attempt.started)),
+            duration_ms: Math.min(590_000, Math.max(0, finishedAt - attempt.started)),
             outcome,
             stages: [],
         });

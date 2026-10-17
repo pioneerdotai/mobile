@@ -16,6 +16,7 @@ export type SidebarNodeId =
       kind: 'agents_document';
       [k: string]: unknown;
     };
+export type ThreadTreeLoadState = 'pending' | 'ready' | 'failed';
 export type ThreadAgentsDocStatus = 'draft' | 'active' | 'archived';
 export type ThreadMode = ('Message' | 'Agent') | 'Chat';
 export type PersistedActorRef =
@@ -77,6 +78,7 @@ export interface ThreadTreePublication {
   };
   changes: SidebarChangeSet;
   error?: string | null;
+  load?: ThreadTreeLoadReceipt | null;
   loading: boolean;
   revision: number;
   snapshot: ThreadTreeSnapshot;
@@ -93,6 +95,15 @@ export interface SidebarChangeSet {
   changed: SidebarNodeId[];
   removed: SidebarNodeId[];
   reordered_folders: string[];
+  [k: string]: unknown;
+}
+/**
+ * Evidence from the existing directory request owner. Local unread/metadata
+ * projections may change `loading`, but cannot complete a full-tree request.
+ */
+export interface ThreadTreeLoadReceipt {
+  generation: number;
+  state: ThreadTreeLoadState;
   [k: string]: unknown;
 }
 export interface ThreadTreeSnapshot {

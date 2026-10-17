@@ -18,13 +18,11 @@ const ready: ThreadOpeningReadiness = {
     authorizationFailed: false,
     authorizationCancelled: false,
     composerDisabled: false,
+    composerPolicyApplied: true,
     messageMode: false,
     modelSelectionComplete: true,
     modelSelectionLoading: false,
-    runtimeLoading: false,
-    runtimeFailed: false,
-    runtimeCancelled: false,
-    providerReady: true,
+    runtimeState: 'ready',
 };
 
 beforeEach(() => {
@@ -83,6 +81,42 @@ describe('thread opening boundaries', () => {
             'cancelled',
         ]);
     });
+    it('notifies active-token observers once on finish and releases them', () => {
+        const timeline = new ThreadOpeningTimeline(
+            () => {},
+            () => 0,
+            () => 1000,
+        );
+        const token = timeline.claim('existing', scope);
+        const changed = jest.fn();
+        const release = timeline.subscribe(changed);
+        expect(timeline.isCurrent(token)).toBe(true);
+        timeline.finish(token, 'ready');
+        timeline.finish(token, 'cancelled');
+        expect(timeline.isCurrent(token)).toBe(false);
+        expect(changed).toHaveBeenCalledTimes(1);
+        release();
+        timeline.claim('new', scope);
+        expect(changed).toHaveBeenCalledTimes(1);
+        timeline.finish(token + 1, 'cancelled');
+    });
+    it('captures the end timestamp before releasing observers', () => {
+        let now = 10;
+        const reports: ThreadOpeningSample[] = [];
+        const timeline = new ThreadOpeningTimeline(
+            (sample) => reports.push(sample),
+            () => now,
+            () => 1000,
+        );
+        const token = timeline.claim('existing', scope);
+        const release = timeline.subscribe(() => {
+            now += 100;
+        });
+        now = 60;
+        timeline.finish(token, 'ready');
+        release();
+        expect(reports[0].duration_ms).toBe(50);
+    });
     it('bounds lifetime without sleeping and uses monotonic elapsed time', () => {
         const reports: ThreadOpeningSample[] = [];
         let now = 0;
@@ -106,8 +140,7 @@ describe('observed screen and composer readiness', () => {
                 messageMode: true,
                 modelSelectionComplete: false,
                 modelSelectionLoading: true,
-                runtimeLoading: true,
-                providerReady: false,
+                runtimeState: 'pending',
             }),
         ).toBe('ready');
     });
@@ -117,7 +150,7 @@ describe('observed screen and composer readiness', () => {
             { composerMatches: false },
             { screenLoading: true },
             { authorizationReady: false },
-            { runtimeLoading: true },
+            { runtimeState: 'pending' as const },
             { modelSelectionLoading: true },
         ]) {
             expect(threadOpeningReadinessOutcome({ ...ready, ...patch })).toBeNull();
@@ -129,7 +162,9 @@ describe('observed screen and composer readiness', () => {
         expect(threadOpeningReadinessOutcome({ ...ready, composerDisabled: true })).toBe(
             'degraded',
         );
-        expect(threadOpeningReadinessOutcome({ ...ready, runtimeFailed: true })).toBe('degraded');
+        expect(threadOpeningReadinessOutcome({ ...ready, runtimeState: 'degraded' })).toBe(
+            'degraded',
+        );
         expect(threadOpeningReadinessOutcome({ ...ready, authorizationCancelled: true })).toBe(
             'cancelled',
         );

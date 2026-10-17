@@ -4,7 +4,7 @@ import renderer, { act } from 'react-test-renderer';
 import { useThreadTreeController } from './use-thread-tree';
 
 const mockRefresh = jest.fn<() => Promise<void>>();
-const mockApplied = jest.fn();
+const mockBeginLoad = jest.fn();
 const mockBegin = jest.fn();
 const mockSyncSelection = jest.fn();
 const mockActivateComposer = jest.fn();
@@ -44,7 +44,7 @@ jest.mock('@/stores/active-thread', () => ({
 }));
 jest.mock('@/stores/thread-tree', () => ({ useThreadTreeStore: {} }));
 jest.mock('@/services/telemetry/mobile-startup-tree', () => ({
-    recordStartupTreeApplied: (...args: unknown[]) => mockApplied(...args),
+    beginStartupTreeLoad: (...args: unknown[]) => mockBeginLoad(...args),
 }));
 jest.mock('@/services/telemetry/mobile-startup', () => ({
     mobileStartup: {
@@ -74,7 +74,7 @@ beforeEach(() => {
     };
 });
 describe('startup observes the existing tree request', () => {
-    it('records empty-tree application only after the existing refresh and adds no composer demand', async () => {
+    it('registers the existing refresh before it completes and adds no composer demand', async () => {
         let resolve!: () => void;
         mockRefresh.mockImplementation(
             () =>
@@ -86,15 +86,20 @@ describe('startup observes the existing tree request', () => {
         await act(async () => {
             tree = renderer.create(<Harness />);
         });
-        expect(mockApplied).not.toHaveBeenCalled();
+        expect(mockBeginLoad).toHaveBeenCalledWith({
+            gatewayId: 'gateway',
+            connectionId: 1,
+            workspaceId: 'workspace',
+        });
         await act(async () => {
             resolve();
         });
         expect(mockRefresh).toHaveBeenCalledTimes(1);
-        expect(mockApplied).toHaveBeenCalledWith(
-            { gatewayId: 'gateway', connectionId: 1, workspaceId: 'workspace' },
-            false,
-        );
+        expect(mockBeginLoad).toHaveBeenCalledWith({
+            gatewayId: 'gateway',
+            connectionId: 1,
+            workspaceId: 'workspace',
+        });
         expect(mockActivateComposer).not.toHaveBeenCalled();
         expect(mockBegin.mock.calls.flat()).not.toContain('composer.prepare');
         // Preserve the pre-existing selection-sync call, without treating it as readiness.
@@ -117,7 +122,8 @@ describe('startup observes the existing tree request', () => {
         await act(async () => {
             resolve();
         });
-        expect(mockApplied).not.toHaveBeenCalled();
+        expect(mockBeginLoad).toHaveBeenCalledTimes(1);
+        // Completion is observed from publications, not this late callback.
         expect(mockRefresh).toHaveBeenCalledTimes(1);
         await act(async () => tree.unmount());
     });

@@ -1,3 +1,4 @@
+import type { ThreadOpeningRuntimeState } from './thread-opening-runtime';
 import type { MobileStartupOutcome } from './mobile-startup';
 
 export type ThreadOpeningReadiness = {
@@ -12,13 +13,11 @@ export type ThreadOpeningReadiness = {
     authorizationFailed: boolean;
     authorizationCancelled: boolean;
     composerDisabled: boolean;
+    composerPolicyApplied: boolean;
     messageMode: boolean;
     modelSelectionComplete: boolean;
     modelSelectionLoading: boolean;
-    runtimeLoading: boolean;
-    runtimeFailed: boolean;
-    runtimeCancelled: boolean;
-    providerReady: boolean;
+    runtimeState: ThreadOpeningRuntimeState;
 };
 
 // Empty text is intentionally absent: readiness does not require a send payload.
@@ -37,11 +36,13 @@ export const threadOpeningReadinessOutcome = (
         !state.authorizationReady
     )
         return null;
+    if (!state.messageMode && !state.composerPolicyApplied) return null;
     if (state.composerDisabled) return 'degraded';
     if (state.messageMode) return 'ready';
-    if (state.runtimeCancelled) return 'cancelled';
-    if (state.runtimeFailed) return 'degraded';
-    if (state.modelSelectionLoading || state.runtimeLoading) return null;
-    if (!state.providerReady || !state.modelSelectionComplete) return 'setup_required';
+    if (state.runtimeState === 'cancelled' || state.runtimeState === 'degraded')
+        return state.runtimeState;
+    if (state.runtimeState === 'pending' || state.modelSelectionLoading) return null;
+    if (state.runtimeState !== 'ready') return state.runtimeState;
+    if (!state.modelSelectionComplete) return 'setup_required';
     return 'ready';
 };

@@ -1,3 +1,4 @@
+import { directorySnapshot } from '@/client/workspaces';
 import { SemanticNavigationController } from '@/components/navigation/semantic-navigation';
 import { initializeMobilePlatformEffects } from '@/services/gateway/platform-effects';
 import 'react-native-reanimated';
@@ -233,7 +234,6 @@ const OperationalStartupObserver = ({ hasActiveGateway }: { hasActiveGateway: bo
     const gateway = useGatewayStore((state) => state);
     const workspace = useWorkspaceStore((state) => state);
     const tree = useThreadTreeStore((state) => state);
-    const applied = useStartupTreeApplied();
     const initial = useRef({
         gatewayId: gateway.registry.active_gateway_id,
         connectionId: gateway.sessionConnectionGeneration,
@@ -244,6 +244,8 @@ const OperationalStartupObserver = ({ hasActiveGateway }: { hasActiveGateway: bo
         connectionId: gateway.sessionConnectionGeneration,
         workspaceId: workspace.activeWorkspaceId,
     };
+    const treePublication = directorySnapshot(scope.workspaceId);
+    const applied = useStartupTreeApplied(scope);
     const outcome = mobileStartupReadinessOutcome({
         registryBootstrapped: true,
         hasActiveGateway,
@@ -274,6 +276,9 @@ const OperationalStartupObserver = ({ hasActiveGateway }: { hasActiveGateway: bo
             mobileStartup.complete('cancelled');
             return;
         }
+        // A newer receipt may arrive between render and this effect. The
+        // existing directory subscription will render its state before finishing.
+        if (treePublication !== directorySnapshot(scope.workspaceId)) return;
         const previous = initial.current;
         const changed =
             previous.gatewayId !== scope.gatewayId ||
@@ -290,7 +295,7 @@ const OperationalStartupObserver = ({ hasActiveGateway }: { hasActiveGateway: bo
         else if (changed) mobileStartup.complete('cancelled');
         else if (outcome) mobileStartup.complete(outcome);
         initial.current = scope;
-    }, [outcome, path, scope.gatewayId, scope.connectionId, scope.workspaceId]);
+    }, [outcome, path, scope.gatewayId, scope.connectionId, scope.workspaceId, treePublication]);
     return null;
 };
 

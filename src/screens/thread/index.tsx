@@ -1,3 +1,11 @@
+import {
+    threadOpeningRuntimeState,
+    useThreadOpeningRuntime,
+} from '@/services/telemetry/thread-opening-runtime';
+import {
+    threadOpeningPolicyApplied,
+    threadOpeningSelectionPending,
+} from '@/services/telemetry/thread-opening-composer';
 import { threadOpening, threadOpeningScope } from '@/services/telemetry/thread-opening';
 import { threadOpeningReadinessOutcome } from '@/services/telemetry/thread-opening-readiness';
 import { dispatchComposerCatalog, useComposerCatalog } from '@/client/composer-catalog';
@@ -26,6 +34,7 @@ import { customAlphabet } from 'nanoid';
 
 import {
     pioneerClient,
+    mobileClientBinding,
     type ComposerSkillChip,
     type ComposerMentionCandidate,
     type ComposerSkillPickerProjection,
@@ -529,6 +538,20 @@ const ThreadScreen = ({
         (shouldUseDraftComposerSelection &&
             defaultComposerSelectionLoading &&
             (!selectedProvider || !selectedModel));
+    // Only unresolved mandatory selection belongs to telemetry. Preserve the UI
+    // label/picker loading above, including its optional model-display request.
+    const openingSelectionLoading = threadOpeningSelectionPending(
+        composerPublication,
+        shouldUseDraftComposerSelection,
+        defaultComposerSelectionLoading,
+    );
+    const openingRuntimes = useThreadOpeningRuntime(
+        activeWorkspaceId,
+        openingAttempt !== null &&
+            focused &&
+            !messageMode &&
+            Boolean(composerSelectedProvider?.startsWith('cli_runtime:')),
+    );
     const modelSelectionLabel = selectedModelDisplayName ?? t('modelSelectorSelectModel');
     const modelSelectionEffortLabel =
         modelSelectionLoading || reasoningEffortLabelLoading ? null : selectedReasoningEffortLabel;
@@ -562,16 +585,19 @@ const ThreadScreen = ({
         sending,
     );
     useEffect(() => {
-        if (openingAttempt === null) return;
+        if (openingAttempt === null || !focused || !openingNavigation.isFocused()) return;
         const currentComposer = composerSnapshot(threadId);
-        const runtime = composerPublication?.runtime_selection;
-        const runtimeMatches =
-            runtime?.identity.thread_id === threadId &&
-            runtime?.identity.draft_id === composerPublication?.draft_id &&
-            runtime?.workspace_id === visibleSnapshot?.workspace_id &&
-            runtime?.selected_provider === composerSelectedProvider;
+        const currentAuthorization = mobileClientBinding
+            .scope({ kind: 'thread_capability', thread_id: threadId })
+            .getSnapshot()?.payload;
         const needsRuntime =
             !messageMode && Boolean(composerSelectedProvider?.startsWith('cli_runtime:'));
+        const runtimePublicationCurrent =
+            !needsRuntime ||
+            !activeWorkspaceId ||
+            mobileClientBinding
+                .scope({ kind: 'provider_runtime', workspace_id: activeWorkspaceId })
+                .getSnapshot()?.payload === openingRuntimes;
         const outcome = threadOpeningReadinessOutcome({
             focused: focused && openingNavigation.isFocused(),
             connected: connected && useGatewayStore.getState().sessionConnectionGeneration !== null,
@@ -588,24 +614,34 @@ const ThreadScreen = ({
             screenLoading: showThreadLoader,
             screenError: Boolean(screenError),
             authorizationReady:
+                currentAuthorization === threadAuthorization &&
                 threadAuthorization?.request.kind === 'ready' &&
                 threadAuthorization.workspace_id === activeWorkspaceId,
-            authorizationFailed: threadAuthorization?.request.kind === 'failed',
-            authorizationCancelled: threadAuthorization?.request.kind === 'cancelled',
+            authorizationFailed:
+                currentAuthorization === threadAuthorization &&
+                threadAuthorization?.request.kind === 'failed',
+            authorizationCancelled:
+                currentAuthorization === threadAuthorization &&
+                threadAuthorization?.request.kind === 'cancelled',
             composerDisabled,
+            composerPolicyApplied: threadOpeningPolicyApplied(
+                composerPublication,
+                threadAuthorization,
+                activeWorkspaceId,
+                messageMode,
+            ),
             messageMode,
-            modelSelectionComplete,
-            modelSelectionLoading,
-            runtimeLoading:
-                needsRuntime &&
-                (!runtimeMatches ||
-                    runtime?.request.state.kind === 'idle' ||
-                    runtime?.request.state.kind === 'loading'),
-            runtimeFailed:
-                needsRuntime && runtimeMatches && runtime?.request.state.kind === 'failed',
-            runtimeCancelled:
-                needsRuntime && runtimeMatches && runtime?.request.state.kind === 'cancelled',
-            providerReady: selectedProviderReady,
+            modelSelectionComplete:
+                messageMode || Boolean(composerSelectedProvider && composerSelectedModel),
+            modelSelectionLoading: openingSelectionLoading,
+            runtimeState: runtimePublicationCurrent
+                ? threadOpeningRuntimeState(
+                      composerPublication,
+                      openingRuntimes,
+                      activeWorkspaceId,
+                      messageMode,
+                  )
+                : 'pending',
         });
         threadOpening.observe(openingAttempt, threadOpeningScope(), outcome);
     }, [
@@ -624,8 +660,9 @@ const ThreadScreen = ({
         threadAuthorization,
         composerDisabled,
         messageMode,
-        modelSelectionComplete,
-        modelSelectionLoading,
+        openingSelectionLoading,
+        openingRuntimes,
+        composerSelectedModel,
         composerSelectedProvider,
         selectedProviderReady,
     ]);

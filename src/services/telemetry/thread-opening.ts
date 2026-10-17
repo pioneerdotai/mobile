@@ -1,4 +1,4 @@
-import { useLayoutEffect, useState } from 'react';
+import { useLayoutEffect, useState, useSyncExternalStore } from 'react';
 import { useNavigation } from 'expo-router';
 import { useGatewayStore } from '@/stores/gateway';
 import { useWorkspaceStore } from '@/stores/workspace';
@@ -69,5 +69,8 @@ export const useThreadOpeningRoute = (target: string | null): number | null => {
         gateway.sessionTerminalReason,
         workspaceId,
     ]);
-    return token;
+    const measuring = useSyncExternalStore(threadOpening.subscribe, () =>
+        threadOpening.isCurrent(token),
+    );
+    return measuring ? token : null;
 };
