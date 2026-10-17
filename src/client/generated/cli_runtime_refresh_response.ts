@@ -1,7 +1,7 @@
 /* eslint-disable */
 
 export type RuntimeDiagnosticLevel = 'info' | 'warning' | 'error';
-export type CLIAgentRuntimeKind = 'codex' | 'claude';
+export type CLIAgentRuntimeKind = ('codex' | 'claude') | 'acp';
 export type RuntimeStatus =
   | {
       state: 'disabled';

@@ -1,9 +1,18 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "CLIAgentRuntimeKind",
-  "type": "string",
-  "enum": [
-    "codex",
-    "claude"
+  "oneOf": [
+    {
+      "type": "string",
+      "enum": [
+        "codex",
+        "claude"
+      ]
+    },
+    {
+      "description": "The standard ACP transport, shared by every configured ACP instance.",
+      "type": "string",
+      "const": "acp"
+    }
   ]
 }

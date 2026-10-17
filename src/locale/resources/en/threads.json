@@ -334,5 +334,24 @@
         "loading": "Loading access…",
         "unavailable": "Thread access is unavailable.",
         "actionFailed": "The change could not be applied. The latest state will be loaded."
-    }
+    },
+    "acpPrepare": "Prepare session",
+    "acpPartialInput": "Terminal accepted {{count}} bytes. The remaining input was not sent.",
+    "acpUrlCompleted": "External flow completed",
+    "acpLogout": "Log out",
+    "acpTerminalInput": "Terminal input",
+    "acpSendInput": "Send input",
+    "acpRefreshOutput": "Refresh output",
+    "acpCloseTerminal": "Close terminal",
+    "acpListSessions": "List sessions",
+    "acpSessionId": "Session ID",
+    "acpLoad": "Load",
+    "acpResume": "Resume",
+    "acpDelete": "Delete",
+    "acpCloseSession": "Close session",
+    "acpAdditionalDirectories": "Additional directories (one absolute path per line)",
+    "acpMoreSessions": "More sessions",
+    "acpAuthTruncated": "Earlier output was truncated.",
+    "acpAuthFinished": "Auth invocation finished (exit {{code}}). Close and reconnect to refresh authentication.",
+    "acpReconnect": "Close to reconnect"
 }

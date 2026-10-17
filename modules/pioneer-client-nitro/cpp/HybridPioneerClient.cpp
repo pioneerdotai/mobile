@@ -312,6 +312,14 @@ HybridPioneerClient::voiceSessionCancelJson(const std::string& inputJson) {
   return callWithClientAsync(pioneer_client_ffi_voice_session_cancel, inputJson);
 }
 
+std::shared_ptr<margelo::nitro::Promise<std::string>> HybridPioneerClient::providerCommandJson(const std::string& inputJson) {
+  return callWithClientAsyncSensitive(pioneer_client_ffi_provider_command, inputJson);
+}
+
+std::shared_ptr<margelo::nitro::Promise<std::string>> HybridPioneerClient::cliRuntimeProviderDraftsJson(const std::string& inputJson) {
+  return callWithClientAsyncSensitive(pioneer_client_ffi_cli_runtime_provider_drafts, inputJson);
+}
+
 std::string HybridPioneerClient::pendingRequestPresentationJson(const std::string& inputJson) {
   return callWithClient(pioneer_client_ffi_pending_request_presentation, inputJson);
 }

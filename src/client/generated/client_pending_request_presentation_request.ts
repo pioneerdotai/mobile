@@ -58,6 +58,9 @@ export type TurnPermissionDecisionReason =
   | 'sandbox_denied';
 
 export interface ClientPendingRequestPresentationRequest {
+  answers?: {
+    [k: string]: string;
+  } | null;
   request: PendingRequest;
 }
 export interface PendingRequest {

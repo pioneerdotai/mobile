@@ -144,7 +144,7 @@ export type TurnPermissionProfileSource =
   'composer' | 'defaulted' | 'inherited_from_parent_turn' | 'task_permission_cap' | 'system';
 export type TurnSecurityCapabilityKind = 'filesystem' | 'network' | 'process' | 'approval' | 'sandbox_backend';
 export type ClientSecurityEnforcementStatus = 'active' | 'degraded' | 'unavailable';
-export type TurnSecurityExecutionBackendKind = 'native' | 'codex_cli' | 'claude_cli';
+export type TurnSecurityExecutionBackendKind = 'native' | 'codex_cli' | 'claude_cli' | 'acp';
 export type ClientSecurityFilesystemAccess = 'unrestricted' | 'read_only' | 'workspace_write';
 export type TurnNetworkMode = 'disabled' | 'restricted' | 'enabled';
 export type SandboxBackendKind = 'nono' | 'windows_restricted_token' | 'provider_native';

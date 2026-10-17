@@ -6,6 +6,12 @@
     "kind": {
       "$ref": "#/$defs/PendingRequestActionKind"
     },
+    "label": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
     "resolution": {
       "anyOf": [
         {

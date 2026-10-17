@@ -1,5 +1,13 @@
 import { router } from 'expo-router';
-import { ChevronRight, Globe, MailPlus, Smartphone, Sun, Users } from 'lucide-react-native';
+import {
+    ChevronRight,
+    Globe,
+    MailPlus,
+    Smartphone,
+    Sun,
+    Users,
+    Terminal,
+} from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 
@@ -108,6 +116,15 @@ const SettingsScreen = () => {
     const role = capabilities.capabilitySnapshot?.role;
 
     const general = [
+        ...(capabilities.data?.can_manage_capabilities
+            ? [
+                  {
+                      icon: Terminal,
+                      title: t('acpAgents.title'),
+                      onPress: () => router.navigate({ pathname: '/settings/acp-agents' }),
+                  },
+              ]
+            : []),
         ...(canManageDevices
             ? [
                   {

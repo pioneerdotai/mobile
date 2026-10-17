@@ -23,7 +23,8 @@
     },
     "question": {
       "type": "string"
-    }
+    },
+    "value_schema": true
   },
   "required": [
     "id",
@@ -43,6 +44,12 @@
         },
         "label": {
           "type": "string"
+        },
+        "value": {
+          "type": [
+            "string",
+            "null"
+          ]
         }
       },
       "required": [

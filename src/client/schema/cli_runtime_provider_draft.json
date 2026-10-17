@@ -3,6 +3,10 @@
   "title": "CLIRuntimeProviderDraft",
   "type": "object",
   "properties": {
+    "args_json": {
+      "type": "string",
+      "default": ""
+    },
     "binary_path": {
       "type": "string"
     },
@@ -18,6 +22,10 @@
     },
     "enabled": {
       "type": "boolean"
+    },
+    "env_from_json": {
+      "type": "string",
+      "default": ""
     },
     "home_path": {
       "type": "string"
@@ -52,10 +60,19 @@
   ],
   "$defs": {
     "CLIAgentRuntimeKind": {
-      "type": "string",
-      "enum": [
-        "codex",
-        "claude"
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "codex",
+            "claude"
+          ]
+        },
+        {
+          "description": "The standard ACP transport, shared by every configured ACP instance.",
+          "type": "string",
+          "const": "acp"
+        }
       ]
     },
     "CLIRuntimeProviderDraftMode": {

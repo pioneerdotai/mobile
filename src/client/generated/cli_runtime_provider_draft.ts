@@ -1,7 +1,7 @@
 /* eslint-disable */
 
 export type ModelSelectionTransport = 'api' | 'codex' | 'claude';
-export type CLIAgentRuntimeKind = 'codex' | 'claude';
+export type CLIAgentRuntimeKind = ('codex' | 'claude') | 'acp';
 export type CLIRuntimeProviderDraftMode =
   | 'Create'
   | {
@@ -18,6 +18,7 @@ export type CLIRuntimeProviderDraftMode =
     };
 
 export interface CLIRuntimeProviderDraft {
+  args_json?: string;
   binary_path: string;
   /**
    * Whole override; Inherit explicitly clears it instead of persisting fallback.
@@ -35,6 +36,7 @@ export interface CLIRuntimeProviderDraft {
       };
   display_name: string;
   enabled: boolean;
+  env_from_json?: string;
   home_path: string;
   id: string;
   kind: CLIAgentRuntimeKind;

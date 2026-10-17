@@ -51,5 +51,11 @@ export type CLIRuntimeProviderSettingsRejection =
         message: string;
         [k: string]: unknown;
       };
+    }
+  | {
+      InvalidLaunchData: {
+        message: string;
+        [k: string]: unknown;
+      };
     };
-export type CLIAgentRuntimeKind = 'codex' | 'claude';
+export type CLIAgentRuntimeKind = ('codex' | 'claude') | 'acp';

@@ -1,0 +1,859 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ProviderCommand",
+  "oneOf": [
+    {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "acp_session"
+        },
+        "params": {
+          "$ref": "#/$defs/AcpSessionParams"
+        }
+      },
+      "required": [
+        "kind",
+        "params"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "release_acp_auth"
+        },
+        "params": {
+          "$ref": "#/$defs/AcpSessionParams"
+        }
+      },
+      "required": [
+        "kind",
+        "params"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "configure"
+        },
+        "params": {
+          "$ref": "#/$defs/ProviderConfigureParams"
+        }
+      },
+      "required": [
+        "kind",
+        "params"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "disconnect"
+        },
+        "params": {
+          "$ref": "#/$defs/ProviderDeleteApiKeyParams"
+        }
+      },
+      "required": [
+        "kind",
+        "params"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "connect"
+        },
+        "params": {
+          "$ref": "#/$defs/CLIRuntimeLoginStartParams"
+        }
+      },
+      "required": [
+        "kind",
+        "params"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "set_runtime_proxy"
+        },
+        "params": {
+          "$ref": "#/$defs/CLIRuntimeProxySetParams"
+        }
+      },
+      "required": [
+        "kind",
+        "params"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "remove_runtime_proxy"
+        },
+        "params": {
+          "$ref": "#/$defs/CLIRuntimeProxyDeleteParams"
+        }
+      },
+      "required": [
+        "kind",
+        "params"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "save_runtime"
+        },
+        "params": {
+          "type": "object",
+          "properties": {
+            "draft": {
+              "$ref": "#/$defs/CLIRuntimeProviderDraft"
+            },
+            "workspace_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "workspace_id",
+            "draft"
+          ]
+        }
+      },
+      "required": [
+        "kind",
+        "params"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "set_runtime_enabled"
+        },
+        "params": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "runtime_id": {
+              "type": "string"
+            },
+            "workspace_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "workspace_id",
+            "runtime_id",
+            "enabled"
+          ]
+        }
+      },
+      "required": [
+        "kind",
+        "params"
+      ]
+    }
+  ],
+  "$defs": {
+    "AcpConfigurationVersion": {
+      "type": "object",
+      "properties": {
+        "connection_id": {
+          "type": "string"
+        },
+        "revision": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "connection_id",
+        "revision"
+      ]
+    },
+    "AcpSessionOperation": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "additional_directories": {
+              "type": "array",
+              "default": [],
+              "items": {
+                "type": "string"
+              }
+            },
+            "type": {
+              "type": "string",
+              "const": "prepare"
+            }
+          },
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "config_id": {
+              "type": "string"
+            },
+            "expected": {
+              "$ref": "#/$defs/AcpConfigurationVersion"
+            },
+            "session_id": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "const": "set_option"
+            },
+            "value": {
+              "$ref": "#/$defs/SessionConfigOptionValue"
+            }
+          },
+          "required": [
+            "type",
+            "session_id",
+            "expected",
+            "config_id",
+            "value"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "expected": {
+              "$ref": "#/$defs/AcpConfigurationVersion"
+            },
+            "mode_id": {
+              "type": "string"
+            },
+            "session_id": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "const": "set_mode"
+            }
+          },
+          "required": [
+            "type",
+            "session_id",
+            "expected",
+            "mode_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "method_id": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "const": "authenticate"
+            }
+          },
+          "required": [
+            "type",
+            "method_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "columns": {
+              "type": "integer",
+              "format": "uint16",
+              "maximum": 65535,
+              "minimum": 0
+            },
+            "expected_generation": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "method_id": {
+              "type": "string"
+            },
+            "rows": {
+              "type": "integer",
+              "format": "uint16",
+              "maximum": 65535,
+              "minimum": 0
+            },
+            "terminal_id": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "const": "terminal_auth_start"
+            }
+          },
+          "required": [
+            "type",
+            "expected_generation",
+            "terminal_id",
+            "method_id",
+            "columns",
+            "rows"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "data": {
+              "type": "string"
+            },
+            "terminal_id": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "const": "terminal_auth_input"
+            }
+          },
+          "required": [
+            "type",
+            "terminal_id",
+            "data"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "terminal_id": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "const": "terminal_auth_output"
+            }
+          },
+          "required": [
+            "type",
+            "terminal_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "expected_generation": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "terminal_id": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "const": "terminal_auth_close"
+            }
+          },
+          "required": [
+            "type",
+            "expected_generation",
+            "terminal_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "logout"
+            }
+          },
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "cursor": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "cwd": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "type": {
+              "type": "string",
+              "const": "list"
+            }
+          },
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "session_id": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "const": "load"
+            }
+          },
+          "required": [
+            "type",
+            "session_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "session_id": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "const": "resume"
+            }
+          },
+          "required": [
+            "type",
+            "session_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "session_id": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "const": "delete"
+            }
+          },
+          "required": [
+            "type",
+            "session_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "session_id": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "const": "close"
+            }
+          },
+          "required": [
+            "type",
+            "session_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "snapshot"
+            }
+          },
+          "required": [
+            "type"
+          ]
+        }
+      ]
+    },
+    "AcpSessionParams": {
+      "type": "object",
+      "properties": {
+        "operation": {
+          "$ref": "#/$defs/AcpSessionOperation"
+        },
+        "runtime_id": {
+          "type": "string"
+        },
+        "thread_id": {
+          "type": "string"
+        },
+        "workspace_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "workspace_id",
+        "thread_id",
+        "runtime_id",
+        "operation"
+      ]
+    },
+    "CLIAgentRuntimeKind": {
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "codex",
+            "claude"
+          ]
+        },
+        {
+          "description": "The standard ACP transport, shared by every configured ACP instance.",
+          "type": "string",
+          "const": "acp"
+        }
+      ]
+    },
+    "CLIRuntimeLoginStartParams": {
+      "type": "object",
+      "properties": {
+        "login_type": {
+          "$ref": "#/$defs/CLIRuntimeLoginStartType",
+          "default": "chatgptDeviceCode"
+        },
+        "runtime_id": {
+          "type": "string"
+        },
+        "workspace_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "workspace_id",
+        "runtime_id"
+      ]
+    },
+    "CLIRuntimeLoginStartType": {
+      "type": "string",
+      "enum": [
+        "chatgptDeviceCode",
+        "chatgpt"
+      ]
+    },
+    "CLIRuntimeProviderDraft": {
+      "type": "object",
+      "properties": {
+        "args_json": {
+          "type": "string",
+          "default": ""
+        },
+        "binary_path": {
+          "type": "string"
+        },
+        "compaction_model": {
+          "description": "Whole override; Inherit explicitly clears it instead of persisting fallback.",
+          "$ref": "#/$defs/GatewayModelSelection",
+          "default": {
+            "source": "inherit"
+          }
+        },
+        "display_name": {
+          "type": "string"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "env_from_json": {
+          "type": "string",
+          "default": ""
+        },
+        "home_path": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/CLIAgentRuntimeKind"
+        },
+        "mode": {
+          "$ref": "#/$defs/CLIRuntimeProviderDraftMode"
+        },
+        "nickname": {
+          "description": "Stable agent presentation nickname.  The UI does not expose this\nfield yet, but edits must preserve the gateway-owned value.",
+          "type": "string",
+          "default": ""
+        },
+        "shadow_home_path": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "mode",
+        "kind",
+        "id",
+        "display_name",
+        "enabled",
+        "binary_path",
+        "home_path",
+        "shadow_home_path"
+      ]
+    },
+    "CLIRuntimeProviderDraftMode": {
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "Create"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "Edit": {
+              "type": "object",
+              "properties": {
+                "original_id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "original_id"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "Edit"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "Duplicate": {
+              "type": "object",
+              "properties": {
+                "source_id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "source_id"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "Duplicate"
+          ]
+        }
+      ]
+    },
+    "CLIRuntimeProxyDeleteParams": {
+      "type": "object",
+      "properties": {
+        "runtime_id": {
+          "type": "string"
+        },
+        "workspace_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "workspace_id",
+        "runtime_id"
+      ]
+    },
+    "CLIRuntimeProxySetParams": {
+      "type": "object",
+      "properties": {
+        "proxy_url": {
+          "type": "string"
+        },
+        "runtime_id": {
+          "type": "string"
+        },
+        "workspace_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "workspace_id",
+        "runtime_id",
+        "proxy_url"
+      ]
+    },
+    "GatewayModelSelection": {
+      "description": "Inherit is a real absence of an override. It never stores a resolved fallback.\nThe tagged value also distinguishes an explicit reset from an omitted update.",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "source": {
+              "type": "string",
+              "const": "inherit"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "source"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "instance": {
+              "type": "string"
+            },
+            "model": {
+              "type": "string"
+            },
+            "reasoning_effort": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "source": {
+              "type": "string",
+              "const": "explicit"
+            },
+            "transport": {
+              "$ref": "#/$defs/ModelSelectionTransport"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "source",
+            "transport",
+            "instance",
+            "model"
+          ]
+        }
+      ]
+    },
+    "ModelSelectionTransport": {
+      "type": "string",
+      "enum": [
+        "api",
+        "codex",
+        "claude"
+      ]
+    },
+    "ProviderConfigureParams": {
+      "type": "object",
+      "properties": {
+        "api_key": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "base_url": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "clear_base_url": {
+          "type": "boolean",
+          "default": false
+        },
+        "clear_proxy": {
+          "type": "boolean",
+          "default": false
+        },
+        "provider": {
+          "type": "string"
+        },
+        "proxy_url": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "workspace_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "workspace_id",
+        "provider"
+      ]
+    },
+    "ProviderDeleteApiKeyParams": {
+      "type": "object",
+      "properties": {
+        "provider": {
+          "type": "string"
+        },
+        "workspace_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "workspace_id",
+        "provider"
+      ]
+    },
+    "SessionConfigOptionValue": {
+      "description": "The value to set for a session configuration option.\n\nThe `type` field acts as the discriminator in the serialized JSON form.\nWhen no `type` is present, the value is treated as a [`SessionConfigValueId`]\nvia the [`ValueId`](Self::ValueId) fallback variant.\n\nThe `type` discriminator describes the *shape* of the value, not the option\nkind. For example every option kind that picks from a list of ids\n(`select`, `radio`, …) would use [`ValueId`](Self::ValueId), while a\nfuture freeform text option would get its own variant.",
+      "anyOf": [
+        {
+          "description": "A boolean value (`type: \"boolean\"`).",
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "boolean"
+            },
+            "value": {
+              "description": "The boolean value.",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "type",
+            "value"
+          ]
+        },
+        {
+          "description": "A [`SessionConfigValueId`] string value.\n\nThis is the default when `type` is absent on the wire. Unknown `type`\nvalues with string payloads also gracefully deserialize into this\nvariant.",
+          "type": "object",
+          "properties": {
+            "value": {
+              "description": "The value ID.",
+              "$ref": "#/$defs/SessionConfigValueId"
+            }
+          },
+          "required": [
+            "value"
+          ]
+        }
+      ]
+    },
+    "SessionConfigValueId": {
+      "description": "Unique identifier for a session configuration option value.",
+      "type": "string"
+    }
+  }
+}

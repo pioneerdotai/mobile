@@ -22,6 +22,7 @@ export default function SettingsStackLayout() {
                 headerLeft: () => <BackButton onPressHandler={handleBack} />,
             }}
         >
+            <Stack.Screen name="acp-agents" options={{ headerTitle: t('acpAgents.title') }} />
             <Stack.Screen
                 name="language"
                 options={{

@@ -1,6 +1,7 @@
 /* eslint-disable */
 
 export type ProviderActionKind =
+  | 'acp_session'
   | 'configure'
   | 'disconnect'
   | 'connect'

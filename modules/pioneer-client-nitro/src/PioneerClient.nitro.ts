@@ -41,6 +41,8 @@ export interface PioneerClient extends HybridObject<{ ios: 'c++'; android: 'c++'
     voiceAudioChunkJson(inputJson: string, pcmChunk: ArrayBuffer): string;
     voiceSessionFinalizeJson(inputJson: string): Promise<string>;
     voiceSessionCancelJson(inputJson: string): Promise<string>;
+    providerCommandJson(inputJson: string): Promise<string>;
+    cliRuntimeProviderDraftsJson(inputJson: string): Promise<string>;
     pendingRequestPresentationJson(inputJson: string): string;
     principalPresentationCapabilitiesJson(inputJson: string): string;
     artifactPresentationPolicyJson(inputJson: string): string;

@@ -38,6 +38,7 @@
     "ProviderActionKind": {
       "type": "string",
       "enum": [
+        "acp_session",
         "configure",
         "disconnect",
         "connect",

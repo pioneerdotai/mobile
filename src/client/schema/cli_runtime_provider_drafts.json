@@ -1,0 +1,192 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Array_of_CLIRuntimeProviderDraft",
+  "type": "array",
+  "items": {
+    "$ref": "#/$defs/CLIRuntimeProviderDraft"
+  },
+  "$defs": {
+    "CLIAgentRuntimeKind": {
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "codex",
+            "claude"
+          ]
+        },
+        {
+          "description": "The standard ACP transport, shared by every configured ACP instance.",
+          "type": "string",
+          "const": "acp"
+        }
+      ]
+    },
+    "CLIRuntimeProviderDraft": {
+      "type": "object",
+      "properties": {
+        "args_json": {
+          "type": "string",
+          "default": ""
+        },
+        "binary_path": {
+          "type": "string"
+        },
+        "compaction_model": {
+          "description": "Whole override; Inherit explicitly clears it instead of persisting fallback.",
+          "$ref": "#/$defs/GatewayModelSelection",
+          "default": {
+            "source": "inherit"
+          }
+        },
+        "display_name": {
+          "type": "string"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "env_from_json": {
+          "type": "string",
+          "default": ""
+        },
+        "home_path": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/CLIAgentRuntimeKind"
+        },
+        "mode": {
+          "$ref": "#/$defs/CLIRuntimeProviderDraftMode"
+        },
+        "nickname": {
+          "description": "Stable agent presentation nickname.  The UI does not expose this\nfield yet, but edits must preserve the gateway-owned value.",
+          "type": "string",
+          "default": ""
+        },
+        "shadow_home_path": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "mode",
+        "kind",
+        "id",
+        "display_name",
+        "enabled",
+        "binary_path",
+        "home_path",
+        "shadow_home_path"
+      ]
+    },
+    "CLIRuntimeProviderDraftMode": {
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "Create"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "Edit": {
+              "type": "object",
+              "properties": {
+                "original_id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "original_id"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "Edit"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "Duplicate": {
+              "type": "object",
+              "properties": {
+                "source_id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "source_id"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "Duplicate"
+          ]
+        }
+      ]
+    },
+    "GatewayModelSelection": {
+      "description": "Inherit is a real absence of an override. It never stores a resolved fallback.\nThe tagged value also distinguishes an explicit reset from an omitted update.",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "source": {
+              "type": "string",
+              "const": "inherit"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "source"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "instance": {
+              "type": "string"
+            },
+            "model": {
+              "type": "string"
+            },
+            "reasoning_effort": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "source": {
+              "type": "string",
+              "const": "explicit"
+            },
+            "transport": {
+              "$ref": "#/$defs/ModelSelectionTransport"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "source",
+            "transport",
+            "instance",
+            "model"
+          ]
+        }
+      ]
+    },
+    "ModelSelectionTransport": {
+      "type": "string",
+      "enum": [
+        "api",
+        "codex",
+        "claude"
+      ]
+    }
+  }
+}

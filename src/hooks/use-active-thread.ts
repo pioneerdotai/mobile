@@ -9,7 +9,11 @@ import {
 } from '@/client/turn-cancellation';
 import { mobileClientBinding } from '@/client/mobile-client-binding';
 import { dispatchNavigation, navigationSnapshot } from '@/client/navigation';
-import { beginComposerOperation, composerSnapshot } from '@/client/composer';
+import {
+    beginComposerOperation,
+    composerSnapshot,
+    useComposerPublication,
+} from '@/client/composer';
 import { withGatewayTransportLease } from '@/services/gateway/transport-coordinator';
 import {
     openActiveThread,
@@ -315,6 +319,7 @@ export const useActiveThread = (
     const turnActionLoading = turnCancelling || cancellingTurn;
     const canStopTurn = Boolean(active && connected && hasInFlightTurn && !turnActionLoading);
 
+    const composerPublication = useComposerPublication(threadId ?? null);
     const canSend = Boolean(
         Boolean(threadId) &&
         active &&
@@ -322,7 +327,7 @@ export const useActiveThread = (
         !sending &&
         (composerSelectedMode === 'Message' ||
             !composerModelManuallySelected ||
-            (composerSelectedProvider && composerSelectedModel)) &&
+            (composerPublication?.execution_selection_ready ?? false)) &&
         (composerSelectedMode === 'Message' || !snapshot?.projection.composer_locked) &&
         thread?.status !== 'Closed' &&
         !snapshotThreadClosed,

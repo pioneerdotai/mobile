@@ -3,6 +3,16 @@
   "title": "ClientPendingRequestPresentationRequest",
   "type": "object",
   "properties": {
+    "answers": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": {
+        "type": "string"
+      },
+      "default": null
+    },
     "request": {
       "$ref": "#/$defs/PendingRequest"
     }

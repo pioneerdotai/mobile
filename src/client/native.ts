@@ -1,3 +1,8 @@
+import type { ProviderCommand } from './generated/provider_command';
+import type { ProviderOperationCompletion } from './generated/provider_operation_completion';
+import type { ArrayOf_CLIRuntimeProviderDraft } from './generated/cli_runtime_provider_drafts';
+import type { AcpSessionParams } from './generated/acp_session_params';
+import type { AcpSessionResponse } from './generated/acp_session_response';
 import {
     configureTurnStartupRecorder,
     type TurnStartupReport,
@@ -766,6 +771,22 @@ export const pioneerClient = {
         return parsePioneerClientResponse<VoiceSessionCancelResponse>(
             await getPioneerClientNitro().voiceSessionCancelJson(JSON.stringify(input)),
         );
+    },
+
+    async providerCommand(input: ProviderCommand): Promise<ProviderOperationCompletion> {
+        return parsePioneerClientResponse<ProviderOperationCompletion>(
+            await getPioneerClientNitro().providerCommandJson(JSON.stringify(input)),
+        );
+    },
+    async cliRuntimeProviderDrafts(workspace: string): Promise<ArrayOf_CLIRuntimeProviderDraft> {
+        return parsePioneerClientResponse<ArrayOf_CLIRuntimeProviderDraft>(
+            await getPioneerClientNitro().cliRuntimeProviderDraftsJson(JSON.stringify(workspace)),
+        );
+    },
+    async acpSessionControl(input: AcpSessionParams): Promise<AcpSessionResponse> {
+        const response = await this.providerCommand({ kind: 'acp_session', params: input });
+        if (response.kind !== 'acp_session') throw new Error('Agent session response unavailable');
+        return response.result;
     },
 
     pendingRequestPresentation(
