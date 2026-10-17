@@ -41,24 +41,21 @@ export const threadOpeningRuntimeState = (
         selected.selected_provider !== provider
     )
         return 'pending';
+    // Owner retirement is cancellation, even if a previously accepted row is
+    // still retained. Authorization invalidation also clears those rows.
     if (selected.request.state.kind === 'cancelled') return 'cancelled';
-    if (selected.request.state.kind === 'failed') return 'degraded';
     if (!publication || publication.workspace_id !== workspaceId) return 'pending';
     if (publication.request.kind === 'cancelled') return 'cancelled';
-    if (publication.request.kind === 'failed') return 'degraded';
-    if (publication.request.kind !== 'ready') return 'pending';
     const runtimeId = provider.slice('cli_runtime:'.length).trim();
     const runtime = publication.runtimes.find((row) => row.runtime_id === runtimeId);
-    if (!runtime || !runtime.enabled) return 'setup_required';
-    switch (runtime.status.state) {
+    if (runtime && !runtime.enabled) return 'setup_required';
+    switch (runtime?.status.state) {
         case 'initializing':
             return 'pending';
         case 'ready':
-            // A Ready provider publication may precede the derived composer
-            // publication. Both inputs must have been applied before success.
-            return selected.request.state.kind === 'ready' &&
-                selected.selected_provider_ready &&
-                composer.selected_provider_ready
+            // A repeat discovery can load/fail while accepted rows and applied
+            // composer inputs remain usable. Its request is not a new barrier.
+            return selected.selected_provider_ready && composer.selected_provider_ready
                 ? 'ready'
                 : 'pending';
         case 'spawn_failed':
@@ -71,4 +68,11 @@ export const threadOpeningRuntimeState = (
         case 'unsupported_version':
             return 'setup_required';
     }
+    // Without usable prerequisites discovery is still mandatory. Do not infer
+    // absence from its in-flight list, or success before composer applies it.
+    if (selected.request.state.kind === 'failed' || publication.request.kind === 'failed')
+        return 'degraded';
+    if (selected.request.state.kind !== 'ready' || publication.request.kind !== 'ready')
+        return 'pending';
+    return runtime ? 'pending' : 'setup_required';
 };

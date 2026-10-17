@@ -111,7 +111,13 @@ export class MobileStartupTimeline {
     }
 
     complete(outcome: MobileStartupOutcome): void {
-        if (this.finalized || this.pendingOutcome) return;
+        if (
+            this.finalized ||
+            (this.pendingOutcome && !(this.pendingOutcome === 'ready' && outcome === 'cancelled'))
+        )
+            return;
+        // A Ready screen may be invalidated while the original shell reveal is
+        // still awaiting its frames/hide promise. Cancellation must win then.
         this.pendingOutcome = outcome;
         if (this.shellRevealed) this.finalize(outcome);
     }

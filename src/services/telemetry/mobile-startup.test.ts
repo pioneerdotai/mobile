@@ -74,6 +74,53 @@ describe('shell and operational startup are independent', () => {
             ),
         ).toBe(false);
     });
+    it('invalidates pending Ready when cancelled before the original two frames', async () => {
+        const timeline = load();
+        const hide = jest.fn<() => void>();
+        timeline.revealAfterShellFrame(hide);
+        timeline.complete('ready');
+        timeline.complete('cancelled');
+        timeline.complete('ready');
+        expect(hide).not.toHaveBeenCalled();
+        expect(mockRecord).not.toHaveBeenCalled();
+        frames.shift()!(0);
+        expect(hide).not.toHaveBeenCalled();
+        frames.shift()!(0);
+        await Promise.resolve();
+        jest.advanceTimersByTime(0);
+        expect(hide).toHaveBeenCalledTimes(1);
+        expect(mockRecord).toHaveBeenCalledTimes(1);
+        expect(mockRecord.mock.calls[0][0].outcome).toBe('cancelled');
+        timeline.complete('ready');
+        timeline.complete('cancelled');
+        jest.advanceTimersByTime(590_000);
+        expect(mockRecord).toHaveBeenCalledTimes(1);
+    });
+    it('invalidates pending Ready while the original splash hide promise is unresolved', async () => {
+        const timeline = load();
+        let finishHide!: () => void;
+        const hide = jest.fn(
+            () =>
+                new Promise<void>((resolve) => {
+                    finishHide = resolve;
+                }),
+        );
+        await reveal(timeline, hide);
+        timeline.complete('ready');
+        timeline.complete('cancelled');
+        timeline.complete('ready');
+        timeline.complete('cancelled');
+        expect(mockRecord).not.toHaveBeenCalled();
+        finishHide();
+        await Promise.resolve();
+        jest.advanceTimersByTime(0);
+        expect(hide).toHaveBeenCalledTimes(1);
+        expect(mockRecord).toHaveBeenCalledTimes(1);
+        expect(mockRecord.mock.calls[0][0].outcome).toBe('cancelled');
+        timeline.complete('ready');
+        jest.advanceTimersByTime(590_000);
+        expect(mockRecord).toHaveBeenCalledTimes(1);
+    });
     it('does not let an expired telemetry deadline prevent splash hiding', async () => {
         const timeline = load();
         jest.advanceTimersByTime(590_000);

@@ -246,7 +246,7 @@ describe('actual selected runtime status and applied composer input', () => {
         // An old allowing composer cannot override a newer Initializing status.
         expect(outcome(composer, runtimes({ state: 'initializing' }))).toBeNull();
     });
-    it('handles absent, unavailable, failed and cancelled runtimes', () => {
+    it('handles absent and terminally unavailable runtimes', () => {
         const absent = { ...runtimes({ state: 'ready' }), runtimes: [] };
         expect(outcome(composer, absent)).toBe('setup_required');
         for (const status of [
@@ -258,9 +258,91 @@ describe('actual selected runtime status and applied composer input', () => {
             expect(outcome(composer, runtimes(status))).toBe('setup_required');
         }
         expect(outcome(composer, runtimes({ state: 'error', message: 'failed' }))).toBe('degraded');
+    });
+    it.each(['loading', 'failed'] as const)(
+        'accepts applied retained Ready prerequisites during repeat discovery %s',
+        (kind) => {
+            const retained = { ...runtimes({ state: 'ready' }), request: { kind } };
+            const applied: ComposerPublication = {
+                ...composer,
+                runtime_selection: {
+                    ...composer.runtime_selection!,
+                    request: {
+                        generation: 3,
+                        state: kind === 'failed' ? { kind, message: 'discovery failed' } : { kind },
+                    },
+                },
+            };
+            expect(outcome(applied, retained)).toBe('ready');
+            // A new status overrides the old allowing composer, including during refresh.
+            expect(
+                outcome(applied, {
+                    ...retained,
+                    runtimes: runtimes({ state: 'initializing' }).runtimes,
+                }),
+            ).toBeNull();
+            expect(
+                outcome(applied, {
+                    ...retained,
+                    runtimes: runtimes({ state: 'missing_binary' }).runtimes,
+                }),
+            ).toBe('setup_required');
+            expect(
+                outcome(applied, {
+                    ...retained,
+                    runtimes: runtimes({ state: 'error', message: 'unavailable' }).runtimes,
+                }),
+            ).toBe('degraded');
+            expect(outcome(applied, { ...retained, workspace_id: 'other' })).toBeNull();
+            expect(outcome({ ...applied, selected_provider_ready: false }, retained)).toBeNull();
+            expect(
+                outcome(
+                    {
+                        ...applied,
+                        runtime_selection: {
+                            ...applied.runtime_selection!,
+                            selected_provider_ready: false,
+                        },
+                    },
+                    retained,
+                ),
+            ).toBeNull();
+        },
+    );
+    it('preserves failed/cancelled mandatory discovery without available prerequisites', () => {
+        const cold: ComposerPublication = {
+            ...composer,
+            selected_provider_ready: false,
+            runtime_selection: {
+                ...composer.runtime_selection!,
+                selected_provider_ready: false,
+                request: { generation: 3, state: { kind: 'failed', message: 'discovery failed' } },
+            },
+        };
         expect(
-            outcome(composer, { ...runtimes({ state: 'ready' }), request: { kind: 'failed' } }),
+            outcome(cold, {
+                ...runtimes({ state: 'ready' }),
+                runtimes: [],
+                request: { kind: 'failed' },
+            }),
         ).toBe('degraded');
+        const cancelled: ComposerPublication = {
+            ...cold,
+            runtime_selection: {
+                ...cold.runtime_selection!,
+                request: { generation: 3, state: { kind: 'cancelled' } },
+            },
+        };
+        // Composer owner retirement cancels its inputs even if another owner retains rows.
+        expect(outcome(cancelled, runtimes({ state: 'ready' }))).toBe('cancelled');
+        // Authorization invalidation clears the provider rows, rather than retaining access.
+        expect(
+            outcome(cancelled, {
+                ...runtimes({ state: 'ready' }),
+                runtimes: [],
+                request: { kind: 'cancelled' },
+            }),
+        ).toBe('cancelled');
         expect(
             outcome(composer, { ...runtimes({ state: 'ready' }), request: { kind: 'cancelled' } }),
         ).toBe('cancelled');
