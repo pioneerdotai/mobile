@@ -4,7 +4,7 @@ import 'react-native-reanimated';
 
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { useFonts } from 'expo-font';
 import { Paths } from 'expo-file-system';
 import * as SystemUI from 'expo-system-ui';
@@ -36,7 +36,15 @@ import { hideAppSplash, preventAppSplashAutoHide } from '@/services/app-splash';
 import { useVoiceInputGatewayLifecycle } from '@/services/voice-input/data-source';
 import { TaskUserNotificationController } from '@/services/tasks/user-notifications';
 import { mobileStartup } from '@/services/telemetry/mobile-startup';
-import { mobileStartupReadinessOutcome } from '@/services/telemetry/mobile-startup-readiness';
+import { usePathname } from 'expo-router';
+import { useWorkspaceStore } from '@/stores/workspace';
+import { useThreadTreeStore } from '@/stores/thread-tree';
+import { useGatewayStore } from '@/stores/gateway';
+import { useStartupTreeApplied } from '@/services/telemetry/mobile-startup-tree';
+import {
+    mobileStartupReadinessOutcome,
+    sameStartupScope,
+} from '@/services/telemetry/mobile-startup-readiness';
 import { useAuthorizationCapabilitySnapshot } from '@/hooks/use-administration-capabilities';
 
 export const unstable_settings = {
@@ -213,17 +221,76 @@ const AuthorizationProjectionController = () => {
 // RootContent mounts this only after fonts, native initialization and the local
 // gateway registry are ready. Network state must never hold the switcher behind splash.
 const MobileStartupReadinessController = ({ hasActiveGateway }: { hasActiveGateway: boolean }) => {
+    useEffect(() => {
+        mobileStartup.revealAfterShellFrame(hideAppSplash);
+    }, []);
+    const finalized = useSyncExternalStore(mobileStartup.subscribe, mobileStartup.isFinalized);
+    return finalized ? null : <OperationalStartupObserver hasActiveGateway={hasActiveGateway} />;
+};
+
+const OperationalStartupObserver = ({ hasActiveGateway }: { hasActiveGateway: boolean }) => {
+    const path = usePathname();
+    const gateway = useGatewayStore((state) => state);
+    const workspace = useWorkspaceStore((state) => state);
+    const tree = useThreadTreeStore((state) => state);
+    const applied = useStartupTreeApplied();
+    const initial = useRef({
+        gatewayId: gateway.registry.active_gateway_id,
+        connectionId: gateway.sessionConnectionGeneration,
+        workspaceId: workspace.activeWorkspaceId,
+    });
+    const scope = {
+        gatewayId: gateway.registry.active_gateway_id ?? null,
+        connectionId: gateway.sessionConnectionGeneration,
+        workspaceId: workspace.activeWorkspaceId,
+    };
     const outcome = mobileStartupReadinessOutcome({
         registryBootstrapped: true,
         hasActiveGateway,
+        authenticationRequired:
+            gateway.sessionTerminalReason !== null &&
+            gateway.sessionTerminalReason !== 'secure_storage_failed',
+        terminalError:
+            gateway.sessionTerminalReason === 'secure_storage_failed' ||
+            Boolean(workspace.error && !workspace.loading) ||
+            Boolean(applied?.failed && sameStartupScope(scope, applied.scope)),
+        connected:
+            gateway.connectionState === 'Connected' && gateway.sessionConnectionGeneration !== null,
+        scope,
+        workspaceBootstrappedConnectionId: workspace.bootstrappedConnectionId,
+        workspaceExpectedConnectionId: gateway.connectionId,
+        workspaceLoading: workspace.loading,
+        treeLoading: tree.loading,
+        appliedTreeScope: applied && !applied.failed ? applied.scope : null,
     });
-
     useEffect(() => {
-        if (outcome) {
-            mobileStartup.completeAfterOperationalFrame(outcome, hideAppSplash);
+        const currentGateway = useGatewayStore.getState();
+        const currentScope = {
+            gatewayId: currentGateway.registry.active_gateway_id ?? null,
+            connectionId: currentGateway.sessionConnectionGeneration,
+            workspaceId: useWorkspaceStore.getState().activeWorkspaceId,
+        };
+        if (!sameStartupScope(scope, currentScope)) {
+            mobileStartup.complete('cancelled');
+            return;
         }
-    }, [outcome]);
-
+        const previous = initial.current;
+        const changed =
+            previous.gatewayId !== scope.gatewayId ||
+            (previous.connectionId !== null && previous.connectionId !== scope.connectionId) ||
+            (previous.workspaceId !== null && previous.workspaceId !== scope.workspaceId);
+        // A direct thread/deep-link launch is outside the initial-tree scenario.
+        if (
+            (path !== '/' && !path.startsWith('/threads/')) ||
+            previous.gatewayId !== scope.gatewayId
+        )
+            mobileStartup.complete('cancelled');
+        else if (outcome === 'authentication_required' || outcome === 'degraded')
+            mobileStartup.complete(outcome);
+        else if (changed) mobileStartup.complete('cancelled');
+        else if (outcome) mobileStartup.complete(outcome);
+        initial.current = scope;
+    }, [outcome, path, scope.gatewayId, scope.connectionId, scope.workspaceId]);
     return null;
 };
 

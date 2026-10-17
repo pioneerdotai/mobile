@@ -7,6 +7,8 @@ import { useActiveThreadStore } from '@/stores/active-thread';
 import { useGatewayStore } from '@/stores/gateway';
 import { useThreadTreeStore } from '@/stores/thread-tree';
 import { useWorkspaceStore } from '@/stores/workspace';
+import { directorySnapshot } from '@/client/workspaces';
+import { recordStartupTreeApplied } from '@/services/telemetry/mobile-startup-tree';
 import { mobileStartup } from '@/services/telemetry/mobile-startup';
 
 const EMPTY_LEVEL: ClientThreadTreeLevel = {
@@ -24,18 +26,31 @@ const useThreadTreeRefresh = () =>
         const workspace = useWorkspaceStore.getState().activeWorkspaceId;
         if (!workspace || useGatewayStore.getState().connectionState !== 'Connected') return;
         mobileStartup.begin('thread_tree.load');
-        mobileStartup.begin('thread_tree.request');
+        const gateway = useGatewayStore.getState();
+        const scope = {
+            gatewayId: gateway.connectionGatewayId,
+            connectionId: gateway.sessionConnectionGeneration,
+            workspaceId: workspace,
+        };
         try {
             await refreshThreadTree({ workspace_id: workspace });
-            mobileStartup.succeed('thread_tree.request');
-            mobileStartup.begin('thread_tree.response.apply');
-            mobileStartup.succeed('thread_tree.response.apply');
-            mobileStartup.succeed('thread_tree.load');
-            mobileStartup.begin('composer.prepare');
+            const current = useGatewayStore.getState();
+            const publication = directorySnapshot(workspace);
+            if (
+                scope.connectionId !== null &&
+                current.sessionConnectionGeneration === scope.connectionId &&
+                current.connectionGatewayId === scope.gatewayId &&
+                useWorkspaceStore.getState().activeWorkspaceId === workspace &&
+                publication &&
+                publication.snapshot.workspace_id === workspace &&
+                !publication.loading
+            ) {
+                if (publication.error) mobileStartup.fail('thread_tree.load');
+                else mobileStartup.succeed('thread_tree.load');
+                recordStartupTreeApplied(scope, Boolean(publication.error));
+            }
             useActiveThreadStore.getState().syncComposerModelSelection();
-            mobileStartup.succeed('composer.prepare');
         } catch {
-            mobileStartup.fail('thread_tree.request');
             mobileStartup.fail('thread_tree.load');
         }
     }, []);

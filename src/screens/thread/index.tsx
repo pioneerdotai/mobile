@@ -1,3 +1,5 @@
+import { threadOpening, threadOpeningScope } from '@/services/telemetry/thread-opening';
+import { threadOpeningReadinessOutcome } from '@/services/telemetry/thread-opening-readiness';
 import { dispatchComposerCatalog, useComposerCatalog } from '@/client/composer-catalog';
 import { beginMessageDeletion } from '@/client/message-deletion';
 import { artifactActionPresentation } from '@/services/artifacts/mobile-action-state';
@@ -13,7 +15,7 @@ import {
 } from '@/client/composer';
 import { dispatchNavigation, navigationSnapshot } from '@/client/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { router, useFocusEffect } from 'expo-router';
+import { router, useFocusEffect, useNavigation } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { type LayoutChangeEvent, Text, View } from 'react-native';
 import { KeyboardGestureArea, KeyboardStickyView } from 'react-native-keyboard-controller';
@@ -73,6 +75,7 @@ import { useThreadMembers } from '@/client/thread-members';
 import { ThreadActionsSheet } from '@/components/overlays/thread-actions';
 
 type ThreadScreenProps = {
+    openingAttempt?: number | null;
     threadId: string;
     initialThread?: Thread | null;
     taskChildThread?: boolean;
@@ -91,6 +94,7 @@ const generateArtifactOperationId = customAlphabet(VOICE_TURN_ID_ALPHABET, VOICE
 
 const ThreadScreen = ({
     threadId,
+    openingAttempt = null,
     initialThread = null,
     taskChildThread = false,
     threadActionsOpen = false,
@@ -98,6 +102,7 @@ const ThreadScreen = ({
     onOpenMembers,
 }: ThreadScreenProps) => {
     const { t } = useTranslation('threads');
+    const openingNavigation = useNavigation();
     const { theme, rt } = useUnistyles();
 
     const [focused, setFocused] = useState(false);
@@ -144,7 +149,7 @@ const ThreadScreen = ({
         stopTurn,
         setComposerText,
         setExpandedKeys,
-    } = useActiveThread(activeThread, activeWorkspaceId, focused, threadId);
+    } = useActiveThread(activeThread, activeWorkspaceId, focused, threadId, openingAttempt);
 
     const dismissedSteerErrorGeneration = useActiveThreadStore(
         (state) => state.dismissedSteerErrorGeneration,
@@ -556,6 +561,75 @@ const ThreadScreen = ({
         (!messageMode && !canUseAgentModels) ||
         sending,
     );
+    useEffect(() => {
+        if (openingAttempt === null) return;
+        const currentComposer = composerSnapshot(threadId);
+        const runtime = composerPublication?.runtime_selection;
+        const runtimeMatches =
+            runtime?.identity.thread_id === threadId &&
+            runtime?.identity.draft_id === composerPublication?.draft_id &&
+            runtime?.workspace_id === visibleSnapshot?.workspace_id &&
+            runtime?.selected_provider === composerSelectedProvider;
+        const needsRuntime =
+            !messageMode && Boolean(composerSelectedProvider?.startsWith('cli_runtime:'));
+        const outcome = threadOpeningReadinessOutcome({
+            focused: focused && openingNavigation.isFocused(),
+            connected: connected && useGatewayStore.getState().sessionConnectionGeneration !== null,
+            composerBusy:
+                sending || (!messageMode && Boolean(visibleSnapshot?.projection.composer_locked)),
+            snapshotMatches:
+                visibleSnapshot?.thread_id === threadId &&
+                visibleSnapshot?.workspace_id === activeWorkspaceId,
+            composerMatches:
+                composerPublication?.thread_id === threadId &&
+                currentComposer?.draft_id === composerPublication?.draft_id &&
+                currentComposer?.revision === composerPublication?.revision &&
+                useActiveThreadStore.getState().activeComposerThreadId === threadId,
+            screenLoading: showThreadLoader,
+            screenError: Boolean(screenError),
+            authorizationReady:
+                threadAuthorization?.request.kind === 'ready' &&
+                threadAuthorization.workspace_id === activeWorkspaceId,
+            authorizationFailed: threadAuthorization?.request.kind === 'failed',
+            authorizationCancelled: threadAuthorization?.request.kind === 'cancelled',
+            composerDisabled,
+            messageMode,
+            modelSelectionComplete,
+            modelSelectionLoading,
+            runtimeLoading:
+                needsRuntime &&
+                (!runtimeMatches ||
+                    runtime?.request.state.kind === 'idle' ||
+                    runtime?.request.state.kind === 'loading'),
+            runtimeFailed:
+                needsRuntime && runtimeMatches && runtime?.request.state.kind === 'failed',
+            runtimeCancelled:
+                needsRuntime && runtimeMatches && runtime?.request.state.kind === 'cancelled',
+            providerReady: selectedProviderReady,
+        });
+        threadOpening.observe(openingAttempt, threadOpeningScope(), outcome);
+    }, [
+        connected,
+        sending,
+        openingNavigation,
+        openingAttempt,
+        focused,
+        threadId,
+        activeWorkspaceId,
+        connectionId,
+        composerPublication,
+        visibleSnapshot,
+        showThreadLoader,
+        screenError,
+        threadAuthorization,
+        composerDisabled,
+        messageMode,
+        modelSelectionComplete,
+        modelSelectionLoading,
+        composerSelectedProvider,
+        selectedProviderReady,
+    ]);
+
     const openComposerModeSelector = useCallback(() => {
         if (composerDisabled) {
             return;
