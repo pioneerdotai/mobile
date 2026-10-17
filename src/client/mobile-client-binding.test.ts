@@ -1193,3 +1193,31 @@ test('a delayed filtered resnapshot does not erase a workspace observed after na
         binding.close();
     }
 });
+
+test('provider-runtime publication observers do not create or extend feature demand', () => {
+    const scope: ClientScope = { kind: 'provider_runtime', workspace_id: 'workspace' };
+    const fixture = bridgeFixture(snapshot(1, [], scope));
+    let acquired = 0;
+    let released = 0;
+    let dispatched = 0;
+    const binding = new MobileClientBinding({
+        ...fixture.bridge,
+        acquireScope: () => {
+            acquired++;
+        },
+        releaseScope: () => {
+            released++;
+        },
+        dispatch: () => {
+            dispatched++;
+            return { schema_version: 1, sequence: 1, outcome: 'changed', effects: [] };
+        },
+    });
+    const release = binding.scope(scope).subscribe(() => {});
+    expect(acquired).toBe(1);
+    expect(dispatched).toBe(0);
+    release();
+    release();
+    expect(released).toBe(1);
+    expect(dispatched).toBe(0);
+});

@@ -7,6 +7,7 @@ import { useActiveThreadStore } from '@/stores/active-thread';
 import { useGatewayStore } from '@/stores/gateway';
 import { useThreadTreeStore } from '@/stores/thread-tree';
 import { useWorkspaceStore } from '@/stores/workspace';
+import { beginStartupTreeLoad } from '@/services/telemetry/mobile-startup-tree';
 import { mobileStartup } from '@/services/telemetry/mobile-startup';
 
 const EMPTY_LEVEL: ClientThreadTreeLevel = {
@@ -24,19 +25,19 @@ const useThreadTreeRefresh = () =>
         const workspace = useWorkspaceStore.getState().activeWorkspaceId;
         if (!workspace || useGatewayStore.getState().connectionState !== 'Connected') return;
         mobileStartup.begin('thread_tree.load');
-        mobileStartup.begin('thread_tree.request');
+        const gateway = useGatewayStore.getState();
+        const scope = {
+            gatewayId: gateway.connectionGatewayId,
+            connectionId: gateway.sessionConnectionGeneration,
+            workspaceId: workspace,
+        };
+        beginStartupTreeLoad(scope);
         try {
             await refreshThreadTree({ workspace_id: workspace });
-            mobileStartup.succeed('thread_tree.request');
-            mobileStartup.begin('thread_tree.response.apply');
-            mobileStartup.succeed('thread_tree.response.apply');
-            mobileStartup.succeed('thread_tree.load');
-            mobileStartup.begin('composer.prepare');
             useActiveThreadStore.getState().syncComposerModelSelection();
-            mobileStartup.succeed('composer.prepare');
         } catch {
-            mobileStartup.fail('thread_tree.request');
-            mobileStartup.fail('thread_tree.load');
+            // A rejected request may have been replaced. The directory's load
+            // receipt, observed by startup readiness, owns the terminal result.
         }
     }, []);
 

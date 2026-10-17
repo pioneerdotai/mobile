@@ -19,6 +19,16 @@
         "null"
       ]
     },
+    "load": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ThreadTreeLoadReceipt"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
     "loading": {
       "type": "boolean"
     },
@@ -760,6 +770,32 @@
         "Active",
         "Idle",
         "Closed"
+      ]
+    },
+    "ThreadTreeLoadReceipt": {
+      "description": "Evidence from the existing directory request owner. Local unread/metadata\nprojections may change `loading`, but cannot complete a full-tree request.",
+      "type": "object",
+      "properties": {
+        "generation": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "state": {
+          "$ref": "#/$defs/ThreadTreeLoadState"
+        }
+      },
+      "required": [
+        "generation",
+        "state"
+      ]
+    },
+    "ThreadTreeLoadState": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "ready",
+        "failed"
       ]
     },
     "ThreadTreeSnapshot": {

@@ -1,3 +1,4 @@
+import { beginThreadOpening } from '@/services/telemetry/thread-opening';
 import React, { useCallback } from 'react';
 import type { BottomTabBarProps } from 'expo-router/js-tabs';
 import { useTranslation } from 'react-i18next';
@@ -112,6 +113,7 @@ const Start = () => {
                         () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light),
                         'Failed to trigger tab haptic feedback:',
                     );
+                    beginThreadOpening('new');
                     router.navigate('/thread/new');
                 }}
             >

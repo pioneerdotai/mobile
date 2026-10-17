@@ -1,3 +1,4 @@
+import { threadOpening, useThreadOpeningRoute } from '@/services/telemetry/thread-opening';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Text, View } from 'react-native';
 import Stack from 'expo-router/js-stack';
@@ -22,6 +23,7 @@ type DraftRouteState = {
 };
 
 type NewThreadDraftRouteProps = {
+    openingAttempt: number | null;
     activeWorkspaceId: string | null;
     capabilitySnapshot: ReturnType<typeof useAuthorizationCapabilitySnapshot>;
 };
@@ -29,6 +31,7 @@ type NewThreadDraftRouteProps = {
 const NewThreadDraftRoute = ({
     activeWorkspaceId,
     capabilitySnapshot,
+    openingAttempt,
 }: NewThreadDraftRouteProps) => {
     const { t } = useTranslation('threads');
     const connectionId = useGatewayStore((state) => state.connectionId);
@@ -74,6 +77,9 @@ const NewThreadDraftRoute = ({
         error ??
         (workspaceError || visibilityPlanUnavailable ? t('createThreadFailed') : null) ??
         (connectionState === 'Disconnected' ? t('disconnected') : null);
+    useEffect(() => {
+        if (routeError && openingAttempt !== null) threadOpening.finish(openingAttempt, 'degraded');
+    }, [routeError, openingAttempt]);
     const selectedVisibility = visibilityPlan?.default_visibility ?? 'private';
 
     useEffect(() => {
@@ -159,6 +165,7 @@ const NewThreadDraftRoute = ({
         content = (
             <ThreadScreen
                 threadId={draft.threadId}
+                openingAttempt={openingAttempt}
                 initialThread={draft.thread}
                 threadActionsOpen={actionsOpen}
                 onThreadActionsClose={closeActions}
@@ -176,6 +183,7 @@ const NewThreadDraftRoute = ({
 };
 
 const NewThreadRoute = () => {
+    const openingAttempt = useThreadOpeningRoute('new');
     const capabilitySnapshot = useAuthorizationCapabilitySnapshot();
     const activeWorkspaceId = useWorkspaceStore((state) => state.activeWorkspaceId);
     const contextKey = [
@@ -187,6 +195,7 @@ const NewThreadRoute = () => {
     return (
         <NewThreadDraftRoute
             key={contextKey}
+            openingAttempt={openingAttempt}
             activeWorkspaceId={activeWorkspaceId}
             capabilitySnapshot={capabilitySnapshot}
         />

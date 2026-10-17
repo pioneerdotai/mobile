@@ -1,3 +1,4 @@
+import { threadOpening, threadOpeningScope } from '@/services/telemetry/thread-opening';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useShallow } from 'zustand/react/shallow';
@@ -36,6 +37,7 @@ export const useActiveThread = (
     workspaceId: string | null = null,
     active = true,
     requestedThreadId: string | null = thread?.id ?? null,
+    openingAttempt: number | null = null,
 ) => {
     const { t } = useTranslation('threads');
     const threadId = requestedThreadId ?? thread?.id ?? null;
@@ -105,6 +107,10 @@ export const useActiveThread = (
         })),
     );
 
+    const openingAttemptRef = useRef(openingAttempt);
+    useLayoutEffect(() => {
+        openingAttemptRef.current = openingAttempt;
+    }, [openingAttempt]);
     const activeThreadIdRef = useRef<string | null | undefined>(undefined);
     const sendScopeRef = useRef({ threadId, active });
     useLayoutEffect(() => {
@@ -135,15 +141,23 @@ export const useActiveThread = (
 
     const open = useCallback(
         async (threadToOpen: Thread) => {
+            const attempt = openingAttemptRef.current;
             if (active && connected)
-                await openActiveThread({ thread: threadToOpen }).catch(() => undefined);
+                await openActiveThread({ thread: threadToOpen }).catch(() => {
+                    if (attempt !== null)
+                        threadOpening.observe(attempt, threadOpeningScope(), 'degraded');
+                });
         },
         [active, connected],
     );
     const openById = useCallback(
         async (id: string) => {
+            const attempt = openingAttemptRef.current;
             if (active && connected)
-                await openActiveThreadById({ thread_id: id }).catch(() => undefined);
+                await openActiveThreadById({ thread_id: id }).catch(() => {
+                    if (attempt !== null)
+                        threadOpening.observe(attempt, threadOpeningScope(), 'degraded');
+                });
         },
         [active, connected],
     );

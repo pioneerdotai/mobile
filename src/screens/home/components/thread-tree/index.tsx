@@ -1,3 +1,4 @@
+import { beginThreadOpening } from '@/services/telemetry/thread-opening';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet } from 'react-native-unistyles';
@@ -68,6 +69,7 @@ const ThreadTree = () => {
     };
 
     const openThread = (thread: Thread) => {
+        beginThreadOpening(thread.id);
         router.push({
             pathname: '/thread/[threadId]',
             params: { threadId: thread.id },
