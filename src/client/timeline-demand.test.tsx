@@ -32,6 +32,15 @@ describe('timeline semantic binding lifecycle', () => {
             tree = renderer.create(<Probe />);
         });
         await act(async () => {
+            publish.update(['prefetch'], null, null, 0, []);
+        });
+        expect(
+            jest.mocked(mobileClientBinding.dispatch).mock.calls.at(-1)![0].intent,
+        ).toMatchObject({
+            kind: 'timeline',
+            intent: { kind: 'update', demand: { row_ids: ['prefetch'], viewed_row_ids: [] } },
+        });
+        await act(async () => {
             publish.update(['row', 'prefetch'], 'turn', 'turn', 1, ['row']);
         });
         const dispatch = jest.mocked(mobileClientBinding.dispatch);
@@ -95,6 +104,11 @@ describe('timeline semantic binding lifecycle', () => {
             kind: 'timeline',
             intent: { kind: 'exit', thread_id: 'b', generation: 3 },
         });
+        expect(dispatch.mock.calls.every(([request]) => request.intent.kind === 'timeline')).toBe(
+            true,
+        );
+        // The shared Rust viewport path owns personal inbox receipts. Navigation
+        // and JS prefetch never dispatch an optimistic inbox dismissal.
         expect(remove).toHaveBeenCalledTimes(1);
         subscription.mockRestore();
     });

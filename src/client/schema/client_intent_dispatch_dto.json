@@ -8440,6 +8440,22 @@
           "properties": {
             "kind": {
               "type": "string",
+              "const": "read_all"
+            },
+            "workspace_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "workspace_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
               "const": "refresh"
             },
             "workspace_id": {

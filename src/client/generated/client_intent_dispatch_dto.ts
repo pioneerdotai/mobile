@@ -1929,6 +1929,11 @@ export type WorkspaceIntent =
     };
 export type TaskNotificationIntent =
   | {
+      kind: 'read_all';
+      workspace_id: string;
+      [k: string]: unknown;
+    }
+  | {
       kind: 'refresh';
       workspace_id: string;
       [k: string]: unknown;
