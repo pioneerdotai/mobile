@@ -29,11 +29,20 @@
   ],
   "$defs": {
     "CLIAgentRuntimeKind": {
-      "type": "string",
-      "enum": [
-        "codex",
-        "claude",
-        "opencode"
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "codex",
+            "claude",
+            "opencode"
+          ]
+        },
+        {
+          "description": "The standard ACP transport, shared by every configured ACP instance.",
+          "type": "string",
+          "const": "acp"
+        }
       ]
     },
     "CLIRuntimeProviderSettingsRejection": {
@@ -213,12 +222,38 @@
           "required": [
             "InvalidCompactionModel"
           ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "InvalidLaunchData": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "message"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "InvalidLaunchData"
+          ]
         }
       ]
     },
     "GatewayCliRuntimeInstanceSettings": {
       "type": "object",
       "properties": {
+        "args": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
         "binary_path": {
           "type": "string"
         },
@@ -239,8 +274,16 @@
         "enabled": {
           "type": "boolean"
         },
+        "env_from": {
+          "description": "Environment references only; resolved secret values never cross the\nshared settings/catalog boundary.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
         "home_path": {
-          "type": "string"
+          "type": "string",
+          "default": ""
         },
         "id": {
           "type": "string"
@@ -265,8 +308,7 @@
         "kind",
         "display_name",
         "enabled",
-        "binary_path",
-        "home_path"
+        "binary_path"
       ]
     },
     "GatewayCliRuntimeSettings": {

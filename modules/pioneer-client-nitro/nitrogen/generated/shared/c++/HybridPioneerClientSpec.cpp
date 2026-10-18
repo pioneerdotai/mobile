@@ -54,6 +54,8 @@ namespace margelo::nitro::pioneer::client {
       prototype.registerHybridMethod("voiceAudioChunkJson", &HybridPioneerClientSpec::voiceAudioChunkJson);
       prototype.registerHybridMethod("voiceSessionFinalizeJson", &HybridPioneerClientSpec::voiceSessionFinalizeJson);
       prototype.registerHybridMethod("voiceSessionCancelJson", &HybridPioneerClientSpec::voiceSessionCancelJson);
+      prototype.registerHybridMethod("providerCommandJson", &HybridPioneerClientSpec::providerCommandJson);
+      prototype.registerHybridMethod("cliRuntimeProviderDraftsJson", &HybridPioneerClientSpec::cliRuntimeProviderDraftsJson);
       prototype.registerHybridMethod("pendingRequestPresentationJson", &HybridPioneerClientSpec::pendingRequestPresentationJson);
       prototype.registerHybridMethod("principalPresentationCapabilitiesJson", &HybridPioneerClientSpec::principalPresentationCapabilitiesJson);
       prototype.registerHybridMethod("artifactPresentationPolicyJson", &HybridPioneerClientSpec::artifactPresentationPolicyJson);

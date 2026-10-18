@@ -20,6 +20,10 @@
     "execution_capabilities_removed": {
       "type": "boolean"
     },
+    "execution_selection_ready": {
+      "type": "boolean",
+      "default": false
+    },
     "message_edit": {
       "anyOf": [
         {
@@ -87,6 +91,13 @@
     "selected_provider_ready": {
       "type": "boolean"
     },
+    "session_model_label": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "default": null
+    },
     "thread_id": {
       "type": "string"
     },
@@ -112,6 +123,98 @@
     "execution_capabilities_removed"
   ],
   "$defs": {
+    "AcpConfigurationChoice": {
+      "description": "An actually applied choice, in receive order. The descriptor identity is\nchecked before replay; opaque ids never determine dependency ordering.",
+      "type": "object",
+      "properties": {
+        "config_id": {
+          "type": "string"
+        },
+        "descriptor_fingerprint": {
+          "type": "string"
+        },
+        "value": {
+          "$ref": "#/$defs/SessionConfigOptionValue"
+        }
+      },
+      "required": [
+        "descriptor_fingerprint",
+        "config_id",
+        "value"
+      ]
+    },
+    "AcpConfigurationVersion": {
+      "type": "object",
+      "properties": {
+        "connection_id": {
+          "type": "string"
+        },
+        "revision": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "connection_id",
+        "revision"
+      ]
+    },
+    "AcpTurnConfiguration": {
+      "description": "Selection captured from a version-checked preparation, then frozen with the\nexisting launch/input. The actual admitted session revalidates descriptor\nidentity and every opaque value before dispatch. No elevated instructions.",
+      "type": "object",
+      "properties": {
+        "additional_directories": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "configuration_replay": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/AcpConfigurationChoice"
+          }
+        },
+        "continuation_requested": {
+          "type": "boolean",
+          "default": false
+        },
+        "descriptor_fingerprint": {
+          "type": "string"
+        },
+        "expected": {
+          "$ref": "#/$defs/AcpConfigurationVersion"
+        },
+        "initial_descriptor_fingerprint": {
+          "type": "string",
+          "default": ""
+        },
+        "mode": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "session_id": {
+          "type": "string"
+        },
+        "values": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/SessionConfigOptionValue"
+          }
+        }
+      },
+      "required": [
+        "session_id",
+        "expected",
+        "descriptor_fingerprint",
+        "values"
+      ]
+    },
     "AgentExecutionBackend": {
       "oneOf": [
         {
@@ -459,11 +562,20 @@
       ]
     },
     "CLIAgentRuntimeKind": {
-      "type": "string",
-      "enum": [
-        "codex",
-        "claude",
-        "opencode"
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "codex",
+            "claude",
+            "opencode"
+          ]
+        },
+        {
+          "description": "The standard ACP transport, shared by every configured ACP instance.",
+          "type": "string",
+          "const": "acp"
+        }
       ]
     },
     "ComposerAttachment": {
@@ -1809,6 +1921,46 @@
         "mode"
       ]
     },
+    "SessionConfigOptionValue": {
+      "description": "The value to set for a session configuration option.\n\nThe `type` field acts as the discriminator in the serialized JSON form.\nWhen no `type` is present, the value is treated as a [`SessionConfigValueId`]\nvia the [`ValueId`](Self::ValueId) fallback variant.\n\nThe `type` discriminator describes the *shape* of the value, not the option\nkind. For example every option kind that picks from a list of ids\n(`select`, `radio`, …) would use [`ValueId`](Self::ValueId), while a\nfuture freeform text option would get its own variant.",
+      "anyOf": [
+        {
+          "description": "A boolean value (`type: \"boolean\"`).",
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "boolean"
+            },
+            "value": {
+              "description": "The boolean value.",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "type",
+            "value"
+          ]
+        },
+        {
+          "description": "A [`SessionConfigValueId`] string value.\n\nThis is the default when `type` is absent on the wire. Unknown `type`\nvalues with string payloads also gracefully deserialize into this\nvariant.",
+          "type": "object",
+          "properties": {
+            "value": {
+              "description": "The value ID.",
+              "$ref": "#/$defs/SessionConfigValueId"
+            }
+          },
+          "required": [
+            "value"
+          ]
+        }
+      ]
+    },
+    "SessionConfigValueId": {
+      "description": "Unique identifier for a session configuration option value.",
+      "type": "string"
+    },
     "SkillId": {
       "type": "string",
       "maxLength": 21,
@@ -1948,6 +2100,16 @@
     "TurnCLIRuntimeOptions": {
       "type": "object",
       "properties": {
+        "acp_configuration": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AcpTurnConfiguration"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "effort": {
           "type": [
             "string",

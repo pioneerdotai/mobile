@@ -162,5 +162,18 @@
                 "description": "Use the dark app appearance."
             }
         }
+    },
+    "acpAgents": {
+        "title": "ACP agents",
+        "description": "Connect an agent using its ACP executable and arguments. Authentication is available when preparing its session in the model selector.",
+        "id": "ID",
+        "name": "Name",
+        "executable": "Executable on Gateway",
+        "arguments": "Arguments (JSON array)",
+        "environment": "Environment references (JSON object)",
+        "environmentHint": "Map agent variable names to names on the Gateway host. Values stay on the host.",
+        "add": "Add agent",
+        "enabled": "Enabled",
+        "save": "Save"
     }
 }

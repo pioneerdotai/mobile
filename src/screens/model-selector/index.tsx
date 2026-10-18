@@ -1,3 +1,4 @@
+import { AcpSessionControls } from './acp-session-controls';
 import { useCallback, useMemo, useState } from 'react';
 import { FlashList, type ListRenderItem } from '@shopify/flash-list';
 import { router } from 'expo-router';
@@ -103,16 +104,23 @@ export const ModelSelectorHomeScreen = () => {
                     onPress={() => router.push({ pathname: '/model-selector/provider' })}
                 />
                 <Box style={styles.separator} />
-                <SelectorRow
-                    label={t('modelSelectorModelLabel')}
-                    value={selectedLabel(selectedModelDisplayName, t('modelSelectorSelectModel'))}
-                    loading={
-                        selectedModelDisplayNameLoading ||
-                        (!presentedModel && defaultComposerSelectionLoading)
-                    }
-                    selected={Boolean(presentedModel)}
-                    onPress={() => router.push({ pathname: '/model-selector/model' })}
-                />
+                {input?.acp_session ? (
+                    <AcpSessionControls snapshot={input.acp_session} />
+                ) : (
+                    <SelectorRow
+                        label={t('modelSelectorModelLabel')}
+                        value={selectedLabel(
+                            selectedModelDisplayName,
+                            t('modelSelectorSelectModel'),
+                        )}
+                        loading={
+                            selectedModelDisplayNameLoading ||
+                            (!presentedModel && defaultComposerSelectionLoading)
+                        }
+                        selected={Boolean(presentedModel)}
+                        onPress={() => router.push({ pathname: '/model-selector/model' })}
+                    />
+                )}
                 {showReasoningEffortRow ? (
                     <>
                         <Box style={styles.separator} />

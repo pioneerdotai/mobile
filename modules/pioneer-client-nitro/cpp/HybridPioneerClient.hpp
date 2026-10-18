@@ -99,6 +99,8 @@ public:
       const std::string& inputJson) override;
   std::shared_ptr<margelo::nitro::Promise<std::string>> voiceSessionCancelJson(
       const std::string& inputJson) override;
+  std::shared_ptr<margelo::nitro::Promise<std::string>> providerCommandJson(const std::string& inputJson) override;
+  std::shared_ptr<margelo::nitro::Promise<std::string>> cliRuntimeProviderDraftsJson(const std::string& inputJson) override;
   std::string pendingRequestPresentationJson(const std::string& inputJson) override;
   std::string principalPresentationCapabilitiesJson(const std::string& inputJson) override;
   std::string artifactPresentationPolicyJson(const std::string& inputJson) override;

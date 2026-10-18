@@ -7,6 +7,8 @@
     "DisplayName",
     "BinaryPath",
     "HomePath",
-    "ShadowHomePath"
+    "ShadowHomePath",
+    "Arguments",
+    "EnvironmentReferences"
   ]
 }

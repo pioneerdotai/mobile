@@ -36,6 +36,7 @@ export type PendingRequestResolution =
 
 export interface PendingRequestAvailableAction {
   kind: PendingRequestActionKind;
+  label?: string | null;
   resolution?: PendingRequestResolution | null;
   [k: string]: unknown;
 }

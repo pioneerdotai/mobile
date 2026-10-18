@@ -51,6 +51,8 @@ char* pioneer_client_ffi_voice_session_start(PioneerClientFfi* client, const cha
 char* pioneer_client_ffi_voice_audio_chunk(PioneerClientFfi* client, const char* input_json, const uint8_t* pcm_ptr, size_t pcm_len);
 char* pioneer_client_ffi_voice_session_finalize(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_voice_session_cancel(PioneerClientFfi* client, const char* input_json);
+char* pioneer_client_ffi_provider_command(PioneerClientFfi* client, const char* input_json);
+char* pioneer_client_ffi_cli_runtime_provider_drafts(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_pending_request_presentation(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_principal_presentation_capabilities(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_artifact_presentation_policy(PioneerClientFfi* client, const char* input_json);

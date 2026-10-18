@@ -18,6 +18,422 @@
     "intent"
   ],
   "$defs": {
+    "AcpConfigurationChoice": {
+      "description": "An actually applied choice, in receive order. The descriptor identity is\nchecked before replay; opaque ids never determine dependency ordering.",
+      "type": "object",
+      "properties": {
+        "config_id": {
+          "type": "string"
+        },
+        "descriptor_fingerprint": {
+          "type": "string"
+        },
+        "value": {
+          "$ref": "#/$defs/SessionConfigOptionValue"
+        }
+      },
+      "required": [
+        "descriptor_fingerprint",
+        "config_id",
+        "value"
+      ]
+    },
+    "AcpConfigurationVersion": {
+      "type": "object",
+      "properties": {
+        "connection_id": {
+          "type": "string"
+        },
+        "revision": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "connection_id",
+        "revision"
+      ]
+    },
+    "AcpSessionOperation": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "additional_directories": {
+              "type": "array",
+              "default": [],
+              "items": {
+                "type": "string"
+              }
+            },
+            "type": {
+              "type": "string",
+              "const": "prepare"
+            }
+          },
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "config_id": {
+              "type": "string"
+            },
+            "expected": {
+              "$ref": "#/$defs/AcpConfigurationVersion"
+            },
+            "session_id": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "const": "set_option"
+            },
+            "value": {
+              "$ref": "#/$defs/SessionConfigOptionValue"
+            }
+          },
+          "required": [
+            "type",
+            "session_id",
+            "expected",
+            "config_id",
+            "value"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "expected": {
+              "$ref": "#/$defs/AcpConfigurationVersion"
+            },
+            "mode_id": {
+              "type": "string"
+            },
+            "session_id": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "const": "set_mode"
+            }
+          },
+          "required": [
+            "type",
+            "session_id",
+            "expected",
+            "mode_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "method_id": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "const": "authenticate"
+            }
+          },
+          "required": [
+            "type",
+            "method_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "columns": {
+              "type": "integer",
+              "format": "uint16",
+              "maximum": 65535,
+              "minimum": 0
+            },
+            "expected_generation": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "method_id": {
+              "type": "string"
+            },
+            "rows": {
+              "type": "integer",
+              "format": "uint16",
+              "maximum": 65535,
+              "minimum": 0
+            },
+            "terminal_id": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "const": "terminal_auth_start"
+            }
+          },
+          "required": [
+            "type",
+            "expected_generation",
+            "terminal_id",
+            "method_id",
+            "columns",
+            "rows"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "data": {
+              "type": "string"
+            },
+            "terminal_id": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "const": "terminal_auth_input"
+            }
+          },
+          "required": [
+            "type",
+            "terminal_id",
+            "data"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "terminal_id": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "const": "terminal_auth_output"
+            }
+          },
+          "required": [
+            "type",
+            "terminal_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "expected_generation": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "terminal_id": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "const": "terminal_auth_close"
+            }
+          },
+          "required": [
+            "type",
+            "expected_generation",
+            "terminal_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "logout"
+            }
+          },
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "cursor": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "cwd": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "type": {
+              "type": "string",
+              "const": "list"
+            }
+          },
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "session_id": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "const": "load"
+            }
+          },
+          "required": [
+            "type",
+            "session_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "session_id": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "const": "resume"
+            }
+          },
+          "required": [
+            "type",
+            "session_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "session_id": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "const": "delete"
+            }
+          },
+          "required": [
+            "type",
+            "session_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "session_id": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "const": "close"
+            }
+          },
+          "required": [
+            "type",
+            "session_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "snapshot"
+            }
+          },
+          "required": [
+            "type"
+          ]
+        }
+      ]
+    },
+    "AcpSessionParams": {
+      "type": "object",
+      "properties": {
+        "operation": {
+          "$ref": "#/$defs/AcpSessionOperation"
+        },
+        "runtime_id": {
+          "type": "string"
+        },
+        "thread_id": {
+          "type": "string"
+        },
+        "workspace_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "workspace_id",
+        "thread_id",
+        "runtime_id",
+        "operation"
+      ]
+    },
+    "AcpTurnConfiguration": {
+      "description": "Selection captured from a version-checked preparation, then frozen with the\nexisting launch/input. The actual admitted session revalidates descriptor\nidentity and every opaque value before dispatch. No elevated instructions.",
+      "type": "object",
+      "properties": {
+        "additional_directories": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "configuration_replay": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/AcpConfigurationChoice"
+          }
+        },
+        "continuation_requested": {
+          "type": "boolean",
+          "default": false
+        },
+        "descriptor_fingerprint": {
+          "type": "string"
+        },
+        "expected": {
+          "$ref": "#/$defs/AcpConfigurationVersion"
+        },
+        "initial_descriptor_fingerprint": {
+          "type": "string",
+          "default": ""
+        },
+        "mode": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "session_id": {
+          "type": "string"
+        },
+        "values": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/SessionConfigOptionValue"
+          }
+        }
+      },
+      "required": [
+        "session_id",
+        "expected",
+        "descriptor_fingerprint",
+        "values"
+      ]
+    },
     "AdministrationCommand": {
       "oneOf": [
         {
@@ -1079,11 +1495,20 @@
       ]
     },
     "CLIAgentRuntimeKind": {
-      "type": "string",
-      "enum": [
-        "codex",
-        "claude",
-        "opencode"
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "codex",
+            "claude",
+            "opencode"
+          ]
+        },
+        {
+          "description": "The standard ACP transport, shared by every configured ACP instance.",
+          "type": "string",
+          "const": "acp"
+        }
       ]
     },
     "CLIRuntimeLoginStartParams": {
@@ -1115,6 +1540,10 @@
     "CLIRuntimeProviderDraft": {
       "type": "object",
       "properties": {
+        "args_json": {
+          "type": "string",
+          "default": ""
+        },
         "binary_path": {
           "type": "string"
         },
@@ -1130,6 +1559,10 @@
         },
         "enabled": {
           "type": "boolean"
+        },
+        "env_from_json": {
+          "type": "string",
+          "default": ""
         },
         "home_path": {
           "type": "string"
@@ -7059,6 +7492,38 @@
           "properties": {
             "kind": {
               "type": "string",
+              "const": "acp_session"
+            },
+            "params": {
+              "$ref": "#/$defs/AcpSessionParams"
+            }
+          },
+          "required": [
+            "kind",
+            "params"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "release_acp_auth"
+            },
+            "params": {
+              "$ref": "#/$defs/AcpSessionParams"
+            }
+          },
+          "required": [
+            "kind",
+            "params"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
               "const": "configure"
             },
             "params": {
@@ -7681,6 +8146,46 @@
           ]
         }
       ]
+    },
+    "SessionConfigOptionValue": {
+      "description": "The value to set for a session configuration option.\n\nThe `type` field acts as the discriminator in the serialized JSON form.\nWhen no `type` is present, the value is treated as a [`SessionConfigValueId`]\nvia the [`ValueId`](Self::ValueId) fallback variant.\n\nThe `type` discriminator describes the *shape* of the value, not the option\nkind. For example every option kind that picks from a list of ids\n(`select`, `radio`, …) would use [`ValueId`](Self::ValueId), while a\nfuture freeform text option would get its own variant.",
+      "anyOf": [
+        {
+          "description": "A boolean value (`type: \"boolean\"`).",
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "boolean"
+            },
+            "value": {
+              "description": "The boolean value.",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "type",
+            "value"
+          ]
+        },
+        {
+          "description": "A [`SessionConfigValueId`] string value.\n\nThis is the default when `type` is absent on the wire. Unknown `type`\nvalues with string payloads also gracefully deserialize into this\nvariant.",
+          "type": "object",
+          "properties": {
+            "value": {
+              "description": "The value ID.",
+              "$ref": "#/$defs/SessionConfigValueId"
+            }
+          },
+          "required": [
+            "value"
+          ]
+        }
+      ]
+    },
+    "SessionConfigValueId": {
+      "description": "Unique identifier for a session configuration option value.",
+      "type": "string"
     },
     "SessionDemand": {
       "type": "object",
@@ -9052,6 +9557,16 @@
     "TurnCLIRuntimeOptions": {
       "type": "object",
       "properties": {
+        "acp_configuration": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AcpTurnConfiguration"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "effort": {
           "type": [
             "string",

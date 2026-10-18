@@ -520,13 +520,15 @@ const ThreadScreen = ({
     const selectedProvider = selectedProviderReady ? composerSelectedProvider : null;
     const selectedModel = selectedProviderReady ? composerSelectedModel : null;
     const selectedReasoningEffort = selectedProviderReady ? composerSelectedReasoningEffort : null;
-    const modelSelectionComplete = messageMode || Boolean(selectedProvider && selectedModel);
+    const modelSelectionComplete =
+        messageMode || (composerPublication?.execution_selection_ready ?? false);
     const modelDisplay = composerPublication?.model_display;
     const matchingModelDisplay =
         modelDisplay?.key.provider === selectedProvider && modelDisplay?.key.model === selectedModel
             ? modelDisplay
             : null;
-    const selectedModelDisplayName = matchingModelDisplay?.label ?? null;
+    const selectedModelDisplayName =
+        composerPublication?.session_model_label ?? matchingModelDisplay?.label ?? null;
     const modelDisplayNameLoading = matchingModelDisplay?.request.kind === 'loading';
     const selectedReasoningEffortLabel =
         matchingModelDisplay?.reasoning_effort === selectedReasoningEffort
