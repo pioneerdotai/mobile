@@ -4,7 +4,7 @@ import {
     Platform,
     type GestureResponderEvent,
     type LayoutChangeEvent,
-    type TextInput,
+    type TextInputInstance,
 } from 'react-native';
 import { KeyboardController } from 'react-native-keyboard-controller';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
@@ -229,7 +229,7 @@ export const ThreadComposer = ({
     const [voiceGesture, setVoiceGesture] = useState<VoiceGestureState>('idle');
     const voiceGestureRef = useRef<VoiceGestureState>('idle');
     const voiceStartPageYRef = useRef<number | null>(null);
-    const inputRef = useRef<TextInput>(null);
+    const inputRef = useRef<TextInputInstance>(null);
     const composerContextFocusKey = editTarget
         ? `edit:${editTarget.turnId}`
         : replyTarget

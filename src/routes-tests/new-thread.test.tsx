@@ -4,7 +4,12 @@ import renderer, { act, type ReactTestRenderer } from 'react-test-renderer';
 
 const mockReact = React;
 const mockPlan = jest.fn();
-const mockOpen = jest.fn<() => Promise<Record<string, unknown>>>();
+const mockOpen =
+    jest.fn<
+        (
+            ...args: Parameters<typeof import('@/services/threads/active').openOrCreateNewThread>
+        ) => Promise<Record<string, unknown>>
+    >();
 const mockCache = jest.fn();
 const mockQueryClient = {};
 const mockTranslate = (key: string) => key;
@@ -16,7 +21,7 @@ jest.mock('@tanstack/react-query', () => ({
 }));
 jest.mock('expo-router/js-stack', () => ({
     __esModule: true,
-    default: {
+    Stack: {
         Screen: (props: Record<string, unknown>) => mockReact.createElement('Screen', props),
     },
 }));

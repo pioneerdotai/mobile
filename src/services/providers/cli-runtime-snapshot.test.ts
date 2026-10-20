@@ -8,7 +8,7 @@ import {
 
 let mockPublication: unknown = null;
 const mockUnsubscribe = jest.fn();
-const mockSubscribe = jest.fn(() => mockUnsubscribe);
+const mockSubscribe = jest.fn<(listener: () => void) => () => void>(() => mockUnsubscribe);
 jest.mock('@/client/mobile-client-binding', () => ({
     mobileClientBinding: {
         scope: jest.fn(() => ({

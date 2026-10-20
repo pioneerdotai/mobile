@@ -176,7 +176,9 @@ afterEach(async () => {
 it('prepares verified inline source through artifactDownload, preserves exact metadata and fences late results', async () => {
     const previousState = AppState.currentState;
     AppState.currentState = 'active';
-    const sheet = jest.spyOn(Share, 'share').mockResolvedValue({ action: Share.dismissedAction });
+    const sheet = jest
+        .spyOn(Share, 'share')
+        .mockResolvedValue({ action: Share.dismissedAction, activityType: undefined });
     const publication: HtmlPublication = {
         workspaceId: 'workspace',
         threadId: 'source-child',

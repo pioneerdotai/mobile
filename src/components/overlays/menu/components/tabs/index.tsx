@@ -15,7 +15,7 @@ import { HStack } from '@/components/primitives/hstack';
 import { runInBackground } from '@/services/error-reporting';
 import { useGatewayStore } from '@/stores/gateway';
 
-type TabsType = Omit<BottomTabBarProps, 'descriptors' | 'insets' | 'navigation'>;
+type TabsType = Pick<BottomTabBarProps, 'state'>;
 
 interface ItemType {
     isFocused: boolean;

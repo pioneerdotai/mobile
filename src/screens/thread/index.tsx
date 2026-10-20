@@ -22,10 +22,10 @@ import {
     type ComposerOperationIdentity,
 } from '@/client/composer';
 import { dispatchNavigation, navigationSnapshot } from '@/client/navigation';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { router, useFocusEffect, useNavigation } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { type LayoutChangeEvent, Text, View } from 'react-native';
+import { type LayoutChangeEvent, Text, View, type ViewInstance } from 'react-native';
 import { KeyboardGestureArea, KeyboardStickyView } from 'react-native-keyboard-controller';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useKeyboardChatComposerInset } from '@legendapp/list/keyboard';
@@ -217,14 +217,21 @@ const ThreadScreen = ({
         ],
     );
     const timelineRef = useRef<LegendListRef>(null);
-    const composerRef = useRef<View>(null);
+    const composerRef = useRef<ViewInstance>(null);
     const [composerHeight, setComposerHeight] = useState(THREAD_COMPOSER_MIN_INPUT_HEIGHT);
+    const visibleSnapshot = snapshot?.thread_id === threadId ? snapshot : null;
+    const visibleThreadId = visibleSnapshot?.thread_id ?? threadId;
     const [voiceLevel, setVoiceLevel] = useState(0);
     const [voiceCaptureBusy, setVoiceCaptureBusy] = useState(false);
+    const [voiceThreadId, setVoiceThreadId] = useState(visibleThreadId);
+    if (voiceThreadId !== visibleThreadId) {
+        setVoiceThreadId(visibleThreadId);
+        setVoiceCaptureBusy(false);
+        setVoiceLevel(0);
+    }
     const voiceMountedRef = useRef(true);
     const voiceOperationRef = useRef<ComposerOperationIdentity | null>(null);
     const voiceScopeRef = useRef(visibleThreadId);
-    voiceScopeRef.current = visibleThreadId;
     const ownsVoiceCapture = useCallback((identity: ComposerOperationIdentity) => {
         const owner = voiceOperationRef.current;
         return (
@@ -268,8 +275,6 @@ const ThreadScreen = ({
         }),
         [keyboardOffset],
     );
-    const visibleSnapshot = snapshot?.thread_id === threadId ? snapshot : null;
-    const visibleThreadId = visibleSnapshot?.thread_id ?? threadId;
     const composerPublication = useComposerPublication(visibleThreadId);
     const presentedPolicyNotice = useRef<string | null>(null);
     const steerOperation =
@@ -725,10 +730,9 @@ const ThreadScreen = ({
         }, []),
     );
 
-    useEffect(() => {
+    useLayoutEffect(() => {
+        voiceScopeRef.current = visibleThreadId;
         voiceMountedRef.current = true;
-        setVoiceCaptureBusy(false);
-        setVoiceLevel(0);
         return () => {
             voiceMountedRef.current = false;
             if (voiceOperationRef.current)

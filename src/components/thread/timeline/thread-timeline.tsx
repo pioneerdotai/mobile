@@ -1,4 +1,4 @@
-import type { View } from 'react-native';
+import type { ViewInstance } from 'react-native';
 import { HtmlViewportContext } from './html-viewport';
 import { useTimelineDemand } from '@/client/timeline-demand';
 import { mobileClientBinding } from '@/client/mobile-client-binding';
@@ -187,7 +187,7 @@ const ThreadTimelineContent = ({
     );
     const [timelineNowMs, setTimelineNowMs] = useState(() => Date.now());
     const internalTimelineRef = useRef<LegendListRef | null>(null);
-    const htmlViewportView = useRef<View>(null);
+    const htmlViewportView = useRef<ViewInstance>(null);
     const htmlMeasurements = useRef(new Set<(top: number, height: number) => void>());
     const htmlFrame = useRef<number | null>(null);
     const htmlGeneration = useRef(0);

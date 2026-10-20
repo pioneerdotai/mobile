@@ -1,5 +1,12 @@
 import { useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { AppState, NativeModules, Platform, View, findNodeHandle } from 'react-native';
+import {
+    AppState,
+    NativeModules,
+    Platform,
+    View,
+    findNodeHandle,
+    type ViewInstance,
+} from 'react-native';
 import { File } from 'expo-file-system';
 import { nanoid } from 'nanoid';
 import WebView, { type WebViewMessageEvent } from 'react-native-webview';
@@ -46,7 +53,7 @@ function HtmlInstance({
 }) {
     const { theme, rt } = useUnistyles();
     const viewport = useContext(HtmlViewportContext);
-    const surface = useRef<View>(null);
+    const surface = useRef<ViewInstance>(null);
     const [intersects, setIntersects] = useState(() => viewport === null);
     const { t } = useTranslation('artifacts');
     const [foreground, setForeground] = useState(AppState.currentState === 'active');
@@ -223,7 +230,7 @@ function HtmlWebView({
     onFailure: () => void;
 }) {
     const webview = useRef<WebView<object>>(null);
-    const host = useRef<View>(null);
+    const host = useRef<ViewInstance>(null);
     const gestureTag = useRef<number | null>(null);
     const scrollRects = useRef<ScrollRect[]>([]);
     const [instance] = useState(() => nanoid());
@@ -287,7 +294,7 @@ function HtmlWebView({
                 if (Platform.OS === 'android' && gestureTag.current === null) {
                     const tag = findNodeHandle(host.current);
                     const layout = NativeModules.PioneerHtmlLayout;
-                    if (tag === null || !layout) {
+                    if (tag == null || !layout) {
                         fail();
                         return;
                     }
