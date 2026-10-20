@@ -98,8 +98,7 @@ export const TaskUserNotificationController = ({
 const taskUserNotificationSummary = (
     notification: TaskCompletionInboxEntry,
     fallback: string,
-): string =>
-    notification.error?.trim() || notification.summary?.trim() || fallback;
+): string => notification.error?.trim() || notification.summary?.trim() || fallback;
 
 const styles = StyleSheet.create((theme) => ({
     overlay: {
