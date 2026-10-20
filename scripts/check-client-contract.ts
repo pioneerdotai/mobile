@@ -148,7 +148,6 @@ const main = async () => {
             [
                 'run',
                 '--locked',
-                '--offline',
                 '-p',
                 'pioneer-client',
                 '--features',
@@ -168,7 +167,6 @@ const main = async () => {
             [
                 'run',
                 '--locked',
-                '--offline',
                 '-p',
                 'pioneer-client-ffi',
                 '--features',

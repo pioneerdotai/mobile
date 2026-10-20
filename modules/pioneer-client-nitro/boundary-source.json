@@ -9,7 +9,7 @@
     "pioneer-skills"
   ],
   "rust_source_sha256": "4dd3bd86a4e06b7fa67e14a11b3a32841f152c4399c8562ce820c42af9b6613b",
-  "mobile_boundary_sha256": "9966a33888640b52acacdc9b35b8794e0ec098db614906584cb51ea5da61619d",
+  "mobile_boundary_sha256": "81ab4e0c44930e0783a60a088b75f028c820d6b188f2ffadf8aff0df0b2e0713",
   "platforms": {
     "ios": [
       "PioneerClientFfi.xcframework/Info.plist",
