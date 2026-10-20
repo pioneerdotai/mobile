@@ -5,7 +5,7 @@ import 'react-native-reanimated';
 
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { useFonts } from 'expo-font';
 import { Paths } from 'expo-file-system';
 import { NavigationBar } from 'expo-navigation-bar';
@@ -238,11 +238,18 @@ const OperationalStartupObserver = ({ hasActiveGateway }: { hasActiveGateway: bo
         connectionId: gateway.sessionConnectionGeneration,
         workspaceId: workspace.activeWorkspaceId,
     });
-    const scope = {
-        gatewayId: gateway.registry.active_gateway_id ?? null,
-        connectionId: gateway.sessionConnectionGeneration,
-        workspaceId: workspace.activeWorkspaceId,
-    };
+    const scope = useMemo(
+        () => ({
+            gatewayId: gateway.registry.active_gateway_id ?? null,
+            connectionId: gateway.sessionConnectionGeneration,
+            workspaceId: workspace.activeWorkspaceId,
+        }),
+        [
+            gateway.registry.active_gateway_id,
+            gateway.sessionConnectionGeneration,
+            workspace.activeWorkspaceId,
+        ],
+    );
     const treePublication = directorySnapshot(scope.workspaceId);
     const applied = useStartupTreeApplied(scope);
     const outcome = mobileStartupReadinessOutcome({
@@ -294,7 +301,7 @@ const OperationalStartupObserver = ({ hasActiveGateway }: { hasActiveGateway: bo
         else if (changed) mobileStartup.complete('cancelled');
         else if (outcome) mobileStartup.complete(outcome);
         initial.current = scope;
-    }, [outcome, path, scope.gatewayId, scope.connectionId, scope.workspaceId, treePublication]);
+    }, [outcome, path, scope, treePublication]);
     return null;
 };
 

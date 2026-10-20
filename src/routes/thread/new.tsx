@@ -1,7 +1,7 @@
 import { threadOpening, useThreadOpeningRoute } from '@/services/telemetry/thread-opening';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Text, View } from 'react-native';
-import Stack from 'expo-router/js-stack';
+import { Stack } from 'expo-router/js-stack';
 import { router } from 'expo-router';
 import { StyleSheet } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';

@@ -1,5 +1,5 @@
 import React from 'react';
-import { describe, expect, it, jest } from '@jest/globals';
+import { expect, it, jest } from '@jest/globals';
 import renderer, { act } from 'react-test-renderer';
 import { mobileClientBinding } from '@/client/mobile-client-binding';
 import { useThreadOpeningRuntime } from './thread-opening-runtime';

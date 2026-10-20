@@ -19,9 +19,11 @@ export const beginStartupTreeLoad = (scope: StartupTreeScope): void => {
 // Root already subscribes to this directory. Observe its applied publication on
 // render; no second directory owner, extra refresh, subscription demand or poll.
 export const useStartupTreeApplied = (scope: StartupTreeScope) => {
+    const { gatewayId, connectionId, workspaceId } = scope;
     const result = useSyncExternalStore(observation.subscribe, observation.getSnapshot);
-    const publication = directorySnapshot(scope.workspaceId);
+    const publication = directorySnapshot(workspaceId);
     useEffect(() => {
+        const scope = { gatewayId, connectionId, workspaceId };
         const gateway = useGatewayStore.getState();
         const currentScope = {
             gatewayId: gateway.registry.active_gateway_id ?? null,
@@ -34,7 +36,7 @@ export const useStartupTreeApplied = (scope: StartupTreeScope) => {
             publication === directorySnapshot(scope.workspaceId)
         )
             observation.observe(scope, publication);
-    }, [scope.gatewayId, scope.connectionId, scope.workspaceId, publication]);
+    }, [gatewayId, connectionId, workspaceId, publication]);
     // Do not use a previous terminal marker for a newly pending receipt in the
     // render before the observation effect has applied that publication.
     return result && publication?.load?.state === (result.failed ? 'failed' : 'ready')

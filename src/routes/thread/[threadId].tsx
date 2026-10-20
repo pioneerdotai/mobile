@@ -1,7 +1,7 @@
 import { useThreadOpeningRoute } from '@/services/telemetry/thread-opening';
 import { useCallback, useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
-import Stack from 'expo-router/js-stack';
+import { Stack } from 'expo-router/js-stack';
 import { Text, View } from 'react-native';
 
 import ThreadScreen from '@/screens/thread';

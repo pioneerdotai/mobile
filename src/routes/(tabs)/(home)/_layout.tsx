@@ -1,4 +1,4 @@
-import Stack from 'expo-router/js-stack';
+import { Stack } from 'expo-router/js-stack';
 
 import { useScreen } from '@/hooks/use-screen';
 import { useHomeTab } from '@/screens/home/hooks';

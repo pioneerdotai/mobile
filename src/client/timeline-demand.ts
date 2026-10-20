@@ -123,7 +123,7 @@ export function useTimelineDemand(snapshot: TimelineSnapshot | null | undefined,
             };
             publish();
         },
-        [publish, snapshot?.thread_id],
+        [publish, snapshot?.thread_id, snapshot?.rows],
     );
     const consumeScroll = useCallback(
         (scrollGeneration: number) => {
