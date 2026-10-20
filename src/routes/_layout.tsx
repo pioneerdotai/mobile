@@ -8,11 +8,12 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { useFonts } from 'expo-font';
 import { Paths } from 'expo-file-system';
+import { NavigationBar } from 'expo-navigation-bar';
+import { StatusBar } from 'expo-status-bar';
 import * as SystemUI from 'expo-system-ui';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { Stack } from 'expo-router/js-stack';
-import { SystemBars } from 'react-native-edge-to-edge';
 
 import i18n from '@/locale/i18n';
 
@@ -160,12 +161,10 @@ const AppSystemBars = () => {
     }, [theme.colors.background]);
 
     return (
-        <SystemBars
-            style={{
-                statusBar: systemBarStyle,
-                navigationBar: systemBarStyle,
-            }}
-        />
+        <>
+            <StatusBar style={systemBarStyle} />
+            <NavigationBar style={systemBarStyle} />
+        </>
     );
 };
 
