@@ -2213,6 +2213,10 @@ export interface WorkspacePushNotification {
   resyncRequired: boolean;
   revision: number;
   snapshot: boolean;
+  /**
+   * Compact metadata and indicators share one revision and atomic reduction.
+   */
+  threadSummaries?: ThreadMetadataPatch[];
   workspaceId: string;
   [k: string]: unknown;
 }
@@ -2256,6 +2260,44 @@ export interface ThreadIndicatorPatch {
   hasRunningTasks?: boolean | null;
   threadId: string;
   unreadCount?: number | null;
+  [k: string]: unknown;
+}
+export interface ThreadMetadataPatch {
+  /**
+   * True only when directory projection actually shortened the preview.
+   * A real shorter/empty edit is authoritative when this is false.
+   */
+  previewTruncated: boolean;
+  thread: Thread1;
+  [k: string]: unknown;
+}
+/**
+ * Canonical thin directory metadata; never a full timeline/history snapshot.
+ */
+export interface Thread1 {
+  agent_nickname?: string | null;
+  agent_role?: string | null;
+  created_at: number;
+  id: string;
+  mode: ThreadMode;
+  model: string;
+  model_provider: string;
+  name?: string | null;
+  origin_kind?: ('task_run' | 'system') | 'collaborative' | 'direct_message' | 'user';
+  preview: string;
+  /**
+   * Immutable author of the Turn that owns `preview`. Thread trees and
+   * notifications must not pair preview text with the latest responding
+   * execution or reconstruct this value from mutable agent settings.
+   */
+  preview_author?: TurnAuthorSnapshot | null;
+  reasoning_effort?: string | null;
+  sidebar_visibility?: 'visible' | 'hidden';
+  status: ThreadStatus;
+  turns: Turn[];
+  updated_at: number;
+  visibility?: ThreadVisibility | null;
+  workspace_id: string;
   [k: string]: unknown;
 }
 export interface ThreadAgentsDocChangedNotification {
