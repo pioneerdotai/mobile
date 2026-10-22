@@ -127,6 +127,11 @@ export type GatewayNotification =
       [k: string]: unknown;
     }
   | {
+      kind: 'workspace_push';
+      params: WorkspacePushNotification;
+      [k: string]: unknown;
+    }
+  | {
       kind: 'thread_agents_doc_changed';
       params: ThreadAgentsDocChangedNotification;
       [k: string]: unknown;
@@ -692,6 +697,17 @@ export type TurnStatus = 'InProgress' | 'Completed' | 'Failed' | 'Interrupted' |
  */
 export type ThreadVisibility = 'private' | 'workspace';
 export type ThreadParticipantChangeKind = 'added' | 'removed';
+export type TaskRunStatus =
+  | 'queued'
+  | 'starting'
+  | 'running'
+  | 'waiting'
+  | 'waiting_review'
+  | 'succeeded'
+  | 'failed'
+  | 'blocked'
+  | 'cancelled'
+  | 'timed_out';
 export type ThreadAgentsDocStatus = 'draft' | 'active' | 'archived';
 export type TimelineChangeReason = 'backfill' | 'live_event' | 'state_changed' | 'page_invalidated';
 export type AgentWorkNodeState = 'queued' | 'running' | 'completed' | 'failed' | 'cancelled' | 'blocked';
@@ -1716,17 +1732,6 @@ export type TaskTriggerCatchUpMode = 'run_once_for_latest_missed' | 'skip_missed
 export type TaskManualActor = 'owner' | 'workspace_member' | 'system' | 'any';
 export type TaskDependencyTriggerMode = 'all_succeeded' | 'any_succeeded' | 'all_terminal';
 export type TaskTriggerStatus = 'active' | 'paused' | 'exhausted' | 'cancelled';
-export type TaskRunStatus =
-  | 'queued'
-  | 'starting'
-  | 'running'
-  | 'waiting'
-  | 'waiting_review'
-  | 'succeeded'
-  | 'failed'
-  | 'blocked'
-  | 'cancelled'
-  | 'timed_out';
 export type TaskAgentInputAttachmentKind = 'file' | 'artifact' | 'url';
 export type TaskAgentInputReferenceKind = 'thread' | 'turn' | 'task' | 'task_run' | 'artifact';
 export type TaskAgentContextMode = 'inherit_parent' | 'last_n_turns' | 'summary_only' | 'empty' | 'custom';
@@ -2199,6 +2204,58 @@ export interface ThreadParticipantsChangedNotification {
 }
 export interface ThreadTreeChangedNotification {
   workspace_id: string;
+  [k: string]: unknown;
+}
+export interface WorkspacePushNotification {
+  epoch: string;
+  inbox?: TaskInboxPatch | null;
+  indicators: ThreadIndicatorPatch[];
+  resyncRequired: boolean;
+  revision: number;
+  snapshot: boolean;
+  workspaceId: string;
+  [k: string]: unknown;
+}
+export interface TaskInboxPatch {
+  /**
+   * Authoritative keyset frontier when snapshot or replace is true.
+   */
+  nextCursor?: string | null;
+  removes: string[];
+  /**
+   * Authoritative inbox replacement, also used by a read-all mutation ack.
+   */
+  replace?: boolean;
+  unreadCount: number;
+  upserts: TaskCompletionInboxEntry[];
+  [k: string]: unknown;
+}
+/**
+ * One saved terminal run in the current user's workspace inbox. Contains no
+ * execution-thread identity, raw failure, HTML, or full result payload.
+ */
+export interface TaskCompletionInboxEntry {
+  completedAt: number;
+  /**
+   * Exact server keyset ordering key. Empty only for legacy servers.
+   */
+  completedKey?: string;
+  error?: string | null;
+  readAt?: number | null;
+  runId: string;
+  status: TaskRunStatus;
+  summary?: string | null;
+  taskId: string;
+  threadId: string;
+  threadTitle: string;
+  title: string;
+  workspaceId: string;
+  [k: string]: unknown;
+}
+export interface ThreadIndicatorPatch {
+  hasRunningTasks?: boolean | null;
+  threadId: string;
+  unreadCount?: number | null;
   [k: string]: unknown;
 }
 export interface ThreadAgentsDocChangedNotification {
