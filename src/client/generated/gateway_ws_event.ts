@@ -127,6 +127,11 @@ export type GatewayNotification =
       [k: string]: unknown;
     }
   | {
+      kind: 'workspace_push';
+      params: WorkspacePushNotification;
+      [k: string]: unknown;
+    }
+  | {
       kind: 'thread_agents_doc_changed';
       params: ThreadAgentsDocChangedNotification;
       [k: string]: unknown;
@@ -692,6 +697,17 @@ export type TurnStatus = 'InProgress' | 'Completed' | 'Failed' | 'Interrupted' |
  */
 export type ThreadVisibility = 'private' | 'workspace';
 export type ThreadParticipantChangeKind = 'added' | 'removed';
+export type TaskRunStatus =
+  | 'queued'
+  | 'starting'
+  | 'running'
+  | 'waiting'
+  | 'waiting_review'
+  | 'succeeded'
+  | 'failed'
+  | 'blocked'
+  | 'cancelled'
+  | 'timed_out';
 export type ThreadAgentsDocStatus = 'draft' | 'active' | 'archived';
 export type TimelineChangeReason = 'backfill' | 'live_event' | 'state_changed' | 'page_invalidated';
 export type AgentWorkNodeState = 'queued' | 'running' | 'completed' | 'failed' | 'cancelled' | 'blocked';
@@ -1716,17 +1732,6 @@ export type TaskTriggerCatchUpMode = 'run_once_for_latest_missed' | 'skip_missed
 export type TaskManualActor = 'owner' | 'workspace_member' | 'system' | 'any';
 export type TaskDependencyTriggerMode = 'all_succeeded' | 'any_succeeded' | 'all_terminal';
 export type TaskTriggerStatus = 'active' | 'paused' | 'exhausted' | 'cancelled';
-export type TaskRunStatus =
-  | 'queued'
-  | 'starting'
-  | 'running'
-  | 'waiting'
-  | 'waiting_review'
-  | 'succeeded'
-  | 'failed'
-  | 'blocked'
-  | 'cancelled'
-  | 'timed_out';
 export type TaskAgentInputAttachmentKind = 'file' | 'artifact' | 'url';
 export type TaskAgentInputReferenceKind = 'thread' | 'turn' | 'task' | 'task_run' | 'artifact';
 export type TaskAgentContextMode = 'inherit_parent' | 'last_n_turns' | 'summary_only' | 'empty' | 'custom';
@@ -2198,6 +2203,100 @@ export interface ThreadParticipantsChangedNotification {
   [k: string]: unknown;
 }
 export interface ThreadTreeChangedNotification {
+  workspace_id: string;
+  [k: string]: unknown;
+}
+export interface WorkspacePushNotification {
+  epoch: string;
+  inbox?: TaskInboxPatch | null;
+  indicators: ThreadIndicatorPatch[];
+  resyncRequired: boolean;
+  revision: number;
+  snapshot: boolean;
+  /**
+   * Compact metadata and indicators share one revision and atomic reduction.
+   */
+  threadSummaries?: ThreadMetadataPatch[];
+  workspaceId: string;
+  [k: string]: unknown;
+}
+export interface TaskInboxPatch {
+  /**
+   * Authoritative keyset frontier when snapshot or replace is true.
+   */
+  nextCursor?: string | null;
+  removes: string[];
+  /**
+   * Authoritative inbox replacement, also used by a read-all mutation ack.
+   */
+  replace?: boolean;
+  unreadCount: number;
+  upserts: TaskCompletionInboxEntry[];
+  [k: string]: unknown;
+}
+/**
+ * One saved terminal run in the current user's workspace inbox. Contains no
+ * execution-thread identity, raw failure, HTML, or full result payload.
+ */
+export interface TaskCompletionInboxEntry {
+  completedAt: number;
+  /**
+   * Exact server keyset ordering key. Empty only for legacy servers.
+   */
+  completedKey?: string;
+  error?: string | null;
+  readAt?: number | null;
+  runId: string;
+  status: TaskRunStatus;
+  summary?: string | null;
+  taskId: string;
+  threadId: string;
+  threadTitle: string;
+  title: string;
+  workspaceId: string;
+  [k: string]: unknown;
+}
+export interface ThreadIndicatorPatch {
+  hasRunningTasks?: boolean | null;
+  threadId: string;
+  unreadCount?: number | null;
+  [k: string]: unknown;
+}
+export interface ThreadMetadataPatch {
+  /**
+   * True only when directory projection actually shortened the preview.
+   * A real shorter/empty edit is authoritative when this is false.
+   */
+  previewTruncated: boolean;
+  thread: Thread1;
+  [k: string]: unknown;
+}
+/**
+ * Canonical thin directory metadata; never a full timeline/history snapshot.
+ */
+export interface Thread1 {
+  agent_nickname?: string | null;
+  agent_role?: string | null;
+  created_at: number;
+  id: string;
+  mode: ThreadMode;
+  model: string;
+  model_provider: string;
+  name?: string | null;
+  origin_kind?: ('task_run' | 'system') | 'collaborative' | 'direct_message' | 'user';
+  preview: string;
+  /**
+   * Immutable author of the Turn that owns `preview`. Thread trees and
+   * notifications must not pair preview text with the latest responding
+   * execution or reconstruct this value from mutable agent settings.
+   */
+  preview_author?: TurnAuthorSnapshot | null;
+  reasoning_effort?: string | null;
+  sidebar_visibility?: 'visible' | 'hidden';
+  status: ThreadStatus;
+  turns: Turn[];
+  updated_at: number;
+  visibility?: ThreadVisibility | null;
   workspace_id: string;
   [k: string]: unknown;
 }
@@ -3105,6 +3204,10 @@ export interface TaskLifecyclePolicy {
 export interface TaskMetadata {
   composerWork?: TaskComposerWork | null;
   data?: TaskValue | null;
+  /**
+   * Server-owned durable decision to stop future runs.
+   */
+  finishRequest?: TaskFinishRequest | null;
   labels?: string[];
   [k: string]: unknown;
 }
@@ -3235,6 +3338,18 @@ export interface ByteRange {
 }
 export interface SandboxPolicy {
   mode: SandboxMode;
+  [k: string]: unknown;
+}
+/**
+ * A user-directed final soft stop; this is not evidence that the goal succeeded.
+ */
+export interface TaskFinishRequest {
+  /**
+   * Earliest admitted run whose real outcome contributes to the final state.
+   */
+  firstRunNumber: number;
+  reason?: string | null;
+  requestedAt: number;
   [k: string]: unknown;
 }
 export interface TaskResult {

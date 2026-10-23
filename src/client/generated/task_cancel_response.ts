@@ -430,6 +430,10 @@ export interface TaskLifecyclePolicy {
 export interface TaskMetadata {
   composerWork?: TaskComposerWork | null;
   data?: TaskValue | null;
+  /**
+   * Server-owned durable decision to stop future runs.
+   */
+  finishRequest?: TaskFinishRequest | null;
   labels?: string[];
   [k: string]: unknown;
 }
@@ -560,6 +564,18 @@ export interface ByteRange {
 }
 export interface SandboxPolicy {
   mode: SandboxMode;
+  [k: string]: unknown;
+}
+/**
+ * A user-directed final soft stop; this is not evidence that the goal succeeded.
+ */
+export interface TaskFinishRequest {
+  /**
+   * Earliest admitted run whose real outcome contributes to the final state.
+   */
+  firstRunNumber: number;
+  reason?: string | null;
+  requestedAt: number;
   [k: string]: unknown;
 }
 export interface TaskRetryPolicy {

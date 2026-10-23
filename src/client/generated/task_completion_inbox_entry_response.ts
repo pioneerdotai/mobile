@@ -23,6 +23,10 @@ export interface TaskCompletionInboxEntryResponse {
  */
 export interface TaskCompletionInboxEntry {
   completedAt: number;
+  /**
+   * Exact server keyset ordering key. Empty only for legacy servers.
+   */
+  completedKey?: string;
   error?: string | null;
   readAt?: number | null;
   runId: string;
