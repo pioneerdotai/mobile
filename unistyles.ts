@@ -214,6 +214,7 @@ const colors = {
 };
 
 const lightTheme = {
+    appearance: 'light',
     colors: {
         background: colors.white,
         foreground: colors.neutral[950],
@@ -248,6 +249,7 @@ const lightTheme = {
 } as const;
 
 const darkTheme = {
+    appearance: 'dark',
     colors: {
         background: colors.neutral[950],
         foreground: colors.white,
