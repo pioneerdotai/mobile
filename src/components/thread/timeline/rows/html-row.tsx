@@ -51,7 +51,7 @@ function HtmlInstance({
     responseThreadId: string;
     viewable: boolean;
 }) {
-    const { theme, rt } = useUnistyles();
+    const { theme } = useUnistyles();
     const viewport = useContext(HtmlViewportContext);
     const surface = useRef<ViewInstance>(null);
     const [intersects, setIntersects] = useState(() => viewport === null);
@@ -105,14 +105,15 @@ function HtmlInstance({
     }, [viewport, viewable, foreground, height, document]);
     const palette = useMemo(
         () => ({
-            appearance: rt.themeName === 'light' ? 'light' : 'dark',
+            appearance: theme.appearance,
             background: theme.colors.background,
             foreground: theme.colors.text,
             muted: theme.colors.textMuted,
             border: theme.colors.border,
-            accent: theme.colors.text,
+            accent: theme.colors.accent,
+            'accent-foreground': theme.colors.accentForeground,
         }),
-        [rt.themeName, theme.colors],
+        [theme.appearance, theme.colors],
     );
 
     useEffect(() => {
