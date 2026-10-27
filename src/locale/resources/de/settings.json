@@ -156,5 +156,31 @@
                 "description": "Dunkle Darstellung verwenden."
             }
         }
+    },
+    "voice": {
+        "title": "Spracheingabe",
+        "enabled": "Spracheingabe aktivieren",
+        "model": "Erkennungsmodell",
+        "chooseModel": "Modell auswählen…",
+        "transcribeWhileRecording": "Während der Aufnahme transkribieren",
+        "transcribeWhileRecordingDescription": "Wenn deaktiviert, beginnt die Transkription nach Ende der Aufnahme",
+        "saving": "Speichern…",
+        "loadFailed": "Die Einstellungen für die Spracheingabe konnten nicht geladen werden. Erneut versuchen.",
+        "saveFailed": "Die Einstellungen konnten nicht gespeichert werden. Erneut versuchen.",
+        "offline": "Zum Ändern der Einstellungen mit dem Gateway verbinden.",
+        "readOnly": "Du darfst die Gateway-Einstellungen nicht ändern.",
+        "retry": "Erneut versuchen",
+        "modelsFailed": "Modelle konnten nicht geladen werden.",
+        "noModels": "Keine Modelle verfügbar.",
+        "status": {
+            "disabled": "Deaktiviert",
+            "model_not_selected": "Modell auswählen",
+            "missing": "Modell nicht installiert",
+            "downloading": "Modell wird heruntergeladen…",
+            "installing": "Modell wird installiert…",
+            "loading": "Modell wird geladen…",
+            "ready": "Bereit",
+            "failed": "Modellvorbereitung fehlgeschlagen"
+        }
     }
 }

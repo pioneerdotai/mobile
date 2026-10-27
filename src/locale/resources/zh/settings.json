@@ -156,5 +156,31 @@
                 "description": "使用深色外观。"
             }
         }
+    },
+    "voice": {
+        "title": "语音输入",
+        "enabled": "启用语音输入",
+        "model": "识别模型",
+        "chooseModel": "选择模型…",
+        "transcribeWhileRecording": "录音时转写",
+        "transcribeWhileRecordingDescription": "关闭后，将在录音结束后开始转写",
+        "saving": "正在保存…",
+        "loadFailed": "无法加载语音输入设置，请重试。",
+        "saveFailed": "无法保存语音输入设置，请重试。",
+        "offline": "请连接网关以更改这些设置。",
+        "readOnly": "你无权更改网关设置。",
+        "retry": "重试",
+        "modelsFailed": "无法加载模型。",
+        "noModels": "暂无可用模型。",
+        "status": {
+            "disabled": "已禁用",
+            "model_not_selected": "请选择模型",
+            "missing": "模型未安装",
+            "downloading": "正在下载模型…",
+            "installing": "正在安装模型…",
+            "loading": "正在加载模型…",
+            "ready": "就绪",
+            "failed": "模型准备失败"
+        }
     }
 }

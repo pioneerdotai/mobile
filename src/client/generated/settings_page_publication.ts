@@ -135,6 +135,7 @@ export interface GatewayRemoteAccessStatusSnapshot {
   [k: string]: unknown;
 }
 export interface GatewayVoiceInputSettings {
+  transcribe_while_recording?: boolean;
   enabled?: boolean;
   model?: string | null;
   provider?: GatewayVoiceInputProvider | null;

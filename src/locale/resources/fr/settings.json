@@ -156,5 +156,31 @@
                 "description": "Utiliser l'apparence sombre."
             }
         }
+    },
+    "voice": {
+        "title": "Saisie vocale",
+        "enabled": "Activer la saisie vocale",
+        "model": "Modèle de reconnaissance",
+        "chooseModel": "Choisir un modèle…",
+        "transcribeWhileRecording": "Transcrire pendant l’enregistrement",
+        "transcribeWhileRecordingDescription": "Si désactivé, la transcription commencera à la fin de l’enregistrement",
+        "saving": "Enregistrement…",
+        "loadFailed": "Impossible de charger les paramètres de saisie vocale. Réessayez.",
+        "saveFailed": "Impossible d’enregistrer les paramètres vocaux. Réessayez.",
+        "offline": "Connectez-vous au gateway pour modifier ces paramètres.",
+        "readOnly": "Vous ne pouvez pas modifier les paramètres du gateway.",
+        "retry": "Réessayer",
+        "modelsFailed": "Impossible de charger les modèles.",
+        "noModels": "Aucun modèle disponible.",
+        "status": {
+            "disabled": "Désactivée",
+            "model_not_selected": "Choisissez un modèle",
+            "missing": "Modèle non installé",
+            "downloading": "Téléchargement du modèle…",
+            "installing": "Installation du modèle…",
+            "loading": "Chargement du modèle…",
+            "ready": "Prêt",
+            "failed": "Échec de préparation du modèle"
+        }
     }
 }

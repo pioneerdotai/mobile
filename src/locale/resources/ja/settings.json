@@ -156,5 +156,31 @@
                 "description": "ダーク外観を使用します。"
             }
         }
+    },
+    "voice": {
+        "title": "音声入力",
+        "enabled": "音声入力を有効にする",
+        "model": "認識モデル",
+        "chooseModel": "モデルを選択…",
+        "transcribeWhileRecording": "録音中に文字起こし",
+        "transcribeWhileRecordingDescription": "オフの場合、録音の終了後に文字起こしを開始します",
+        "saving": "保存中…",
+        "loadFailed": "音声入力の設定を読み込めませんでした。もう一度お試しください。",
+        "saveFailed": "音声入力の設定を保存できませんでした。もう一度お試しください。",
+        "offline": "設定を変更するにはゲートウェイに接続してください。",
+        "readOnly": "ゲートウェイの設定を変更する権限がありません。",
+        "retry": "再試行",
+        "modelsFailed": "モデルを読み込めませんでした。",
+        "noModels": "利用可能なモデルがありません。",
+        "status": {
+            "disabled": "無効",
+            "model_not_selected": "モデルを選択",
+            "missing": "モデル未インストール",
+            "downloading": "モデルをダウンロード中…",
+            "installing": "モデルをインストール中…",
+            "loading": "モデルを読み込み中…",
+            "ready": "準備完了",
+            "failed": "モデルの準備に失敗しました"
+        }
     }
 }

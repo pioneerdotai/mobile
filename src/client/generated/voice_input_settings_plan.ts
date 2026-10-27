@@ -169,6 +169,7 @@ export interface GatewayThreadEpisodicVectorSearchSettingsUpdate {
   [k: string]: unknown;
 }
 export interface GatewayVoiceInputSettingsUpdate {
+  transcribe_while_recording?: boolean | null;
   enabled?: boolean | null;
   model?: string | null;
   provider?: GatewayVoiceInputProvider | null;

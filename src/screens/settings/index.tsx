@@ -15,6 +15,7 @@ import {
     useAdministrationCapabilities,
     useAdministrationPrincipal,
 } from '@/hooks/use-administration-capabilities';
+import { VoiceInputSettings } from './components/voice-input';
 import { useGatewayStore } from '@/stores/gateway';
 
 const styles = StyleSheet.create((theme, rt) => ({
@@ -278,6 +279,7 @@ const SettingsScreen = () => {
                     </VStack>
                 </VStack>
             ) : null}
+            <VoiceInputSettings />
             <VStack style={styles.fieldContainer}>
                 <Label>{t('title')}</Label>
                 <VStack style={styles.settingsContainer}>
