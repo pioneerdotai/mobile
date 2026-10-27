@@ -94,7 +94,7 @@ public:
       const std::string& inputJson) override;
   std::string voiceAudioChunkJson(
       const std::string& inputJson,
-      const std::shared_ptr<margelo::nitro::ArrayBuffer>& pcmChunk) override;
+      const std::shared_ptr<margelo::nitro::ArrayBuffer>& sourceSamples) override;
   std::shared_ptr<margelo::nitro::Promise<std::string>> voiceSessionFinalizeJson(
       const std::string& inputJson) override;
   std::shared_ptr<margelo::nitro::Promise<std::string>> voiceSessionCancelJson(

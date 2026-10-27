@@ -13,8 +13,8 @@ import { acquireGatewayTransportLease } from '@/services/gateway/transport-coord
 const VOICE_SAMPLE_RATE_HZ = 16_000;
 const VOICE_CHANNELS = 1;
 const VOICE_CHUNK_SAMPLES = 320;
-const VOICE_MAX_CHUNK_SAMPLES = 1_600;
-const VOICE_CHUNK_DURATION_MS = 20;
+// Bound synchronous bridge work; Rust independently splits wire packets at 1600 samples.
+const VOICE_MAX_SOURCE_SAMPLES = 4_096;
 const LEVEL_UPDATE_INTERVAL_MS = 80;
 const ROUTE_CHANGE_RESTART_DELAY_MS = 150;
 const ROUTE_CHANGE_RESTART_REASONS: ReadonlySet<string> = new Set([
@@ -152,7 +152,7 @@ export class MobileVoiceCaptureSession {
     private routeChangeRestartTimer: ReturnType<typeof setTimeout> | null = null;
     private recorderTransition: Promise<void> = Promise.resolve();
     private currentInputRouteKey: string | null = null;
-    private sequence = 0;
+    private recorderGeneration = 0;
     private ending = false;
     private endingTask: Promise<void> | null = null;
     private chunkError: MobileVoiceCaptureError | null = null;
@@ -192,9 +192,10 @@ export class MobileVoiceCaptureSession {
     private async startRecorder(): Promise<void> {
         const recorder = new AudioRecorder();
         this.recorder = recorder;
+        const generation = ++this.recorderGeneration;
 
         recorder.onError((event) => {
-            if (this.recorder !== recorder || this.ending) {
+            if (this.recorder !== recorder || this.recorderGeneration !== generation || this.ending) {
                 return;
             }
             const error = new MobileVoiceCaptureError(
@@ -202,7 +203,7 @@ export class MobileVoiceCaptureSession {
                 event.message || 'Microphone recording failed.',
             );
             this.callbacks?.onError?.(error);
-            void this.cancel('mobile_recorder_error');
+            void this.cancel('mobile_recorder_error').catch(() => null);
         });
 
         const callbackResult = recorder.onAudioReady(
@@ -212,6 +213,14 @@ export class MobileVoiceCaptureSession {
                 channelCount: VOICE_CHANNELS,
             },
             (event) => {
+                // JS callbacks and bridge calls are synchronous. Revoke admission before any
+                // await in stop: late queued callbacks cannot read or send an old buffer.
+                if (
+                    this.ending ||
+                    this.recorder !== recorder ||
+                    this.recorderGeneration !== generation ||
+                    !composerOperationPlan(this.operation)
+                ) return;
                 this.sendAudioReadyEvent(
                     event.buffer.getChannelData(0),
                     event.numFrames,
@@ -224,7 +233,7 @@ export class MobileVoiceCaptureSession {
         }
 
         const startResult = await recorder.start();
-        if (this.ending || this.recorder !== recorder) {
+        if (this.ending || this.recorder !== recorder || this.recorderGeneration !== generation) {
             recorder.clearOnAudioReady();
             recorder.clearOnError();
             if (recorder.isRecording()) await recorder.stop().catch(() => null);
@@ -248,19 +257,21 @@ export class MobileVoiceCaptureSession {
         this.routeChangeRestartTimer = setTimeout(() => {
             this.routeChangeRestartTimer = null;
             this.recorderTransition = this.recorderTransition
-                .then(() => this.restartRecorderIfInputRouteChanged())
-                .catch((error) => {
-                    if (this.ending) {
-                        return;
-                    }
-                    const captureError = new MobileVoiceCaptureError(
-                        'recorder_start_failed',
-                        errorMessage(error),
-                        errorOptions(error),
-                    );
-                    this.callbacks?.onError?.(captureError);
-                    void this.cancel('mobile_audio_route_change_failed');
-                });
+                .then(() => this.restartRecorderIfInputRouteChanged());
+            // Observe failure without replacing the transition awaited by stopRecorder:
+            // an ending Commit must still reject if this route's native stop fails.
+            void this.recorderTransition.catch((error) => {
+                if (this.ending) {
+                    return;
+                }
+                const captureError = new MobileVoiceCaptureError(
+                    'recorder_start_failed',
+                    errorMessage(error),
+                    errorOptions(error),
+                );
+                this.callbacks?.onError?.(captureError);
+                void this.cancel('mobile_audio_route_change_failed').catch(() => null);
+            });
         }, ROUTE_CHANGE_RESTART_DELAY_MS);
     }
 
@@ -279,6 +290,9 @@ export class MobileVoiceCaptureSession {
             return;
         }
 
+        // A route is a physical stream boundary. Drain only admitted samples, then
+        // discard the old filter before a new recorder can deliver callbacks.
+        this.flushCapture('segment');
         await deactivateRecordingSession(this.operation);
         // Deactivation may finish after cancellation or another capture's activation.
         // Only this still-current operation can reclaim the now-unowned audio session.
@@ -306,33 +320,23 @@ export class MobileVoiceCaptureSession {
     }
 
     private async commitEnding(prepareContext: () => Promise<VoiceTurnContext>): Promise<void> {
-        const chunkError = this.chunkError;
         try {
             await this.stopRecorder();
             this.callbacks?.onLevel?.(0);
-            if (chunkError) {
-                await this.cancelGatewaySession('mobile_chunk_send_failed');
-                throw chunkError;
-            }
-
+            if (!this.chunkError) this.flushCapture('finish');
+            // Flush itself can fail. Read the current latch after it, retaining ending=true.
+            if (this.chunkError) throw this.chunkError;
+            await prepareContext();
             try {
-                await prepareContext();
-            } catch (error) {
-                await this.cancelGatewaySession('mobile_prepare_failed').catch(() => null);
-                throw error;
-            }
-
-            try {
-                await pioneerClient.voiceSessionFinalize({
-                    operation: this.operation,
-                });
+                await pioneerClient.voiceSessionFinalize({ operation: this.operation });
             } catch (error) {
                 throw new MobileVoiceCaptureError(
-                    'finalize_failed',
-                    errorMessage(error),
-                    errorOptions(error),
+                    'finalize_failed', errorMessage(error), errorOptions(error),
                 );
             }
+        } catch (error) {
+            await this.cancelGatewaySession('mobile_commit_failed').catch(() => null);
+            throw error;
         } finally {
             try {
                 await deactivateRecordingSession(this.operation);
@@ -351,9 +355,13 @@ export class MobileVoiceCaptureSession {
 
     private async cancelEnding(reason: string): Promise<void> {
         try {
-            await this.stopRecorder();
-            this.callbacks?.onLevel?.(0);
-            await this.cancelGatewaySession(reason);
+            try {
+                await this.stopRecorder();
+            } finally {
+                this.callbacks?.onLevel?.(0);
+                // Cancel also destroys the exact-operation DSP state, even if native stop failed.
+                await this.cancelGatewaySession(reason);
+            }
         } finally {
             try {
                 await deactivateRecordingSession(this.operation);
@@ -368,61 +376,56 @@ export class MobileVoiceCaptureSession {
         numFrames: number,
         sampleRate: number,
     ): void {
-        if (this.ending || this.chunkError || numFrames <= 0) {
-            return;
-        }
-
-        const { samples: voiceSamples, sampleCount } = voiceSamplesFromRecorderEvent(
-            samples,
-            numFrames,
-            sampleRate,
-        );
-        if (sampleCount <= 0) {
-            return;
-        }
-
-        for (
-            let sampleOffset = 0;
-            sampleOffset < sampleCount && !this.chunkError;
-            sampleOffset += VOICE_MAX_CHUNK_SAMPLES
-        ) {
-            const chunkSampleCount = Math.min(VOICE_MAX_CHUNK_SAMPLES, sampleCount - sampleOffset);
-            this.sendVoiceChunk(voiceSamples, sampleOffset, chunkSampleCount);
+        if (this.ending || this.chunkError) return;
+        try {
+            if (!Number.isInteger(sampleRate) || sampleRate <= 0 || sampleRate > 0xffff_ffff) {
+                throw new Error('Microphone reported an invalid sample rate.');
+            }
+            if (!Number.isInteger(numFrames) || numFrames < 0) {
+                throw new Error('Microphone reported an invalid frame count.');
+            }
+            const sampleCount = Math.min(samples.length, numFrames);
+            for (let offset = 0; offset < sampleCount; offset += VOICE_MAX_SOURCE_SAMPLES) {
+                const count = Math.min(VOICE_MAX_SOURCE_SAMPLES, sampleCount - offset);
+                // Own the exact view while crossing the synchronous binary bridge. No callback
+                // buffer or PCM payload returns through JS; Rust sends converted chunks directly.
+                const source = samples.slice(offset, offset + count);
+                pioneerClient.voiceAudioChunk({
+                    operation: this.operation,
+                    session_id: this.sessionId,
+                    action: 'process',
+                    input_sample_rate_hz: sampleRate,
+                    captured_at_unix_ms: Date.now(),
+                }, source.buffer as ArrayBuffer);
+            }
+            if (sampleCount > 0) this.updateLevel(samples, 0, sampleCount);
+        } catch (error) {
+            this.recordChunkError(error);
+            void this.cancel('mobile_chunk_send_failed').catch(() => null);
         }
     }
 
-    private sendVoiceChunk(samples: Float32Array, sampleOffset: number, sampleCount: number): void {
-        const sequence = this.sequence;
-        const pcmChunk = pcmS16LeFromFloat32(samples, sampleOffset, sampleCount);
-        const durationMs = Math.max(
-            1,
-            Math.round((sampleCount / VOICE_SAMPLE_RATE_HZ) * 1000) || VOICE_CHUNK_DURATION_MS,
-        );
-
+    private flushCapture(action: 'segment' | 'finish'): void {
+        if (this.chunkError) throw this.chunkError;
         try {
-            pioneerClient.voiceAudioChunk(
-                {
-                    operation: this.operation,
-                    session_id: this.sessionId,
-                    sequence,
-                    audio_format: MOBILE_VOICE_AUDIO_FORMAT,
-                    captured_at_unix_ms: Date.now(),
-                    duration_ms: durationMs,
-                },
-                pcmChunk,
-            );
-            this.sequence += 1;
-            this.updateLevel(samples, sampleOffset, sampleCount);
+            // Explicit control path is allowed behind the ending fence; ordinary callbacks stay fenced.
+            pioneerClient.voiceAudioChunk({
+                operation: this.operation,
+                session_id: this.sessionId,
+                action,
+            }, new ArrayBuffer(0));
         } catch (error) {
-            const captureError = new MobileVoiceCaptureError(
-                'chunk_send_failed',
-                errorMessage(error),
-                errorOptions(error),
-            );
-            this.chunkError = captureError;
-            this.callbacks?.onError?.(captureError);
-            void this.cancel('mobile_chunk_send_failed');
+            this.recordChunkError(error);
+            throw this.chunkError;
         }
+    }
+
+    private recordChunkError(error: unknown): void {
+        if (this.chunkError) return;
+        this.chunkError = new MobileVoiceCaptureError(
+            'chunk_send_failed', errorMessage(error), errorOptions(error),
+        );
+        this.callbacks?.onError?.(this.chunkError);
     }
 
     private updateLevel(samples: Float32Array, sampleOffset: number, sampleCount: number): void {
@@ -448,8 +451,12 @@ export class MobileVoiceCaptureSession {
             clearTimeout(this.routeChangeRestartTimer);
             this.routeChangeRestartTimer = null;
         }
-        await this.recorderTransition;
-        await this.stopCurrentRecorder();
+        try {
+            await this.recorderTransition;
+        } finally {
+            // A failed restart can still own a recorder that needs native cleanup.
+            await this.stopCurrentRecorder();
+        }
     }
 
     private async stopCurrentRecorder(): Promise<void> {
@@ -465,7 +472,10 @@ export class MobileVoiceCaptureSession {
             return;
         }
 
-        await recorder.stop().catch(() => null);
+        const result = await recorder.stop();
+        if (result.status === 'error') {
+            throw new MobileVoiceCaptureError('recorder_start_failed', result.message);
+        }
     }
 
     private async cancelGatewaySession(reason: string): Promise<void> {
@@ -550,57 +560,6 @@ const deactivateRecordingSession = async (operation: ComposerOperationIdentity):
         return;
     recordingSessionOwner = null;
     await AudioManager.setAudioSessionActivity(false).catch(() => null);
-};
-
-const voiceSamplesFromRecorderEvent = (
-    samples: Float32Array,
-    numFrames: number,
-    sampleRate: number,
-): { samples: Float32Array; sampleCount: number } => {
-    const sourceSampleCount = Math.min(samples.length, numFrames);
-    if (sourceSampleCount <= 0) {
-        return { samples, sampleCount: 0 };
-    }
-
-    if (!Number.isFinite(sampleRate) || sampleRate <= 0 || sampleRate === VOICE_SAMPLE_RATE_HZ) {
-        return { samples, sampleCount: sourceSampleCount };
-    }
-
-    const targetSampleCount = Math.max(
-        1,
-        Math.round((sourceSampleCount * VOICE_SAMPLE_RATE_HZ) / sampleRate),
-    );
-    const target = new Float32Array(targetSampleCount);
-    const sourceStep = sampleRate / VOICE_SAMPLE_RATE_HZ;
-
-    for (let targetIndex = 0; targetIndex < targetSampleCount; targetIndex += 1) {
-        const sourceIndex = targetIndex * sourceStep;
-        const lowerIndex = Math.floor(sourceIndex);
-        const upperIndex = Math.min(sourceSampleCount - 1, lowerIndex + 1);
-        const fraction = sourceIndex - lowerIndex;
-        const lowerSample = samples[lowerIndex] ?? 0;
-        const upperSample = samples[upperIndex] ?? lowerSample;
-        target[targetIndex] = lowerSample + (upperSample - lowerSample) * fraction;
-    }
-
-    return { samples: target, sampleCount: targetSampleCount };
-};
-
-const pcmS16LeFromFloat32 = (
-    samples: Float32Array,
-    sampleOffset: number,
-    sampleCount: number,
-): ArrayBuffer => {
-    const buffer = new ArrayBuffer(sampleCount * 2);
-    const view = new DataView(buffer);
-
-    for (let index = 0; index < sampleCount; index += 1) {
-        const sample = Math.max(-1, Math.min(1, samples[sampleOffset + index] ?? 0));
-        const value = sample < 0 ? sample * 0x8000 : sample * 0x7fff;
-        view.setInt16(index * 2, value, true);
-    }
-
-    return buffer;
 };
 
 const errorMessage = (error: unknown): string => {

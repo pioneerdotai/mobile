@@ -282,19 +282,21 @@ HybridPioneerClient::voiceSessionStartJson(const std::string& inputJson) {
 
 std::string HybridPioneerClient::voiceAudioChunkJson(
     const std::string& inputJson,
-    const std::shared_ptr<margelo::nitro::ArrayBuffer>& pcmChunk) {
-  if (!pcmChunk) {
-    throw std::runtime_error("voice audio chunk buffer is required");
+    const std::shared_ptr<margelo::nitro::ArrayBuffer>& sourceSamples) {
+  if (!sourceSamples) {
+    throw std::runtime_error("voice source sample buffer is required");
   }
 
-  const auto size = pcmChunk->size();
+  const auto size = sourceSamples->size();
+  // Match the Rust adapter's bounded synchronous source quantum (IEEE f32 bytes).
+  if (size > 4096 * 4) throw std::runtime_error("voice source sample buffer exceeds capacity");
   validatePayloadSize(size);
   validatePayloadSize(inputJson.size());
   std::vector<uint8_t> bytes(size);
   if (size > 0) {
-    const auto* data = pcmChunk->data();
+    const auto* data = sourceSamples->data();
     if (data == nullptr) {
-      throw std::runtime_error("voice audio chunk buffer has null data");
+      throw std::runtime_error("voice source sample buffer has null data");
     }
     std::copy(data, data + size, bytes.begin());
   }

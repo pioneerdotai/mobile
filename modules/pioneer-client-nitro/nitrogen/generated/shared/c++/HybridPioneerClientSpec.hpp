@@ -87,7 +87,7 @@ namespace margelo::nitro::pioneer::client {
       virtual std::shared_ptr<Promise<std::string>> workspaceRenameJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> composerVoiceCapturePlanJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> voiceSessionStartJson(const std::string& inputJson) = 0;
-      virtual std::string voiceAudioChunkJson(const std::string& inputJson, const std::shared_ptr<ArrayBuffer>& pcmChunk) = 0;
+      virtual std::string voiceAudioChunkJson(const std::string& inputJson, const std::shared_ptr<ArrayBuffer>& sourceSamples) = 0;
       virtual std::shared_ptr<Promise<std::string>> voiceSessionFinalizeJson(const std::string& inputJson) = 0;
       virtual std::shared_ptr<Promise<std::string>> voiceSessionCancelJson(const std::string& inputJson) = 0;
       virtual std::string pendingRequestPresentationJson(const std::string& inputJson) = 0;
