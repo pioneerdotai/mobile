@@ -8159,6 +8159,22 @@
           "required": [
             "kind"
           ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "kind": {
+              "type": "string",
+              "const": "voice_transcribe_while_recording"
+            }
+          },
+          "required": [
+            "kind",
+            "enabled"
+          ]
         }
       ]
     },

@@ -2,6 +2,11 @@
 
 export type VoiceInputSettingsAction =
   | {
+      enabled: boolean;
+      kind: 'set_transcribe_while_recording';
+      [k: string]: unknown;
+    }
+  | {
       kind: 'enable';
       [k: string]: unknown;
     }
@@ -27,6 +32,7 @@ export interface VoiceInputSettingsPlanRequest {
   [k: string]: unknown;
 }
 export interface GatewayVoiceInputSettings {
+  transcribe_while_recording?: boolean;
   enabled?: boolean;
   model?: string | null;
   provider?: GatewayVoiceInputProvider | null;

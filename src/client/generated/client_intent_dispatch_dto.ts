@@ -463,6 +463,11 @@ export type GatewaySetupMode =
 export type GatewayId = string;
 export type SettingsIntent =
   | {
+      enabled: boolean;
+      kind: 'voice_transcribe_while_recording';
+      [k: string]: unknown;
+    }
+  | {
       kind: 'create_device_activation';
       [k: string]: unknown;
     }

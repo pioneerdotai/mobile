@@ -162,5 +162,31 @@
                 "description": "Use the dark app appearance."
             }
         }
+    },
+    "voice": {
+        "title": "Voice Input",
+        "enabled": "Enable Voice Input",
+        "model": "Recognition model",
+        "chooseModel": "Choose a model…",
+        "transcribeWhileRecording": "Transcribe while recording",
+        "transcribeWhileRecordingDescription": "If turned off, transcription starts after recording ends",
+        "saving": "Saving…",
+        "loadFailed": "Could not load Voice Input settings. Try again.",
+        "saveFailed": "Could not save Voice Input settings. Try again.",
+        "offline": "Connect to the gateway to change these settings.",
+        "readOnly": "You cannot change gateway settings.",
+        "retry": "Retry",
+        "modelsFailed": "Could not load models.",
+        "noModels": "No models available.",
+        "status": {
+            "disabled": "Disabled",
+            "model_not_selected": "Choose a model",
+            "missing": "Model not installed",
+            "downloading": "Downloading model…",
+            "installing": "Installing model…",
+            "loading": "Loading model…",
+            "ready": "Ready",
+            "failed": "Model preparation failed"
+        }
     }
 }

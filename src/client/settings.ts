@@ -5,6 +5,8 @@ import type {
     ProfileEditorSection,
     SettingsIntent,
 } from './generated/client_intent';
+import type { SettingsPagePublication } from './generated/settings_page_publication';
+import type { SettingsPage } from './generated/client_scope';
 import type { ProfilePublication } from './generated/profile_publication';
 import type { AuthSessionsStore } from './generated/auth_sessions_store';
 import type { DeviceActivationPublication } from './generated/device_activation_publication';
@@ -23,6 +25,7 @@ export const dispatchSettings = (intent: SettingsIntent) => {
         schema_version: 1,
         intent: { kind: 'settings', intent },
     });
+    mobileClientBinding.drain({ kind: 'settings_page', page: 'voice' });
     mobileClientBinding.drain({ kind: 'auth_sessions' });
     mobileClientBinding.drain({ kind: 'device_activation' });
     return result;
@@ -100,4 +103,10 @@ export const useDeviceActivation = () => {
     const store = mobileClientBinding.scope({ kind: 'device_activation' });
     const snapshot = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot);
     return (snapshot?.payload as DeviceActivationPublication | null) ?? null;
+};
+
+export const useSettingsPage = (page: SettingsPage) => {
+    const store = mobileClientBinding.scope({ kind: 'settings_page', page });
+    const snapshot = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot);
+    return (snapshot?.payload as SettingsPagePublication | null) ?? null;
 };
