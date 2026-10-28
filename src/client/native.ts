@@ -113,7 +113,6 @@ import type { ThreadTreeLevelRequest } from './generated/thread_tree_level_reque
 
 import type { ThreadTreeRefreshRequest } from './generated/thread_tree_refresh_request';
 
-import type { VoiceAudioFormat } from './generated/voice_audio_format';
 import type { VoiceSessionCancelResponse } from './generated/voice_session_cancel_response';
 import type { VoiceSessionFinalizeResponse } from './generated/voice_session_finalize_response';
 import type { VoiceSessionStartResponse } from './generated/voice_session_start_response';
@@ -460,10 +459,9 @@ export type MobileStartupRecordResult = {
 export type VoiceAudioChunkParams = {
     operation: ComposerOperationIdentity;
     session_id: string;
-    sequence: number;
-    audio_format: VoiceAudioFormat;
+    action: 'process' | 'segment' | 'finish';
+    input_sample_rate_hz?: number | null;
     captured_at_unix_ms?: number | null;
-    duration_ms?: number | null;
 };
 
 export type VoiceAudioChunkResult = {
@@ -747,9 +745,9 @@ export const pioneerClient = {
         );
     },
 
-    voiceAudioChunk(input: VoiceAudioChunkParams, pcmChunk: ArrayBuffer): VoiceAudioChunkResult {
+    voiceAudioChunk(input: VoiceAudioChunkParams, sourceSamples: ArrayBuffer): VoiceAudioChunkResult {
         return parsePioneerClientResponse<VoiceAudioChunkResult>(
-            getPioneerClientNitro().voiceAudioChunkJson(JSON.stringify(input), pcmChunk),
+            getPioneerClientNitro().voiceAudioChunkJson(JSON.stringify(input), sourceSamples),
         );
     },
 
