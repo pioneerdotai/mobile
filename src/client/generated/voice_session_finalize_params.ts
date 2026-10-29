@@ -110,8 +110,16 @@ export type UserInput =
 export type SandboxMode = 'FullAccess';
 
 export interface VoiceSessionFinalizeParams {
+  /** Optional on the wire; absent integrity fails closed at the gateway. */
+  audio_integrity?: VoiceAudioIntegrity | null;
   context: VoiceTurnContext;
   session_id: string;
+  [k: string]: unknown;
+}
+/** Normalized mono 16 kHz PCM before VAD, never ASR speech or padding. */
+export interface VoiceAudioIntegrity {
+  next_sequence: number;
+  normalized_samples: number;
   [k: string]: unknown;
 }
 /**

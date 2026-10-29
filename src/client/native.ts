@@ -459,13 +459,15 @@ export type MobileStartupRecordResult = {
 export type VoiceAudioChunkParams = {
     operation: ComposerOperationIdentity;
     session_id: string;
-    action: 'process' | 'segment' | 'finish';
+    action: 'process' | 'segment' | 'finish' | 'status';
     input_sample_rate_hz?: number | null;
     captured_at_unix_ms?: number | null;
 };
 
 export type VoiceAudioChunkResult = {
+    /** Admission only, not a gateway acknowledgement. */
     sent: boolean;
+    drained: boolean;
 };
 
 export const pioneerClient = {
