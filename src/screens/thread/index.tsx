@@ -1011,7 +1011,9 @@ const ThreadScreen = ({
             if (!session || !identity) {
                 if (voiceStartPromiseRef.current) {
                     voiceReleaseIntentRef.current = intent;
-                    if (intent === 'cancel' && identity) {
+                    // Release before first-audio readiness retires this startup.
+                    // No late callback may turn an already released gesture into capture.
+                    if (identity) {
                         completeComposerOperation(identity, { kind: 'cancelled' });
                     }
                 }
