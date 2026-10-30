@@ -13,7 +13,7 @@ export type ProviderCollection =
     };
 export type ProviderModelKind = 'chat' | 'embeddings' | 'transcription';
 export type ReasoningCapabilitySource =
-  'provider_metadata' | 'cli_metadata' | 'static_registry' | 'config_override' | 'unknown';
+  'provider_metadata' | 'cli_metadata' | 'config_override' | 'unknown';
 export type ProviderLoadState = 'idle' | 'loading' | 'ready' | 'failed' | 'forbidden' | 'cancelled';
 
 export interface ProviderCollectionPublication {
