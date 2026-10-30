@@ -1,9 +1,17 @@
 import { useEffect } from 'react';
 import { afterEach, describe, expect, it, jest } from '@jest/globals';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
-import { composerSnapshot, dispatchComposer, useComposerPublication } from './composer';
+import {
+    beginComposerOperation,
+    composerSnapshot,
+    dispatchComposer,
+    useComposerPublication,
+} from './composer';
 import { mobileClientBinding } from './mobile-client-binding';
-import type { ComposerPublication } from './generated/composer_publication';
+import type {
+    ComposerOperationPlan,
+    ComposerPublication,
+} from './generated/composer_publication';
 
 jest.mock('./mobile-client-binding', () => {
     const stores = new Map<
@@ -75,6 +83,63 @@ afterEach(() => {
 });
 
 describe('controlled composer scoped publication', () => {
+    it('delivers captured Pending Send during Begin drain before returning to the submit caller', () => {
+        const identity = { thread_id: 'pending-send', draft_id: 12, generation: 41 };
+        const draft = {
+            text: 'Captured message',
+            domain: {
+                attachments: [],
+                capability_target: {
+                    kind: 'native' as const, supports_skills: true, supports_mcp_tools: true,
+                },
+            },
+        };
+        const plan: ComposerOperationPlan = { identity, kind: 'send', draft };
+        const pending = {
+            thread_id: identity.thread_id,
+            draft_id: identity.draft_id,
+            revision: 2,
+            draft,
+            operation: { identity, kind: 'send', status: { kind: 'pending' }, plan },
+            preparing_send: { identity, text: draft.text, attachments: [] },
+        } as unknown as ComposerPublication;
+        act(() => {
+            root = create(<Consumer thread={identity.thread_id} />);
+        });
+        act(() => {
+            install(`composer:${identity.thread_id}`, {
+                ...pending,
+                revision: 1,
+                operation: null,
+                preparing_send: null,
+            });
+        });
+        jest.mocked(mobileClientBinding.dispatch).mockReturnValueOnce({
+            schema_version: 1,
+            sequence: 2,
+            outcome: 'changed',
+            effects: [],
+            composer_begin_plan: plan,
+        });
+        // Script only the bridge's next publication; Rust owns how Begin creates it.
+        jest.mocked(mobileClientBinding.drain).mockImplementationOnce(() => {
+            install(`composer:${identity.thread_id}`, pending);
+        });
+        act(() => {
+            expect(beginComposerOperation(identity.thread_id, 'send')).toBe(plan);
+            // A gateway lease or bridge submit starts only after Begin returns.
+            expect(composerSnapshot(identity.thread_id)?.preparing_send).toBe(
+                pending.preparing_send,
+            );
+        });
+        expect(rendered?.preparing_send).toBe(pending.preparing_send);
+        expect(rendered?.operation?.status.kind).toBe('pending');
+        act(() => root?.update(<Consumer thread="another-thread" />));
+        expect(rendered).toBeNull();
+        act(() => install(`composer:${identity.thread_id}`, null));
+        expect(rendered).toBeNull();
+    });
+
     it('presents edit state without echo and leaves late A publication out of B', () => {
         act(() => {
             root = create(<Consumer thread="a" />);

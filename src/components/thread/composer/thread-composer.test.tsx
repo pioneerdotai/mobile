@@ -117,6 +117,8 @@ const composerProps = (
     overrides: Partial<React.ComponentProps<typeof ThreadComposer>> = {},
 ): React.ComponentProps<typeof ThreadComposer> => ({
     value: '',
+    preparingSend: null,
+    preparingSendLabel: 'Preparing message',
     placeholder: 'Message',
     sendLabel: 'Send',
     stopLabel: 'Stop',
@@ -200,6 +202,50 @@ const composerProps = (
 });
 
 describe('mobile Composer interactions', () => {
+    it('renders the captured Send separately from current input and removes it on handoff', () => {
+        const preparingSend = {
+            identity: { thread_id: 'a', draft_id: 12, generation: 41 },
+            text: 'Captured message',
+            attachments: [
+                {
+                    path: '/local/captured.txt',
+                    file_name: 'captured.txt',
+                    kind: 'File' as const,
+                    upload_state: 'Local' as const,
+                },
+            ],
+        };
+        let tree!: ReactTestRenderer;
+        act(() => {
+            tree = renderer.create(
+                <ThreadComposer
+                    {...composerProps({ value: 'Current input', preparingSend, sending: true })}
+                />,
+            );
+            mountedTrees.push(tree);
+        });
+        const texts = () =>
+            tree.root.findAll((node) => (node.type as unknown) === 'Text')
+                .map((node) => node.props.children);
+        expect(texts()).toEqual(
+            expect.arrayContaining(['Preparing message', 'Captured message', 'captured.txt']),
+        );
+        const input = () => tree.root.find((node) => (node.type as unknown) === 'Input');
+        expect(input().props.value).toBe('Current input');
+        act(() => {
+            tree.update(
+                <ThreadComposer
+                    {...composerProps({
+                        value: 'Current input', preparingSend: null, sending: true,
+                    })}
+                />,
+            );
+        });
+        expect(texts()).not.toContain('Captured message');
+        expect(texts()).not.toContain('Preparing message');
+        expect(input().props.value).toBe('Current input');
+    });
+
     it('passes a capability identity from a retained callback after filtering', async () => {
         const onRemoveCapability = jest.fn();
         const target = {

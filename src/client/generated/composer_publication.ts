@@ -391,6 +391,7 @@ export interface ComposerPublication {
   model_display?: ComposerModelDisplayPublication | null;
   operation?: ComposerOperationPublication | null;
   permission_options: ComposerPermissionModeOption[];
+  preparing_send?: ComposerPreparingSend | null;
   reconciliation?: ExecutionDraftReconciliation | null;
   revision: number;
   runtime_selection?: ComposerRuntimePublication | null;
@@ -398,6 +399,12 @@ export interface ComposerPublication {
   selected_provider_ready: boolean;
   thread_id: string;
   voice_readiness?: ComposerVoiceReadinessPublication | null;
+  [k: string]: unknown;
+}
+export interface ComposerPreparingSend {
+  attachments: ComposerAttachment[];
+  identity: ComposerOperationIdentity;
+  text: string;
   [k: string]: unknown;
 }
 /**

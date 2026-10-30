@@ -1,5 +1,7 @@
 /* eslint-disable */
 
+import type { ComposerOperationPlan } from './composer_publication';
+
 export type ClientPlannedEffect =
   | ClientEffect
   | AdministrationPresentationEffect
@@ -91,6 +93,8 @@ export type OnboardingPlatformEffect =
 export type ClientTransitionOutcome = 'changed' | 'noop' | 'stale' | 'rejected';
 
 export interface ClientTransitionDto {
+  /** Command receipt from Begin's own immutable publication, independent of delivery. */
+  composer_begin_plan?: ComposerOperationPlan | null;
   effects: ClientEffectPlan[];
   outcome: ClientTransitionOutcome;
   schema_version: number;

@@ -1490,6 +1490,11 @@ export type ComposerOperationCompletion =
       [k: string]: unknown;
     }
   | {
+      kind: 'send_admission_failed';
+      message: string;
+      [k: string]: unknown;
+    }
+  | {
       kind: 'cancelled';
       [k: string]: unknown;
     };

@@ -416,19 +416,26 @@ export class MobileClientBinding {
                     return { state, snapshot };
                 });
             const changed = new Set<ScopeState>();
-            for (const { state, snapshot } of replacements) {
-                const previous = state.snapshot;
-                if (snapshot) this.#applySnapshot(state, snapshot, false);
-                else {
-                    state.snapshot = null;
-                    state.rows.clear();
+            const restoreHandoff = this.#retainHandoffDelivery();
+            try {
+                for (const { state, snapshot } of replacements) {
+                    const previous = state.snapshot;
+                    if (snapshot) this.#applySnapshot(state, snapshot, false);
+                    else {
+                        state.snapshot = null;
+                        state.rows = new Map();
+                    }
+                    state.lastAppliedSequence = Math.max(
+                        state.lastAppliedSequence ?? 0,
+                        snapshot?.sequence ?? 0,
+                        batch.sequence,
+                    );
+                    if (state.snapshot !== previous) changed.add(state);
                 }
-                state.lastAppliedSequence = Math.max(
-                    state.lastAppliedSequence ?? 0,
-                    snapshot?.sequence ?? 0,
-                    batch.sequence,
-                );
-                if (state.snapshot !== previous) changed.add(state);
+                this.#refreshComposersAfterContent(replacements.map(({ state }) => state), changed);
+            } catch (error) {
+                restoreHandoff();
+                throw error;
             }
             this.#processSequence = batch.sequence;
             this.#effects?.(batch.effects ?? []);
@@ -436,109 +443,116 @@ export class MobileClientBinding {
             return;
         }
         const changed = new Set<ScopeState>();
-        if (batch.resnapshot) {
-            const present = new Set(
-                batch.changes.flatMap((change) =>
-                    change.snapshots.map((snapshot) => scopeKey(snapshot.scope)),
-                ),
-            );
-            // Native filters the batch before its Promise reaches JS. A scope
-            // observed during that interval may be absent despite still having
-            // a current publication. Confirm omissions with Native before
-            // clearing them; install every replacement before notifying React.
-            const omitted = [...this.#scopes.values()]
-                .filter(
-                    (state) =>
-                        !state.needsResnapshot &&
-                        !present.has(scopeKey(state.scope)) &&
-                        (state.lastAppliedSequence ?? 0) <= batch.sequence,
-                )
-                .map((state) => {
-                    const snapshot = this.#bridge.resnapshot(
-                        state.scope,
-                        null,
-                        state.lastAppliedSequence,
-                    );
-                    if (snapshot) {
-                        assertSchemaVersion(snapshot);
-                        if (scopeKey(snapshot.scope) !== scopeKey(state.scope))
-                            throw new Error('Client resnapshot scope mismatch');
-                    }
-                    return { state, snapshot };
-                });
-            for (const { state, snapshot } of omitted) {
-                const before = state.snapshot;
-                if (snapshot) {
-                    this.#applySnapshot(state, snapshot, false);
-                    state.lastAppliedSequence = Math.max(
-                        state.lastAppliedSequence ?? 0,
-                        snapshot.sequence,
-                    );
-                } else {
-                    state.snapshot = null;
-                    state.rows.clear();
-                    state.lastAppliedSequence = batch.sequence;
-                }
-                if (state.snapshot !== before) changed.add(state);
-            }
-        }
-        let predecessor = this.#processSequence;
-        for (const change of batch.changes) {
-            if (!batch.resnapshot && (change.predecessor ?? 0) !== predecessor) {
-                throw new Error('Mobile Client process sequence gap requires a resnapshot');
-            }
-            for (const snapshot of change.snapshots) {
-                assertSchemaVersion(snapshot);
-                const state = this.#scopes.get(scopeKey(snapshot.scope));
-                if (!state || state.needsResnapshot) {
-                    continue;
-                }
-                const before = state.snapshot;
-                const delta =
-                    snapshot.scope.kind === 'timeline'
-                        ? change.timeline_changes?.find(
-                              (delta) =>
-                                  delta.thread_id ===
-                                  (snapshot.scope as Extract<ClientScope, { kind: 'timeline' }>)
-                                      .thread_id,
-                          )
-                        : undefined;
-                if (delta && !batch.resnapshot) {
-                    if ((state.lastAppliedSequence ?? 0) >= snapshot.sequence) continue;
-                    const rows = timelineReplacementRows(state.snapshot?.payload, snapshot, delta);
-                    if (rows) {
-                        this.#applySnapshot(
-                            state,
-                            { ...snapshot, payload: { ...(snapshot.payload as object), rows } },
-                            false,
-                        );
-                    } else {
-                        const fresh = this.#bridge.resnapshot(
+        const restoreHandoff = this.#retainHandoffDelivery();
+        try {
+            if (batch.resnapshot) {
+                const present = new Set(
+                    batch.changes.flatMap((change) =>
+                        change.snapshots.map((snapshot) => scopeKey(snapshot.scope)),
+                    ),
+                );
+                // Native filters the batch before its Promise reaches JS. A scope
+                // observed during that interval may be absent despite still having
+                // a current publication. Confirm omissions with Native before
+                // clearing them; install every replacement before notifying React.
+                const omitted = [...this.#scopes.values()]
+                    .filter(
+                        (state) =>
+                            !state.needsResnapshot &&
+                            !present.has(scopeKey(state.scope)) &&
+                            (state.lastAppliedSequence ?? 0) <= batch.sequence,
+                    )
+                    .map((state) => {
+                        const snapshot = this.#bridge.resnapshot(
                             state.scope,
-                            change.predecessor ?? null,
+                            null,
                             state.lastAppliedSequence,
                         );
-                        if (fresh) {
-                            assertSchemaVersion(fresh);
-                            if (scopeKey(fresh.scope) !== scopeKey(state.scope))
-                                throw new Error('Timeline resnapshot scope mismatch');
-                            this.#applySnapshot(state, fresh, false);
-                        } else {
-                            state.snapshot = null;
-                            state.rows.clear();
+                        if (snapshot) {
+                            assertSchemaVersion(snapshot);
+                            if (scopeKey(snapshot.scope) !== scopeKey(state.scope))
+                                throw new Error('Client resnapshot scope mismatch');
                         }
+                        return { state, snapshot };
+                    });
+                for (const { state, snapshot } of omitted) {
+                    const before = state.snapshot;
+                    if (snapshot) {
+                        this.#applySnapshot(state, snapshot, false);
+                        state.lastAppliedSequence = Math.max(
+                            state.lastAppliedSequence ?? 0,
+                            snapshot.sequence,
+                        );
+                    } else {
+                        state.snapshot = null;
+                        state.rows = new Map();
+                        state.lastAppliedSequence = batch.sequence;
                     }
-                } else this.#applySnapshot(state, snapshot, false);
-                state.lastAppliedSequence = Math.max(
-                    state.lastAppliedSequence ?? 0,
-                    state.snapshot?.sequence ?? 0,
-                    snapshot.sequence,
-                );
-                if (before !== state.snapshot) {
-                    changed.add(state);
+                    if (state.snapshot !== before) changed.add(state);
                 }
             }
-            predecessor = change.sequence;
+            let predecessor = this.#processSequence;
+            for (const change of batch.changes) {
+                if (!batch.resnapshot && (change.predecessor ?? 0) !== predecessor) {
+                    throw new Error('Mobile Client process sequence gap requires a resnapshot');
+                }
+                for (const snapshot of change.snapshots) {
+                    assertSchemaVersion(snapshot);
+                    const state = this.#scopes.get(scopeKey(snapshot.scope));
+                    if (!state || state.needsResnapshot) {
+                        continue;
+                    }
+                    const before = state.snapshot;
+                    const delta =
+                        snapshot.scope.kind === 'timeline'
+                            ? change.timeline_changes?.find(
+                                  (delta) =>
+                                      delta.thread_id ===
+                                      (snapshot.scope as Extract<ClientScope, { kind: 'timeline' }>)
+                                          .thread_id,
+                              )
+                            : undefined;
+                    if (delta && !batch.resnapshot) {
+                        if ((state.lastAppliedSequence ?? 0) >= snapshot.sequence) continue;
+                        const rows = timelineReplacementRows(state.snapshot?.payload, snapshot, delta);
+                        if (rows) {
+                            this.#applySnapshot(
+                                state,
+                                { ...snapshot, payload: { ...(snapshot.payload as object), rows } },
+                                false,
+                            );
+                        } else {
+                            const fresh = this.#bridge.resnapshot(
+                                state.scope,
+                                change.predecessor ?? null,
+                                state.lastAppliedSequence,
+                            );
+                            if (fresh) {
+                                assertSchemaVersion(fresh);
+                                if (scopeKey(fresh.scope) !== scopeKey(state.scope))
+                                    throw new Error('Timeline resnapshot scope mismatch');
+                                this.#applySnapshot(state, fresh, false);
+                            } else {
+                                state.snapshot = null;
+                                state.rows = new Map();
+                            }
+                        }
+                    } else this.#applySnapshot(state, snapshot, false);
+                    state.lastAppliedSequence = Math.max(
+                        state.lastAppliedSequence ?? 0,
+                        state.snapshot?.sequence ?? 0,
+                        snapshot.sequence,
+                    );
+                    if (before !== state.snapshot) {
+                        changed.add(state);
+                    }
+                }
+                predecessor = change.sequence;
+            }
+            this.#refreshComposersAfterContent(changed, changed);
+        } catch (error) {
+            restoreHandoff();
+            throw error;
         }
         this.#processSequence = batch.sequence;
         this.#effects?.(batch.effects ?? []);
@@ -633,6 +647,9 @@ export class MobileClientBinding {
     }
 
     #deferredListeners: Set<Listener> | null = null;
+    // Scoped changes are drained destructively. An unpublished failed pass must
+    // recover through authoritative reads rather than expect those items again.
+    #drainNeedsResnapshot = false;
     #notify(listeners: Iterable<Listener>): void {
         observeTurnStartupReceived();
         for (const listener of listeners) {
@@ -642,15 +659,27 @@ export class MobileClientBinding {
     }
     drain(scope: ClientScope, maximumItems = 64): void {
         if (this.#closed) return;
-        this.#scopeState(scope);
+        const drained = [this.#scopeState(scope)];
         if (this.#deferredListeners) return;
         const listeners = new Set<Listener>();
         this.#deferredListeners = listeners;
+        const restoreHandoff = this.#retainHandoffDelivery();
         try {
             this.#drainScope(scope, maximumItems);
-            for (const state of this.#scopes.values())
-                if (state.listeners.size > 0 && scopeKey(state.scope) !== scopeKey(scope))
+            for (const state of this.#scopes.values()) {
+                if (state.listeners.size > 0 && scopeKey(state.scope) !== scopeKey(scope)) {
                     this.#drainScope(state.scope, maximumItems);
+                    drained.push(state);
+                }
+            }
+            const changed = new Set<ScopeState>();
+            this.#refreshComposersAfterContent(drained, changed);
+            for (const state of changed) this.#notify([...state.listeners]);
+            this.#drainNeedsResnapshot = false;
+        } catch (error) {
+            restoreHandoff();
+            this.#drainNeedsResnapshot = true;
+            throw error;
         } finally {
             this.#deferredListeners = null;
         }
@@ -661,7 +690,7 @@ export class MobileClientBinding {
             throw new Error('Mobile Client change batch size must be between 1 and 256');
         }
         const state = this.#scopeState(scope);
-        if (state.listeners.size === 0) {
+        if (state.listeners.size === 0 || this.#drainNeedsResnapshot) {
             this.#resnapshot(scope, state, null, state.lastAppliedSequence ?? 0);
             return;
         }
@@ -841,8 +870,79 @@ export class MobileClientBinding {
         if (initialSnapshot) {
             this.#applySnapshot(state, initialSnapshot, false);
         }
+        const changed = new Set<ScopeState>();
+        this.#refreshComposersAfterContent([state], changed);
         this.#scopes.set(key, state);
+        for (const composer of changed) this.#notify([...composer.listeners]);
         return state;
+    }
+
+    // A mandatory Send handoff read can fail after other values were installed.
+    // Keep the existing observer batch retryable: restore its unpublished values
+    // and fences before propagating that error. This local array retains existing
+    // immutable values/maps by reference, bounded by the existing 128 scopes.
+    #retainHandoffDelivery(): () => void {
+        const retained = [...this.#scopes.values()].map((state) => ({
+            state,
+            snapshot: state.snapshot,
+            rows: state.rows,
+            sequence: state.lastAppliedSequence,
+        }));
+        return () => {
+            for (const { state, snapshot, rows, sequence } of retained) {
+                state.snapshot = snapshot;
+                state.rows = rows;
+                state.lastAppliedSequence = sequence;
+            }
+        };
+    }
+
+    // Core retires Composer preparing before publishing optimistic content. A
+    // separate native content read can overtake an earlier Composer read, even
+    // in recovery. Read each retained matching Composer once after content and
+    // install all values before observers/effects. No cross-scope sequence equality
+    // is required, and the fresh value may already describe a different Send.
+    #refreshComposersAfterContent(
+        states: Iterable<Pick<ScopeState, 'scope' | 'snapshot'>>,
+        changed: Set<ScopeState>,
+    ): void {
+        if (this.#closed) return;
+        const composers = new Map<ScopeState, number>();
+        for (const state of states) {
+            if (state.scope.kind !== 'thread' && state.scope.kind !== 'timeline') continue;
+            const composer = this.#scopes.get(
+                scopeKey({ kind: 'composer', thread_id: state.scope.thread_id }),
+            );
+            if (composer && !composer.needsResnapshot)
+                composers.set(
+                    composer,
+                    Math.max(composers.get(composer) ?? 0, state.snapshot?.sequence ?? 0),
+                );
+        }
+        for (const [composer, contentSequence] of composers) {
+            const snapshot = this.#bridge.snapshot(composer.scope, null);
+            const previous = composer.snapshot;
+            if (snapshot) {
+                assertSchemaVersion(snapshot);
+                if (scopeKey(snapshot.scope) !== scopeKey(composer.scope))
+                    throw new Error('Mobile Client Composer snapshot scope mismatch');
+                this.#applySnapshot(composer, snapshot, false);
+                composer.lastAppliedSequence = Math.max(
+                    composer.lastAppliedSequence ?? 0,
+                    snapshot.sequence,
+                );
+            } else {
+                composer.snapshot = null;
+                composer.rows = new Map();
+                // An absent value read after content also fences publications
+                // queued before that content, without inventing a Composer value.
+                composer.lastAppliedSequence = Math.max(
+                    composer.lastAppliedSequence ?? 0,
+                    contentSequence,
+                );
+            }
+            if (composer.snapshot !== previous) changed.add(composer);
+        }
     }
 
     #resnapshot(
@@ -857,8 +957,13 @@ export class MobileClientBinding {
             if (scopeKey(snapshot.scope) !== scopeKey(scope)) {
                 throw new Error('Mobile Client resnapshot scope does not match its selector');
             }
-            state.lastAppliedSequence = snapshot.sequence;
+            const changed = new Set<ScopeState>();
+            if (!this.#deferredListeners)
+                this.#refreshComposersAfterContent([{ scope, snapshot }], changed);
+            // Preserve the newer fence if this is an older recovery response.
+            state.lastAppliedSequence = Math.max(state.lastAppliedSequence ?? 0, snapshot.sequence);
             this.#applySnapshot(state, snapshot);
+            for (const composer of changed) this.#notify([...composer.listeners]);
         } else {
             // Absence invalidates the value, not the delivery watermark. Older
             // queued publications must not restore a removed snapshot.

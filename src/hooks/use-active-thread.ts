@@ -10,7 +10,11 @@ import {
 } from '@/client/turn-cancellation';
 import { mobileClientBinding } from '@/client/mobile-client-binding';
 import { dispatchNavigation, navigationSnapshot } from '@/client/navigation';
-import { beginComposerOperation, composerSnapshot } from '@/client/composer';
+import {
+    beginComposerOperation,
+    completeComposerOperation,
+    composerSnapshot,
+} from '@/client/composer';
 import { withGatewayTransportLease } from '@/services/gateway/transport-coordinator';
 import {
     openActiveThread,
@@ -307,6 +311,12 @@ export const useActiveThread = (
             activeThreadIdRef.current = result.thread_id;
             return true;
         } catch {
+            // Service invocation is not an admission receipt. Rust atomically
+            // retires only this captured Send if it is still Pending.
+            completeComposerOperation(operation.identity, {
+                kind: 'send_admission_failed',
+                message: t('sendFailed'),
+            });
             if (
                 ownsSend() &&
                 composerSnapshot(requestThreadId)?.operation?.status.kind !== 'cancelled'
