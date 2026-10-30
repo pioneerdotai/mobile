@@ -190,8 +190,8 @@ it.each(['failed', 'cancelled', 'replacement', 'inactive', 'unmounted'])(
     },
 );
 
-it.each(['pending', 'replacement', 'handed_to_client'])(
-    'lease failure retires only captured pre-submit identity: %s',
+it.each(['lease_failure', 'native_before_admission', 'admitted_stale_echo', 'replacement'])(
+    'boundary failure delegates captured identity to authoritative Rust admission guard: %s',
     async (outcome) => {
         let hook!: ReturnType<typeof useActiveThread>;
         const Probe = () => {
@@ -199,7 +199,7 @@ it.each(['pending', 'replacement', 'handed_to_client'])(
             return null;
         };
         let reject!: (error: Error) => void;
-        if (outcome === 'handed_to_client') {
+        if (outcome !== 'lease_failure') {
             mockSend.mockImplementationOnce(
                 () => new Promise((_resolve, fail) => { reject = fail; }),
             );
@@ -217,7 +217,7 @@ it.each(['pending', 'replacement', 'handed_to_client'])(
         act(() => {
             sending = hook.sendText();
         });
-        expect(mockSend).toHaveBeenCalledTimes(outcome === 'handed_to_client' ? 1 : 0);
+        expect(mockSend).toHaveBeenCalledTimes(outcome === 'lease_failure' ? 0 : 1);
         if (outcome === 'replacement') {
             mockPublication = {
                 ...mockPublication!,
@@ -232,15 +232,13 @@ it.each(['pending', 'replacement', 'handed_to_client'])(
             reject(new Error('lease unavailable'));
             expect(await sending).toBe(false);
         });
-        if (outcome === 'handed_to_client') {
-            expect(mockComplete).not.toHaveBeenCalled();
-        } else {
-            // The adapter delegates identity fencing; it never clears a draft itself.
-            expect(mockComplete).toHaveBeenCalledWith(captured, {
-                kind: 'failed',
-                message: 'sendFailed',
-            });
-        }
+        // Native rejection before admission and a lost response after admission
+        // are intentionally indistinguishable here. The production Rust owner
+        // proves phase safety; this adapter must delegate in both cases.
+        expect(mockComplete).toHaveBeenCalledWith(captured, {
+            kind: 'send_admission_failed',
+            message: 'sendFailed',
+        });
         if (outcome === 'replacement') {
             expect(mockPublication!.operation.identity).toEqual({
                 thread_id: 'parent',

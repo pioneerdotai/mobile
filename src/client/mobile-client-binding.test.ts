@@ -550,6 +550,7 @@ describe('MobileClientBinding', () => {
         const fixture = bridgeFixture(snapshot(1, []));
         const binding = new MobileClientBinding(fixture.bridge);
         const store = binding.scope(settingsScope);
+        const release = store.subscribe(() => {});
         fixture.setResnapshot(snapshot(4, [{ id: 'fresh', revision: 1 }]));
         fixture.batches.push({
             schema_version: 1,
@@ -572,6 +573,26 @@ describe('MobileClientBinding', () => {
         expect((store.getSnapshot()?.payload as { rows: MobileClientRow[] }).rows[0].id).toBe(
             'fresh',
         );
+        // A delayed older resnapshot must not lower the applied sequence. The
+        // next correctly linked publication must install without recovering
+        // through that same older response again.
+        fixture.setResnapshot(snapshot(2, [{ id: 'old', revision: 1 }]));
+        fixture.batches.push({
+            schema_version: 1,
+            changes: [
+                { kind: 'resnapshot_required', scope: settingsScope, latest_sequence: 2 },
+                {
+                    kind: 'publication',
+                    predecessor: 4,
+                    sequence: 5,
+                    snapshot: snapshot(5, [{ id: 'newer', revision: 1 }]),
+                },
+            ],
+        });
+        binding.drain(settingsScope);
+        expect(store.getSnapshot()?.sequence).toBe(5);
+        expect((store.getSnapshot()?.payload as { rows: MobileClientRow[] }).rows[0].id).toBe('newer');
+        release();
     });
 
     test('canonicalizes scope field order and clears an absent resnapshot', () => {
@@ -1221,3 +1242,247 @@ test('provider-runtime publication observers do not create or extend feature dem
     expect(released).toBe(1);
     expect(dispatched).toBe(0);
 });
+
+// These native fixtures publish retirement before optimistic content, as Core
+// does, but let that commit occur between separate native scope reads. They do
+// not reconcile the retained JS snapshots: the production binding must do that.
+const handoffPaths = [
+    ['drain', 'thread'],
+    ['drain', 'timeline'],
+    ['scoped-resnapshot', 'timeline'],
+    ['process-gap', 'thread'],
+    ['process-gap', 'timeline'],
+    ['process-resnapshot', 'timeline'],
+    ['timeline-delta-recovery', 'timeline'],
+    ['initial-snapshot', 'thread'],
+    ['initial-snapshot', 'timeline'],
+    ['remount', 'timeline'],
+] as const;
+
+for (const [path, contentKind] of handoffPaths) {
+    for (const failComposerRead of [false, true]) {
+        test(`Composer retirement precedes visible optimistic ${contentKind} via ${path}, read failure=${failComposerRead}`, () => {
+            const composerScope: ClientScope = { kind: 'composer', thread_id: 'handoff' };
+            const contentScope: ClientScope = { kind: contentKind, thread_id: 'handoff' };
+            const identity = { thread_id: 'handoff', draft_id: 12, generation: 41 };
+            const replacement = { ...identity, draft_id: 13, generation: 42 };
+            const composerValue = (
+                sequence: number,
+                captured: typeof identity | null,
+                phase: string,
+            ): ClientScopedSnapshotDto => ({
+                ...snapshot(sequence, [], composerScope),
+                payload: {
+                    thread_id: 'handoff',
+                    draft_id: captured?.draft_id ?? identity.draft_id,
+                    revision: sequence,
+                    draft: { text: captured === replacement ? 'Next draft' : 'Captured message' },
+                    operation: { identity: captured ?? identity, kind: 'send', status: { kind: phase } },
+                    preparing_send: captured
+                        ? {
+                              identity: captured,
+                              text: captured === replacement ? 'Next draft' : 'Captured message',
+                              attachments: [],
+                          }
+                        : null,
+                },
+            });
+            const contentValue = (sequence: number, optimistic: boolean): ClientScopedSnapshotDto => ({
+                ...snapshot(sequence, [], contentScope),
+                payload: {
+                    revision: sequence,
+                    generation: 1,
+                    rows: optimistic ? [{ id: 'optimistic-message', revision: 1, identity }] : [],
+                },
+            });
+            let composer = composerValue(1, identity, 'pending');
+            let content = contentValue(1, false);
+            let armed = false;
+            let committed = false;
+            const read = (scope: ClientScope): ClientScopedSnapshotDto => {
+                if (scope.kind === contentKind && armed) {
+                    armed = false;
+                    committed = true;
+                    // The two scopes intentionally have unequal process sequences.
+                    composer = composerValue(4, null, 'sending');
+                    content = contentValue(5, true);
+                }
+                if (scope.kind === 'composer') return composer;
+                if (scope.kind === contentKind) return content;
+                return snapshot(committed ? 3 : 1, [], scope);
+            };
+            let drainDelivery = false;
+            const drainedPublications = new Set<string>();
+            let failNextComposerRead = failComposerRead;
+            const fixture = bridgeFixture(null);
+            const binding = new MobileClientBinding({
+                ...fixture.bridge,
+                dispatch: () => ({ schema_version: 1, sequence: 0, outcome: 'noop', effects: [] }),
+                snapshot: (scope) => {
+                    if (scope.kind === 'composer' && committed && failNextComposerRead) {
+                        failNextComposerRead = false;
+                        throw new Error('Composer coherence read failed');
+                    }
+                    return read(scope);
+                },
+                resnapshot: read,
+                changes: (scope) => {
+                    if (!drainDelivery) return { schema_version: 1, changes: [] };
+                    if (path === 'scoped-resnapshot' && scope.kind === contentKind) {
+                        if (drainedPublications.has('resnapshot-marker'))
+                            return { schema_version: 1, changes: [] };
+                        drainedPublications.add('resnapshot-marker');
+                        return {
+                            schema_version: 1,
+                            changes: [{ kind: 'resnapshot_required', scope, latest_sequence: 5 }],
+                        };
+                    }
+                    const value = read(scope);
+                    const key = `${scope.kind}:${value.sequence}`;
+                    if (drainedPublications.has(key)) return { schema_version: 1, changes: [] };
+                    drainedPublications.add(key);
+                    return {
+                        schema_version: 1,
+                        changes: [{
+                            kind: 'publication',
+                            predecessor: 1,
+                            sequence: value.sequence,
+                            snapshot: value,
+                        }],
+                    };
+                },
+            });
+            const composerStore = binding.scope(composerScope);
+            let contentStore = path === 'initial-snapshot' ? null : binding.scope(contentScope);
+            const settingsStore = binding.scope(settingsScope);
+            type ComposerValue = {
+                draft: { text: string };
+                preparing_send: { identity: typeof identity } | null;
+            };
+            type ContentValue = { rows: { identity: typeof identity }[] };
+            const observed: { captured: typeof identity | null; optimistic: boolean }[] = [];
+            const observe = () => {
+                const captured =
+                    (composerStore.getSnapshot()?.payload as ComposerValue | null)
+                        ?.preparing_send?.identity ?? null;
+                const rows = (binding.scope(contentScope).getSnapshot()?.payload as ContentValue | null)
+                    ?.rows ?? [];
+                const optimistic = rows.some((row) => row.identity?.generation === identity.generation);
+                observed.push({ captured, optimistic });
+                expect(optimistic && captured?.generation === identity.generation).toBe(false);
+            };
+            const releaseComposer = composerStore.subscribe(observe);
+            const releaseSettings = settingsStore.subscribe(observe);
+            let effectDeliveries = 0;
+            const detachEffects = binding.attachPlatformEffects(() => effectDeliveries++);
+            let releaseContent = contentStore?.subscribe(observe);
+            // A synchronous drain before submit must keep Pending visible.
+            binding.drain(composerScope);
+            expect((composerStore.getSnapshot()?.payload as ComposerValue).preparing_send?.identity)
+                .toEqual(identity);
+            expect(committed).toBe(false);
+            const prepared = composerValue(2, identity, 'prepared');
+            composer = prepared;
+            if (path === 'remount') releaseContent?.();
+            armed = true;
+            const retainedComposer = composerStore.getSnapshot();
+            const retainedContent = contentStore?.getSnapshot() ?? null;
+            const retainedSettings = settingsStore.getSnapshot();
+            const priorCallbacks = observed.length;
+            const deliver = () => {
+                if (path === 'initial-snapshot') {
+                    contentStore = binding.scope(contentScope);
+                    releaseContent = contentStore.subscribe(observe);
+                } else if (path === 'remount') {
+                    releaseContent = contentStore!.subscribe(observe);
+                } else if (path === 'drain' || path === 'scoped-resnapshot') {
+                    drainDelivery = true;
+                    binding.drain(composerScope);
+                    drainDelivery = false;
+                } else if (path === 'timeline-delta-recovery') {
+                    binding.applyProcessBatch({
+                        schema_version: 1,
+                        sequence: 3,
+                        closed: false,
+                        effects: [],
+                        resnapshot: false,
+                        changes: [
+                            { sequence: 2, predecessor: 0, snapshots: [prepared] },
+                            {
+                                sequence: 3,
+                                predecessor: 2,
+                                snapshots: [{
+                                    ...contentValue(3, false),
+                                    payload: { revision: 3, generation: 2 },
+                                }],
+                                timeline_changes: [{
+                                    thread_id: 'handoff',
+                                    generation: 2,
+                                    from_revision: 1,
+                                    to_revision: 3,
+                                    inserted: [],
+                                    replaced: [],
+                                    removed: [],
+                                    order: [],
+                                }],
+                            },
+                        ],
+                    });
+                } else {
+                    binding.applyProcessBatch({
+                        schema_version: 1,
+                        sequence: 3,
+                        closed: false,
+                        effects: [],
+                        resnapshot: path === 'process-resnapshot',
+                        // Recovery reads Composer first, then content. Omitted-scope
+                        // recovery and process-gap recovery both use sequential reads.
+                        changes: [{
+                            sequence: 3,
+                            predecessor: 2,
+                            snapshots: [snapshot(3, [], settingsScope)],
+                        }],
+                    });
+                }
+            };
+            if (failComposerRead) {
+                expect(deliver).toThrow('Composer coherence read failed');
+                // Any unrelated render can read retained values after the throw.
+                // Both immutable handoff values and delivery fences must still be
+                // from before the failed attempt; no future batch is needed to hide
+                // a half-installed optimistic message.
+                expect(composerStore.getSnapshot()).toBe(retainedComposer);
+                expect(contentStore?.getSnapshot() ?? null).toBe(retainedContent);
+                expect(settingsStore.getSnapshot()).toBe(retainedSettings);
+                expect(observed.length).toBe(priorCallbacks);
+                expect(effectDeliveries).toBe(0);
+            }
+            deliver();
+            expect(effectDeliveries).toBe(
+                path === 'process-gap' || path === 'process-resnapshot' ||
+                path === 'timeline-delta-recovery' ? 1 : 0,
+            );
+            expect(committed).toBe(true);
+            expect(composerStore.getSnapshot()?.sequence).toBe(4);
+            expect(contentStore!.getSnapshot()?.sequence).toBe(5);
+            expect((composerStore.getSnapshot()?.payload as ComposerValue).preparing_send).toBeNull();
+            expect(observed.some((value) => value.optimistic)).toBe(true);
+
+            // The same optimistic row must not suppress the next Send's Pending
+            // projection, nor require matching numerical sequence across scopes.
+            composer = composerValue(7, replacement, 'pending');
+            drainDelivery = true;
+            binding.drain(composerScope);
+            drainDelivery = false;
+            expect((composerStore.getSnapshot()?.payload as ComposerValue).preparing_send?.identity)
+                .toEqual(replacement);
+            expect(contentStore!.getSnapshot()?.sequence).toBe(5);
+            expect((composerStore.getSnapshot()?.payload as ComposerValue).draft.text).toBe('Next draft');
+            observe();
+            releaseContent?.();
+            releaseComposer();
+            releaseSettings();
+            detachEffects();
+        });
+    }
+}

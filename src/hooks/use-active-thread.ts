@@ -295,16 +295,14 @@ export const useActiveThread = (
             );
         };
 
-        let handedToClient = false;
         try {
-            const result = await withGatewayTransportLease(() => {
-                handedToClient = true;
-                return sendActiveThreadText({
+            const result = await withGatewayTransportLease(() =>
+                sendActiveThreadText({
                     operation: operation.identity,
                     workspace_id: requestWorkspaceId,
                     expanded_keys: useActiveThreadStore.getState().expandedKeys,
-                });
-            });
+                }),
+            );
 
             if (!ownsSend() || activeThreadIdRef.current !== requestThreadId) {
                 return false;
@@ -313,15 +311,12 @@ export const useActiveThread = (
             activeThreadIdRef.current = result.thread_id;
             return true;
         } catch {
-            // Lease failure never reached Rust submit. Once handed to Client,
-            // its lifecycle owns completion even if the shell's echo still says
-            // Pending. Cleanup always names the captured identity.
-            if (!handedToClient) {
-                completeComposerOperation(operation.identity, {
-                    kind: 'failed',
-                    message: t('sendFailed'),
-                });
-            }
+            // Service invocation is not an admission receipt. Rust atomically
+            // retires only this captured Send if it is still Pending.
+            completeComposerOperation(operation.identity, {
+                kind: 'send_admission_failed',
+                message: t('sendFailed'),
+            });
             if (
                 ownsSend() &&
                 composerSnapshot(requestThreadId)?.operation?.status.kind !== 'cancelled'
