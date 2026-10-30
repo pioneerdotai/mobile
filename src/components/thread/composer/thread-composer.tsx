@@ -45,6 +45,7 @@ import type {
     ThreadMode,
     TurnPermissionMode,
 } from '@/client';
+import type { ComposerPreparingSend } from '@/client/generated/composer_publication';
 import { McpIcon } from '@/components/icons/mcp-icon';
 import { ComposerMentionSheet } from '@/components/overlays/composer-mentions';
 import { Box } from '@/components/primitives/box';
@@ -63,6 +64,8 @@ import {
 
 type ThreadComposerProps = {
     value: string;
+    preparingSend: ComposerPreparingSend | null;
+    preparingSendLabel: string;
     placeholder: string;
     sendLabel: string;
     stopLabel: string;
@@ -153,6 +156,8 @@ type VoiceGestureState = 'idle' | 'recording' | 'cancel';
 export const ThreadComposer = ({
     value,
     placeholder,
+    preparingSend,
+    preparingSendLabel,
     sendLabel,
     stopLabel,
     steerLabel,
@@ -489,6 +494,26 @@ export const ThreadComposer = ({
     return (
         <Box onLayout={handleLayout} style={styles.container}>
             <VStack style={styles.wrapper}>
+                {preparingSend ? (
+                    <VStack style={styles.preparingSend} accessibilityLiveRegion="polite">
+                        <HStack style={styles.preparingSendHeading}>
+                            <Spinner size={theme.space(4)} color={theme.colors.textMuted} />
+                            <Text style={styles.preparingSendLabel}>{preparingSendLabel}</Text>
+                        </HStack>
+                        {preparingSend.text ? (
+                            <Text numberOfLines={3} style={styles.preparingSendText}>
+                                {preparingSend.text}
+                            </Text>
+                        ) : null}
+                        {preparingSend.attachments.length > 0 ? (
+                            <Text numberOfLines={2} style={styles.preparingSendLabel}>
+                                {preparingSend.attachments
+                                    .map((attachment) => attachment.file_name || attachment.path)
+                                    .join(', ')}
+                            </Text>
+                        ) : null}
+                    </VStack>
+                ) : null}
                 <Box style={styles.modePanel}>
                     {composerContext ? (
                         <HStack style={styles.contextPanel}>
@@ -1332,6 +1357,28 @@ const styles = StyleSheet.create((theme, rt) => ({
     },
     sendButtonPressed: {
         opacity: 0.82,
+    },
+    preparingSend: {
+        gap: theme.space(1),
+        paddingHorizontal: theme.space(3),
+        paddingVertical: theme.space(2),
+        marginBottom: theme.space(2),
+        borderRadius: theme.radius.lg,
+        backgroundColor: theme.colors.surfaceMuted,
+    },
+    preparingSendHeading: {
+        alignItems: 'center',
+        gap: theme.space(2),
+    },
+    preparingSendLabel: {
+        color: theme.colors.textMuted,
+        fontSize: theme.fontSize.xs.fontSize,
+        lineHeight: theme.fontSize.xs.lineHeight,
+    },
+    preparingSendText: {
+        color: theme.colors.typography,
+        fontSize: theme.fontSize.sm.fontSize,
+        lineHeight: theme.fontSize.sm.lineHeight,
     },
     errorWrap: {
         borderWidth: 1,

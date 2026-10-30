@@ -16,6 +16,8 @@ let mockPublication: {
     };
 } | null = null;
 const mockSend = jest.fn<() => Promise<{ thread_id: string }>>();
+const mockComplete = jest.fn();
+const mockLease = jest.fn((run: () => Promise<unknown>) => run());
 const mockActivate = jest.fn((id: string) => {
     mockComposer = id;
 });
@@ -41,10 +43,11 @@ jest.mock('@/services/threads/active', () => ({
     sendActiveThreadText: () => mockSend(),
 }));
 jest.mock('@/services/gateway/transport-coordinator', () => ({
-    withGatewayTransportLease: (run: () => Promise<unknown>) => run(),
+    withGatewayTransportLease: (run: () => Promise<unknown>) => mockLease(run),
 }));
 jest.mock('@/client/composer', () => ({
     composerSnapshot: () => mockPublication,
+    completeComposerOperation: (...args: unknown[]) => mockComplete(...args),
     beginComposerOperation: () => ({ identity: mockPublication!.operation.identity }),
 }));
 jest.mock('@/client/turn-cancellation', () => ({ useTurnCancellationPublication: () => null }));
@@ -124,6 +127,8 @@ beforeEach(() => {
     mockOpen.mockClear();
     mockState.setComposerError.mockClear();
     mockSend.mockReset();
+    mockComplete.mockClear();
+    mockLease.mockReset().mockImplementation((run: () => Promise<unknown>) => run());
     mockPublication = {
         thread_id: 'parent',
         operation: {
@@ -182,5 +187,67 @@ it.each(['failed', 'cancelled', 'replacement', 'inactive', 'unmounted'])(
         else expect(mockState.setComposerError).not.toHaveBeenCalled();
         expect(mockSend).toHaveBeenCalledTimes(1);
         if (outcome !== 'unmounted') await act(async () => root.unmount());
+    },
+);
+
+it.each(['pending', 'replacement', 'handed_to_client'])(
+    'lease failure retires only captured pre-submit identity: %s',
+    async (outcome) => {
+        let hook!: ReturnType<typeof useActiveThread>;
+        const Probe = () => {
+            hook = useActiveThread(null, 'workspace', true, 'parent');
+            return null;
+        };
+        let reject!: (error: Error) => void;
+        if (outcome === 'handed_to_client') {
+            mockSend.mockImplementationOnce(
+                () => new Promise((_resolve, fail) => { reject = fail; }),
+            );
+        } else {
+            mockLease.mockImplementationOnce(
+                () => new Promise((_resolve, fail) => { reject = fail; }),
+            );
+        }
+        let root!: renderer.ReactTestRenderer;
+        await act(async () => {
+            root = renderer.create(<Probe />);
+        });
+        const captured = mockPublication!.operation.identity;
+        let sending!: Promise<boolean>;
+        act(() => {
+            sending = hook.sendText();
+        });
+        expect(mockSend).toHaveBeenCalledTimes(outcome === 'handed_to_client' ? 1 : 0);
+        if (outcome === 'replacement') {
+            mockPublication = {
+                ...mockPublication!,
+                operation: {
+                    ...mockPublication!.operation,
+                    identity: { thread_id: 'parent', draft_id: 2, generation: 8 },
+                },
+            };
+        }
+        // Keep the shell echo Pending even after submit; it may lag Rust's commit.
+        await act(async () => {
+            reject(new Error('lease unavailable'));
+            expect(await sending).toBe(false);
+        });
+        if (outcome === 'handed_to_client') {
+            expect(mockComplete).not.toHaveBeenCalled();
+        } else {
+            // The adapter delegates identity fencing; it never clears a draft itself.
+            expect(mockComplete).toHaveBeenCalledWith(captured, {
+                kind: 'failed',
+                message: 'sendFailed',
+            });
+        }
+        if (outcome === 'replacement') {
+            expect(mockPublication!.operation.identity).toEqual({
+                thread_id: 'parent',
+                draft_id: 2,
+                generation: 8,
+            });
+        }
+        await act(async () => root.unmount());
     },
 );
