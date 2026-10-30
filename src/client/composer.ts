@@ -47,13 +47,28 @@ export const dispatchComposer = (intent: ComposerIntent) => {
             intent.kind === 'finalize_voice_capture'
                 ? intent.identity.thread_id
                 : intent.thread_id;
-        mobileClientBinding.drain({ kind: 'composer', thread_id: threadId });
+        try {
+            mobileClientBinding.drain({ kind: 'composer', thread_id: threadId });
+        } catch (error) {
+            // Delivery rollback cannot undo an accepted Begin. Keep its receipt
+            // available to the Send initiator so the ordinary submit (or the
+            // owner's conditional admission cleanup) still has exact ownership.
+            // Binding retains its coherent snapshots and resnapshot recovery.
+            if (
+                intent.kind !== 'begin_operation' ||
+                intent.operation !== 'send' ||
+                result.outcome !== 'changed' ||
+                !result.composer_begin_plan
+            ) {
+                throw error;
+            }
+        }
     }
     if (result.outcome === 'changed') {
         if (intent.kind === 'commit_voice_capture')
             beginTurnStartup(intent.identity, startupStarted);
         if (intent.kind === 'begin_operation' && intent.operation === 'send') {
-            const identity = composerSnapshot(intent.thread_id)?.operation?.identity;
+            const identity = result.composer_begin_plan?.identity;
             if (identity) beginTurnStartup(identity, startupStarted);
         }
     }
@@ -72,9 +87,7 @@ export const beginComposerOperation = (
         draft_id: current.draft_id,
         operation,
     });
-    return result.outcome === 'changed'
-        ? (composerSnapshot(threadId)?.operation?.plan ?? null)
-        : null;
+    return result.outcome === 'changed' ? (result.composer_begin_plan ?? null) : null;
 };
 
 export const completeComposerOperation = (

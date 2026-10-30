@@ -8,7 +8,10 @@ import {
     useComposerPublication,
 } from './composer';
 import { mobileClientBinding } from './mobile-client-binding';
-import type { ComposerPublication } from './generated/composer_publication';
+import type {
+    ComposerOperationPlan,
+    ComposerPublication,
+} from './generated/composer_publication';
 
 jest.mock('./mobile-client-binding', () => {
     const stores = new Map<
@@ -82,8 +85,16 @@ afterEach(() => {
 describe('controlled composer scoped publication', () => {
     it('delivers captured Pending Send during Begin drain before returning to the submit caller', () => {
         const identity = { thread_id: 'pending-send', draft_id: 12, generation: 41 };
-        const draft = { text: 'Captured message', domain: { attachments: [] } };
-        const plan = { identity, kind: 'send', draft };
+        const draft = {
+            text: 'Captured message',
+            domain: {
+                attachments: [],
+                capability_target: {
+                    kind: 'native' as const, supports_skills: true, supports_mcp_tools: true,
+                },
+            },
+        };
+        const plan: ComposerOperationPlan = { identity, kind: 'send', draft };
         const pending = {
             thread_id: identity.thread_id,
             draft_id: identity.draft_id,
@@ -108,6 +119,7 @@ describe('controlled composer scoped publication', () => {
             sequence: 2,
             outcome: 'changed',
             effects: [],
+            composer_begin_plan: plan,
         });
         // Script only the bridge's next publication; Rust owns how Begin creates it.
         jest.mocked(mobileClientBinding.drain).mockImplementationOnce(() => {
