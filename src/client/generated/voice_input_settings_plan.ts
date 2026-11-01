@@ -82,7 +82,6 @@ export interface GatewayGeneralSettingsUpdate {
   compaction_model?: GatewayModelSelection | null;
   keepawake?: boolean | null;
   model_catalog_proxy?: GatewayModelCatalogProxyUpdate | null;
-  preflight_model?: GatewayMemoryModelSelection | null;
   telemetry_enabled?: boolean | null;
   [k: string]: unknown;
 }
@@ -101,10 +100,8 @@ export interface GatewayMemoryModelSelection {
   [k: string]: unknown;
 }
 export interface GatewayMemorySettings {
-  active_recall_enabled: boolean;
   background_extraction_enabled: boolean;
   debug_trace_enabled: boolean;
-  deterministic_recall_enabled: boolean;
   enabled: boolean;
   proactive_writes_enabled: boolean;
   proactive_writes_model?: GatewayMemoryModelSelection1;

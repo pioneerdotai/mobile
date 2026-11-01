@@ -682,7 +682,6 @@ export type PromptManifestDiagnosticCode =
   | 'capability_rejected';
 export type PromptManifestHookPhase =
   | 'turn_pre_prompt_context'
-  | 'turn_post_preflight_prompt_context'
   | 'turn_pre_prompt_compile'
   | 'runtime_turn_pre_context';
 export type PromptManifestHookContributionKind =

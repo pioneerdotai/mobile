@@ -120,7 +120,6 @@ export interface GatewayGeneralSettings {
       };
   keepawake?: boolean;
   model_catalog?: GatewayModelCatalogSettings;
-  preflight_model?: GatewayMemoryModelSelection;
   telemetry_enabled?: boolean;
   [k: string]: unknown;
 }
@@ -140,10 +139,8 @@ export interface GatewayMemoryModelSelection {
   [k: string]: unknown;
 }
 export interface GatewayMemorySettings {
-  active_recall_enabled: boolean;
   background_extraction_enabled: boolean;
   debug_trace_enabled: boolean;
-  deterministic_recall_enabled: boolean;
   enabled: boolean;
   proactive_writes_enabled: boolean;
   proactive_writes_model?: GatewayMemoryModelSelection1;
