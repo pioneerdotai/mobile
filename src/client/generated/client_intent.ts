@@ -502,11 +502,6 @@ export type SettingsIntent =
       [k: string]: unknown;
     }
   | {
-      kind: 'preflight_model';
-      selection: GatewayMemoryModelSelection;
-      [k: string]: unknown;
-    }
-  | {
       kind: 'compaction_model';
       selection: GatewayModelSelection;
       [k: string]: unknown;
@@ -615,7 +610,7 @@ export type GatewayModelSelection =
     };
 export type ModelSelectionTransport = 'api' | 'codex' | 'claude' | 'opencode';
 export type MemorySettingToggle =
-  'Enabled' | 'ActiveRecall' | 'ProactiveWrites' | 'BackgroundExtraction' | 'DebugTrace';
+  'Enabled' | 'ProactiveWrites' | 'BackgroundExtraction' | 'DebugTrace';
 export type MemoryModelSetting = 'PostTurnExtractor';
 export type SelfImprovementModelSetting = 'Default' | 'Reviewer';
 export type GatewayThreadEpisodicVectorProvider = 'openai' | 'openrouter' | 'local';
@@ -2377,10 +2372,8 @@ export interface GatewayMemoryModelSelection {
   [k: string]: unknown;
 }
 export interface GatewayMemorySettings {
-  active_recall_enabled: boolean;
   background_extraction_enabled: boolean;
   debug_trace_enabled: boolean;
-  deterministic_recall_enabled: boolean;
   enabled: boolean;
   proactive_writes_enabled: boolean;
   proactive_writes_model?: GatewayMemoryModelSelection1;
