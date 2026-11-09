@@ -336,6 +336,9 @@
         "unavailable": "Thread access is unavailable.",
         "actionFailed": "The change could not be applied. The latest state will be loaded."
     },
+    "modelSelectorServiceLabel": "Service tier",
+    "modelSelectorServiceStandard": "Standard",
+    "modelSelectorServiceInvalid": "Saved service tier is unavailable. Choose Standard or reselect a mode.",
     "modelSelectorContextLabel": "Context window",
     "modelSelectorContextAuto": "Auto — up to {{tokens}} tokens",
     "modelSelectorContextUpTo": "Up to {{tokens}} tokens",

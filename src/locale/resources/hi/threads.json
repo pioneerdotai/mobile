@@ -330,6 +330,9 @@
         "unavailable": "थ्रेड एक्सेस उपलब्ध नहीं है।",
         "actionFailed": "बदलाव लागू नहीं हुआ। नवीनतम स्थिति लोड की जाएगी।"
     },
+    "modelSelectorServiceLabel": "सेवा स्तर",
+    "modelSelectorServiceStandard": "मानक",
+    "modelSelectorServiceInvalid": "सहेजा गया सेवा स्तर उपलब्ध नहीं है। मानक या दूसरा मोड चुनें।",
     "modelSelectorContextLabel": "संदर्भ विंडो",
     "modelSelectorContextAuto": "ऑटो — {{tokens}} टोकन तक",
     "modelSelectorContextUpTo": "{{tokens}} टोकन तक",

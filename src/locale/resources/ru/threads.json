@@ -336,6 +336,9 @@
         "unavailable": "Настройки доступа к треду недоступны.",
         "actionFailed": "Изменение не применено. Будет загружено актуальное состояние."
     },
+    "modelSelectorServiceLabel": "Режим обслуживания",
+    "modelSelectorServiceStandard": "Стандартный",
+    "modelSelectorServiceInvalid": "Сохранённый режим недоступен. Выберите стандартный или другой режим.",
     "modelSelectorContextLabel": "Контекстное окно",
     "modelSelectorContextAuto": "Авто — до {{tokens}} токенов",
     "modelSelectorContextUpTo": "До {{tokens}} токенов",

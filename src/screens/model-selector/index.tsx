@@ -86,8 +86,10 @@ export const ModelSelectorHomeScreen = () => {
     const reasoningRows = input?.reasoning_rows ?? [];
     const selectedReasoningEffortRow = reasoningRows.find((row) => row.selected) ?? null;
     const selectedReasoningEffortLabel =
-        selectedReasoningEffortRow?.label ?? t('modelSelectorReasoningDefault');
-    const showReasoningEffortRow = reasoningRows.length > 0;
+        selectedReasoningEffortRow?.label ??
+        input?.selected_reasoning_effort ??
+        t('modelSelectorReasoningDefault');
+    const showReasoningEffortRow = reasoningRows.length > 0 || input?.default_reasoning_only === true;
 
     return (
         <ScreenScroll>
@@ -113,6 +115,43 @@ export const ModelSelectorHomeScreen = () => {
                     selected={Boolean(presentedModel)}
                     onPress={() => router.push({ pathname: '/model-selector/model' })}
                 />
+                {(input?.service_rows?.length ?? 0) > 0 ? (
+                    <>
+                        <Box style={styles.separator} />
+                        <Text>{t('modelSelectorServiceLabel')}</Text>
+                        {input?.selected_service_mode != null &&
+                        !input.service_rows?.some((row) => row.selected && row.available) ? (
+                            <Text>{t('modelSelectorServiceInvalid')}</Text>
+                        ) : null}
+                        {input?.service_rows?.map((row) => (
+                            <Pressable
+                                key={row.id}
+                                accessibilityRole="radio"
+                                accessibilityState={{
+                                    checked: row.selected,
+                                    disabled: !row.available,
+                                }}
+                                disabled={!row.available}
+                                onPress={() =>
+                                    dispatchComposerModelPicker({
+                                        kind: 'select_service_mode',
+                                        identity: input.identity,
+                                        id: row.id,
+                                    })
+                                }
+                            >
+                                <HStack style={styles.listRow}>
+                                    <Text style={styles.listRowTitle}>
+                                        {row.id === 'standard'
+                                            ? t('modelSelectorServiceStandard')
+                                            : row.label}
+                                    </Text>
+                                    {row.selected ? <Check /> : null}
+                                </HStack>
+                            </Pressable>
+                        ))}
+                    </>
+                ) : null}
                 {(input?.context_rows?.length ?? 0) > 0 ? (
                     <>
                         <Box style={styles.separator} />
@@ -360,7 +399,7 @@ export const ModelSelectorReasoningEffortScreen = () => {
     const selectedModelError = input?.models_request.state.kind === 'failed';
     const effortRows = input?.reasoning_rows ?? EMPTY_EFFORT_ROWS;
     const rows = useMemo<ReasoningEffortOption[]>(() => {
-        if (effortRows.length === 0) {
+        if (effortRows.length === 0 && !input?.default_reasoning_only) {
             return [];
         }
 
@@ -368,11 +407,11 @@ export const ModelSelectorReasoningEffortScreen = () => {
             {
                 effort: null,
                 label: t('modelSelectorReasoningDefault'),
-                selected: !effortRows.some((row) => row.selected),
+                selected: input?.selected_reasoning_effort == null,
             },
             ...effortRows.map(reasoningEffortOptionFromRow),
         ];
-    }, [effortRows, t]);
+    }, [effortRows, input?.default_reasoning_only, input?.selected_reasoning_effort, t]);
 
     const selectEffort = useCallback(
         (row: ReasoningEffortOption) => {

@@ -134,6 +134,7 @@ export interface ThreadMetadataPatch {
  */
 export interface Thread {
   context_window?: number | null;
+  service_mode?: { id: string; authority: string } | null;
   context_authority?: string | null;
   agent_nickname?: string | null;
   agent_role?: string | null;

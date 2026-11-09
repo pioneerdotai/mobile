@@ -330,6 +330,9 @@
         "unavailable": "スレッドのアクセス設定を利用できません。",
         "actionFailed": "変更を適用できませんでした。最新の状態を読み込みます。"
     },
+    "modelSelectorServiceLabel": "サービス階層",
+    "modelSelectorServiceStandard": "標準",
+    "modelSelectorServiceInvalid": "保存されたサービス階層は利用できません。標準または別のモードを選択してください。",
     "modelSelectorContextLabel": "コンテキストウィンドウ",
     "modelSelectorContextAuto": "自動 — 最大 {{tokens}} トークン",
     "modelSelectorContextUpTo": "最大 {{tokens}} トークン",

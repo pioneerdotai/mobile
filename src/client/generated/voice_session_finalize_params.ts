@@ -132,6 +132,7 @@ export interface VoiceAudioIntegrity {
  */
 export interface VoiceTurnContext {
   context_window?: number | null;
+  service_mode?: { id: string; authority: string } | null;
   context_authority?: string | null;
   /**
    * Selected skills, MCP tools/servers and related turn capabilities.
