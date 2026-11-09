@@ -104,6 +104,8 @@ export type ComposerSkillSelection =
     };
 
 export interface PrepareVoiceComposerSnapshotRequest {
+  selected_context_window?: number | null;
+  selected_context_authority?: string | null;
   attachments: ComposerAttachment[];
   authorization_fingerprint: string;
   capabilities: ComposerCapability[];

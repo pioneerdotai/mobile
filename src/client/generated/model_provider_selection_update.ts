@@ -1,6 +1,8 @@
 /* eslint-disable */
 
 export interface ModelProviderSelectionUpdate {
+  selected_context_window?: number | null;
+  selected_context_authority?: string | null;
   clear_models: boolean;
   loading_models: boolean;
   selected_model?: string | null;

@@ -186,6 +186,13 @@ export type SettingsModelPickerIntent =
       [k: string]: unknown;
     }
   | {
+      window?: number | null;
+      expected_owner: number;
+      kind: 'select_context_window';
+      picker_id: string;
+      [k: string]: unknown;
+    }
+  | {
       effort?: string | null;
       expected_owner: number;
       kind: 'select_reasoning_effort';
@@ -210,7 +217,7 @@ export type SettingsModelPickerIntent =
       picker_id: string;
       [k: string]: unknown;
     };
-export type ProviderModelSelectorMode = 'Chat' | 'SelfImprovement' | 'Embeddings' | 'Transcription';
+export type ProviderModelSelectorMode = 'Chat' | 'AuxiliaryChat' | 'SelfImprovement' | 'Embeddings' | 'Transcription';
 export type OnboardingIntent =
   | {
       kind: 'initialize';
@@ -605,6 +612,8 @@ export type GatewayModelSelection =
       instance: string;
       model: string;
       reasoning_effort?: string | null;
+      context_window?: number | null;
+      context_authority?: string | null;
       source: 'explicit';
       transport: ModelSelectionTransport;
     };
@@ -1106,6 +1115,12 @@ export type ComposerModelPickerIntent =
       identity: ComposerOperationIdentity;
       kind: 'select_model';
       model: string;
+      [k: string]: unknown;
+    }
+  | {
+      window?: number | null;
+      identity: ComposerOperationIdentity;
+      kind: 'select_context_window';
       [k: string]: unknown;
     }
   | {
@@ -2356,6 +2371,8 @@ export interface SessionDemand {
   visibility: SessionVisibility;
 }
 export interface ModelSelectorSelection {
+  selected_context_window?: number | null;
+  selected_context_authority?: string | null;
   model?: string | null;
   provider?: string | null;
   selected_reasoning_effort?: string | null;
@@ -2607,6 +2624,8 @@ export interface ComposerAttachment {
  * successful transcription.
  */
 export interface VoiceTurnContext {
+  context_window?: number | null;
+  context_authority?: string | null;
   /**
    * Selected skills, MCP tools/servers and related turn capabilities.
    */
@@ -2691,6 +2710,8 @@ export interface SandboxPolicy {
   [k: string]: unknown;
 }
 export interface ComposerDomainState {
+  selected_context_window?: number | null;
+  selected_context_authority?: string | null;
   attachments?: ComposerAttachment[];
   capabilities?: ComposerCapability[];
   capability_target: ComposerCapabilityTarget;
@@ -2786,6 +2807,8 @@ export interface ComposerMentionCandidate {
   principal_id: PrincipalId;
 }
 export interface ComposerModelSelection {
+  selected_context_window?: number | null;
+  selected_context_authority?: string | null;
   model: string;
   provider: string;
   selected_reasoning_effort?: string | null;

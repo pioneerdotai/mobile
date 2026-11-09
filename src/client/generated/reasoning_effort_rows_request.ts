@@ -7,7 +7,15 @@ export interface ReasoningEffortRowsRequest {
   model: ProviderModelInfo;
   selected_effort?: string | null;
 }
+export type ProviderContextTiers =
+  | { status: 'no_tiers' }
+  | { status: 'excluded' }
+  | { status: 'invalid' }
+  | { status: 'tiered'; windows: number[]; price_order_confirmed: boolean };
+
 export interface ProviderModelInfo {
+  context_authority?: string | null;
+  context_tiers?: ProviderContextTiers | null;
   active?: boolean | null;
   capabilities: ProviderModelCapabilities;
   created?: number | null;

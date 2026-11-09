@@ -77,6 +77,8 @@ export type ComposerSkillSelection =
 export type SkillPackId = string;
 
 export interface ComposerDomainState {
+  selected_context_window?: number | null;
+  selected_context_authority?: string | null;
   attachments?: ComposerAttachment[];
   capabilities?: ComposerCapability[];
   capability_target: ComposerCapabilityTarget;

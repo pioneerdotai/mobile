@@ -329,5 +329,9 @@
         "loading": "Chargement de l’accès…",
         "unavailable": "L’accès au fil est indisponible.",
         "actionFailed": "La modification n’a pas été appliquée. L’état actuel va être rechargé."
-    }
+    },
+    "modelSelectorContextLabel": "Fenêtre de contexte",
+    "modelSelectorContextAuto": "Auto — jusqu’à {{tokens}} tokens",
+    "modelSelectorContextUpTo": "Jusqu’à {{tokens}} tokens",
+    "modelSelectorContextInvalid": "Le choix enregistré est indisponible. Choisissez Auto ou une autre fenêtre."
 }

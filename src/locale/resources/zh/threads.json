@@ -329,5 +329,9 @@
         "loading": "正在加载访问权限…",
         "unavailable": "对话访问设置不可用。",
         "actionFailed": "无法应用更改。将加载最新状态。"
-    }
+    },
+    "modelSelectorContextLabel": "上下文窗口",
+    "modelSelectorContextAuto": "自动 — 最多 {{tokens}} 个令牌",
+    "modelSelectorContextUpTo": "最多 {{tokens}} 个令牌",
+    "modelSelectorContextInvalid": "已保存的选项不可用。请选择自动或其他窗口。"
 }

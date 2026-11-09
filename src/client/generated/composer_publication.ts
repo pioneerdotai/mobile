@@ -412,6 +412,8 @@ export interface ComposerDomainDraft {
   text?: string;
 }
 export interface ComposerDomainState {
+  selected_context_window?: number | null;
+  selected_context_authority?: string | null;
   attachments?: ComposerAttachment[];
   capabilities?: ComposerCapability[];
   capability_target: ComposerCapabilityTarget;
@@ -695,6 +697,8 @@ export interface VoiceSessionStartContext {
  * successful transcription.
  */
 export interface VoiceTurnContext {
+  context_window?: number | null;
+  context_authority?: string | null;
   /**
    * Selected skills, MCP tools/servers and related turn capabilities.
    */
