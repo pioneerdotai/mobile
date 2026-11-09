@@ -59,6 +59,8 @@ export interface ClientThreadTreeQueryData {
   snapshot: ThreadTreeSnapshot;
 }
 export interface ComposerModelSelection {
+  selected_context_window?: number | null;
+  selected_context_authority?: string | null;
   model: string;
   provider: string;
   selected_reasoning_effort?: string | null;
@@ -124,6 +126,8 @@ export interface ThreadPlacement {
   [k: string]: unknown;
 }
 export interface Thread {
+  context_window?: number | null;
+  context_authority?: string | null;
   agent_nickname?: string | null;
   agent_role?: string | null;
   created_at: number;

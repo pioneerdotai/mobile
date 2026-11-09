@@ -335,5 +335,9 @@
         "loading": "Загрузка доступа…",
         "unavailable": "Настройки доступа к треду недоступны.",
         "actionFailed": "Изменение не применено. Будет загружено актуальное состояние."
-    }
+    },
+    "modelSelectorContextLabel": "Контекстное окно",
+    "modelSelectorContextAuto": "Авто — до {{tokens}} токенов",
+    "modelSelectorContextUpTo": "До {{tokens}} токенов",
+    "modelSelectorContextInvalid": "Сохранённый вариант контекста недоступен. Выберите Авто или другое окно."
 }

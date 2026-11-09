@@ -335,5 +335,9 @@
         "loading": "Loading access…",
         "unavailable": "Thread access is unavailable.",
         "actionFailed": "The change could not be applied. The latest state will be loaded."
-    }
+    },
+    "modelSelectorContextLabel": "Context window",
+    "modelSelectorContextAuto": "Auto — up to {{tokens}} tokens",
+    "modelSelectorContextUpTo": "Up to {{tokens}} tokens",
+    "modelSelectorContextInvalid": "Saved context choice is unavailable. Choose Auto or another window."
 }

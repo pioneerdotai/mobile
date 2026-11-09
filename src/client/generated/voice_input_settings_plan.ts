@@ -31,6 +31,8 @@ export type GatewayModelSelection =
       instance: string;
       model: string;
       reasoning_effort?: string | null;
+      context_window?: number | null;
+      context_authority?: string | null;
       source: 'explicit';
       transport: ModelSelectionTransport;
     };

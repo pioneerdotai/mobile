@@ -133,6 +133,8 @@ export interface ThreadMetadataPatch {
  * Canonical thin directory metadata; never a full timeline/history snapshot.
  */
 export interface Thread {
+  context_window?: number | null;
+  context_authority?: string | null;
   agent_nickname?: string | null;
   agent_role?: string | null;
   created_at: number;

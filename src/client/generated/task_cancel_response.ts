@@ -443,6 +443,8 @@ export interface TaskComposerWork {
   [k: string]: unknown;
 }
 export interface TurnStartParams {
+  context_window?: number | null;
+  context_authority?: string | null;
   /**
    * Explicit, bounded cross-capsule delegations requested for this root
    * Agent execution. These are authorization inputs, never prompt content.

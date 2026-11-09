@@ -4,7 +4,7 @@ import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import type { ReactNode } from 'react';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
-import { ChevronRight } from 'lucide-react-native';
+import { Check, ChevronRight } from 'lucide-react-native';
 
 import type { ProviderModelInfo, ReasoningEffortRow } from '@/client';
 import Spinner from '@/components/feedback/spinner';
@@ -113,6 +113,39 @@ export const ModelSelectorHomeScreen = () => {
                     selected={Boolean(presentedModel)}
                     onPress={() => router.push({ pathname: '/model-selector/model' })}
                 />
+                {(input?.context_rows?.length ?? 0) > 0 ? (
+                    <>
+                        <Box style={styles.separator} />
+                        <Text>{t('modelSelectorContextLabel')}</Text>
+                        {input?.selected_context_window != null &&
+                        !input.context_rows?.some((row) => row.selected) ? (
+                            <Text>{t('modelSelectorContextInvalid')}</Text>
+                        ) : null}
+                        {input?.context_rows?.map((row) => (
+                            <Pressable
+                                key={row.window == null ? 'auto' : String(row.window)}
+                                accessibilityRole="radio"
+                                accessibilityState={{ checked: row.selected }}
+                                onPress={() =>
+                                    dispatchComposerModelPicker({
+                                        kind: 'select_context_window',
+                                        identity: input.identity,
+                                        window: row.window ?? null,
+                                    })
+                                }
+                            >
+                                <HStack style={styles.listRow}>
+                                    <Text style={styles.listRowTitle}>
+                                        {row.window == null
+                                            ? t('modelSelectorContextAuto', { tokens: row.tokens })
+                                            : t('modelSelectorContextUpTo', { tokens: row.tokens })}
+                                    </Text>
+                                    {row.selected ? <Check /> : null}
+                                </HStack>
+                            </Pressable>
+                        ))}
+                    </>
+                ) : null}
                 {showReasoningEffortRow ? (
                     <>
                         <Box style={styles.separator} />

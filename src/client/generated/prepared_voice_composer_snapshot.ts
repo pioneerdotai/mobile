@@ -194,6 +194,8 @@ export interface ComposerAttachment {
  * successful transcription.
  */
 export interface VoiceTurnContext {
+  context_window?: number | null;
+  context_authority?: string | null;
   /**
    * Selected skills, MCP tools/servers and related turn capabilities.
    */

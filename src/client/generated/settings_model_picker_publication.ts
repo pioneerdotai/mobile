@@ -45,11 +45,14 @@ export type RuntimeStatus =
       state: 'error';
       [k: string]: unknown;
     };
-export type ProviderModelSelectorMode = 'Chat' | 'SelfImprovement' | 'Embeddings' | 'Transcription';
+export type ProviderModelSelectorMode = 'Chat' | 'AuxiliaryChat' | 'SelfImprovement' | 'Embeddings' | 'Transcription';
 export type ReasoningCapabilitySource =
   'provider_metadata' | 'cli_metadata' | 'config_override' | 'unknown';
 
 export interface SettingsModelPickerPublication {
+  selected_context_window?: number | null;
+  selected_context_authority?: string | null;
+  context_rows?: ContextWindowRow[];
   closed: boolean;
   owner_generation: number;
   picker_id: string;
@@ -129,7 +132,15 @@ export interface RuntimeDiagnostic {
   message: string;
   [k: string]: unknown;
 }
+export type ProviderContextTiers =
+  | { status: 'no_tiers' }
+  | { status: 'excluded' }
+  | { status: 'invalid' }
+  | { status: 'tiered'; windows: number[]; price_order_confirmed: boolean };
+
 export interface ProviderModelInfo {
+  context_authority?: string | null;
+  context_tiers?: ProviderContextTiers | null;
   active?: boolean | null;
   capabilities: ProviderModelCapabilities;
   created?: number | null;
@@ -212,5 +223,12 @@ export interface ProviderSummaryCapabilities {
    */
   self_improvement?: boolean;
   transcription?: boolean;
+  [k: string]: unknown;
+}
+
+export interface ContextWindowRow {
+  window?: number | null;
+  tokens: number;
+  selected: boolean;
   [k: string]: unknown;
 }

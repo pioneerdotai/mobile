@@ -329,5 +329,9 @@
         "loading": "Zugriff wird geladen…",
         "unavailable": "Der Thread-Zugriff ist nicht verfügbar.",
         "actionFailed": "Die Änderung konnte nicht angewendet werden. Der aktuelle Zustand wird geladen."
-    }
+    },
+    "modelSelectorContextLabel": "Kontextfenster",
+    "modelSelectorContextAuto": "Automatisch — bis {{tokens}} Token",
+    "modelSelectorContextUpTo": "Bis {{tokens}} Token",
+    "modelSelectorContextInvalid": "Die gespeicherte Kontextauswahl ist nicht verfügbar. Wählen Sie Automatisch oder ein anderes Fenster."
 }

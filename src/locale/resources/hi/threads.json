@@ -329,5 +329,9 @@
         "loading": "एक्सेस लोड हो रहा है…",
         "unavailable": "थ्रेड एक्सेस उपलब्ध नहीं है।",
         "actionFailed": "बदलाव लागू नहीं हुआ। नवीनतम स्थिति लोड की जाएगी।"
-    }
+    },
+    "modelSelectorContextLabel": "संदर्भ विंडो",
+    "modelSelectorContextAuto": "ऑटो — {{tokens}} टोकन तक",
+    "modelSelectorContextUpTo": "{{tokens}} टोकन तक",
+    "modelSelectorContextInvalid": "सहेजा गया विकल्प उपलब्ध नहीं है। ऑटो या दूसरी विंडो चुनें।"
 }

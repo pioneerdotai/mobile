@@ -329,5 +329,9 @@
         "loading": "アクセスを読み込み中…",
         "unavailable": "スレッドのアクセス設定を利用できません。",
         "actionFailed": "変更を適用できませんでした。最新の状態を読み込みます。"
-    }
+    },
+    "modelSelectorContextLabel": "コンテキストウィンドウ",
+    "modelSelectorContextAuto": "自動 — 最大 {{tokens}} トークン",
+    "modelSelectorContextUpTo": "最大 {{tokens}} トークン",
+    "modelSelectorContextInvalid": "保存された選択は利用できません。自動または別のウィンドウを選択してください。"
 }
