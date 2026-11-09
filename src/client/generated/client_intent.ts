@@ -186,6 +186,13 @@ export type SettingsModelPickerIntent =
       [k: string]: unknown;
     }
   | {
+      expected_owner: number;
+      kind: 'select_service_mode';
+      id: string;
+      picker_id: string;
+      [k: string]: unknown;
+    }
+  | {
       window?: number | null;
       expected_owner: number;
       kind: 'select_context_window';
@@ -613,6 +620,7 @@ export type GatewayModelSelection =
       model: string;
       reasoning_effort?: string | null;
       context_window?: number | null;
+      service_mode?: { id: string; authority: string } | null;
       context_authority?: string | null;
       source: 'explicit';
       transport: ModelSelectionTransport;
@@ -1115,6 +1123,12 @@ export type ComposerModelPickerIntent =
       identity: ComposerOperationIdentity;
       kind: 'select_model';
       model: string;
+      [k: string]: unknown;
+    }
+  | {
+      identity: ComposerOperationIdentity;
+      kind: 'select_service_mode';
+      id: string;
       [k: string]: unknown;
     }
   | {
@@ -2372,6 +2386,7 @@ export interface SessionDemand {
 }
 export interface ModelSelectorSelection {
   selected_context_window?: number | null;
+  selected_service_mode?: { id: string; authority: string } | null;
   selected_context_authority?: string | null;
   model?: string | null;
   provider?: string | null;
@@ -2625,6 +2640,7 @@ export interface ComposerAttachment {
  */
 export interface VoiceTurnContext {
   context_window?: number | null;
+  service_mode?: { id: string; authority: string } | null;
   context_authority?: string | null;
   /**
    * Selected skills, MCP tools/servers and related turn capabilities.
@@ -2711,6 +2727,7 @@ export interface SandboxPolicy {
 }
 export interface ComposerDomainState {
   selected_context_window?: number | null;
+  selected_service_mode?: { id: string; authority: string } | null;
   selected_context_authority?: string | null;
   attachments?: ComposerAttachment[];
   capabilities?: ComposerCapability[];
@@ -2808,6 +2825,7 @@ export interface ComposerMentionCandidate {
 }
 export interface ComposerModelSelection {
   selected_context_window?: number | null;
+  selected_service_mode?: { id: string; authority: string } | null;
   selected_context_authority?: string | null;
   model: string;
   provider: string;

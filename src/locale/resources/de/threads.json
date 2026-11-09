@@ -330,6 +330,9 @@
         "unavailable": "Der Thread-Zugriff ist nicht verfügbar.",
         "actionFailed": "Die Änderung konnte nicht angewendet werden. Der aktuelle Zustand wird geladen."
     },
+    "modelSelectorServiceLabel": "Servicestufe",
+    "modelSelectorServiceStandard": "Standard",
+    "modelSelectorServiceInvalid": "Die gespeicherte Servicestufe ist nicht verfügbar. Wählen Sie Standard oder einen anderen Modus.",
     "modelSelectorContextLabel": "Kontextfenster",
     "modelSelectorContextAuto": "Automatisch — bis {{tokens}} Token",
     "modelSelectorContextUpTo": "Bis {{tokens}} Token",

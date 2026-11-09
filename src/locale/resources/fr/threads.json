@@ -330,6 +330,9 @@
         "unavailable": "L’accès au fil est indisponible.",
         "actionFailed": "La modification n’a pas été appliquée. L’état actuel va être rechargé."
     },
+    "modelSelectorServiceLabel": "Niveau de service",
+    "modelSelectorServiceStandard": "Standard",
+    "modelSelectorServiceInvalid": "Le niveau enregistré est indisponible. Choisissez Standard ou un autre mode.",
     "modelSelectorContextLabel": "Fenêtre de contexte",
     "modelSelectorContextAuto": "Auto — jusqu’à {{tokens}} tokens",
     "modelSelectorContextUpTo": "Jusqu’à {{tokens}} tokens",

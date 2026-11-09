@@ -20,6 +20,7 @@ export type GatewayModelSelection =
       model: string;
       reasoning_effort?: string | null;
       context_window?: number | null;
+      service_mode?: { id: string; authority: string } | null;
       context_authority?: string | null;
       source: 'explicit';
       transport: ModelSelectionTransport;

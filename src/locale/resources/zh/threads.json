@@ -330,6 +330,9 @@
         "unavailable": "对话访问设置不可用。",
         "actionFailed": "无法应用更改。将加载最新状态。"
     },
+    "modelSelectorServiceLabel": "服务级别",
+    "modelSelectorServiceStandard": "标准",
+    "modelSelectorServiceInvalid": "已保存的服务级别不可用。请选择标准或其他模式。",
     "modelSelectorContextLabel": "上下文窗口",
     "modelSelectorContextAuto": "自动 — 最多 {{tokens}} 个令牌",
     "modelSelectorContextUpTo": "最多 {{tokens}} 个令牌",

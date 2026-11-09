@@ -2,6 +2,7 @@
 
 export interface ComposerModelSelection {
   selected_context_window?: number | null;
+  selected_service_mode?: { id: string; authority: string } | null;
   selected_context_authority?: string | null;
   model: string;
   provider: string;

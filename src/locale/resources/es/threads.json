@@ -330,6 +330,9 @@
         "unavailable": "El acceso al hilo no está disponible.",
         "actionFailed": "No se pudo aplicar el cambio. Se cargará el estado actual."
     },
+    "modelSelectorServiceLabel": "Nivel de servicio",
+    "modelSelectorServiceStandard": "Estándar",
+    "modelSelectorServiceInvalid": "El nivel guardado no está disponible. Elige Estándar u otro modo.",
     "modelSelectorContextLabel": "Ventana de contexto",
     "modelSelectorContextAuto": "Auto — hasta {{tokens}} tokens",
     "modelSelectorContextUpTo": "Hasta {{tokens}} tokens",

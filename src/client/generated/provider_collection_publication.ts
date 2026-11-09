@@ -54,6 +54,7 @@ export type ProviderContextTiers =
   | { status: 'tiered'; windows: number[]; price_order_confirmed: boolean };
 
 export interface ProviderModelInfo {
+  service_modes?: ({ status: 'unknown' | 'malformed' } | { status: 'known'; modes: { [id: string]: { status: 'malformed' | 'unmapped' } | { status: 'parsed'; descriptor: { id: string; label: string; parameters: ({ kind: 'neutral' | 'open_ai_standard' | 'anthropic_standard' | 'bedrock_standard' | 'open_ai_pro' | 'bedrock_nested_ultrafast' } | { kind: 'open_ai_tier'; tier: 'priority' | 'flex' | 'ultrafast' } | { kind: 'anthropic_fast'; beta?: string | null }); source_provider: string; source_model: string; source_api: string; source_url?: string | null; cost?: unknown } } } }) | null;
   context_authority?: string | null;
   context_tiers?: ProviderContextTiers | null;
   active?: boolean | null;
