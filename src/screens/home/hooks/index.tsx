@@ -1,3 +1,4 @@
+import { InboxButton } from '@/components/buttons/inbox';
 import { useUnistyles, StyleSheet } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 import { useShallow } from 'zustand/react/shallow';
@@ -60,7 +61,7 @@ const useHomeTab = () => {
         }
 
         return (
-            <Pressable onPress={showGatewaySwitcher}>
+            <Pressable onPress={showGatewaySwitcher} style={{ maxWidth: '100%' }}>
                 <VStack style={styles.container}>
                     <HStack style={styles.titleRow}>
                         <Box style={styles.statusContainer} accessibilityLabel={statusLabel}>
@@ -70,10 +71,10 @@ const useHomeTab = () => {
                                 <Box style={styles.statusDot(statusColor)} />
                             )}
                         </Box>
-                        <Text style={styles.name}>{activeGateway.name}</Text>
+                        <Text numberOfLines={1} style={[styles.name, { flexShrink: 1 }]}>{activeGateway.name}</Text>
                     </HStack>
                     <Box>
-                        <Text style={styles.gateway_base_url}>
+                        <Text numberOfLines={1} style={styles.gateway_base_url}>
                             {activeGateway.gateway_base_url}
                         </Text>
                     </Box>
@@ -87,6 +88,7 @@ const useHomeTab = () => {
         options: {
             ...options,
             headerShown: true,
+            headerRight: () => <InboxButton />,
             headerTitle: gateway,
             headerTransparent: true,
             headerStyle: {

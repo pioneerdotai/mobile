@@ -11,5 +11,12 @@
     "taskNotificationSystem": "Sistema",
     "taskNotificationUnknownHistoricalActor": "Actor histórico desconocido",
     "taskNotificationCompleted": "Tarea completada",
-    "taskNotificationMarkRead": "Marcar como leído"
+    "taskNotificationMarkRead": "Marcar como leído",
+    "inbox": "Bandeja de entrada",
+    "inboxEmpty": "No hay resultados de tareas",
+    "inboxError": "No se pudieron cargar los resultados",
+    "inboxReadAll": "Marcar todo como leído",
+    "inboxTask": "Tarea",
+    "inboxOpen": "Abrir bandeja, {{count}} sin leer",
+    "inboxClose": "Cerrar bandeja"
 }

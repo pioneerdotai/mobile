@@ -11,5 +11,12 @@
     "taskNotificationSystem": "系统",
     "taskNotificationUnknownHistoricalActor": "未知历史执行者",
     "taskNotificationCompleted": "任务已完成",
-    "taskNotificationMarkRead": "标记为已读"
+    "taskNotificationMarkRead": "标记为已读",
+    "inbox": "收件箱",
+    "inboxEmpty": "暂无任务结果",
+    "inboxError": "无法加载任务结果",
+    "inboxReadAll": "全部标为已读",
+    "inboxTask": "任务",
+    "inboxOpen": "打开收件箱，{{count}} 条未读",
+    "inboxClose": "关闭收件箱"
 }

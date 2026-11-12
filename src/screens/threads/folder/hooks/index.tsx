@@ -1,3 +1,4 @@
+import { InboxButton } from '@/components/buttons/inbox';
 import { useUnistyles } from 'react-native-unistyles';
 
 import { useScreen } from '@/hooks/use-screen';
@@ -11,6 +12,7 @@ const useThreadsFolderScreen = () => {
         options: {
             ...options,
             headerShown: true,
+            headerRight: () => <InboxButton />,
             headerTitle: () => null,
             headerTransparent: true,
             headerStyle: {

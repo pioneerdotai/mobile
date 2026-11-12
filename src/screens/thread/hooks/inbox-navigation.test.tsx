@@ -1,0 +1,30 @@
+import React from 'react';
+import { act, create, type ReactTestRenderer } from 'react-test-renderer';
+import { describe, expect, it, jest } from '@jest/globals';
+const mockBack = jest.fn();
+const mockDispatch = jest.fn();
+let mockParams: Record<string, string> = { threadId: 'result' };
+const mockButton = (props: any) => React.createElement('BackButton', props);
+jest.mock('expo-router', () => ({ router: { canGoBack: () => true, back: mockBack }, useLocalSearchParams: () => mockParams }));
+jest.mock('@/client/navigation', () => ({ dispatchNavigation: mockDispatch, navigationSnapshot: () => null }));
+jest.mock('@/components/buttons/back', () => ({ BackButton: mockButton }));
+jest.mock('@/components/buttons/collapse', () => ({ CollapseButton: () => null }));
+jest.mock('@/components/buttons/actions', () => ({ ActionsButton: () => null }));
+jest.mock('@/hooks/use-screen', () => ({ useScreen: () => ({ options: {} }) }));
+jest.mock('react-native-unistyles', () => ({ useUnistyles: () => ({ theme: { colors: { background: 'white' } } }) }));
+jest.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
+const { useThreadScreen } = require('./index');
+describe('inbox thread visual back versus real task lineage', () => {
+    it.each([false, true])('uses task pop only for a real child: %s', (child) => {
+        mockBack.mockClear(); mockDispatch.mockClear();
+        mockParams = child ? { threadId: 'child', parentThreadId: 'result' } : { threadId: 'result' };
+        const Header = () => useThreadScreen({ navigation: 'stack', backToInbox: true }).options.headerLeft();
+        let tree: ReactTestRenderer;
+        act(() => { tree = create(<Header />); });
+        act(() => tree!.root.findByType(mockButton).props.onPressHandler());
+        expect(mockBack).toHaveBeenCalledTimes(1);
+        if (child) expect(mockDispatch).toHaveBeenCalledWith({ kind: 'pop_task_thread' });
+        else expect(mockDispatch).not.toHaveBeenCalled();
+        act(() => tree!.unmount());
+    });
+});

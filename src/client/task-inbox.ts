@@ -11,6 +11,11 @@ export const useTaskInbox = (workspaceId: string | null) => {
     const publication = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot);
     return workspaceId ? (publication?.payload as Readonly<TaskInboxPublication> | null) : null;
 };
+// Event handlers read the latest shared publication, including synchronous dispatch updates.
+export const taskInboxSnapshot = (workspaceId: string): Readonly<TaskInboxPublication> | null =>
+    (mobileClientBinding.scope({ kind: 'task_inbox', workspace_id: workspaceId })
+        .getSnapshot()?.payload as Readonly<TaskInboxPublication> | null) ?? null;
+
 export const dispatchTaskNotification = (intent: TaskNotificationIntent) => {
     const transition = mobileClientBinding.dispatch({
         schema_version: CLIENT_BINDING_SCHEMA_VERSION,

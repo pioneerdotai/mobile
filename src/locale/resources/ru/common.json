@@ -11,5 +11,12 @@
     "taskNotificationSystem": "Система",
     "taskNotificationUnknownHistoricalActor": "Неизвестный исторический автор",
     "taskNotificationCompleted": "Задача завершена",
-    "taskNotificationMarkRead": "Отметить прочитанным"
+    "taskNotificationMarkRead": "Отметить прочитанным",
+    "inbox": "Входящие",
+    "inboxEmpty": "Нет результатов задач",
+    "inboxError": "Не удалось загрузить результаты задач",
+    "inboxReadAll": "Прочитать всё",
+    "inboxTask": "Задача",
+    "inboxOpen": "Открыть входящие, непрочитанных: {{count}}",
+    "inboxClose": "Свернуть входящие"
 }

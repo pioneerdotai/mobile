@@ -3,6 +3,14 @@
   "title": "TaskInboxPublication",
   "type": "object",
   "properties": {
+    "completed_operation_id": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "uint64",
+      "minimum": 0
+    },
     "error": {
       "type": [
         "string",
@@ -40,6 +48,9 @@
         }
       ]
     },
+    "request_busy": {
+      "type": "boolean"
+    },
     "revision": {
       "type": "integer",
       "format": "uint64",
@@ -60,7 +71,8 @@
     "items",
     "unread_count",
     "native_notifications",
-    "loading"
+    "loading",
+    "request_busy"
   ],
   "$defs": {
     "TaskCompletionInboxEntry": {

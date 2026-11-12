@@ -13,11 +13,13 @@ type ThreadScreenNavigation = 'modal' | 'stack';
 type UseThreadScreenOptions = {
     navigation?: ThreadScreenNavigation;
     threadId?: string | null;
+    backToInbox?: boolean;
     onActionsPress?: () => void;
 };
 
 const useThreadScreen = ({
     navigation = 'modal',
+    backToInbox = false,
     threadId: explicitThreadId,
     onActionsPress,
 }: UseThreadScreenOptions = {}) => {
@@ -77,6 +79,8 @@ const useThreadScreen = ({
             headerLeft: () =>
                 isTaskChildThread ? (
                     <BackButton variant="secondary" onPressHandler={handleTaskBack} />
+                ) : backToInbox ? (
+                    <BackButton variant="secondary" onPressHandler={handleBack} />
                 ) : (
                     <CollapseButton variant="secondary" onPressHandler={handleBack} />
                 ),

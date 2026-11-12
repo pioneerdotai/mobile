@@ -23,7 +23,7 @@ import {
 } from '@/client/composer';
 import { dispatchNavigation, navigationSnapshot } from '@/client/navigation';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { router, useFocusEffect, useNavigation } from 'expo-router';
+import { router, useFocusEffect, useNavigation, usePathname } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { type LayoutChangeEvent, Text, View, type ViewInstance } from 'react-native';
 import { KeyboardGestureArea, KeyboardStickyView } from 'react-native-keyboard-controller';
@@ -834,6 +834,7 @@ const ThreadScreen = ({
         activeWorkspaceId,
     ]);
 
+    const threadHostPath = usePathname();
     const handleOpenTaskThread = useCallback(
         (row: Extract<TimelineRow, { type: 'task-anchor' }>) => {
             if (!row.childThreadId || !visibleThreadId) {
@@ -853,7 +854,7 @@ const ThreadScreen = ({
             });
             if (transition.outcome !== 'changed') return;
             router.push({
-                pathname: '/thread/child/[threadId]',
+                pathname: threadHostPath.startsWith('/inbox/') ? '/inbox/child/[threadId]' : '/thread/child/[threadId]',
                 params: {
                     threadId: row.childThreadId,
                     parentThreadId: visibleThreadId,
@@ -861,7 +862,7 @@ const ThreadScreen = ({
                 },
             });
         },
-        [visibleThreadId],
+        [visibleThreadId, threadHostPath],
     );
 
     const cancelMessageEdit = useCallback(() => {

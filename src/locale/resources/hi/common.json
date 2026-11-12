@@ -11,5 +11,12 @@
     "taskNotificationSystem": "सिस्टम",
     "taskNotificationUnknownHistoricalActor": "अज्ञात ऐतिहासिक कर्ता",
     "taskNotificationCompleted": "कार्य पूरा हुआ",
-    "taskNotificationMarkRead": "पढ़ा हुआ चिह्नित करें"
+    "taskNotificationMarkRead": "पढ़ा हुआ चिह्नित करें",
+    "inbox": "इनबॉक्स",
+    "inboxEmpty": "कोई कार्य परिणाम नहीं",
+    "inboxError": "कार्य परिणाम लोड नहीं हो सके",
+    "inboxReadAll": "सभी को पढ़ा हुआ चिह्नित करें",
+    "inboxTask": "कार्य",
+    "inboxOpen": "इनबॉक्स खोलें, {{count}} अपठित",
+    "inboxClose": "इनबॉक्स बंद करें"
 }

@@ -1,3 +1,4 @@
+import { InboxInteraction, formatInboxTime } from './inbox-interaction';
 import { describe, expect, it } from '@jest/globals';
 import type { TaskUserNotification } from '@/client';
 import { taskUserNotificationAuthorLabel } from './task-notification-presentation';
@@ -68,5 +69,76 @@ describe('taskUserNotificationAuthorLabel', () => {
 
     it('renders an authorless system delivery as system', () => {
         expect(taskUserNotificationAuthorLabel(notification({}), labels)).toBe('System');
+    });
+});
+
+
+describe('screen-local inbox intent lifetime', () => {
+    const opened = { operation_id: 41, notification_id: 'run', task_id: 'task', task_revision: 7, thread_id: 'confirmed' };
+    it('ignores retained confirmations and does not assume globally increasing IDs', () => {
+        const interaction = new InboxInteraction();
+        expect(interaction.confirm(opened)).toBeNull();
+        interaction.begin('run', 7, opened);
+        expect(interaction.confirm(opened)).toBeNull();
+        expect(interaction.confirm({ ...opened, operation_id: 1 })).toBe('confirmed');
+        expect(interaction.confirm({ ...opened, operation_id: 1 })).toBeNull();
+    });
+    it('requires the exact run and revision and discards cancelled waits', () => {
+        const interaction = new InboxInteraction();
+        interaction.begin('run', 7);
+        expect(interaction.confirm({ ...opened, task_revision: 6 })).toBeNull();
+        expect(interaction.confirm({ ...opened, notification_id: 'other' })).toBeNull();
+        interaction.cancel();
+        expect(interaction.confirm(opened)).toBeNull();
+    });
+    it('formats completedAt seconds in local desktop date order', () => {
+        const date = new Date(2026, 10, 4, 9, 5);
+        expect(formatInboxTime(date.getTime() / 1000)).toBe('04.11.2026 09:05');
+    });
+});
+
+describe('bounded inbox viewport demand', () => {
+    it('continues short pages without gestures and caps an underfilled viewport at three pages', () => {
+        const demand = new InboxInteraction();
+        demand.range(1, 1);
+        expect(demand.page('page-2', false, null, 1)).toBe(true);
+        expect(demand.page('page-2', false, null, 1)).toBe(false);
+        demand.range(2, 2);
+        expect(demand.page('page-3', false, null, 2)).toBe(true);
+        demand.range(3, 3);
+        expect(demand.page('page-4', false, null, 3)).toBe(true);
+        demand.range(4, 4);
+        demand.reachedEnd(4);
+        expect(demand.page('page-5', false, null, 4)).toBe(false);
+        demand.reachedEnd(4);
+        demand.range(4, 4);
+        expect(demand.page('page-5', false, null, 4)).toBe(false);
+        // Read/push removal shrinks the loaded range: fresh viewport demand may fill it again.
+        demand.range(2, 2);
+        expect(demand.page('page-5', false, null, 2)).toBe(true);
+    });
+    it('retries the failed cursor and resumes subsequent demand without a scroll gesture', () => {
+        const demand = new InboxInteraction();
+        demand.reachedEnd(1);
+        expect(demand.page('page-2', true, null, 1)).toBe(false);
+        expect(demand.page('page-2', false, null, 1)).toBe(true);
+        expect(demand.page('page-2', false, 'failed', 1)).toBe(false);
+        // A push clearing error must not silently repeat the failed page.
+        expect(demand.page('page-2', false, null, 1)).toBe(false);
+        demand.retry();
+        expect(demand.page('page-2', true, null, 1)).toBe(false);
+        expect(demand.page('page-2', false, null, 1)).toBe(true);
+        demand.range(2, 2);
+        expect(demand.page('page-3', false, null, 2)).toBe(true);
+    });
+    it('waits for the real list range and stops when a long page moves the end away', () => {
+        const demand = new InboxInteraction();
+        expect(demand.page('page-2', false, null, 1)).toBe(false);
+        demand.range(1, 1);
+        expect(demand.page('page-2', false, null, 1)).toBe(true);
+        demand.range(3, 20);
+        expect(demand.page('page-3', false, null, 20)).toBe(false);
+        demand.range(18, 20);
+        expect(demand.page('page-3', false, null, 20)).toBe(true);
     });
 });
