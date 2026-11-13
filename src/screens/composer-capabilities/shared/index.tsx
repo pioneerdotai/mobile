@@ -5,6 +5,7 @@ import type { ComposerCapability } from '@/client';
 import Spinner from '@/components/feedback/spinner';
 import { Box } from '@/components/primitives/box';
 import { HStack } from '@/components/primitives/hstack';
+import { Pressable } from '@/components/primitives/pressable';
 import { Input } from '@/components/primitives/input';
 import { Text } from '@/components/primitives/text';
 import { VStack } from '@/components/primitives/vstack';
@@ -114,6 +115,61 @@ export const CapabilityCard = ({
         </Box>
     );
 };
+
+/** Shared geometry and selection affordance for every composer capability picker. */
+export const CapabilitySelectionRow = ({
+    label,
+    description,
+    selected,
+    disabled,
+    indented = false,
+    onPress,
+    children,
+}: {
+    label: string;
+    description?: string | null;
+    selected: boolean;
+    disabled: boolean;
+    indented?: boolean;
+    onPress: () => void;
+    children?: ReactNode;
+}) => (
+    <HStack
+        style={[
+            styles.listRow,
+            indented ? styles.toolRow : null,
+            disabled ? styles.disabledRow : null,
+        ]}
+    >
+        <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ selected, disabled }}
+            disabled={disabled}
+            onPress={onPress}
+            style={styles.rowMainButton}
+        >
+            <VStack style={styles.rowTextWrap}>
+                <Text numberOfLines={1} style={styles.listRowTitle}>
+                    {label}
+                </Text>
+                {description?.trim() ? (
+                    <Text numberOfLines={3} style={styles.listRowDescription}>
+                        {description}
+                    </Text>
+                ) : null}
+            </VStack>
+        </Pressable>
+        <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ selected, disabled }}
+            disabled={disabled}
+            onPress={onPress}
+        >
+            {selected ? <Check /> : null}
+        </Pressable>
+        {children}
+    </HStack>
+);
 
 export const Check = () => <Box style={styles.checkContainer}></Box>;
 

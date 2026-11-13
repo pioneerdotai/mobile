@@ -12,17 +12,21 @@ import {
     type SelectableSkillCapability,
     type SelectableSkillPackCapability,
 } from '@/client';
-import { HStack } from '@/components/primitives/hstack';
 import { Pressable } from '@/components/primitives/pressable';
-import { Text } from '@/components/primitives/text';
-import { VStack } from '@/components/primitives/vstack';
 import { composerSnapshot, useComposerPublication } from '@/client/composer';
 import { dispatchComposerCatalog, useComposerPicker } from '@/client/composer-catalog';
 import { useActiveThreadStore } from '@/stores/active-thread';
 import { useWorkspaceStore } from '@/stores/workspace';
 import { useAdministrationCapabilities } from '@/hooks/use-administration-capabilities';
 
-import { CapabilityCard, Check, ListHeader, ListState, styles, type LoadState } from '../shared';
+import {
+    CapabilityCard,
+    CapabilitySelectionRow,
+    ListHeader,
+    ListState,
+    styles,
+    type LoadState,
+} from '../shared';
 
 type SkillDisplayRow =
     | { type: 'pack'; pack: SelectableSkillPackCapability }
@@ -243,33 +247,14 @@ const SkillRow = ({
     const Chevron = expanded ? ChevronUp : ChevronDown;
 
     return (
-        <HStack
-            style={[
-                styles.listRow,
-                isPackedSkill && !searching ? styles.toolRow : null,
-                !selectable ? styles.disabledRow : null,
-            ]}
+        <CapabilitySelectionRow
+            label={label}
+            description={skill?.description}
+            selected={selected}
+            disabled={!selectable}
+            indented={isPackedSkill && !searching}
+            onPress={onPress}
         >
-            <Pressable
-                accessibilityRole="button"
-                disabled={!selectable}
-                onPress={onPress}
-                style={styles.rowMainButton}
-            >
-                <VStack style={styles.rowTextWrap}>
-                    <Text numberOfLines={1} style={styles.listRowTitle}>
-                        {label}
-                    </Text>
-                    {skill?.description.trim() ? (
-                        <Text numberOfLines={3} style={styles.listRowDescription}>
-                            {skill.description}
-                        </Text>
-                    ) : null}
-                </VStack>
-            </Pressable>
-            <Pressable accessibilityRole="button" disabled={!selectable} onPress={onPress}>
-                {selected ? <Check /> : null}
-            </Pressable>
             {showChevron ? (
                 <Pressable
                     accessibilityRole="button"
@@ -279,6 +264,6 @@ const SkillRow = ({
                     <Chevron size={theme.space(5)} color={theme.colors.typography} />
                 </Pressable>
             ) : null}
-        </HStack>
+        </CapabilitySelectionRow>
     );
 };

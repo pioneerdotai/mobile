@@ -362,10 +362,6 @@ const RootStack = () => {
                     }}
                 />
                 <Stack.Screen
-                    name="composer-plugins"
-                    options={{ presentation: 'modal', headerShown: true }}
-                />
-                <Stack.Screen
                     name="composer-capabilities"
                     options={{
                         presentation: 'card',

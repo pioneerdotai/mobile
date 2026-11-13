@@ -1,4 +1,3 @@
-import { Puzzle } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as Haptics from 'expo-haptics';
 import {
@@ -11,6 +10,7 @@ import { KeyboardController } from 'react-native-keyboard-controller';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import {
     ArrowUp,
+    Box as PluginIcon,
     AtSign,
     Check,
     ChevronDown,
@@ -1000,7 +1000,8 @@ const ComposerCapabilityChip = ({
     onRemove: () => void;
 }) => {
     const { theme } = useUnistyles();
-    const Icon = 'Plugin' in capability.kind ? Puzzle : 'Skill' in capability.kind ? Zap : McpIcon;
+    const Icon =
+        'Plugin' in capability.kind ? PluginIcon : 'Skill' in capability.kind ? Zap : McpIcon;
 
     return (
         <HStack style={styles.chip}>

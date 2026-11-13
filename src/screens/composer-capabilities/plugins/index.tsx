@@ -1,139 +1,144 @@
-import { useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
+import { FlashList, type ListRenderItem } from '@shopify/flash-list';
 import { useTranslation } from 'react-i18next';
-import { StyleSheet } from 'react-native-unistyles';
+
+import { pioneerClient } from '@/client';
 import { composerSnapshot, useComposerPublication } from '@/client/composer';
 import { dispatchComposerCatalog, useComposerPicker } from '@/client/composer-catalog';
-import { pioneerClient } from '@/client';
+import type { PluginPickerRow } from '@/client/generated/plugin_shell_response';
 import { useActiveThreadStore } from '@/stores/active-thread';
 import { useWorkspaceStore } from '@/stores/workspace';
 import { useAdministrationCapabilities } from '@/hooks/use-administration-capabilities';
-import { ScrollView } from '@/components/primitives/scrollview';
-import { Pressable } from '@/components/primitives/pressable';
-import { Text } from '@/components/primitives/text';
-import { VStack } from '@/components/primitives/vstack';
-import { CapabilityCard, Check, ListHeader, ListState } from '../shared';
 
-const styles = StyleSheet.create((theme) => ({
-    root: { flex: 1 },
-    content: {
-        ...theme.screenContentPadding('root'),
-        paddingHorizontal: theme.space(4),
-        gap: theme.space(3),
-    },
-    row: {
-        padding: theme.space(4),
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: theme.space(3),
-    },
-    text: { flex: 1 },
-    secondary: { opacity: 0.6, ...theme.fontSize.sm },
-    disabled: { opacity: 0.5 },
-}));
+import {
+    CapabilityCard,
+    CapabilitySelectionRow,
+    ListHeader,
+    ListState,
+    styles,
+    type LoadState,
+} from '../shared';
+
+const EMPTY_ROWS: PluginPickerRow[] = [];
+
 export const ComposerPluginCapabilitiesScreen = () => {
-    const { t } = useTranslation('settings');
+    const { t } = useTranslation('threads');
     const [target] = useState(() => {
         const thread = useActiveThreadStore.getState().activeComposerThreadId;
         return { thread, draft: composerSnapshot(thread)?.draft_id ?? null };
     });
-    const activeThread = useActiveThreadStore((s) => s.activeComposerThreadId);
-    const workspace = useWorkspaceStore((s) => s.activeWorkspaceId);
-    const auth = useAdministrationCapabilities();
+    const activeThread = useActiveThreadStore((state) => state.activeComposerThreadId);
+    const activeWorkspaceId = useWorkspaceStore((state) => state.activeWorkspaceId);
+    const capabilities = useAdministrationCapabilities();
     const enabled =
-        auth.data?.can_use_skills === true &&
-        auth.data?.can_use_mcp === true &&
+        capabilities.data?.can_use_skills === true &&
+        capabilities.data?.can_use_mcp === true &&
         activeThread === target.thread;
     const { input, identity } = useComposerPicker(target.thread, target.draft, 'plugins', enabled);
-    // Subscribe to the shared draft as well: the pure picker reads current
-    // parent selection, including stale/unavailable parents kept for removal.
-    useComposerPublication(target.thread);
+    const composer = useComposerPublication(target.thread);
     const [query, setQuery] = useState('');
-    const rows =
-        input && target.thread && target.draft !== null
-            ? pioneerClient.pluginShell({
-                  kind: 'composer_picker',
-                  thread_id: target.thread,
-                  draft_id: target.draft,
-                  query,
-              }).picker
-            : [];
-    const error = !workspace
-        ? t('plugins.noWorkspace')
-        : !enabled && !auth.isPending
-          ? t('plugins.readOnly')
-          : input?.plugin_request.state.kind === 'failed'
-            ? t('plugins.loadFailed')
-            : null;
-    return (
-        <ScrollView style={styles.root} contentContainerStyle={styles.content}>
-            <ListHeader value={query} onChangeText={setQuery} placeholder={t('plugins.search')} />
-            <ListState
-                loading={
-                    auth.isPending ||
-                    (enabled && (!input || input.plugin_request.state.kind === 'loading'))
-                }
-                loadingLabel={t('plugins.loading')}
-                error={error}
-                empty={rows.length === 0}
-                emptyLabel={t('plugins.empty')}
-            />
-            <Pressable
-                accessibilityRole="button"
-                onPress={() => {
-                    if (target.thread && target.draft !== null)
-                        dispatchComposerCatalog({
-                            kind: 'retry',
-                            thread_id: target.thread,
-                            draft_id: target.draft,
-                            catalog: { kind: 'plugins' },
-                        });
-                }}
+    const rows = useMemo(
+        () =>
+            input && composer?.draft_id === target.draft && target.thread && target.draft !== null
+                ? pioneerClient.pluginShell({
+                      kind: 'composer_picker',
+                      thread_id: target.thread,
+                      draft_id: target.draft,
+                      query,
+                  }).picker
+                : EMPTY_ROWS,
+        [input, target.thread, target.draft, query, composer],
+    );
+    const descriptions = useMemo(
+        () =>
+            new Map<string, string | null>(
+                input?.plugins.map((plugin): [string, string | null] => [
+                    plugin.id,
+                    typeof plugin.description === 'string' ? plugin.description : null,
+                ]) ?? [],
+            ),
+        [input],
+    );
+    const state: LoadState = {
+        loading:
+            capabilities.isPending ||
+            (enabled && (!input || input.plugin_request.state.kind === 'loading')),
+        error: !activeWorkspaceId
+            ? t('modelSelectorNoWorkspace')
+            : !enabled && !capabilities.isPending
+              ? t('settings:plugins.readOnly')
+              : input?.plugin_request.state.kind === 'failed'
+                ? t('composerPluginsFailed')
+                : null,
+    };
+
+    const togglePlugin = useCallback(
+        (row: PluginPickerRow) => {
+            if (identity && (row.selected || row.selectable)) {
+                dispatchComposerCatalog({
+                    kind: 'toggle_plugin',
+                    identity,
+                    plugin_id: row.plugin_id,
+                });
+            }
+        },
+        [identity],
+    );
+    const renderPlugin = useCallback<ListRenderItem<PluginPickerRow>>(
+        ({ item, index }) => (
+            <CapabilityCard
+                first={index === 0}
+                last={index === rows.length - 1}
+                separator={index < rows.length - 1}
             >
-                <Text>{t('plugins.refresh')}</Text>
-            </Pressable>
-            {rows.map((row, index) => (
-                <CapabilityCard
-                    key={row.key}
-                    first={index === 0}
-                    last={index === rows.length - 1}
-                    separator={index !== rows.length - 1}
-                >
-                    <Pressable
-                        accessibilityRole="checkbox"
-                        accessibilityState={{
-                            checked: row.selected,
-                            disabled: !identity || (!row.selected && !row.selectable),
-                        }}
-                        disabled={!identity || (!row.selected && !row.selectable)}
-                        style={[
-                            styles.row,
-                            !row.selectable && !row.selected ? styles.disabled : null,
-                        ]}
-                        onPress={() => {
-                            if (identity)
-                                dispatchComposerCatalog({
-                                    kind: 'toggle_plugin',
-                                    identity,
-                                    plugin_id: row.plugin_id,
-                                });
-                        }}
-                    >
-                        <VStack style={styles.text}>
-                            <Text>{row.label}</Text>
-                            {row.stale || !row.selectable ? (
-                                <Text style={styles.secondary}>
-                                    {t(
-                                        row.stale
-                                            ? 'plugins.staleSelection'
-                                            : 'plugins.unavailable',
-                                    )}
-                                </Text>
-                            ) : null}
-                        </VStack>
-                        {row.selected ? <Check /> : null}
-                    </Pressable>
-                </CapabilityCard>
-            ))}
-        </ScrollView>
+                <CapabilitySelectionRow
+                    label={item.label}
+                    description={
+                        item.stale || !item.selectable
+                            ? t(
+                                  item.stale
+                                      ? 'settings:plugins.staleSelection'
+                                      : 'settings:plugins.unavailable',
+                              )
+                            : descriptions.get(item.plugin_id)
+                    }
+                    selected={item.selected}
+                    disabled={!identity || (!item.selected && !item.selectable)}
+                    onPress={() => togglePlugin(item)}
+                />
+            </CapabilityCard>
+        ),
+        [rows.length, descriptions, identity, t, togglePlugin],
+    );
+
+    return (
+        <FlashList
+            alwaysBounceVertical={false}
+            contentContainerStyle={styles.listContent}
+            data={rows}
+            extraData={identity}
+            keyExtractor={(row) => row.key}
+            keyboardShouldPersistTaps="handled"
+            ListEmptyComponent={
+                <ListState
+                    loading={state.loading}
+                    loadingLabel={t('composerLoadingPlugins')}
+                    error={state.error}
+                    empty={!state.loading && !state.error && rows.length === 0}
+                    emptyLabel={t('composerNoPlugins')}
+                />
+            }
+            ListHeaderComponent={
+                <ListHeader
+                    value={query}
+                    placeholder={t('composerSearchPlugins')}
+                    onChangeText={setQuery}
+                />
+            }
+            maintainVisibleContentPosition={{ disabled: true }}
+            renderItem={renderPlugin}
+            showsVerticalScrollIndicator={false}
+            style={styles.screen}
+        />
     );
 };
