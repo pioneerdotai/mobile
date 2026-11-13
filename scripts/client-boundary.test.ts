@@ -147,7 +147,6 @@ test('source and prebuilt integrity reject mixed inputs, modified binaries and m
                     '1',
                     '--no-deps',
                     '--locked',
-                    '--offline',
                 ]);
                 return JSON.stringify({
                     packages: [

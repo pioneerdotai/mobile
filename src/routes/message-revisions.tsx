@@ -1,5 +1,5 @@
 import { useLocalSearchParams } from 'expo-router';
-import Stack from 'expo-router/js-stack';
+import { Stack } from 'expo-router/js-stack';
 
 import MessageRevisionsScreen from '@/screens/message-revisions';
 import { useThreadScreen } from '@/screens/thread/hooks';

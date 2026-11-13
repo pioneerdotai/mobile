@@ -133,7 +133,13 @@ describe('mobile artifact native adapter', () => {
             complete = resolve;
         });
         const base = fakePorts();
-        const ports = { ...base, native: { ...base.native, download: jest.fn(() => waiting) } };
+        const ports = {
+            ...base,
+            native: {
+                ...base.native,
+                download: jest.fn<MobileArtifactActionPorts['native']['download']>(() => waiting),
+            },
+        };
         const task = downloadAndShareMobileArtifact(target, 'operation-1', ports);
         await Promise.resolve();
         expect(ports.share.shareVerifiedFile).not.toHaveBeenCalled();

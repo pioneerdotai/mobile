@@ -27,11 +27,17 @@ export interface CLIRuntimeProviderDraft {
         source: 'inherit';
       }
     | {
+        context_authority?: string | null;
+        context_window?: number | null;
         instance: string;
         model: string;
         reasoning_effort?: string | null;
         source: 'explicit';
         transport: ModelSelectionTransport;
+        service_mode?: {
+          id: string;
+          authority: string;
+        } | null;
       };
   display_name: string;
   enabled: boolean;

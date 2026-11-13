@@ -51,7 +51,7 @@ export type AgentExecutionBackend =
       type: 'acpAgentRuntime';
       [k: string]: unknown;
     };
-export type CLIAgentRuntimeKind = 'codex' | 'claude';
+export type CLIAgentRuntimeKind = 'codex' | 'claude' | 'opencode';
 export type ThreadMode = ('Message' | 'Agent') | 'Chat';
 export type TurnPermissionMode = 'full_access' | 'auto_accept_edits' | 'supervised';
 export type UserInput =
@@ -116,8 +116,24 @@ export type UserInput =
 export type SandboxMode = 'FullAccess';
 
 export interface VoiceSessionFinalizeParams {
+  /**
+   * Optional on the wire for decoding legacy clients; servers fail closed
+   * when absent. A new client requires version 1 in the start response.
+   */
+  audio_integrity?: VoiceAudioIntegrity | null;
   context: VoiceTurnContext;
   session_id: string;
+  [k: string]: unknown;
+}
+/**
+ * Counts normalized mono 16 kHz PCM before VAD, never ASR speech or padding.
+ */
+export interface VoiceAudioIntegrity {
+  /**
+   * Number of packets, equivalently the sequence immediately after the tail.
+   */
+  next_sequence: number;
+  normalized_samples: number;
   [k: string]: unknown;
 }
 /**

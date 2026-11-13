@@ -2,7 +2,7 @@
 
 export type TurnSecurityCapabilityKind = 'filesystem' | 'network' | 'process' | 'approval' | 'sandbox_backend';
 export type ClientSecurityEnforcementStatus = 'active' | 'degraded' | 'unavailable';
-export type TurnSecurityExecutionBackendKind = 'native' | 'codex_cli' | 'claude_cli';
+export type TurnSecurityExecutionBackendKind = 'native' | 'codex_cli' | 'claude_cli' | 'opencode_cli';
 export type ClientSecurityFilesystemAccess = 'unrestricted' | 'read_only' | 'workspace_write';
 export type TurnNetworkMode = 'disabled' | 'restricted' | 'enabled';
 export type TurnPermissionMode = 'full_access' | 'auto_accept_edits' | 'supervised';
@@ -85,6 +85,14 @@ export type MarkdownBlock =
       [k: string]: unknown;
     }
   | {
+      alignments: MarkdownTableAlignment[];
+      headers: MarkdownInline1[];
+      rows: MarkdownInline1[][];
+      source: string;
+      type: 'table';
+      [k: string]: unknown;
+    }
+  | {
       type: 'rule';
       [k: string]: unknown;
     };
@@ -110,6 +118,25 @@ export type MarkdownMarkKind =
       url: string;
       [k: string]: unknown;
     };
+export type MarkdownTableAlignment = 'none' | 'left' | 'center' | 'right';
+export type ArtifactKind =
+  | 'file'
+  | 'text'
+  | 'image'
+  | 'audio'
+  | 'video'
+  | 'pdf'
+  | 'spreadsheet'
+  | 'archive'
+  | 'json'
+  | 'generated_image'
+  | 'screenshot'
+  | 'workspace_file'
+  | 'directory_manifest'
+  | 'unknown';
+export type ArtifactProjectionKind = 'plain_text' | 'thumbnail' | 'json_summary' | 'pdf_text';
+export type ArtifactProjectionStatus = 'pending' | 'ready' | 'failed' | 'stale';
+export type ArtifactStatus = 'ready' | 'pending' | 'quarantined' | 'deleted' | 'missing_external_source' | 'failed';
 export type TurnItem =
   | {
       attachments?: UserMessageAttachment[];
@@ -374,24 +401,6 @@ export type UserMessageAttachment =
       type: 'mcpTool';
       [k: string]: unknown;
     };
-export type ArtifactKind =
-  | 'file'
-  | 'text'
-  | 'image'
-  | 'audio'
-  | 'video'
-  | 'pdf'
-  | 'spreadsheet'
-  | 'archive'
-  | 'json'
-  | 'generated_image'
-  | 'screenshot'
-  | 'workspace_file'
-  | 'directory_manifest'
-  | 'unknown';
-export type ArtifactProjectionKind = 'plain_text' | 'thumbnail' | 'json_summary' | 'pdf_text';
-export type ArtifactProjectionStatus = 'pending' | 'ready' | 'failed' | 'stale';
-export type ArtifactStatus = 'ready' | 'pending' | 'quarantined' | 'deleted' | 'missing_external_source' | 'failed';
 export type SkillPackId = string;
 export type SkillId = string;
 export type McpScopeKind = 'workspace' | 'user';
@@ -700,6 +709,7 @@ export type PrincipalId = string;
 export type AgentExecutionId = string;
 export type AgentIdentityId = string;
 export type AgentIdentitySourceKind = 'native_agent' | 'cli_runtime_instance' | 'ephemeral';
+export type CLIAgentRuntimeKind = 'codex' | 'claude' | 'opencode';
 export type ThreadStatus = 'Active' | 'Idle' | 'Closed';
 export type PromptManifestDiagnosticCode =
   | 'missing_file'
@@ -713,10 +723,7 @@ export type PromptManifestDiagnosticCode =
   | 'hook_best_effort_failed'
   | 'capability_rejected';
 export type PromptManifestHookPhase =
-  | 'turn_pre_prompt_context'
-  | 'turn_post_preflight_prompt_context'
-  | 'turn_pre_prompt_compile'
-  | 'runtime_turn_pre_context';
+  'turn_pre_prompt_context' | 'turn_pre_prompt_compile' | 'runtime_turn_pre_context';
 export type PromptManifestHookContributionKind =
   'prompt_context' | 'thread_context' | 'prompt_section' | 'prompt_manifest_diagnostic' | 'runtime_failure';
 export type PromptManifestHookTruncation = 'none' | 'hook' | 'prompt' | 'hook_and_prompt' | 'unknown';
@@ -827,6 +834,7 @@ export interface ItemView {
   completed_at_unix_ms?: number | null;
   final_markdown?: MarkdownDocument | null;
   final_text?: string | null;
+  html_publications?: HtmlPublication[];
   id: string;
   item: TurnItem;
   item_type: string;
@@ -863,6 +871,18 @@ export interface MarkdownMark {
 export interface MarkdownList {
   type: 'list';
   [k: string]: unknown;
+}
+/**
+ * An exact Gateway-created HTML publication. Generic HTML attachments never
+ * acquire this descriptor based on MIME alone.
+ */
+export interface HtmlPublication {
+  artifact: ArtifactRef;
+  callId: string;
+  threadId: string;
+  title: string;
+  turnId: string;
+  workspaceId: string;
 }
 export interface ArtifactRef {
   artifact_id: string;
@@ -1167,6 +1187,10 @@ export interface TurnAuthorSnapshot {
    */
   agent?: AgentPresentationSnapshot | null;
   avatar_revision?: string | null;
+  /**
+   * CLI provider identity projected from persisted execution bindings, independent of artwork.
+   */
+  cli_runtime_kind?: CLIAgentRuntimeKind | null;
   display_name: string;
   nickname: string;
   [k: string]: unknown;

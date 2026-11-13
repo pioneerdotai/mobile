@@ -65,6 +65,7 @@ export type TimelineRow = TimelineRowMeta &
           }
         | {
               type: 'assistant-message';
+              htmlPublications?: import('@/client/generated/timeline_snapshot').HtmlPublication[];
               key: string;
               itemId: string;
               turnId: string;

@@ -1,6 +1,6 @@
 import { describe, expect, it, jest } from '@jest/globals';
 
-import { loadThreadFile, MAX_THREAD_FILE_BYTES } from './loader';
+import { loadThreadFile, MAX_THREAD_FILE_BYTES, type ThreadFileLoaderPorts } from './loader';
 
 jest.mock('@/client', () => ({ pioneerClient: {} }));
 
@@ -31,7 +31,7 @@ const response = (
     });
 
 const ports = (body = 'const value = 1;', contentType = 'text/plain; charset=utf-8') => ({
-    open: jest.fn(async () => ({
+    open: jest.fn<ThreadFileLoaderPorts['open']>(async () => ({
         view_url: viewUrl,
         expires_at: 200,
         file_name: 'main.ts',

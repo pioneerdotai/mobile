@@ -32,7 +32,16 @@ describe('timeline semantic binding lifecycle', () => {
             tree = renderer.create(<Probe />);
         });
         await act(async () => {
-            publish.update(['row'], 'turn', 'turn', 1);
+            publish.update(['prefetch'], null, null, 0, []);
+        });
+        expect(
+            jest.mocked(mobileClientBinding.dispatch).mock.calls.at(-1)![0].intent,
+        ).toMatchObject({
+            kind: 'timeline',
+            intent: { kind: 'update', demand: { row_ids: ['prefetch'], viewed_row_ids: [] } },
+        });
+        await act(async () => {
+            publish.update(['row', 'prefetch'], 'turn', 'turn', 1, ['row']);
         });
         const dispatch = jest.mocked(mobileClientBinding.dispatch);
         const latest = () => dispatch.mock.calls.at(-1)![0].intent;
@@ -42,7 +51,9 @@ describe('timeline semantic binding lifecycle', () => {
                 kind: 'update',
                 demand: {
                     thread_id: 'a',
-                    row_ids: ['row'],
+                    row_ids: ['row', 'prefetch'],
+                    viewed_row_ids: ['row'],
+                    read_requires_unread: false,
                     viewed_through_turn_id: 'turn',
                     generation: 1,
                 },
@@ -93,7 +104,93 @@ describe('timeline semantic binding lifecycle', () => {
             kind: 'timeline',
             intent: { kind: 'exit', thread_id: 'b', generation: 3 },
         });
+        expect(dispatch.mock.calls.every(([request]) => request.intent.kind === 'timeline')).toBe(
+            true,
+        );
+        // The shared Rust viewport path owns personal inbox receipts. Navigation
+        // and JS prefetch never dispatch an optimistic inbox dismissal.
         expect(remove).toHaveBeenCalledTimes(1);
         subscription.mockRestore();
+    });
+    it('retires viewability while the screen is disabled and republishes it on completion revisions', async () => {
+        Object.defineProperty(AppState, 'currentState', { configurable: true, value: 'active' });
+        const dispatch = jest.mocked(mobileClientBinding.dispatch);
+        dispatch.mockClear();
+        let publish!: ReturnType<typeof useTimelineDemand>;
+        function Probe({
+            enabled,
+            revision = 1,
+            reordered = false,
+        }: {
+            enabled: boolean;
+            revision?: number;
+            reordered?: boolean;
+        }) {
+            publish = useTimelineDemand(
+                {
+                    thread_id: 'answer-thread',
+                    source_revision: revision,
+                    rows: (reordered ? ['later', 'answer'] : ['answer', 'later']).map((id) => ({
+                        id,
+                    })),
+                } as unknown as TimelineSnapshot,
+                enabled,
+            );
+            return null;
+        }
+        let tree!: ReactTestRenderer;
+        await act(async () => {
+            tree = renderer.create(<Probe enabled={false} />);
+        });
+        await act(async () => {
+            publish.update(['answer'], null, null, 0, ['answer']);
+        });
+        expect(dispatch).not.toHaveBeenCalled();
+        await act(async () => {
+            tree.update(<Probe enabled />);
+        });
+        expect(dispatch.mock.calls.at(-1)![0].intent).toMatchObject({
+            kind: 'timeline',
+            intent: { kind: 'update', demand: { viewed_row_ids: ['answer'], source_revision: 1 } },
+        });
+        await act(async () => {
+            tree.update(<Probe enabled revision={2} />);
+        });
+        expect(dispatch.mock.calls.at(-1)![0].intent).toMatchObject({
+            kind: 'timeline',
+            intent: { kind: 'update', demand: { viewed_row_ids: ['answer'], source_revision: 2 } },
+        });
+        await act(async () => {
+            tree.update(<Probe enabled revision={3} reordered />);
+        });
+        expect(dispatch.mock.calls.at(-1)![0].intent).toMatchObject({
+            kind: 'timeline',
+            intent: {
+                kind: 'update',
+                demand: { viewed_row_ids: [], viewed_through_turn_id: null },
+            },
+        });
+        await act(async () => {
+            publish.update(['answer'], null, null, 0, ['answer']);
+        });
+        expect(dispatch.mock.calls.at(-1)![0].intent).toMatchObject({
+            kind: 'timeline',
+            intent: { kind: 'update', demand: { viewed_row_ids: ['answer'], source_revision: 3 } },
+        });
+        await act(async () => {
+            tree.update(<Probe enabled={false} revision={3} reordered />);
+        });
+        expect(dispatch.mock.calls.at(-1)![0].intent).toMatchObject({
+            kind: 'timeline',
+            intent: { kind: 'exit' },
+        });
+        const count = dispatch.mock.calls.length;
+        await act(async () => {
+            publish.update(['answer'], null, null, 0, ['answer']);
+        });
+        expect(dispatch.mock.calls).toHaveLength(count);
+        await act(async () => {
+            tree.unmount();
+        });
     });
 });

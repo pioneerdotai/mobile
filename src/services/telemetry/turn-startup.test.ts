@@ -92,7 +92,10 @@ describe('turn startup presentation', () => {
         beginTurnStartup(identity(2), 100);
         expect(() => observeTurnStartupPresentation('turn', true)).not.toThrow();
         clock.mockReturnValue(1_000_000);
-        const recorder = jest.fn(() => ({ recorded: true, turn_id: 'turn' }));
+        const recorder = jest.fn<Parameters<typeof configureTurnStartupRecorder>[0]>(() => ({
+            recorded: true,
+            turn_id: 'turn',
+        }));
         configureTurnStartupRecorder(recorder);
         observeTurnStartupPresentation('turn', true);
         expect(recorder).toHaveBeenCalledWith({ key: 'composer:thread:1:2', loss: 'expired' });

@@ -17,3 +17,11 @@ export const viewedThroughLatestUserTurn = (
     const row = rows[latestUserIndex];
     return row?.type === 'user-message' ? row.turnId : null;
 };
+
+/** Only rows reported as viewed; prefetch/fallback ranges must never mark read. */
+export const viewedTimelineRowIds = (
+    rows: readonly TimelineRow[],
+    visibleIndices: readonly number[],
+): string[] => [
+    ...new Set(visibleIndices.flatMap((index) => (rows[index] ? [rows[index].key] : []))),
+];

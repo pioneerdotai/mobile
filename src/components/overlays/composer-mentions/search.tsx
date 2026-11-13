@@ -1,4 +1,4 @@
-import { type ComponentRef, type FC, useEffect, useMemo, useRef, useState } from 'react';
+import { type FC, useEffect, useMemo, useState } from 'react';
 import { BottomSheetTextInput } from '@gorhom/bottom-sheet';
 import { Keyboard } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
@@ -45,7 +45,6 @@ interface SearchProps {
 
 export const Search: FC<SearchProps> = ({ value, onChange, placeholder, dismissText }) => {
     const { theme } = useUnistyles();
-    const inputRef = useRef<ComponentRef<typeof BottomSheetTextInput>>(null);
     const [isFocused, setIsFocused] = useState(false);
     const [manualHide, setManualHide] = useState(false);
     const visible = useSharedValue(0);
@@ -82,13 +81,11 @@ export const Search: FC<SearchProps> = ({ value, onChange, placeholder, dismissT
 
     const handleDismiss = () => {
         Keyboard.dismiss();
-        inputRef.current?.blur?.();
         setManualHide(true);
     };
 
     const handleSubmit = () => {
         Keyboard.dismiss();
-        inputRef.current?.blur?.();
         setManualHide(true);
     };
 
@@ -108,7 +105,6 @@ export const Search: FC<SearchProps> = ({ value, onChange, placeholder, dismissT
             <Animated.View style={[styles.inputWrapper, inputAnimatedStyle]}>
                 <HStack style={styles.inputContainer}>
                     <BottomSheetTextInput
-                        ref={inputRef}
                         value={value}
                         onChangeText={onChange}
                         placeholder={placeholder}

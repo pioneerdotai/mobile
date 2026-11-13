@@ -421,6 +421,14 @@
         "failed"
       ]
     },
+    "CLIAgentRuntimeKind": {
+      "type": "string",
+      "enum": [
+        "codex",
+        "claude",
+        "opencode"
+      ]
+    },
     "CLIRuntimePendingRequest": {
       "type": "object",
       "properties": {
@@ -654,6 +662,39 @@
         }
       ]
     },
+    "HtmlPublication": {
+      "description": "An exact Gateway-created HTML publication. Generic HTML attachments never\nacquire this descriptor based on MIME alone.",
+      "type": "object",
+      "properties": {
+        "artifact": {
+          "$ref": "#/$defs/ArtifactRef"
+        },
+        "callId": {
+          "type": "string"
+        },
+        "threadId": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "turnId": {
+          "type": "string"
+        },
+        "workspaceId": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "workspaceId",
+        "threadId",
+        "turnId",
+        "callId",
+        "title",
+        "artifact"
+      ]
+    },
     "ItemView": {
       "type": "object",
       "properties": {
@@ -679,6 +720,12 @@
             "string",
             "null"
           ]
+        },
+        "html_publications": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/HtmlPublication"
+          }
         },
         "id": {
           "type": "string"
@@ -932,6 +979,47 @@
           ]
         },
         {
+          "description": "Structured cells and the original GFM fragment with its used reference\ndefinitions, without Quote/List prefixes.",
+          "type": "object",
+          "properties": {
+            "alignments": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/MarkdownTableAlignment"
+              }
+            },
+            "headers": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/MarkdownInline"
+              }
+            },
+            "rows": {
+              "type": "array",
+              "items": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/MarkdownInline"
+                }
+              }
+            },
+            "source": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "const": "table"
+            }
+          },
+          "required": [
+            "type",
+            "headers",
+            "rows",
+            "alignments",
+            "source"
+          ]
+        },
+        {
           "type": "object",
           "properties": {
             "type": {
@@ -1170,6 +1258,15 @@
         "nodes",
         "source",
         "next_id"
+      ]
+    },
+    "MarkdownTableAlignment": {
+      "type": "string",
+      "enum": [
+        "none",
+        "left",
+        "center",
+        "right"
       ]
     },
     "McpScopeKind": {
@@ -2398,6 +2495,12 @@
               "type": "null"
             }
           ]
+        },
+        "html_publications": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/HtmlPublication"
+          }
         },
         "kind": {
           "$ref": "#/$defs/TimelineItemKind"
@@ -3839,6 +3942,17 @@
             "null"
           ]
         },
+        "cli_runtime_kind": {
+          "description": "CLI provider identity projected from persisted execution bindings, independent of artwork.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CLIAgentRuntimeKind"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "display_name": {
           "type": "string",
           "maxLength": 128,
@@ -5127,7 +5241,8 @@
       "enum": [
         "native",
         "codex_cli",
-        "claude_cli"
+        "claude_cli",
+        "opencode_cli"
       ]
     },
     "TurnSkillCapabilitySummary": {

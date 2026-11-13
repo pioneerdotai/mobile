@@ -80,6 +80,10 @@ export type NavigationIntent =
   | {
       kind: 'reset';
       [k: string]: unknown;
+    }
+  | {
+      kind: 'back_from_plugin';
+      [k: string]: unknown;
     };
 export type AgentsDocEditorScope =
   | {
@@ -134,8 +138,18 @@ export type SemanticDestination =
       kind: 'settings';
       route: SettingsRoute;
       [k: string]: unknown;
+    }
+  | {
+      component?: PluginComponentKey | null;
+      kind: 'plugin';
+      plugin_id: string;
+      [k: string]: unknown;
     };
 
+export interface PluginComponentKey {
+  kind: string;
+  member_key: string;
+}
 export interface TaskThreadLineage {
   child_thread_id: string;
   parent_thread_id: string;

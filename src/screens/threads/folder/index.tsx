@@ -1,3 +1,4 @@
+import { beginThreadOpening } from '@/services/telemetry/thread-opening';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet } from 'react-native-unistyles';
@@ -25,6 +26,9 @@ const ThreadFolderScreen = ({ folderId }: ThreadTreeLevelScreenProps) => {
         folders,
         threads,
         unreadByThreadId,
+        unreadByFolderId,
+        runningTaskThreadIds,
+        runningTaskFolderIds,
         loading,
         error,
     } = useThreadTreeLevel(folderId);
@@ -41,6 +45,7 @@ const ThreadFolderScreen = ({ folderId }: ThreadTreeLevelScreenProps) => {
     };
 
     const openThread = (thread: Thread) => {
+        beginThreadOpening(thread.id);
         router.push({
             pathname: '/thread/[threadId]',
             params: { threadId: thread.id },
@@ -82,6 +87,9 @@ const ThreadFolderScreen = ({ folderId }: ThreadTreeLevelScreenProps) => {
             showAgentsDoc={canManageWorkspace && !!currentAgentsDocSummary}
             style={styles.container}
             threads={threads}
+            runningTaskThreadIds={runningTaskThreadIds}
+            runningTaskFolderIds={runningTaskFolderIds}
+            unreadByFolderId={unreadByFolderId}
             unreadByThreadId={unreadByThreadId}
             untitledLabel={t('untitled')}
         />

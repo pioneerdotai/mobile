@@ -306,6 +306,14 @@ export type MarkdownBlock =
       [k: string]: unknown;
     }
   | {
+      alignments: MarkdownTableAlignment[];
+      headers: MarkdownInline1[];
+      rows: MarkdownInline1[][];
+      source: string;
+      type: 'table';
+      [k: string]: unknown;
+    }
+  | {
       type: 'rule';
       [k: string]: unknown;
     };
@@ -331,6 +339,7 @@ export type MarkdownMarkKind =
       url: string;
       [k: string]: unknown;
     };
+export type MarkdownTableAlignment = 'none' | 'left' | 'center' | 'right';
 export type AgentMessagePhase = 'final_answer' | 'commentary';
 export type SystemEventLevel = 'info' | 'warning' | 'error';
 export type TaskExecutorKind = 'agent' | 'tool' | 'workflow' | 'webhook' | 'system';
@@ -628,6 +637,7 @@ export type PersistedActorRef =
 export type PrincipalId = string;
 export type AgentIdentityId = string;
 export type AgentIdentitySourceKind = 'native_agent' | 'cli_runtime_instance' | 'ephemeral';
+export type CLIAgentRuntimeKind = 'codex' | 'claude' | 'opencode';
 export type TurnWorkPresentation = 'expanded_live' | 'collapsed_after_final' | 'expanded_terminal_no_final';
 export type TurnWorkState =
   'starting' | 'running' | 'waiting_for_approval' | 'stalled' | 'completed' | 'blocked' | 'failed' | 'interrupted';
@@ -853,6 +863,7 @@ export interface TurnWorkBlock {
   hasMoreAfter: boolean;
   hasMoreBefore: boolean;
   hiddenWorkCount: number;
+  htmlPublications?: HtmlPublication[];
   lastWorkItemId?: string | null;
   presentation: TurnWorkPresentation;
   startedAtUnixMs?: number | null;
@@ -899,6 +910,10 @@ export interface TurnAuthorSnapshot {
    */
   agent?: AgentPresentationSnapshot | null;
   avatar_revision?: string | null;
+  /**
+   * CLI provider identity projected from persisted execution bindings, independent of artwork.
+   */
+  cli_runtime_kind?: CLIAgentRuntimeKind | null;
   display_name: string;
   nickname: string;
   [k: string]: unknown;
@@ -913,4 +928,16 @@ export interface AgentPresentationSnapshot {
   nickname: string;
   role_label?: string | null;
   [k: string]: unknown;
+}
+/**
+ * An exact Gateway-created HTML publication. Generic HTML attachments never
+ * acquire this descriptor based on MIME alone.
+ */
+export interface HtmlPublication {
+  artifact: ArtifactRef;
+  callId: string;
+  threadId: string;
+  title: string;
+  turnId: string;
+  workspaceId: string;
 }

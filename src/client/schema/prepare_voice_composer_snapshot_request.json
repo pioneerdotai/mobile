@@ -51,6 +51,20 @@
     "permission_mode": {
       "$ref": "#/$defs/TurnPermissionMode"
     },
+    "selected_context_authority": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "selected_context_window": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "uint64",
+      "minimum": 0
+    },
     "selected_mode": {
       "anyOf": [
         {
@@ -107,6 +121,29 @@
     },
     "workspace_id": {
       "type": "string"
+    },
+    "selected_service_mode": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "authority": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "authority"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "null"
+        }
+      ]
     }
   },
   "required": [
@@ -454,6 +491,17 @@
                 },
                 "plugin_id": {
                   "type": "string"
+                },
+                "icon": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/ImageReference"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null
                 }
               },
               "required": [
@@ -835,6 +883,22 @@
         "auto_accept_edits",
         "supervised"
       ]
+    },
+    "ImageReference": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "revision": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "revision"
+      ],
+      "description": "Immutable image reference. Gateway inventory exposes a native storage link, never image bytes."
     }
   }
 }

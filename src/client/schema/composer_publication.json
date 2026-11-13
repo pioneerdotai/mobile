@@ -56,6 +56,16 @@
         "$ref": "#/$defs/ComposerPermissionModeOption"
       }
     },
+    "preparing_send": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ComposerPreparingSend"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
     "reconciliation": {
       "anyOf": [
         {
@@ -462,7 +472,8 @@
       "type": "string",
       "enum": [
         "codex",
-        "claude"
+        "claude",
+        "opencode"
       ]
     },
     "ComposerAttachment": {
@@ -581,6 +592,17 @@
                 },
                 "plugin_id": {
                   "type": "string"
+                },
+                "icon": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/ImageReference"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null
                 }
               },
               "required": [
@@ -850,6 +872,20 @@
             }
           ]
         },
+        "selected_context_authority": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "selected_context_window": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0
+        },
         "selected_mentions": {
           "type": "array",
           "items": {
@@ -888,6 +924,29 @@
           "items": {
             "$ref": "#/$defs/ComposerSkillSelection"
           }
+        },
+        "selected_service_mode": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "authority": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "authority"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       },
       "additionalProperties": false,
@@ -1349,6 +1408,29 @@
         "mode",
         "label",
         "description"
+      ]
+    },
+    "ComposerPreparingSend": {
+      "description": "Captured local Send payload, visible until the prepared optimistic commit.\nThis is Composer feedback, not a server turn or uploaded-artifact receipt.",
+      "type": "object",
+      "properties": {
+        "attachments": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ComposerAttachment"
+          }
+        },
+        "identity": {
+          "$ref": "#/$defs/ComposerOperationIdentity"
+        },
+        "text": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "identity",
+        "text",
+        "attachments"
       ]
     },
     "ComposerReplyTarget": {
@@ -1940,6 +2022,17 @@
             "null"
           ]
         },
+        "cli_runtime_kind": {
+          "description": "CLI provider identity projected from persisted execution bindings, independent of artwork.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CLIAgentRuntimeKind"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "display_name": {
           "type": "string",
           "maxLength": 128,
@@ -2219,6 +2312,17 @@
         },
         "pluginId": {
           "type": "string"
+        },
+        "icon": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ImageReference"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         }
       },
       "required": [
@@ -3038,6 +3142,20 @@
             }
           ]
         },
+        "context_authority": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "context_window": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0
+        },
         "execution_backend": {
           "anyOf": [
             {
@@ -3119,6 +3237,29 @@
         "workspace_id": {
           "description": "Workspace active when the voice session starts.\n\n`TurnStartParams` is still thread-scoped; the gateway keeps the\nworkspace here to validate/session-route the frozen voice context.",
           "type": "string"
+        },
+        "service_mode": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "authority": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "authority"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       },
       "required": [
@@ -3126,6 +3267,22 @@
         "thread_id",
         "turn_id"
       ]
+    },
+    "ImageReference": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "revision": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "revision"
+      ],
+      "description": "Immutable image reference. Gateway inventory exposes a native storage link, never image bytes."
     }
   }
 }

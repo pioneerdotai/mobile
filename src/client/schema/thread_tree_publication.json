@@ -103,6 +103,14 @@
         "nickname"
       ]
     },
+    "CLIAgentRuntimeKind": {
+      "type": "string",
+      "enum": [
+        "codex",
+        "claude",
+        "opencode"
+      ]
+    },
     "DirectoryActionPublication": {
       "type": "object",
       "properties": {
@@ -308,7 +316,6 @@
       "type": "string",
       "enum": [
         "turn_pre_prompt_context",
-        "turn_post_preflight_prompt_context",
         "turn_pre_prompt_compile",
         "runtime_turn_pre_context"
       ]
@@ -498,6 +505,20 @@
             "null"
           ]
         },
+        "context_authority": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "context_window": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0
+        },
         "created_at": {
           "type": "integer",
           "format": "int64"
@@ -573,6 +594,29 @@
         },
         "workspace_id": {
           "type": "string"
+        },
+        "service_mode": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "authority": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "authority"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       },
       "required": [
@@ -784,6 +828,23 @@
             "$ref": "#/$defs/ThreadPlacement"
           }
         },
+        "running_task_folder_ids": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "running_task_thread_ids": {
+          "description": "Authorized task activity, independent of conversation/selection state.",
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
         "thread_ids_by_folder_id": {
           "type": "object",
           "additionalProperties": {
@@ -805,6 +866,15 @@
             "$ref": "#/$defs/ThreadUnreadSummary"
           }
         },
+        "unread_by_folder_id": {
+          "description": "Unread messages in each folder and all descendants, including zero totals.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "format": "uint64",
+            "minimum": 0
+          }
+        },
         "workspace_id": {
           "type": "string"
         }
@@ -814,6 +884,7 @@
         "workspace_id",
         "threads_by_id",
         "unread",
+        "unread_by_folder_id",
         "folders_by_id",
         "placements_by_thread_id",
         "child_folder_ids_by_parent_id",
@@ -1001,6 +1072,11 @@
         "turn_kind": {
           "$ref": "#/$defs/TurnKind",
           "default": "conversation"
+        },
+        "work_owner": {
+          "description": "Immutable owner of the admitted work; absent historical wire values own their turn.",
+          "$ref": "#/$defs/TurnWorkOwner",
+          "default": "turn"
         }
       },
       "required": [
@@ -1030,6 +1106,17 @@
           "type": [
             "string",
             "null"
+          ]
+        },
+        "cli_runtime_kind": {
+          "description": "CLI provider identity projected from persisted execution bindings, independent of artwork.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CLIAgentRuntimeKind"
+            },
+            {
+              "type": "null"
+            }
           ]
         },
         "display_name": {
@@ -1130,6 +1217,14 @@
         "Failed",
         "Interrupted",
         "Blocked"
+      ]
+    },
+    "TurnWorkOwner": {
+      "description": "Canonical work ownership, persisted at admission independently of authorship.",
+      "type": "string",
+      "enum": [
+        "turn",
+        "detached_task"
       ]
     }
   }

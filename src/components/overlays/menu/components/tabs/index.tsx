@@ -1,3 +1,4 @@
+import { beginThreadOpening } from '@/services/telemetry/thread-opening';
 import React, { useCallback } from 'react';
 import type { BottomTabBarProps } from 'expo-router/js-tabs';
 import { useTranslation } from 'react-i18next';
@@ -14,7 +15,7 @@ import { HStack } from '@/components/primitives/hstack';
 import { runInBackground } from '@/services/error-reporting';
 import { useGatewayStore } from '@/stores/gateway';
 
-type TabsType = Omit<BottomTabBarProps, 'descriptors' | 'insets' | 'navigation'>;
+type TabsType = Pick<BottomTabBarProps, 'state'>;
 
 interface ItemType {
     isFocused: boolean;
@@ -112,6 +113,7 @@ const Start = () => {
                         () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light),
                         'Failed to trigger tab haptic feedback:',
                     );
+                    beginThreadOpening('new');
                     router.navigate('/thread/new');
                 }}
             >

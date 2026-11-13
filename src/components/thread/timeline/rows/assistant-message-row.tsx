@@ -1,4 +1,7 @@
-import { useEffect } from 'react';
+import { HtmlRow } from './html-row';
+import { useEffect, useState } from 'react';
+import { useViewabilityAmount } from '@legendapp/list/react-native';
+import { rendererIntersects } from './html-document';
 import { observeTurnStartupPresentation } from '@/services/telemetry/turn-startup';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { ChevronDown, ChevronUp, MessageCircle } from 'lucide-react-native';
@@ -21,6 +24,7 @@ import {
 import { timelineTextBottomMargin } from '../timeline-text-layout';
 
 type AssistantMessageRowProps = {
+    threadId: string;
     row: Extract<TimelineRow, { type: 'assistant-message' }>;
     expanded: boolean;
     onToggle: () => void;
@@ -30,6 +34,7 @@ type AssistantMessageRowProps = {
 
 export const AssistantMessageRow = ({
     row,
+    threadId,
     expanded,
     onToggle,
     onLongPress,
@@ -37,11 +42,23 @@ export const AssistantMessageRow = ({
 }: AssistantMessageRowProps) => {
     const { theme } = useUnistyles();
     const { t } = useTranslation('threads');
+    // LegendList owns one amount callback per container, shared by all response bodies.
+    const [htmlViewable, setHtmlViewable] = useState(true);
+    useViewabilityAmount((token) => setHtmlViewable(rendererIntersects(token.sizeVisible)));
 
     const hasText = row.text.trim().length > 0 || (row.markdown?.nodes?.length ?? 0) > 0;
     useEffect(() => {
         if (hasText) observeTurnStartupPresentation(row.turnId, true);
     }, [hasText, row.turnId]);
+    const htmlContent = (row.htmlPublications ?? []).map((publication) => (
+        <HtmlRow
+            key={`${publication.artifact.artifact_id}:${publication.artifact.version_id}`}
+            publication={publication}
+            responseThreadId={threadId}
+            viewable={htmlViewable}
+        />
+    ));
+    const hasContent = hasText || htmlContent.length > 0;
     const iconSize = theme.space(4);
     const activityColor = theme.colors.textMuted;
     if (row.taskTimeline) {
@@ -74,8 +91,9 @@ export const AssistantMessageRow = ({
                         )}
                     </HStack>
                 </Pressable>
-                {expanded && hasText && (
+                {expanded && hasContent && (
                     <Box style={styles.taskBody}>
+                        {htmlContent}
                         <MarkdownContent
                             text={row.text}
                             document={row.markdown}
@@ -94,6 +112,7 @@ export const AssistantMessageRow = ({
             onLongPress={onLongPress ? () => onLongPress(row) : undefined}
             style={[styles.container, row.streaming && styles.streamingContainer]}
         >
+            {htmlContent}
             {hasText ? (
                 <MarkdownContent
                     text={row.text}

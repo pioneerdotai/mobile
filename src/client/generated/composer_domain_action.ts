@@ -223,6 +223,7 @@ export type ComposerCapabilityKind =
       Plugin: {
         expected_revision: number;
         plugin_id: string;
+        icon?: ImageReference | null;
         [k: string]: unknown;
       };
     }
@@ -316,6 +317,14 @@ export interface ComposerCapability {
   label: string;
   [k: string]: unknown;
 }
+/**
+ * Immutable image reference. Gateway inventory exposes a native storage link, never image bytes.
+ */
+export interface ImageReference {
+  path: string;
+  revision: string;
+  [k: string]: unknown;
+}
 export interface SelectableMcpCapability {
   description: string;
   key: string;
@@ -387,7 +396,13 @@ export interface ComposerCapabilityTarget {
 export interface ComposerModelSelection {
   model: string;
   provider: string;
+  selected_context_authority?: string | null;
+  selected_context_window?: number | null;
   selected_reasoning_effort?: string | null;
+  selected_service_mode?: {
+    id: string;
+    authority: string;
+  } | null;
   [k: string]: unknown;
 }
 export interface ComposerDomainState {
@@ -397,6 +412,8 @@ export interface ComposerDomainState {
   mode_manually_selected?: boolean;
   model_manually_selected?: boolean;
   reply_target?: ComposerReplyTarget | null;
+  selected_context_authority?: string | null;
+  selected_context_window?: number | null;
   selected_mentions?: ComposerMentionSelection[];
   selected_mode?: ('Message' | 'Agent') | 'Chat';
   selected_model?: string | null;
@@ -404,6 +421,10 @@ export interface ComposerDomainState {
   selected_provider?: string | null;
   selected_reasoning_effort?: string | null;
   skill_selections?: ComposerSkillSelection[];
+  selected_service_mode?: {
+    id: string;
+    authority: string;
+  } | null;
 }
 export interface ComposerMentionSelection {
   display_name: string;

@@ -46,6 +46,9 @@ type ThreadTreeListProps = {
     showAgentsDoc: boolean;
     style?: ViewStyle;
     threads: Thread[];
+    runningTaskThreadIds?: readonly string[];
+    runningTaskFolderIds?: readonly string[];
+    unreadByFolderId?: Readonly<Record<string, number>>;
     unreadByThreadId?: Readonly<Record<string, number>>;
     untitledLabel: string;
 };
@@ -87,10 +90,15 @@ const ThreadTreeList = ({
     showAgentsDoc,
     style,
     threads,
+    runningTaskThreadIds = [],
+    runningTaskFolderIds = [],
+    unreadByFolderId = {},
     unreadByThreadId = {},
     untitledLabel,
 }: ThreadTreeListProps) => {
     const { theme, rt } = useUnistyles();
+    const runningThreads = useMemo(() => new Set(runningTaskThreadIds), [runningTaskThreadIds]);
+    const runningFolders = useMemo(() => new Set(runningTaskFolderIds), [runningTaskFolderIds]);
     const rows = useMemo<ThreadTreeListRow[]>(() => {
         const nextRows: ThreadTreeListRow[] = [];
 
@@ -127,6 +135,8 @@ const ThreadTreeList = ({
                 return (
                     <ThreadTreeFolderRow
                         folder={item.folder}
+                        hasRunningTasks={runningFolders.has(item.folder.id)}
+                        unreadCount={unreadByFolderId[item.folder.id] ?? 0}
                         onPress={() => onFolderPress(item.folder.id)}
                     />
                 );
@@ -135,6 +145,7 @@ const ThreadTreeList = ({
             return (
                 <ThreadTreeThreadRow
                     thread={item.thread}
+                    hasRunningTasks={runningThreads.has(item.thread.id)}
                     unreadCount={unreadByThreadId[item.thread.id] ?? 0}
                     untitledLabel={untitledLabel}
                     onPress={onThreadPress ? () => onThreadPress(item.thread) : undefined}
@@ -146,6 +157,9 @@ const ThreadTreeList = ({
             onAgentsDocPress,
             onFolderPress,
             onThreadPress,
+            runningFolders,
+            runningThreads,
+            unreadByFolderId,
             unreadByThreadId,
             untitledLabel,
         ],
@@ -158,7 +172,13 @@ const ThreadTreeList = ({
             data={rows}
             getItemType={getItemType}
             keyExtractor={keyExtractor}
-            extraData={{ themeName: rt.themeName, unreadByThreadId }}
+            extraData={{
+                themeName: rt.themeName,
+                unreadByThreadId,
+                unreadByFolderId,
+                runningThreads,
+                runningFolders,
+            }}
             ListEmptyComponent={
                 hideEmptyState ? null : (
                     <ThreadTreeListState

@@ -37,7 +37,6 @@ execFileSync(
     [
         'run',
         '--locked',
-        '--offline',
         '-p',
         'pioneer-client',
         '--features',
@@ -58,7 +57,6 @@ execFileSync(
     [
         'run',
         '--locked',
-        '--offline',
         '-p',
         'pioneer-client-ffi',
         '--features',

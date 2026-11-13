@@ -5,6 +5,7 @@ export type ComposerCapabilityKind =
       Plugin: {
         expected_revision: number;
         plugin_id: string;
+        icon?: ImageReference | null;
         [k: string]: unknown;
       };
     }
@@ -39,5 +40,13 @@ export interface ComposerCapability {
   id: string;
   kind: ComposerCapabilityKind;
   label: string;
+  [k: string]: unknown;
+}
+/**
+ * Immutable image reference. Gateway inventory exposes a native storage link, never image bytes.
+ */
+export interface ImageReference {
+  path: string;
+  revision: string;
   [k: string]: unknown;
 }

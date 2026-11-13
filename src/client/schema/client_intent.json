@@ -5,34 +5,6 @@
     {
       "type": "object",
       "properties": {
-        "connection_id": {
-          "type": [
-            "integer",
-            "null"
-          ],
-          "format": "uint64",
-          "minimum": 0
-        },
-        "intent": {
-          "$ref": "#/$defs/PluginIntent"
-        },
-        "kind": {
-          "type": "string",
-          "const": "plugins"
-        },
-        "workspace_id": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "kind",
-        "workspace_id",
-        "intent"
-      ]
-    },
-    {
-      "type": "object",
-      "properties": {
         "demand": {
           "$ref": "#/$defs/SessionDemand"
         },
@@ -556,6 +528,38 @@
         "scope",
         "demand",
         "generation"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "connection_id": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "intent": {
+          "$ref": "#/$defs/PluginIntent"
+        },
+        "kind": {
+          "type": "string",
+          "const": "plugins"
+        },
+        "workspace_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "workspace_id",
+        "intent"
       ]
     }
   ],
@@ -2339,22 +2343,6 @@
           "properties": {
             "kind": {
               "type": "string",
-              "const": "plugins"
-            },
-            "workspace_id": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "kind",
-            "workspace_id"
-          ]
-        },
-        {
-          "type": "object",
-          "properties": {
-            "kind": {
-              "type": "string",
               "const": "skills_upload"
             },
             "operation_id": {
@@ -2563,6 +2551,22 @@
             "kind",
             "workspace_id"
           ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "plugins"
+            },
+            "workspace_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "workspace_id"
+          ]
         }
       ]
     },
@@ -2682,6 +2686,17 @@
                 },
                 "plugin_id": {
                   "type": "string"
+                },
+                "icon": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/ImageReference"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null
                 }
               },
               "required": [
@@ -2929,26 +2944,6 @@
             },
             "kind": {
               "type": "string",
-              "const": "toggle_plugin"
-            },
-            "plugin_id": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "kind",
-            "identity",
-            "plugin_id"
-          ]
-        },
-        {
-          "type": "object",
-          "properties": {
-            "identity": {
-              "$ref": "#/$defs/ComposerOperationIdentity"
-            },
-            "kind": {
-              "type": "string",
               "const": "toggle_skill"
             },
             "selection": {
@@ -3011,6 +3006,26 @@
           "required": [
             "kind",
             "identity"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "identity": {
+              "$ref": "#/$defs/ComposerOperationIdentity"
+            },
+            "kind": {
+              "type": "string",
+              "const": "toggle_plugin"
+            },
+            "plugin_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "identity",
+            "plugin_id"
           ]
         }
       ]
@@ -3787,6 +3802,20 @@
             }
           ]
         },
+        "selected_context_authority": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "selected_context_window": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0
+        },
         "selected_mentions": {
           "type": "array",
           "items": {
@@ -3825,6 +3854,29 @@
           "items": {
             "$ref": "#/$defs/ComposerSkillSelection"
           }
+        },
+        "selected_service_mode": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "authority": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "authority"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       },
       "additionalProperties": false,
@@ -4411,6 +4463,50 @@
         {
           "type": "object",
           "properties": {
+            "identity": {
+              "$ref": "#/$defs/ComposerOperationIdentity"
+            },
+            "kind": {
+              "type": "string",
+              "const": "select_service_mode"
+            },
+            "id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "identity",
+            "id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "identity": {
+              "$ref": "#/$defs/ComposerOperationIdentity"
+            },
+            "kind": {
+              "type": "string",
+              "const": "select_context_window"
+            },
+            "window": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint64",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "kind",
+            "identity"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
             "effort": {
               "type": [
                 "string",
@@ -4505,10 +4601,47 @@
         "provider": {
           "type": "string"
         },
+        "selected_context_authority": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "selected_context_window": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0
+        },
         "selected_reasoning_effort": {
           "type": [
             "string",
             "null"
+          ]
+        },
+        "selected_service_mode": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "authority": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "authority"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
           ]
         }
       },
@@ -4629,6 +4762,22 @@
           "properties": {
             "kind": {
               "type": "string",
+              "const": "send_admission_failed"
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "message"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
               "const": "cancelled"
             }
           },
@@ -4675,9 +4824,9 @@
     "ComposerPickerKind": {
       "type": "string",
       "enum": [
-        "plugins",
         "skills",
-        "mcp"
+        "mcp",
+        "plugins"
       ]
     },
     "ComposerReplyTarget": {
@@ -4816,16 +4965,10 @@
     "GatewayMemorySettings": {
       "type": "object",
       "properties": {
-        "active_recall_enabled": {
-          "type": "boolean"
-        },
         "background_extraction_enabled": {
           "type": "boolean"
         },
         "debug_trace_enabled": {
-          "type": "boolean"
-        },
-        "deterministic_recall_enabled": {
           "type": "boolean"
         },
         "enabled": {
@@ -4849,8 +4992,6 @@
       },
       "required": [
         "enabled",
-        "deterministic_recall_enabled",
-        "active_recall_enabled",
         "tools_enabled",
         "proactive_writes_enabled",
         "background_extraction_enabled",
@@ -4877,6 +5018,20 @@
         {
           "type": "object",
           "properties": {
+            "context_authority": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "context_window": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint64",
+              "minimum": 0
+            },
             "instance": {
               "type": "string"
             },
@@ -4895,6 +5050,29 @@
             },
             "transport": {
               "$ref": "#/$defs/ModelSelectionTransport"
+            },
+            "service_mode": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "authority": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "authority"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "null"
+                }
+              ]
             }
           },
           "additionalProperties": false,
@@ -5318,6 +5496,7 @@
       "enum": [
         "openai",
         "openrouter",
+        "vercel-ai-gateway",
         "local"
       ]
     },
@@ -6046,7 +6225,6 @@
       "type": "string",
       "enum": [
         "Enabled",
-        "ActiveRecall",
         "ProactiveWrites",
         "BackgroundExtraction",
         "DebugTrace"
@@ -6247,10 +6425,47 @@
             "null"
           ]
         },
+        "selected_context_authority": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "selected_context_window": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0
+        },
         "selected_reasoning_effort": {
           "type": [
             "string",
             "null"
+          ]
+        },
+        "selected_service_mode": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "authority": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "authority"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
           ]
         }
       }
@@ -6525,6 +6740,18 @@
             "kind": {
               "type": "string",
               "const": "reset"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "back_from_plugin"
             }
           },
           "required": [
@@ -7177,7 +7404,7 @@
           "minLength": 1
         },
         "media_type": {
-          "$ref": "#/$defs/ProfileAvatarMediaType"
+          "$ref": "#/$defs/ImageMediaType"
         }
       },
       "additionalProperties": false,
@@ -7186,7 +7413,7 @@
         "content_base64"
       ]
     },
-    "ProfileAvatarMediaType": {
+    "ImageMediaType": {
       "type": "string",
       "enum": [
         "image/png",
@@ -7797,6 +8024,7 @@
       "type": "string",
       "enum": [
         "Chat",
+        "AuxiliaryChat",
         "SelfImprovement",
         "Embeddings",
         "Transcription"
@@ -8216,6 +8444,32 @@
             "kind",
             "route"
           ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "component": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/PluginComponentKey"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "kind": {
+              "type": "string",
+              "const": "plugin"
+            },
+            "plugin_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "plugin_id"
+          ]
         }
       ]
     },
@@ -8373,22 +8627,6 @@
           "required": [
             "kind",
             "enabled"
-          ]
-        },
-        {
-          "type": "object",
-          "properties": {
-            "kind": {
-              "type": "string",
-              "const": "preflight_model"
-            },
-            "selection": {
-              "$ref": "#/$defs/GatewayMemoryModelSelection"
-            }
-          },
-          "required": [
-            "kind",
-            "selection"
           ]
         },
         {
@@ -8664,6 +8902,22 @@
         {
           "type": "object",
           "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "kind": {
+              "type": "string",
+              "const": "voice_transcribe_while_recording"
+            }
+          },
+          "required": [
+            "kind",
+            "enabled"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
             "kind": {
               "type": "string",
               "const": "voice_model"
@@ -8779,6 +9033,62 @@
             "picker_id",
             "expected_owner",
             "model"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "expected_owner": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "kind": {
+              "type": "string",
+              "const": "select_service_mode"
+            },
+            "picker_id": {
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "picker_id",
+            "expected_owner",
+            "id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "expected_owner": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "kind": {
+              "type": "string",
+              "const": "select_context_window"
+            },
+            "picker_id": {
+              "type": "string"
+            },
+            "window": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint64",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "kind",
+            "picker_id",
+            "expected_owner"
           ]
         },
         {
@@ -8978,6 +9288,22 @@
             "kind": {
               "type": "string",
               "const": "refresh"
+            },
+            "workspace_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "workspace_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "load_more"
             },
             "workspace_id": {
               "type": "string"
@@ -9431,6 +9757,14 @@
           "type": "integer",
           "format": "uint",
           "minimum": 0
+        },
+        "viewed_row_ids": {
+          "description": "Actual viewability, separate from pagination/prefetch row demand.",
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
         },
         "viewed_through_turn_id": {
           "type": [
@@ -10023,6 +10357,20 @@
             }
           ]
         },
+        "context_authority": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "context_window": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0
+        },
         "execution_backend": {
           "anyOf": [
             {
@@ -10104,6 +10452,29 @@
         "workspace_id": {
           "description": "Workspace active when the voice session starts.\n\n`TurnStartParams` is still thread-scoped; the gateway keeps the\nworkspace here to validate/session-route the frozen voice context.",
           "type": "string"
+        },
+        "service_mode": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "authority": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "authority"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       },
       "required": [
@@ -10423,6 +10794,22 @@
         "workspace_id",
         "principal_id"
       ]
+    },
+    "ImageReference": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "revision": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "revision"
+      ],
+      "description": "Immutable image reference. Gateway inventory exposes a native storage link, never image bytes."
     }
   }
 }

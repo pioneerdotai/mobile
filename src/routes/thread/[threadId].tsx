@@ -1,6 +1,7 @@
+import { useThreadOpeningRoute } from '@/services/telemetry/thread-opening';
 import { useCallback, useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
-import Stack from 'expo-router/js-stack';
+import { Stack } from 'expo-router/js-stack';
 import { Text, View } from 'react-native';
 
 import ThreadScreen from '@/screens/thread';
@@ -27,6 +28,7 @@ const ExistingThreadRoute = () => {
         taskTitle?: string | string[];
     }>();
     const threadId = normalizeRouteParam(params.threadId);
+    const openingAttempt = useThreadOpeningRoute(threadId);
     const [actionsOpen, setActionsOpen] = useState(false);
     const openActions = useCallback(() => setActionsOpen(true), []);
     const closeActions = useCallback(() => setActionsOpen(false), []);
@@ -49,6 +51,7 @@ const ExistingThreadRoute = () => {
             {threadId ? (
                 <ThreadScreen
                     threadId={threadId}
+                    openingAttempt={openingAttempt}
                     threadActionsOpen={actionsOpen}
                     onThreadActionsClose={closeActions}
                     onOpenMembers={openMembers}

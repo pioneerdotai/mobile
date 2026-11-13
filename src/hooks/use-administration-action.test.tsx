@@ -17,7 +17,7 @@ describe('administration action presentation lifetime', () => {
         const result = deferred<string>();
         const mutationFn = jest.fn(() => result.promise);
         const onSuccess = jest.fn<() => void>();
-        const onDiscard = jest.fn<() => void>();
+        const onDiscard = jest.fn<(result: string, variables: string) => void>();
         let action!: ReturnType<typeof useAdministrationAction<string, string>>;
         const Probe = () => {
             action = useAdministrationAction<string, string>({ mutationFn, onSuccess, onDiscard });
@@ -47,7 +47,7 @@ describe('administration action presentation lifetime', () => {
     });
     it('clears a late activation on unmount and presents a synchronous error without repeating work', async () => {
         const result = deferred<string>();
-        const onDiscard = jest.fn<() => void>();
+        const onDiscard = jest.fn<(result: string, variables: string) => void>();
         const onError = jest.fn<() => void>();
         let action!: ReturnType<typeof useAdministrationAction<string, string>>;
         let fail = true;

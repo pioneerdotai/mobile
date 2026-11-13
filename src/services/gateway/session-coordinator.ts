@@ -37,7 +37,8 @@ export type MobileSessionDiagnosticStage =
 
 export type MobileSessionDiagnosticEvent = {
     stage: MobileSessionDiagnosticStage;
-    outcome: 'started' | 'succeeded' | 'failed';
+    outcome: 'started' | 'succeeded' | 'failed' | 'cancelled';
+    startedAtUnixMs?: number;
     timing?: { started_at_unix_ms: number; duration_ms: number };
 };
 
@@ -150,26 +151,32 @@ export const subscribeMobileSessionDiagnostics = (
     listener: (event: MobileSessionDiagnosticEvent) => void,
 ): (() => void) => {
     const delivered = new Map<string, string>();
-    const unsubscribe = mobileClientBinding.scope({ kind: 'session' }).subscribe(() => {
+    const observe = () => {
         for (const [key, timing] of Object.entries(
             gatewaySessionPublication()?.startup?.session_diagnostics ?? {},
         )) {
             const stage = sessionDiagnosticNames[key];
-            if (
-                !stage ||
-                timing.endpoint_id !== endpointId ||
-                delivered.get(key) === timing.state
-            ) {
+            const observation = JSON.stringify([
+                timing.endpoint_id,
+                timing.started_at_unix_ms,
+                timing.duration_ms,
+                timing.state,
+            ]);
+            if (!stage || timing.endpoint_id !== endpointId || delivered.get(key) === observation) {
                 continue;
             }
-            delivered.set(key, timing.state);
+            delivered.set(key, observation);
             try {
                 if (timing.state === 'pending') {
-                    listener({ stage, outcome: 'started' });
+                    listener({
+                        stage,
+                        outcome: 'started',
+                        startedAtUnixMs: timing.started_at_unix_ms,
+                    });
                 } else if (timing.duration_ms !== null && timing.duration_ms !== undefined) {
                     listener({
                         stage,
-                        outcome: timing.state === 'succeeded' ? 'succeeded' : 'failed',
+                        outcome: timing.state,
                         timing: {
                             started_at_unix_ms: timing.started_at_unix_ms,
                             duration_ms: timing.duration_ms,
@@ -180,8 +187,8 @@ export const subscribeMobileSessionDiagnostics = (
                 /* Diagnostics cannot interrupt publication delivery. */
             }
         }
-    });
-    return () => {
-        unsubscribe();
     };
+    const unsubscribe = mobileClientBinding.scope({ kind: 'session' }).subscribe(observe);
+    observe();
+    return unsubscribe;
 };

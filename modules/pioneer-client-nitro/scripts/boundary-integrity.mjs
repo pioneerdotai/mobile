@@ -63,11 +63,11 @@ const sourceContract = () => {
         throw new Error('PIONEER_RUST_ROOT is required for source verification');
     const rustRoot = path.resolve(process.env.PIONEER_RUST_ROOT);
     const metadata = JSON.parse(
-        execFileSync(
-            'cargo',
-            ['metadata', '--format-version', '1', '--no-deps', '--locked', '--offline'],
-            { cwd: rustRoot, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 },
-        ),
+        execFileSync('cargo', ['metadata', '--format-version', '1', '--no-deps', '--locked'], {
+            cwd: rustRoot,
+            encoding: 'utf8',
+            maxBuffer: 16 * 1024 * 1024,
+        }),
     );
     const packages = new Map(
         metadata.packages.map((pkg) => [path.dirname(pkg.manifest_path), pkg]),

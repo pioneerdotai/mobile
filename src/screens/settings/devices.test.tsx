@@ -4,12 +4,12 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import renderer, { act, type ReactTestRenderer } from 'react-test-renderer';
 
 const mockReact = React;
-const mockT = jest.fn((key: string) => key);
+const mockT = jest.fn<(key: string, options?: Record<string, unknown>) => string>((key) => key);
 const mockSetOptions = jest.fn();
 const mockPresent = jest.fn();
 const mockClose = jest.fn();
 const mockDispatchSettings = jest.fn();
-const mockActivationPresentation = jest.fn<() => Promise<unknown>>();
+const mockActivationPresentation = jest.fn<(input: { generation: number }) => Promise<unknown>>();
 let mockSessionState = {
     owner_generation: 7,
     sessions: [] as (typeof currentSession)[],

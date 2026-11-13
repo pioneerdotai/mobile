@@ -1,5 +1,5 @@
 import { useLocalSearchParams } from 'expo-router';
-import Stack from 'expo-router/js-stack';
+import { Stack } from 'expo-router/js-stack';
 import { Text, View } from 'react-native';
 
 import ThreadScreen from '@/screens/thread';

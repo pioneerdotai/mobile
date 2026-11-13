@@ -50,6 +50,12 @@ export type SemanticDestination =
       kind: 'settings';
       route: SettingsRoute;
       [k: string]: unknown;
+    }
+  | {
+      component?: PluginComponentKey | null;
+      kind: 'plugin';
+      plugin_id: string;
+      [k: string]: unknown;
     };
 export type ProviderFilter = 'Api' | 'Connected' | 'Cli';
 export type SkillId = string;
@@ -68,11 +74,16 @@ export interface ClientNavigationState {
   };
   lineage: TaskThreadLineage[];
   mcp_server_id?: string | null;
+  plugin_return?: SemanticDestination | null;
   providers?: ProviderFilter | null;
   settings: SettingsRoute;
   skill_id?: SkillId | null;
   workspace_id?: string | null;
   [k: string]: unknown;
+}
+export interface PluginComponentKey {
+  kind: string;
+  member_key: string;
 }
 export interface TaskThreadLineage {
   child_thread_id: string;

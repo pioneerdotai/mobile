@@ -7,6 +7,11 @@ export type TaskNotificationIntent =
       [k: string]: unknown;
     }
   | {
+      kind: 'load_more';
+      workspace_id: string;
+      [k: string]: unknown;
+    }
+  | {
       kind: 'dismiss';
       notification_id: string;
       revision: number;

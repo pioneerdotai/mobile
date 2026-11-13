@@ -3,6 +3,7 @@ import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 
 import type { Thread, ThreadFolder } from '@/client';
+import Spinner from '@/components/feedback/spinner';
 import { Box } from '@/components/primitives/box';
 import { HStack } from '@/components/primitives/hstack';
 import { Pressable } from '@/components/primitives/pressable';
@@ -12,6 +13,8 @@ import { threadTitle } from '@/services/threads/tree';
 
 type ThreadTreeFolderRowProps = {
     folder: ThreadFolder;
+    unreadCount?: number;
+    hasRunningTasks?: boolean;
     onPress?: () => void;
 };
 
@@ -24,11 +27,19 @@ type ThreadTreeThreadRowProps = {
     thread: Thread;
     untitledLabel: string;
     unreadCount?: number;
+    hasRunningTasks?: boolean;
     onPress?: () => void;
 };
 
-const ThreadTreeFolderRow = ({ folder, onPress }: ThreadTreeFolderRowProps) => {
+const ThreadTreeFolderRow = ({
+    folder,
+    unreadCount = 0,
+    hasRunningTasks = false,
+    onPress,
+}: ThreadTreeFolderRowProps) => {
     const { theme } = useUnistyles();
+    const { t } = useTranslation('threads');
+    const visibleUnreadCount = Math.max(0, Math.trunc(unreadCount));
 
     const content = (
         <>
@@ -45,6 +56,16 @@ const ThreadTreeFolderRow = ({ folder, onPress }: ThreadTreeFolderRowProps) => {
             {onPress ? (
                 <ChevronRight size={theme.space(5.5)} color={theme.colors.typography} />
             ) : null}
+            {visibleUnreadCount > 0 ? (
+                <Box
+                    accessible
+                    accessibilityLabel={t('threadUnreadCount', { count: visibleUnreadCount })}
+                    style={styles.unreadBadge}
+                >
+                    <Text style={styles.unreadBadgeText}>{visibleUnreadCount}</Text>
+                </Box>
+            ) : null}
+            {hasRunningTasks ? <ThreadTaskActivity /> : null}
         </>
     );
 
@@ -92,6 +113,7 @@ const ThreadTreeThreadRow = ({
     thread,
     untitledLabel,
     unreadCount = 0,
+    hasRunningTasks = false,
     onPress,
 }: ThreadTreeThreadRowProps) => {
     const { t } = useTranslation('threads');
@@ -114,6 +136,7 @@ const ThreadTreeThreadRow = ({
                             <Text style={styles.unreadBadgeText}>{visibleUnreadCount}</Text>
                         </Box>
                     ) : null}
+                    {hasRunningTasks ? <ThreadTaskActivity /> : null}
                 </HStack>
             </VStack>
         </HStack>
@@ -128,6 +151,21 @@ const ThreadTreeThreadRow = ({
     }
 
     return content;
+};
+
+const ThreadTaskActivity = () => {
+    const { theme } = useUnistyles();
+    const { t } = useTranslation('threads');
+    return (
+        <Box
+            accessible
+            accessibilityRole="progressbar"
+            accessibilityLabel={t('tasksRunning')}
+            style={styles.taskActivity}
+        >
+            <Spinner size={theme.space(3.5)} color={theme.colors.typography} />
+        </Box>
+    );
 };
 
 const styles = StyleSheet.create((theme, rt) => ({
@@ -164,6 +202,9 @@ const styles = StyleSheet.create((theme, rt) => ({
     },
     folderTitle: {
         fontWeight: theme.fontWeight.bold.fontWeight,
+    },
+    taskActivity: {
+        flexShrink: 0,
     },
     unreadBadge: {
         minWidth: theme.space(6),

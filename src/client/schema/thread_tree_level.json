@@ -126,6 +126,14 @@
         "nickname"
       ]
     },
+    "CLIAgentRuntimeKind": {
+      "type": "string",
+      "enum": [
+        "codex",
+        "claude",
+        "opencode"
+      ]
+    },
     "PermissionBehavior": {
       "type": "string",
       "enum": [
@@ -302,7 +310,6 @@
       "type": "string",
       "enum": [
         "turn_pre_prompt_context",
-        "turn_post_preflight_prompt_context",
         "turn_pre_prompt_compile",
         "runtime_turn_pre_context"
       ]
@@ -839,6 +846,17 @@
           "type": [
             "string",
             "null"
+          ]
+        },
+        "cli_runtime_kind": {
+          "description": "CLI provider identity projected from persisted execution bindings, independent of artwork.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CLIAgentRuntimeKind"
+            },
+            {
+              "type": "null"
+            }
           ]
         },
         "display_name": {

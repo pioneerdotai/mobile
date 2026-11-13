@@ -10,6 +10,11 @@ export type VoiceInputSettingsAction =
       [k: string]: unknown;
     }
   | {
+      enabled: boolean;
+      kind: 'set_transcribe_while_recording';
+      [k: string]: unknown;
+    }
+  | {
       kind: 'select';
       model?: string | null;
       provider?: string | null;

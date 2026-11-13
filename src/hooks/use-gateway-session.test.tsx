@@ -39,7 +39,9 @@ jest.mock('@/client', () => ({
 jest.mock('@/services/gateway/session-coordinator', () => ({
     subscribeMobileSessionDiagnostics: () => mockDiagnosticRemove,
 }));
-jest.mock('@/services/telemetry/mobile-startup', () => ({ mobileStartup: {} }));
+jest.mock('@/services/telemetry/mobile-startup', () => ({
+    mobileStartup: { isFinalized: () => false, subscribe: () => () => {} },
+}));
 const endpoint = {
     id: 'gateway',
     kind: 'remote',

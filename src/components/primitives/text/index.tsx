@@ -1,7 +1,7 @@
-import { Text as DefaultText } from 'react-native';
+import { Text as DefaultText, type TextProps as NativeTextProps } from 'react-native';
 import { StyleSheet, type UnistylesVariants } from 'react-native-unistyles';
 
-type ThemedText = DefaultText['props'] & UnistylesVariants<typeof styles>;
+type ThemedText = NativeTextProps & UnistylesVariants<typeof styles>;
 
 export type TextProps = ThemedText;
 

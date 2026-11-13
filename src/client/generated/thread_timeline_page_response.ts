@@ -30,6 +30,10 @@ export type TimelineBlockKind =
     }
   | {
       author?: TurnAuthorSnapshot | null;
+      /**
+       * Exact HTML content of this canonical response; source ownership is unchanged.
+       */
+      htmlPublications?: HtmlPublication[];
       itemId: string;
       kind: 'assistant_message';
       markdown?: MarkdownDocument | null;
@@ -170,6 +174,7 @@ export type PrincipalId = string;
 export type AgentExecutionId = string;
 export type AgentIdentityId = string;
 export type AgentIdentitySourceKind = 'native_agent' | 'cli_runtime_instance' | 'ephemeral';
+export type CLIAgentRuntimeKind = 'codex' | 'claude' | 'opencode';
 export type UserInput =
   | {
       text: string;
@@ -270,6 +275,14 @@ export type MarkdownBlock =
       [k: string]: unknown;
     }
   | {
+      alignments: MarkdownTableAlignment[];
+      headers: MarkdownInline1[];
+      rows: MarkdownInline1[][];
+      source: string;
+      type: 'table';
+      [k: string]: unknown;
+    }
+  | {
       type: 'rule';
       [k: string]: unknown;
     };
@@ -295,6 +308,7 @@ export type MarkdownMarkKind =
       url: string;
       [k: string]: unknown;
     };
+export type MarkdownTableAlignment = 'none' | 'left' | 'center' | 'right';
 export type CLIRuntimeRequestKind =
   'command_approval' | 'file_change_approval' | 'permission_approval' | 'user_input' | 'other';
 export type CLIRuntimePendingRequestStatus =
@@ -398,6 +412,10 @@ export interface TurnAuthorSnapshot {
    */
   agent?: AgentPresentationSnapshot | null;
   avatar_revision?: string | null;
+  /**
+   * CLI provider identity projected from persisted execution bindings, independent of artwork.
+   */
+  cli_runtime_kind?: CLIAgentRuntimeKind | null;
   display_name: string;
   nickname: string;
   [k: string]: unknown;
@@ -489,6 +507,7 @@ export interface TurnWorkBlock {
   hasMoreAfter: boolean;
   hasMoreBefore: boolean;
   hiddenWorkCount: number;
+  htmlPublications?: HtmlPublication[];
   lastWorkItemId?: string | null;
   presentation: TurnWorkPresentation;
   startedAtUnixMs?: number | null;
@@ -529,6 +548,18 @@ export interface AgentWorkNodeProjection {
   progressLabel?: string | null;
   progressRevision: number;
   state: AgentWorkNodeState;
+}
+/**
+ * An exact Gateway-created HTML publication. Generic HTML attachments never
+ * acquire this descriptor based on MIME alone.
+ */
+export interface HtmlPublication {
+  artifact: ArtifactRef;
+  callId: string;
+  threadId: string;
+  title: string;
+  turnId: string;
+  workspaceId: string;
 }
 export interface TaskTurnItem {
   agentRole?: string | null;

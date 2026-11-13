@@ -147,11 +147,9 @@ module.exports = {
             },
         ],
         [
-            'react-native-edge-to-edge',
+            'expo-navigation-bar',
             {
-                android: {
-                    enforceNavigationBarContrast: false,
-                },
+                enforceContrast: false,
             },
         ],
         [

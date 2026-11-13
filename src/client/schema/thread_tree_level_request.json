@@ -84,6 +84,14 @@
         "nickname"
       ]
     },
+    "CLIAgentRuntimeKind": {
+      "type": "string",
+      "enum": [
+        "codex",
+        "claude",
+        "opencode"
+      ]
+    },
     "PermissionBehavior": {
       "type": "string",
       "enum": [
@@ -260,7 +268,6 @@
       "type": "string",
       "enum": [
         "turn_pre_prompt_context",
-        "turn_post_preflight_prompt_context",
         "turn_pre_prompt_compile",
         "runtime_turn_pre_context"
       ]
@@ -656,6 +663,23 @@
             "$ref": "#/$defs/ThreadPlacement"
           }
         },
+        "running_task_folder_ids": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "running_task_thread_ids": {
+          "description": "Authorized task activity, independent of conversation/selection state.",
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
         "thread_ids_by_folder_id": {
           "type": "object",
           "additionalProperties": {
@@ -677,6 +701,15 @@
             "$ref": "#/$defs/ThreadUnreadSummary"
           }
         },
+        "unread_by_folder_id": {
+          "description": "Unread messages in each folder and all descendants, including zero totals.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "format": "uint64",
+            "minimum": 0
+          }
+        },
         "workspace_id": {
           "type": "string"
         }
@@ -686,6 +719,7 @@
         "workspace_id",
         "threads_by_id",
         "unread",
+        "unread_by_folder_id",
         "folders_by_id",
         "placements_by_thread_id",
         "child_folder_ids_by_parent_id",
@@ -902,6 +936,17 @@
           "type": [
             "string",
             "null"
+          ]
+        },
+        "cli_runtime_kind": {
+          "description": "CLI provider identity projected from persisted execution bindings, independent of artwork.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CLIAgentRuntimeKind"
+            },
+            {
+              "type": "null"
+            }
           ]
         },
         "display_name": {

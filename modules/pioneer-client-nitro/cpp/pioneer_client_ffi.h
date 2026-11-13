@@ -48,6 +48,7 @@ char* pioneer_client_ffi_workspace_create(PioneerClientFfi* client, const char* 
 char* pioneer_client_ffi_workspace_rename(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_composer_voice_capture_plan(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_voice_session_start(PioneerClientFfi* client, const char* input_json);
+// Binary payload: native-endian IEEE f32 mono source samples; empty for segment/finish.
 char* pioneer_client_ffi_voice_audio_chunk(PioneerClientFfi* client, const char* input_json, const uint8_t* pcm_ptr, size_t pcm_len);
 char* pioneer_client_ffi_voice_session_finalize(PioneerClientFfi* client, const char* input_json);
 char* pioneer_client_ffi_voice_session_cancel(PioneerClientFfi* client, const char* input_json);

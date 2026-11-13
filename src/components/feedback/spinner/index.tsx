@@ -9,7 +9,7 @@ import Animated, {
 import { useUnistyles, StyleSheet } from 'react-native-unistyles';
 
 import { Box, BoxProps } from '@/components/primitives/box';
-import { View } from 'react-native';
+import type { ViewInstance } from 'react-native';
 
 interface SpinnerProps {
     color?: string;
@@ -27,7 +27,7 @@ const styles = StyleSheet.create((theme) => ({
     }),
 }));
 
-const LoaderIcon = forwardRef<View, LoaderIconProps>(
+const LoaderIcon = forwardRef<ViewInstance, LoaderIconProps>(
     ({ color, size = 24, style }: LoaderIconProps, ref) => (
         <Box ref={ref} style={[styles.iconContainer(size), style]}>
             <Svg viewBox="0 0 100 100">

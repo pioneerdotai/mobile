@@ -39,6 +39,7 @@ export type SystemEventMessage =
       | 'RecoveryAttached'
       | 'RetryScheduled'
       | 'RetryStarted'
+      | 'CodexRequestRetried'
       | 'RecoverySucceeded'
       | 'RecoveryFailed'
       | 'ToolLoopBudgetExceeded'

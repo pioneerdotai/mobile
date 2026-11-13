@@ -44,5 +44,6 @@ export interface McpActionPublication {
   operation_id: number;
   revision: number;
   state: McpActionState;
+  uncertain: boolean;
   [k: string]: unknown;
 }

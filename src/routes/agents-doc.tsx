@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import Stack from 'expo-router/js-stack';
+import { Stack } from 'expo-router/js-stack';
 import { useRef, useState } from 'react';
 
 import AgentsDocScreen from '@/screens/agents-doc';

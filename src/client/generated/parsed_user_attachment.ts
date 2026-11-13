@@ -25,6 +25,7 @@ export interface ParsedUserAttachment {
   display_name: string;
   id: string;
   kind: ParsedUserAttachmentKind;
+  plugin_icon?: ImageReference | null;
   [k: string]: unknown;
 }
 export interface ArtifactRef {
@@ -48,5 +49,13 @@ export interface ArtifactPreviewRef {
   size_bytes?: number | null;
   status: ArtifactProjectionStatus;
   version_id: string;
+  [k: string]: unknown;
+}
+/**
+ * Immutable image reference. Gateway inventory exposes a native storage link, never image bytes.
+ */
+export interface ImageReference {
+  path: string;
+  revision: string;
   [k: string]: unknown;
 }

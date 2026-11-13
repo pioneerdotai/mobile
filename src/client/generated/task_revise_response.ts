@@ -63,7 +63,7 @@ export type ProviderFailureClass =
   | 'permission_denied'
   | 'unknown';
 /**
- * Allowlisted OpenRouter Chat Completions metadata.error_type values.
+ * Allowlisted provider error reasons, never raw provider messages or values.
  * Diagnostic only: these values must not drive recovery policy.
  */
 export type ProviderErrorReason =
@@ -71,6 +71,12 @@ export type ProviderErrorReason =
   | 'max_tokens_exceeded'
   | 'token_limit_exceeded'
   | 'string_too_long'
+  | 'missing_required_parameter'
+  | 'unsupported_parameter'
+  | 'invalid_parameter_value'
+  | 'invalid_parameter_type'
+  | 'responses_missing_required_item'
+  | 'responses_unpaired_tool_call'
   | 'authentication'
   | 'permission_denied'
   | 'payment_required'
@@ -118,6 +124,7 @@ export type TaskRunStatus =
   | 'blocked'
   | 'cancelled'
   | 'timed_out';
+export type TaskRunInputEncoding = 'utf8' | 'base64';
 export type TaskStatus =
   | 'draft'
   | 'scheduled'
@@ -163,6 +170,12 @@ export type AgentExecutionProfileSelection =
   | {
       exact: {
         profile_id: AgentExecutionProfileId;
+      };
+    }
+  | {
+      model: {
+        model_id: string;
+        provider_id?: string | null;
       };
     };
 export type TurnCapabilityKind =
@@ -336,10 +349,21 @@ export interface RecoveryProviderFailure {
   class: ProviderFailureClass;
   errorReason?: ProviderErrorReason | null;
   httpStatus?: number | null;
+  rawResponse?: ProviderErrorResponse | null;
   requestId?: ProviderRequestId | null;
   retryAfterMs?: number | null;
   stage: ProviderFailureStage;
   transport: ProviderTransportKind;
+}
+/**
+ * Original provider error response, bounded by the transport limit for local storage.
+ * Debug output deliberately omits all payloads; public prose never uses them.
+ */
+export interface ProviderErrorResponse {
+  body: string;
+  processingError?: string | null;
+  streamContext?: string | null;
+  truncated: boolean;
 }
 export interface TaskResult {
   artifacts?: TaskArtifact[];
@@ -417,6 +441,16 @@ export interface TaskRun {
   taskId: string;
   triggerId?: string | null;
   updatedAt: number;
+  /**
+   * External data accepted for this occurrence, preserved across retries.
+   */
+  triggerInput?: TaskRunTriggerInput | null;
+  [k: string]: unknown;
+}
+export interface TaskRunTriggerInput {
+  body: string;
+  contentType?: string | null;
+  encoding: TaskRunInputEncoding;
   [k: string]: unknown;
 }
 export interface Task {
@@ -489,6 +523,8 @@ export interface TaskComposerWork {
   [k: string]: unknown;
 }
 export interface TurnStartParams {
+  context_authority?: string | null;
+  context_window?: number | null;
   /**
    * Explicit, bounded cross-capsule delegations requested for this root
    * Agent execution. These are authorization inputs, never prompt content.
@@ -514,6 +550,10 @@ export interface TurnStartParams {
   sandbox_policy?: SandboxPolicy | null;
   thread_id: string;
   turn_id: string;
+  service_mode?: {
+    id: string;
+    authority: string;
+  } | null;
   [k: string]: unknown;
 }
 /**

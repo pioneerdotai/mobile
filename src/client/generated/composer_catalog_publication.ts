@@ -26,7 +26,7 @@ export type McpScopeKind = 'workspace' | 'user';
 export type McpCapabilityUnavailableReason =
   'DisabledByPolicy' | 'RuntimeUnavailable' | 'RuntimeNotReady' | 'NoToolCatalog';
 export type SkillId = string;
-export type ComposerPickerKind = 'plugins' | 'skills' | 'mcp';
+export type ComposerPickerKind = 'skills' | 'mcp' | 'plugins';
 export type ComposerPickerSelection =
   | {
       kind: 'immediate';
@@ -40,6 +40,11 @@ export type ComposerPickerSelection =
   | {
       kind: 'mcp';
       selected: string[];
+      [k: string]: unknown;
+    }
+  | {
+      capabilities: ComposerCapability[];
+      kind: 'plugins';
       [k: string]: unknown;
     };
 export type ComposerSkillSelection =
@@ -55,6 +60,39 @@ export type ComposerSkillSelection =
       [k: string]: unknown;
     };
 export type SkillPackId = string;
+export type ComposerCapabilityKind =
+  | {
+      Plugin: {
+        expected_revision: number;
+        plugin_id: string;
+        icon?: ImageReference | null;
+        [k: string]: unknown;
+      };
+    }
+  | {
+      Skill: {
+        owner?: string | null;
+        skill_id: SkillId;
+        slug: string;
+        source_kind: string;
+        [k: string]: unknown;
+      };
+    }
+  | {
+      McpServer: {
+        name: string;
+        scope_kind: McpScopeKind;
+        [k: string]: unknown;
+      };
+    }
+  | {
+      McpTool: {
+        raw_tool_name: string;
+        scope_kind: McpScopeKind;
+        server_name: string;
+        [k: string]: unknown;
+      };
+    };
 
 export interface ComposerCatalogPublication {
   draft_id: number;
@@ -93,6 +131,7 @@ export interface SelectableMcpCapability {
 }
 export interface PluginItem {
   components: PluginComponentItem[];
+  description?: string | null;
   diagnostics: PluginDiagnostic[];
   enabled: boolean;
   id: string;
@@ -101,6 +140,8 @@ export interface PluginItem {
   state: string;
   status: string;
   version?: string | null;
+  metadata?: PluginMetadata;
+  allow_implicit_invocation?: boolean;
   [k: string]: unknown;
 }
 export interface PluginComponentItem {
@@ -119,6 +160,45 @@ export interface PluginDiagnostic {
   path: string;
   [k: string]: unknown;
 }
+export interface PluginMetadata {
+  display_name?: string | null;
+  short_description?: string | null;
+  description?: string | null;
+  long_description?: string | null;
+  developer_name?: string | null;
+  homepage?: string | null;
+  repository?: string | null;
+  documentation_url?: string | null;
+  support_url?: string | null;
+  privacy_policy_url?: string | null;
+  terms_of_service_url?: string | null;
+  license?: string | null;
+  category?: string | null;
+  brand_color?: string | null;
+  author?: PluginAuthor;
+  keywords?: string[];
+  default_prompts?: string[];
+  logo?: ImageReference | null;
+  composer_icon?: ImageReference | null;
+  [k: string]: unknown;
+}
+/**
+ * Authored presentation only. None of these fields grant execution authority.
+ */
+export interface PluginAuthor {
+  name?: string | null;
+  email?: string | null;
+  url?: string | null;
+  [k: string]: unknown;
+}
+/**
+ * Immutable image reference. Gateway inventory exposes a native storage link, never image bytes.
+ */
+export interface ImageReference {
+  path: string;
+  revision: string;
+  [k: string]: unknown;
+}
 export interface ComposerPickerSession {
   identity: ComposerOperationIdentity;
   kind: ComposerPickerKind;
@@ -129,6 +209,12 @@ export interface ComposerOperationIdentity {
   draft_id: number;
   generation: number;
   thread_id: string;
+  [k: string]: unknown;
+}
+export interface ComposerCapability {
+  id: string;
+  kind: ComposerCapabilityKind;
+  label: string;
   [k: string]: unknown;
 }
 export interface SkillManagementProjection {

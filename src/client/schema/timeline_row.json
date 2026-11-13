@@ -384,6 +384,14 @@
         "failed"
       ]
     },
+    "CLIAgentRuntimeKind": {
+      "type": "string",
+      "enum": [
+        "codex",
+        "claude",
+        "opencode"
+      ]
+    },
     "ClientSecurityDiagnostic": {
       "type": "object",
       "properties": {
@@ -942,6 +950,17 @@
             "null"
           ]
         },
+        "cli_runtime_kind": {
+          "description": "CLI provider identity projected from persisted execution bindings, independent of artwork.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CLIAgentRuntimeKind"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "display_name": {
           "type": "string",
           "maxLength": 128,
@@ -1085,6 +1104,17 @@
         },
         "pluginId": {
           "type": "string"
+        },
+        "icon": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ImageReference"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         }
       },
       "required": [
@@ -1565,6 +1595,22 @@
         "edited",
         "deleted"
       ]
+    },
+    "ImageReference": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "revision": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "revision"
+      ],
+      "description": "Immutable image reference. Gateway inventory exposes a native storage link, never image bytes."
     }
   }
 }

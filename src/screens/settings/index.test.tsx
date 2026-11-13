@@ -129,6 +129,8 @@ jest.mock('@/stores/gateway', () => ({
         }),
 }));
 
+jest.mock('./components/voice-input', () => ({ VoiceInputSettings: () => null }));
+
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const SettingsScreen = require('./index').default as typeof import('./index').default;
 

@@ -43,25 +43,38 @@ export const useGatewaySession = (endpoint: GatewayEndpoint | null, sessionRevis
             networkAvailable = state.isConnected !== false;
             publish();
         });
-        const release = endpointId
-            ? subscribeMobileSessionDiagnostics(endpointId, (event) => {
-                  if (event.timing)
-                      mobileStartup.recordNativeStage(
-                          event.stage,
-                          event.timing,
-                          event.outcome === 'failed',
-                      );
-                  else if (event.outcome === 'started') mobileStartup.begin(event.stage);
-                  else if (event.outcome === 'succeeded') mobileStartup.succeed(event.stage);
-                  else mobileStartup.fail(event.stage);
-              })
-            : () => {};
+        let releaseDiagnostics =
+            endpointId && !mobileStartup.isFinalized()
+                ? subscribeMobileSessionDiagnostics(endpointId, (event) => {
+                      if (event.timing && event.outcome !== 'started')
+                          mobileStartup.recordNativeStage(event.stage, event.timing, event.outcome);
+                      else if (event.outcome === 'started' && event.startedAtUnixMs !== undefined)
+                          mobileStartup.beginNativeStage(event.stage, event.startedAtUnixMs);
+                      else if (event.outcome === 'succeeded') mobileStartup.succeed(event.stage);
+                      else if (event.outcome === 'cancelled') mobileStartup.cancel(event.stage);
+                      else mobileStartup.fail(event.stage);
+                  })
+                : () => {};
+        const stopDiagnostics = () => {
+            releaseDiagnostics();
+            releaseDiagnostics = () => {};
+        };
+        let stopObservingFinalization = () => {};
+        if (!mobileStartup.isFinalized()) {
+            stopObservingFinalization = mobileStartup.subscribe(() => {
+                if (mobileStartup.isFinalized()) {
+                    stopDiagnostics();
+                    stopObservingFinalization();
+                }
+            });
+        }
         publish();
         return () => {
             active = false;
             app.remove();
             network.remove();
-            release();
+            stopDiagnostics();
+            stopObservingFinalization();
             if (!mobileClientBinding.isClosed())
                 mobileClientBinding.dispatch({
                     schema_version: 1,

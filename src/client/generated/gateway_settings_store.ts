@@ -9,11 +9,17 @@ export type GatewayModelSelection =
       source: 'inherit';
     }
   | {
+      context_authority?: string | null;
+      context_window?: number | null;
       instance: string;
       model: string;
       reasoning_effort?: string | null;
       source: 'explicit';
       transport: ModelSelectionTransport;
+      service_mode?: {
+        id: string;
+        authority: string;
+      } | null;
     };
 export type ModelSelectionTransport = 'api' | 'codex' | 'claude';
 export type CLIAgentRuntimeKind = 'codex' | 'claude';
@@ -30,6 +36,7 @@ export type GatewayRemoteAccessErrorKind =
   | 'restart_limit_reached'
   | 'io'
   | 'unknown';
+export type GatewayBaseUrl = string;
 export type SelfImprovementStatusReason =
   | 'disabled'
   | 'model_unavailable'
@@ -56,7 +63,7 @@ export type SelfImprovementStatusReason =
   | 'unknown';
 export type SelfImprovementPhase =
   'disabled' | 'unavailable' | 'waiting' | 'running' | 'retrying' | 'failed' | 'no_change' | 'completed' | 'cancelled';
-export type GatewayThreadEpisodicVectorProvider = 'openai' | 'openrouter' | 'local';
+export type GatewayThreadEpisodicVectorProvider = 'openai' | 'openrouter' | 'vercel-ai-gateway' | 'local';
 export type GatewayVoiceInputProvider = 'local';
 
 export interface GatewaySettingsStore {
@@ -118,15 +125,20 @@ export interface GatewayGeneralSettings {
         source: 'inherit';
       }
     | {
+        context_authority?: string | null;
+        context_window?: number | null;
         instance: string;
         model: string;
         reasoning_effort?: string | null;
         source: 'explicit';
         transport: ModelSelectionTransport;
+        service_mode?: {
+          id: string;
+          authority: string;
+        } | null;
       };
   keepawake?: boolean;
   model_catalog?: GatewayModelCatalogSettings;
-  preflight_model?: GatewayMemoryModelSelection;
   telemetry_enabled?: boolean;
   [k: string]: unknown;
 }
@@ -139,25 +151,17 @@ export interface GatewayModelCatalogSettings {
   proxy_url?: string | null;
   [k: string]: unknown;
 }
-export interface GatewayMemoryModelSelection {
-  model?: string | null;
-  model_provider?: string | null;
-  source?: 'thread' | 'custom';
-  [k: string]: unknown;
-}
 export interface GatewayMemorySettings {
-  active_recall_enabled: boolean;
   background_extraction_enabled: boolean;
   debug_trace_enabled: boolean;
-  deterministic_recall_enabled: boolean;
   enabled: boolean;
   proactive_writes_enabled: boolean;
-  proactive_writes_model?: GatewayMemoryModelSelection1;
+  proactive_writes_model?: GatewayMemoryModelSelection;
   strict_diagnostics_enabled: boolean;
   tools_enabled: boolean;
   [k: string]: unknown;
 }
-export interface GatewayMemoryModelSelection1 {
+export interface GatewayMemoryModelSelection {
   model?: string | null;
   model_provider?: string | null;
   source?: 'thread' | 'custom';
@@ -175,6 +179,10 @@ export interface GatewayRemoteAccessSettings {
 export interface GatewayRemoteAccessStatusSnapshot {
   error_kind?: GatewayRemoteAccessErrorKind | null;
   message?: string | null;
+  /**
+   * Present only for the currently authenticated relay connection.
+   */
+  public_base_url?: GatewayBaseUrl | null;
   state?: 'disabled' | 'starting' | 'connected' | 'reconnecting' | 'failed' | 'stopped';
   updated_at_unix?: number | null;
   [k: string]: unknown;
@@ -225,10 +233,8 @@ export interface GatewayThreadEpisodicSettings {
   max_candidate_work: number;
   max_hit_chars: number;
   max_prompt_chars: number;
-  max_segments: number;
   min_relevancy: number;
   min_results: number;
-  near_capacity_percent: number;
   recall_enabled: boolean;
   retry_base_delay_secs: number;
   retry_max_delay_secs: number;
@@ -261,6 +267,7 @@ export interface GatewayVoiceInputSettings {
   model?: string | null;
   provider?: GatewayVoiceInputProvider | null;
   runtime?: GatewayVoiceInputRuntimeSnapshot;
+  transcribe_while_recording?: boolean;
   [k: string]: unknown;
 }
 export interface GatewayVoiceInputRuntimeSnapshot {
@@ -277,5 +284,6 @@ export interface GatewayVoiceInputSettings1 {
   model?: string | null;
   provider?: GatewayVoiceInputProvider | null;
   runtime?: GatewayVoiceInputRuntimeSnapshot;
+  transcribe_while_recording?: boolean;
   [k: string]: unknown;
 }

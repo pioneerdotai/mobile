@@ -37,6 +37,7 @@ export type PrincipalId = string;
 export type AgentExecutionId = string;
 export type AgentIdentityId = string;
 export type AgentIdentitySourceKind = 'native_agent' | 'cli_runtime_instance' | 'ephemeral';
+export type CLIAgentRuntimeKind = 'codex' | 'claude' | 'opencode';
 export type ThreadStatus = 'Active' | 'Idle' | 'Closed';
 export type PermissionBehavior = 'allow' | 'ask' | 'deny';
 export type TurnPermissionMode = 'full_access' | 'auto_accept_edits' | 'supervised';
@@ -54,10 +55,7 @@ export type PromptManifestDiagnosticCode =
   | 'hook_best_effort_failed'
   | 'capability_rejected';
 export type PromptManifestHookPhase =
-  | 'turn_pre_prompt_context'
-  | 'turn_post_preflight_prompt_context'
-  | 'turn_pre_prompt_compile'
-  | 'runtime_turn_pre_context';
+  'turn_pre_prompt_context' | 'turn_pre_prompt_compile' | 'runtime_turn_pre_context';
 export type PromptManifestHookContributionKind =
   'prompt_context' | 'thread_context' | 'prompt_section' | 'prompt_manifest_diagnostic' | 'runtime_failure';
 export type PromptManifestHookTruncation = 'none' | 'hook' | 'prompt' | 'hook_and_prompt' | 'unknown';
@@ -107,6 +105,11 @@ export interface ThreadTreeSnapshot {
   placements_by_thread_id: {
     [k: string]: ThreadPlacement;
   };
+  running_task_folder_ids?: string[];
+  /**
+   * Authorized task activity, independent of conversation/selection state.
+   */
+  running_task_thread_ids?: string[];
   thread_ids_by_folder_id: {
     [k: string]: string[];
   };
@@ -114,6 +117,12 @@ export interface ThreadTreeSnapshot {
     [k: string]: Thread;
   };
   unread: ThreadUnreadSummary[];
+  /**
+   * Unread messages in each folder and all descendants, including zero totals.
+   */
+  unread_by_folder_id: {
+    [k: string]: number;
+  };
   workspace_id: string;
 }
 export interface ThreadAgentsDocSummary {
@@ -145,6 +154,8 @@ export interface ThreadPlacement {
 export interface Thread {
   agent_nickname?: string | null;
   agent_role?: string | null;
+  context_authority?: string | null;
+  context_window?: number | null;
   created_at: number;
   id: string;
   mode: ThreadMode;
@@ -166,6 +177,10 @@ export interface Thread {
   updated_at: number;
   visibility?: ThreadVisibility | null;
   workspace_id: string;
+  service_mode?: {
+    id: string;
+    authority: string;
+  } | null;
   [k: string]: unknown;
 }
 export interface TurnAuthorSnapshot {
@@ -177,6 +192,10 @@ export interface TurnAuthorSnapshot {
    */
   agent?: AgentPresentationSnapshot | null;
   avatar_revision?: string | null;
+  /**
+   * CLI provider identity projected from persisted execution bindings, independent of artwork.
+   */
+  cli_runtime_kind?: CLIAgentRuntimeKind | null;
   display_name: string;
   nickname: string;
   [k: string]: unknown;
@@ -206,6 +225,10 @@ export interface Turn {
   reply_to_turn_id?: string | null;
   status: TurnStatus;
   turn_kind?: 'conversation' | 'task_run';
+  /**
+   * Immutable owner of the admitted work; absent historical wire values own their turn.
+   */
+  work_owner?: 'turn' | 'detached_task';
   [k: string]: unknown;
 }
 export interface TurnMention {

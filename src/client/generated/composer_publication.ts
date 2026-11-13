@@ -38,6 +38,7 @@ export type ComposerCapabilityKind =
       Plugin: {
         expected_revision: number;
         plugin_id: string;
+        icon?: ImageReference | null;
         [k: string]: unknown;
       };
     }
@@ -171,6 +172,7 @@ export type PersistedActorRef =
 export type AgentExecutionId = string;
 export type AgentIdentityId = string;
 export type AgentIdentitySourceKind = 'native_agent' | 'cli_runtime_instance' | 'ephemeral';
+export type CLIAgentRuntimeKind = 'codex' | 'claude' | 'opencode';
 export type ThreadMode = ('Message' | 'Agent') | 'Chat';
 export type TimelineReplyState = 'available' | 'deleted' | 'unavailable';
 export type AgentRouteAction =
@@ -282,7 +284,6 @@ export type AgentExecutionBackend =
       type: 'acpAgentRuntime';
       [k: string]: unknown;
     };
-export type CLIAgentRuntimeKind = 'codex' | 'claude';
 export type TurnPermissionMode = 'full_access' | 'auto_accept_edits' | 'supervised';
 export type UserInput =
   | {
@@ -409,6 +410,7 @@ export interface ComposerPublication {
   model_display?: ComposerModelDisplayPublication | null;
   operation?: ComposerOperationPublication | null;
   permission_options: ComposerPermissionModeOption[];
+  preparing_send?: ComposerPreparingSend | null;
   reconciliation?: ExecutionDraftReconciliation | null;
   revision: number;
   runtime_selection?: ComposerRuntimePublication | null;
@@ -436,6 +438,8 @@ export interface ComposerDomainState {
   mode_manually_selected?: boolean;
   model_manually_selected?: boolean;
   reply_target?: ComposerReplyTarget | null;
+  selected_context_authority?: string | null;
+  selected_context_window?: number | null;
   selected_mentions?: ComposerMentionSelection[];
   selected_mode?: ('Message' | 'Agent') | 'Chat';
   selected_model?: string | null;
@@ -443,6 +447,10 @@ export interface ComposerDomainState {
   selected_provider?: string | null;
   selected_reasoning_effort?: string | null;
   skill_selections?: ComposerSkillSelection[];
+  selected_service_mode?: {
+    id: string;
+    authority: string;
+  } | null;
 }
 export interface ComposerAttachment {
   file_name: string;
@@ -478,6 +486,14 @@ export interface ComposerCapability {
   id: string;
   kind: ComposerCapabilityKind;
   label: string;
+  [k: string]: unknown;
+}
+/**
+ * Immutable image reference. Gateway inventory exposes a native storage link, never image bytes.
+ */
+export interface ImageReference {
+  path: string;
+  revision: string;
   [k: string]: unknown;
 }
 /**
@@ -551,6 +567,7 @@ export interface TurnPluginCapabilitySummary {
   expectedRevision: number;
   label: string;
   pluginId: string;
+  icon?: ImageReference | null;
   [k: string]: unknown;
 }
 export interface TurnSkillPackCapabilitySummary {
@@ -582,6 +599,10 @@ export interface TurnAuthorSnapshot {
    */
   agent?: AgentPresentationSnapshot | null;
   avatar_revision?: string | null;
+  /**
+   * CLI provider identity projected from persisted execution bindings, independent of artwork.
+   */
+  cli_runtime_kind?: CLIAgentRuntimeKind | null;
   display_name: string;
   nickname: string;
   [k: string]: unknown;
@@ -720,6 +741,8 @@ export interface VoiceTurnContext {
    */
   capabilities?: TurnCapability[];
   cli_runtime_options?: TurnCLIRuntimeOptions | null;
+  context_authority?: string | null;
+  context_window?: number | null;
   execution_backend?: AgentExecutionBackend | null;
   mode?: ThreadMode | null;
   model?: string | null;
@@ -756,6 +779,10 @@ export interface VoiceTurnContext {
    * workspace here to validate/session-route the frozen voice context.
    */
   workspace_id: string;
+  service_mode?: {
+    id: string;
+    authority: string;
+  } | null;
   [k: string]: unknown;
 }
 export interface TurnCapability {
@@ -834,6 +861,16 @@ export interface ComposerPermissionModeOption {
   description: string;
   label: string;
   mode: TurnPermissionMode;
+  [k: string]: unknown;
+}
+/**
+ * Captured local Send payload, visible until the prepared optimistic commit.
+ * This is Composer feedback, not a server turn or uploaded-artifact receipt.
+ */
+export interface ComposerPreparingSend {
+  attachments: ComposerAttachment[];
+  identity: ComposerOperationIdentity;
+  text: string;
   [k: string]: unknown;
 }
 export interface ExecutionDraftReconciliation {

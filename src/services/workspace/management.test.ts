@@ -1,22 +1,23 @@
 import { beforeEach, expect, it, jest } from '@jest/globals';
-import type { GatewayEndpoint, WorkspaceCreateResult } from '@/client';
+import type { GatewayEndpoint, WorkspaceCreateResult, pioneerClient } from '@/client';
+import type { persistGatewayWorkspace } from '@/client/onboarding';
 import { createWorkspace, renameWorkspace, switchActiveGatewayWorkspace } from './management';
 
-const mockCreate = jest.fn<() => Promise<WorkspaceCreateResult>>();
-const mockSwitch = jest.fn<() => Promise<{ status: 'noop' }>>();
-const mockRename = jest.fn<() => Promise<{ status: 'unchanged' }>>();
-const mockPersist = jest.fn<() => Promise<void>>();
+const mockCreate = jest.fn<typeof pioneerClient.workspaceCreate>();
+const mockSwitch = jest.fn<typeof pioneerClient.workspaceSwitch>();
+const mockRename = jest.fn<typeof pioneerClient.workspaceRename>();
+const mockPersist = jest.fn<typeof persistGatewayWorkspace>();
 const mockDrain = jest.fn();
 jest.mock('@/client', () => ({
     pioneerClient: {
-        workspaceCreate: (...args: []) => mockCreate(...args),
-        workspaceSwitch: (...args: []) => mockSwitch(...args),
-        workspaceRename: (...args: []) => mockRename(...args),
+        workspaceCreate: (...args: Parameters<typeof mockCreate>) => mockCreate(...args),
+        workspaceSwitch: (...args: Parameters<typeof mockSwitch>) => mockSwitch(...args),
+        workspaceRename: (...args: Parameters<typeof mockRename>) => mockRename(...args),
     },
     PioneerClientNativeError: class extends Error {},
 }));
 jest.mock('@/client/onboarding', () => ({
-    persistGatewayWorkspace: (...args: []) => mockPersist(...args),
+    persistGatewayWorkspace: (...args: Parameters<typeof mockPersist>) => mockPersist(...args),
 }));
 jest.mock('@/client/workspaces', () => ({
     drainWorkspacePublications: (...args: unknown[]) => mockDrain(...args),

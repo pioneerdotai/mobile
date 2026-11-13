@@ -482,6 +482,11 @@ export type GatewayNotification =
       [k: string]: unknown;
     }
   | {
+      kind: 'task_completion_inbox_changed';
+      params: TaskCompletionInboxChangedNotification;
+      [k: string]: unknown;
+    }
+  | {
       kind: 'task_tree_changed';
       params: TaskTreeChangedNotification;
       [k: string]: unknown;
@@ -658,6 +663,7 @@ export type PersistedActorRef =
 export type AgentExecutionId = string;
 export type AgentIdentityId = string;
 export type AgentIdentitySourceKind = 'native_agent' | 'cli_runtime_instance' | 'ephemeral';
+export type CLIAgentRuntimeKind = 'codex' | 'claude' | 'opencode';
 export type ThreadStatus = 'Active' | 'Idle' | 'Closed';
 export type PermissionBehavior = 'allow' | 'ask' | 'deny';
 export type TurnPermissionMode = 'full_access' | 'auto_accept_edits' | 'supervised';
@@ -675,10 +681,7 @@ export type PromptManifestDiagnosticCode =
   | 'hook_best_effort_failed'
   | 'capability_rejected';
 export type PromptManifestHookPhase =
-  | 'turn_pre_prompt_context'
-  | 'turn_post_preflight_prompt_context'
-  | 'turn_pre_prompt_compile'
-  | 'runtime_turn_pre_context';
+  'turn_pre_prompt_context' | 'turn_pre_prompt_compile' | 'runtime_turn_pre_context';
 export type PromptManifestHookContributionKind =
   'prompt_context' | 'thread_context' | 'prompt_section' | 'prompt_manifest_diagnostic' | 'runtime_failure';
 export type PromptManifestHookTruncation = 'none' | 'hook' | 'prompt' | 'hook_and_prompt' | 'unknown';
@@ -694,6 +697,24 @@ export type ThreadParticipantChangeKind = 'added' | 'removed';
 export type ThreadAgentsDocStatus = 'draft' | 'active' | 'archived';
 export type TimelineChangeReason = 'backfill' | 'live_event' | 'state_changed' | 'page_invalidated';
 export type AgentWorkNodeState = 'queued' | 'running' | 'completed' | 'failed' | 'cancelled' | 'blocked';
+export type ArtifactKind =
+  | 'file'
+  | 'text'
+  | 'image'
+  | 'audio'
+  | 'video'
+  | 'pdf'
+  | 'spreadsheet'
+  | 'archive'
+  | 'json'
+  | 'generated_image'
+  | 'screenshot'
+  | 'workspace_file'
+  | 'directory_manifest'
+  | 'unknown';
+export type ArtifactProjectionKind = 'plain_text' | 'thumbnail' | 'json_summary' | 'pdf_text';
+export type ArtifactProjectionStatus = 'pending' | 'ready' | 'failed' | 'stale';
+export type ArtifactStatus = 'ready' | 'pending' | 'quarantined' | 'deleted' | 'missing_external_source' | 'failed';
 export type TurnWorkPresentation = 'expanded_live' | 'collapsed_after_final' | 'expanded_terminal_no_final';
 export type TurnWorkState =
   'starting' | 'running' | 'waiting_for_approval' | 'stalled' | 'completed' | 'blocked' | 'failed' | 'interrupted';
@@ -997,24 +1018,6 @@ export type UserMessageAttachment =
       type: 'mcpTool';
       [k: string]: unknown;
     };
-export type ArtifactKind =
-  | 'file'
-  | 'text'
-  | 'image'
-  | 'audio'
-  | 'video'
-  | 'pdf'
-  | 'spreadsheet'
-  | 'archive'
-  | 'json'
-  | 'generated_image'
-  | 'screenshot'
-  | 'workspace_file'
-  | 'directory_manifest'
-  | 'unknown';
-export type ArtifactProjectionKind = 'plain_text' | 'thumbnail' | 'json_summary' | 'pdf_text';
-export type ArtifactProjectionStatus = 'pending' | 'ready' | 'failed' | 'stale';
-export type ArtifactStatus = 'ready' | 'pending' | 'quarantined' | 'deleted' | 'missing_external_source' | 'failed';
 export type SkillPackId = string;
 export type SkillId = string;
 export type McpScopeKind = 'workspace' | 'user';
@@ -1036,6 +1039,14 @@ export type MarkdownBlock =
       language?: string | null;
       text: string;
       type: 'code';
+      [k: string]: unknown;
+    }
+  | {
+      alignments: MarkdownTableAlignment[];
+      headers: MarkdownInline1[];
+      rows: MarkdownInline1[][];
+      source: string;
+      type: 'table';
       [k: string]: unknown;
     }
   | {
@@ -1064,6 +1075,7 @@ export type MarkdownMarkKind =
       url: string;
       [k: string]: unknown;
     };
+export type MarkdownTableAlignment = 'none' | 'left' | 'center' | 'right';
 export type AgentMessagePhase = 'final_answer' | 'commentary';
 export type SystemEventLevel = 'info' | 'warning' | 'error';
 export type TaskExecutorKind = 'agent' | 'tool' | 'workflow' | 'webhook' | 'system';
@@ -1497,7 +1509,7 @@ export type ProviderFailureClass =
   | 'permission_denied'
   | 'unknown';
 /**
- * Allowlisted OpenRouter Chat Completions metadata.error_type values.
+ * Allowlisted provider error reasons, never raw provider messages or values.
  * Diagnostic only: these values must not drive recovery policy.
  */
 export type ProviderErrorReason =
@@ -1505,6 +1517,12 @@ export type ProviderErrorReason =
   | 'max_tokens_exceeded'
   | 'token_limit_exceeded'
   | 'string_too_long'
+  | 'missing_required_parameter'
+  | 'unsupported_parameter'
+  | 'invalid_parameter_value'
+  | 'invalid_parameter_type'
+  | 'responses_missing_required_item'
+  | 'responses_unpaired_tool_call'
   | 'authentication'
   | 'permission_denied'
   | 'payment_required'
@@ -1559,6 +1577,12 @@ export type AgentExecutionProfileSelection =
       exact: {
         profile_id: AgentExecutionProfileId;
       };
+    }
+  | {
+      model: {
+        model_id: string;
+        provider_id?: string | null;
+      };
     };
 export type TurnCapabilityKind =
   | {
@@ -1608,7 +1632,6 @@ export type AgentExecutionBackend =
       type: 'acpAgentRuntime';
       [k: string]: unknown;
     };
-export type CLIAgentRuntimeKind = 'codex' | 'claude';
 export type UserInput =
   | {
       text: string;
@@ -1729,6 +1752,7 @@ export type TaskRunStatus =
   | 'blocked'
   | 'cancelled'
   | 'timed_out';
+export type TaskRunInputEncoding = 'utf8' | 'base64';
 export type TaskAgentInputAttachmentKind = 'file' | 'artifact' | 'url';
 export type TaskAgentInputReferenceKind = 'thread' | 'turn' | 'task' | 'task_run' | 'artifact';
 export type TaskAgentContextMode = 'inherit_parent' | 'last_n_turns' | 'summary_only' | 'empty' | 'custom';
@@ -1937,6 +1961,7 @@ export type GatewayRemoteAccessErrorKind =
   | 'restart_limit_reached'
   | 'io'
   | 'unknown';
+export type GatewayBaseUrl = string;
 export type GatewayThreadEpisodicVectorLocalModelStatus =
   'not_selected' | 'unknown' | 'missing' | 'downloading' | 'installed' | 'failed';
 export type GatewayThreadEpisodicVectorRefillStatus =
@@ -2029,6 +2054,8 @@ export interface ThreadStartedNotification {
   [k: string]: unknown;
 }
 export interface Thread {
+  context_authority?: string | null;
+  context_window?: number | null;
   agent_nickname?: string | null;
   agent_role?: string | null;
   created_at: number;
@@ -2052,6 +2079,10 @@ export interface Thread {
   updated_at: number;
   visibility?: ThreadVisibility | null;
   workspace_id: string;
+  service_mode?: {
+    id: string;
+    authority: string;
+  } | null;
   [k: string]: unknown;
 }
 export interface TurnAuthorSnapshot {
@@ -2063,6 +2094,10 @@ export interface TurnAuthorSnapshot {
    */
   agent?: AgentPresentationSnapshot | null;
   avatar_revision?: string | null;
+  /**
+   * CLI provider identity projected from persisted execution bindings, independent of artwork.
+   */
+  cli_runtime_kind?: CLIAgentRuntimeKind | null;
   display_name: string;
   nickname: string;
   [k: string]: unknown;
@@ -2092,6 +2127,10 @@ export interface Turn {
   reply_to_turn_id?: string | null;
   status: TurnStatus;
   turn_kind?: 'conversation' | 'task_run';
+  /**
+   * Immutable owner of the admitted work; absent historical wire values own their turn.
+   */
+  work_owner?: 'turn' | 'detached_task';
   [k: string]: unknown;
 }
 export interface TurnMention {
@@ -2342,6 +2381,7 @@ export interface TurnWorkBlock {
   hasMoreAfter: boolean;
   hasMoreBefore: boolean;
   hiddenWorkCount: number;
+  htmlPublications?: HtmlPublication[];
   lastWorkItemId?: string | null;
   presentation: TurnWorkPresentation;
   startedAtUnixMs?: number | null;
@@ -2378,6 +2418,41 @@ export interface AgentWorkNodeProjection {
   progressLabel?: string | null;
   progressRevision: number;
   state: AgentWorkNodeState;
+}
+/**
+ * An exact Gateway-created HTML publication. Generic HTML attachments never
+ * acquire this descriptor based on MIME alone.
+ */
+export interface HtmlPublication {
+  artifact: ArtifactRef;
+  callId: string;
+  threadId: string;
+  title: string;
+  turnId: string;
+  workspaceId: string;
+}
+export interface ArtifactRef {
+  artifact_id: string;
+  display_name: string;
+  kind: ArtifactKind;
+  mime_type?: string | null;
+  preview?: ArtifactPreviewRef | null;
+  sha256?: string | null;
+  size_bytes?: number | null;
+  status: ArtifactStatus;
+  version_id?: string | null;
+  [k: string]: unknown;
+}
+export interface ArtifactPreviewRef {
+  artifact_id: string;
+  blob_id?: string | null;
+  mime_type?: string | null;
+  projection_kind: ArtifactProjectionKind;
+  sha256?: string | null;
+  size_bytes?: number | null;
+  status: ArtifactProjectionStatus;
+  version_id: string;
+  [k: string]: unknown;
 }
 export interface TurnPermissionRequestOpenedNotification {
   request: TurnPermissionApprovalRequest;
@@ -2487,29 +2562,6 @@ export interface ItemStartedNotification {
   workspace_id: string;
   [k: string]: unknown;
 }
-export interface ArtifactRef {
-  artifact_id: string;
-  display_name: string;
-  kind: ArtifactKind;
-  mime_type?: string | null;
-  preview?: ArtifactPreviewRef | null;
-  sha256?: string | null;
-  size_bytes?: number | null;
-  status: ArtifactStatus;
-  version_id?: string | null;
-  [k: string]: unknown;
-}
-export interface ArtifactPreviewRef {
-  artifact_id: string;
-  blob_id?: string | null;
-  mime_type?: string | null;
-  projection_kind: ArtifactProjectionKind;
-  sha256?: string | null;
-  size_bytes?: number | null;
-  status: ArtifactProjectionStatus;
-  version_id: string;
-  [k: string]: unknown;
-}
 export interface TurnSkillCapabilitySummary {
   label: string;
   owner?: string | null;
@@ -2528,6 +2580,15 @@ export interface TurnPluginCapabilitySummary {
   expectedRevision: number;
   label: string;
   pluginId: string;
+  icon?: ImageReference | null;
+  [k: string]: unknown;
+}
+/**
+ * Immutable image reference. Gateway inventory exposes a native storage link, never image bytes.
+ */
+export interface ImageReference {
+  path: string;
+  revision: string;
   [k: string]: unknown;
 }
 export interface TurnSkillPackCapabilitySummary {
@@ -2961,6 +3022,7 @@ export interface ArtifactBindingSummary {
   tool_call_id?: string | null;
   turn_id?: string | null;
   turn_item_id?: string | null;
+  version_id?: string | null;
   workspace_id: string;
   [k: string]: unknown;
 }
@@ -3086,10 +3148,21 @@ export interface RecoveryProviderFailure {
   class: ProviderFailureClass;
   errorReason?: ProviderErrorReason | null;
   httpStatus?: number | null;
+  rawResponse?: ProviderErrorResponse | null;
   requestId?: ProviderRequestId | null;
   retryAfterMs?: number | null;
   stage: ProviderFailureStage;
   transport: ProviderTransportKind;
+}
+/**
+ * Original provider error response, bounded by the transport limit for local storage.
+ * Debug output deliberately omits all payloads; public prose never uses them.
+ */
+export interface ProviderErrorResponse {
+  body: string;
+  processingError?: string | null;
+  streamContext?: string | null;
+  truncated: boolean;
 }
 export interface TaskLifecyclePolicy {
   attachment: TaskAttachmentMode;
@@ -3110,6 +3183,8 @@ export interface TaskComposerWork {
   [k: string]: unknown;
 }
 export interface TurnStartParams {
+  context_authority?: string | null;
+  context_window?: number | null;
   /**
    * Explicit, bounded cross-capsule delegations requested for this root
    * Agent execution. These are authorization inputs, never prompt content.
@@ -3135,6 +3210,10 @@ export interface TurnStartParams {
   sandbox_policy?: SandboxPolicy | null;
   thread_id: string;
   turn_id: string;
+  service_mode?: {
+    id: string;
+    authority: string;
+  } | null;
   [k: string]: unknown;
 }
 /**
@@ -3277,6 +3356,10 @@ export interface TaskTrigger {
   status: TaskTriggerStatus;
   taskId: string;
   updatedAt: number;
+  /**
+   * Opaque keystore reference; the bearer secret is never persisted here.
+   */
+  webhookSecretRef?: string | null;
   [k: string]: unknown;
 }
 export interface TaskTriggerCatchUpPolicy {
@@ -3322,6 +3405,16 @@ export interface TaskRun {
   taskId: string;
   triggerId?: string | null;
   updatedAt: number;
+  /**
+   * External data accepted for this occurrence, preserved across retries.
+   */
+  triggerInput?: TaskRunTriggerInput | null;
+  [k: string]: unknown;
+}
+export interface TaskRunTriggerInput {
+  body: string;
+  contentType?: string | null;
+  encoding: TaskRunInputEncoding;
   [k: string]: unknown;
 }
 export interface TaskRunCreatedNotification {
@@ -3479,6 +3572,10 @@ export interface TaskAgentReviewPolicy {
   requireExplicitAcceptance: boolean;
   resolutionStrategy: TaskResultReviewResolutionStrategy;
   reviewers?: TaskResultReviewerSpec[];
+  /**
+   * Mandatory-review marker: never resolve this policy through the legacy review timeout. Legacy records default to false.
+   */
+  disableTimeoutAcceptance?: boolean;
   [k: string]: unknown;
 }
 export interface TaskResultReviewerSpec {
@@ -3699,6 +3796,13 @@ export interface PublicTaskArtifact {
   artifactId?: string | null;
   mimeType?: string | null;
   versionId?: string | null;
+  [k: string]: unknown;
+}
+/**
+ * An invalidation only: clients reload authoritative rows and count.
+ */
+export interface TaskCompletionInboxChangedNotification {
+  workspaceId: string;
   [k: string]: unknown;
 }
 export interface TaskTreeChangedNotification {
@@ -3945,6 +4049,10 @@ export interface GatewayRemoteAccessStatusChangedNotification {
 export interface GatewayRemoteAccessStatusSnapshot {
   error_kind?: GatewayRemoteAccessErrorKind | null;
   message?: string | null;
+  /**
+   * Present only for the currently authenticated relay connection.
+   */
+  public_base_url?: GatewayBaseUrl | null;
   state?: 'disabled' | 'starting' | 'connected' | 'reconnecting' | 'failed' | 'stopped';
   updated_at_unix?: number | null;
   [k: string]: unknown;
@@ -3966,6 +4074,7 @@ export interface GatewayVoiceInputSettings {
   model?: string | null;
   provider?: GatewayVoiceInputProvider | null;
   runtime?: GatewayVoiceInputRuntimeSnapshot;
+  transcribe_while_recording?: boolean;
   [k: string]: unknown;
 }
 export interface GatewayVoiceInputRuntimeSnapshot {
