@@ -349,12 +349,6 @@
             "null"
           ]
         },
-        "version_id": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
         "workspace_id": {
           "type": "string"
         }

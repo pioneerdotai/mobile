@@ -47,6 +47,9 @@
     "input_reset_generation"
   ],
   "$defs": {
+    "GatewayBaseUrl": {
+      "type": "string"
+    },
     "GatewayGeneralSettings": {
       "type": "object",
       "properties": {
@@ -177,6 +180,20 @@
         {
           "type": "object",
           "properties": {
+            "context_authority": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "context_window": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint64",
+              "minimum": 0
+            },
             "instance": {
               "type": "string"
             },
@@ -195,6 +212,29 @@
             },
             "transport": {
               "$ref": "#/$defs/ModelSelectionTransport"
+            },
+            "service_mode": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "authority": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "authority"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "null"
+                }
+              ]
             }
           },
           "additionalProperties": false,
@@ -287,6 +327,17 @@
           "type": [
             "string",
             "null"
+          ]
+        },
+        "public_base_url": {
+          "description": "Present only for the currently authenticated relay connection.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/GatewayBaseUrl"
+            },
+            {
+              "type": "null"
+            }
           ]
         },
         "state": {
@@ -473,11 +524,6 @@
           "format": "uint32",
           "minimum": 0
         },
-        "max_segments": {
-          "type": "integer",
-          "format": "uint32",
-          "minimum": 0
-        },
         "min_relevancy": {
           "type": "number",
           "format": "float"
@@ -486,10 +532,6 @@
           "type": "integer",
           "format": "uint32",
           "minimum": 0
-        },
-        "near_capacity_percent": {
-          "type": "number",
-          "format": "double"
         },
         "recall_enabled": {
           "type": "boolean"
@@ -531,15 +573,13 @@
         "max_hit_chars",
         "default_max_candidates",
         "max_candidate_work",
-        "max_segments",
         "min_relevancy",
         "min_results",
         "snippet_chars",
         "index_batch_limit",
         "retry_base_delay_secs",
         "retry_max_delay_secs",
-        "max_attempts",
-        "near_capacity_percent"
+        "max_attempts"
       ]
     },
     "GatewayThreadEpisodicVectorLocalModelStatus": {
@@ -558,6 +598,7 @@
       "enum": [
         "openai",
         "openrouter",
+        "vercel-ai-gateway",
         "local"
       ]
     },
@@ -764,8 +805,7 @@
       "enum": [
         "api",
         "codex",
-        "claude",
-        "opencode"
+        "claude"
       ]
     },
     "SelfImprovementPhase": {

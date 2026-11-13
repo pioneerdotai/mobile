@@ -36,6 +36,7 @@ export interface McpListItem {
   display_name?: string | null;
   id: string;
   name: string;
+  plugin_owner?: PluginOwner | null;
   policy: McpPolicyState;
   prompts_count: number;
   required: boolean;
@@ -45,6 +46,11 @@ export interface McpListItem {
   scope: McpScopeKind;
   status: McpServerStatus;
   tools_count: number;
+  [k: string]: unknown;
+}
+export interface PluginOwner {
+  member_key: string;
+  plugin_id: string;
   [k: string]: unknown;
 }
 export interface McpPolicyState {

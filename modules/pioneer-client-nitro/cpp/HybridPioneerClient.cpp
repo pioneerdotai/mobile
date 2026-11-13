@@ -280,6 +280,10 @@ HybridPioneerClient::voiceSessionStartJson(const std::string& inputJson) {
   return callWithClientAsync(pioneer_client_ffi_voice_session_start, inputJson);
 }
 
+std::string HybridPioneerClient::pluginShellJson(const std::string& inputJson) {
+  return callWithClient(pioneer_client_ffi_plugin_shell, inputJson);
+}
+
 std::string HybridPioneerClient::voiceAudioChunkJson(
     const std::string& inputJson,
     const std::shared_ptr<margelo::nitro::ArrayBuffer>& sourceSamples) {

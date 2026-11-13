@@ -127,11 +127,6 @@ export type GatewayNotification =
       [k: string]: unknown;
     }
   | {
-      kind: 'workspace_push';
-      params: WorkspacePushNotification;
-      [k: string]: unknown;
-    }
-  | {
       kind: 'thread_agents_doc_changed';
       params: ThreadAgentsDocChangedNotification;
       [k: string]: unknown;
@@ -299,6 +294,11 @@ export type GatewayNotification =
   | {
       kind: 'skills_changed';
       params: SkillsChangedNotification;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'plugins_changed';
+      params: PluginsChangedNotification;
       [k: string]: unknown;
     }
   | {
@@ -681,9 +681,7 @@ export type PromptManifestDiagnosticCode =
   | 'hook_best_effort_failed'
   | 'capability_rejected';
 export type PromptManifestHookPhase =
-  | 'turn_pre_prompt_context'
-  | 'turn_pre_prompt_compile'
-  | 'runtime_turn_pre_context';
+  'turn_pre_prompt_context' | 'turn_pre_prompt_compile' | 'runtime_turn_pre_context';
 export type PromptManifestHookContributionKind =
   'prompt_context' | 'thread_context' | 'prompt_section' | 'prompt_manifest_diagnostic' | 'runtime_failure';
 export type PromptManifestHookTruncation = 'none' | 'hook' | 'prompt' | 'hook_and_prompt' | 'unknown';
@@ -696,17 +694,6 @@ export type TurnStatus = 'InProgress' | 'Completed' | 'Failed' | 'Interrupted' |
  */
 export type ThreadVisibility = 'private' | 'workspace';
 export type ThreadParticipantChangeKind = 'added' | 'removed';
-export type TaskRunStatus =
-  | 'queued'
-  | 'starting'
-  | 'running'
-  | 'waiting'
-  | 'waiting_review'
-  | 'succeeded'
-  | 'failed'
-  | 'blocked'
-  | 'cancelled'
-  | 'timed_out';
 export type ThreadAgentsDocStatus = 'draft' | 'active' | 'archived';
 export type TimelineChangeReason = 'backfill' | 'live_event' | 'state_changed' | 'page_invalidated';
 export type AgentWorkNodeState = 'queued' | 'running' | 'completed' | 'failed' | 'cancelled' | 'blocked';
@@ -1009,6 +996,11 @@ export type UserMessageAttachment =
   | {
       capability: TurnSkillCapabilitySummary;
       type: 'skill';
+      [k: string]: unknown;
+    }
+  | {
+      capability: TurnPluginCapabilitySummary;
+      type: 'plugin';
       [k: string]: unknown;
     }
   | {
@@ -1517,7 +1509,7 @@ export type ProviderFailureClass =
   | 'permission_denied'
   | 'unknown';
 /**
- * Allowlisted OpenRouter Chat Completions metadata.error_type values.
+ * Allowlisted provider error reasons, never raw provider messages or values.
  * Diagnostic only: these values must not drive recovery policy.
  */
 export type ProviderErrorReason =
@@ -1525,6 +1517,12 @@ export type ProviderErrorReason =
   | 'max_tokens_exceeded'
   | 'token_limit_exceeded'
   | 'string_too_long'
+  | 'missing_required_parameter'
+  | 'unsupported_parameter'
+  | 'invalid_parameter_value'
+  | 'invalid_parameter_type'
+  | 'responses_missing_required_item'
+  | 'responses_unpaired_tool_call'
   | 'authentication'
   | 'permission_denied'
   | 'payment_required'
@@ -1579,8 +1577,20 @@ export type AgentExecutionProfileSelection =
       exact: {
         profile_id: AgentExecutionProfileId;
       };
+    }
+  | {
+      model: {
+        model_id: string;
+        provider_id?: string | null;
+      };
     };
 export type TurnCapabilityKind =
+  | {
+      expectedRevision: number;
+      pluginId: string;
+      type: 'plugin';
+      [k: string]: unknown;
+    }
   | {
       packId?: SkillPackId | null;
       skillId: SkillId;
@@ -1731,6 +1741,18 @@ export type TaskTriggerCatchUpMode = 'run_once_for_latest_missed' | 'skip_missed
 export type TaskManualActor = 'owner' | 'workspace_member' | 'system' | 'any';
 export type TaskDependencyTriggerMode = 'all_succeeded' | 'any_succeeded' | 'all_terminal';
 export type TaskTriggerStatus = 'active' | 'paused' | 'exhausted' | 'cancelled';
+export type TaskRunStatus =
+  | 'queued'
+  | 'starting'
+  | 'running'
+  | 'waiting'
+  | 'waiting_review'
+  | 'succeeded'
+  | 'failed'
+  | 'blocked'
+  | 'cancelled'
+  | 'timed_out';
+export type TaskRunInputEncoding = 'utf8' | 'base64';
 export type TaskAgentInputAttachmentKind = 'file' | 'artifact' | 'url';
 export type TaskAgentInputReferenceKind = 'thread' | 'turn' | 'task' | 'task_run' | 'artifact';
 export type TaskAgentContextMode = 'inherit_parent' | 'last_n_turns' | 'summary_only' | 'empty' | 'custom';
@@ -1939,6 +1961,7 @@ export type GatewayRemoteAccessErrorKind =
   | 'restart_limit_reached'
   | 'io'
   | 'unknown';
+export type GatewayBaseUrl = string;
 export type GatewayThreadEpisodicVectorLocalModelStatus =
   'not_selected' | 'unknown' | 'missing' | 'downloading' | 'installed' | 'failed';
 export type GatewayThreadEpisodicVectorRefillStatus =
@@ -2031,6 +2054,8 @@ export interface ThreadStartedNotification {
   [k: string]: unknown;
 }
 export interface Thread {
+  context_authority?: string | null;
+  context_window?: number | null;
   agent_nickname?: string | null;
   agent_role?: string | null;
   created_at: number;
@@ -2054,6 +2079,10 @@ export interface Thread {
   updated_at: number;
   visibility?: ThreadVisibility | null;
   workspace_id: string;
+  service_mode?: {
+    id: string;
+    authority: string;
+  } | null;
   [k: string]: unknown;
 }
 export interface TurnAuthorSnapshot {
@@ -2098,6 +2127,10 @@ export interface Turn {
   reply_to_turn_id?: string | null;
   status: TurnStatus;
   turn_kind?: 'conversation' | 'task_run';
+  /**
+   * Immutable owner of the admitted work; absent historical wire values own their turn.
+   */
+  work_owner?: 'turn' | 'detached_task';
   [k: string]: unknown;
 }
 export interface TurnMention {
@@ -2202,100 +2235,6 @@ export interface ThreadParticipantsChangedNotification {
   [k: string]: unknown;
 }
 export interface ThreadTreeChangedNotification {
-  workspace_id: string;
-  [k: string]: unknown;
-}
-export interface WorkspacePushNotification {
-  epoch: string;
-  inbox?: TaskInboxPatch | null;
-  indicators: ThreadIndicatorPatch[];
-  resyncRequired: boolean;
-  revision: number;
-  snapshot: boolean;
-  /**
-   * Compact metadata and indicators share one revision and atomic reduction.
-   */
-  threadSummaries?: ThreadMetadataPatch[];
-  workspaceId: string;
-  [k: string]: unknown;
-}
-export interface TaskInboxPatch {
-  /**
-   * Authoritative keyset frontier when snapshot or replace is true.
-   */
-  nextCursor?: string | null;
-  removes: string[];
-  /**
-   * Authoritative inbox replacement, also used by a read-all mutation ack.
-   */
-  replace?: boolean;
-  unreadCount: number;
-  upserts: TaskCompletionInboxEntry[];
-  [k: string]: unknown;
-}
-/**
- * One saved terminal run in the current user's workspace inbox. Contains no
- * execution-thread identity, raw failure, HTML, or full result payload.
- */
-export interface TaskCompletionInboxEntry {
-  completedAt: number;
-  /**
-   * Exact server keyset ordering key. Empty only for legacy servers.
-   */
-  completedKey?: string;
-  error?: string | null;
-  readAt?: number | null;
-  runId: string;
-  status: TaskRunStatus;
-  summary?: string | null;
-  taskId: string;
-  threadId: string;
-  threadTitle: string;
-  title: string;
-  workspaceId: string;
-  [k: string]: unknown;
-}
-export interface ThreadIndicatorPatch {
-  hasRunningTasks?: boolean | null;
-  threadId: string;
-  unreadCount?: number | null;
-  [k: string]: unknown;
-}
-export interface ThreadMetadataPatch {
-  /**
-   * True only when directory projection actually shortened the preview.
-   * A real shorter/empty edit is authoritative when this is false.
-   */
-  previewTruncated: boolean;
-  thread: Thread1;
-  [k: string]: unknown;
-}
-/**
- * Canonical thin directory metadata; never a full timeline/history snapshot.
- */
-export interface Thread1 {
-  agent_nickname?: string | null;
-  agent_role?: string | null;
-  created_at: number;
-  id: string;
-  mode: ThreadMode;
-  model: string;
-  model_provider: string;
-  name?: string | null;
-  origin_kind?: ('task_run' | 'system') | 'collaborative' | 'direct_message' | 'user';
-  preview: string;
-  /**
-   * Immutable author of the Turn that owns `preview`. Thread trees and
-   * notifications must not pair preview text with the latest responding
-   * execution or reconstruct this value from mutable agent settings.
-   */
-  preview_author?: TurnAuthorSnapshot | null;
-  reasoning_effort?: string | null;
-  sidebar_visibility?: 'visible' | 'hidden';
-  status: ThreadStatus;
-  turns: Turn[];
-  updated_at: number;
-  visibility?: ThreadVisibility | null;
   workspace_id: string;
   [k: string]: unknown;
 }
@@ -2637,6 +2576,21 @@ export interface TurnSkillPackPresentationSummary {
   packId: SkillPackId;
   [k: string]: unknown;
 }
+export interface TurnPluginCapabilitySummary {
+  expectedRevision: number;
+  label: string;
+  pluginId: string;
+  icon?: ImageReference | null;
+  [k: string]: unknown;
+}
+/**
+ * Immutable image reference. Gateway inventory exposes a native storage link, never image bytes.
+ */
+export interface ImageReference {
+  path: string;
+  revision: string;
+  [k: string]: unknown;
+}
 export interface TurnSkillPackCapabilitySummary {
   label: string;
   packId: SkillPackId;
@@ -2963,6 +2917,12 @@ export interface SkillPackChangedItem {
   pack_id: SkillPackId;
   [k: string]: unknown;
 }
+export interface PluginsChangedNotification {
+  plugin_id: string;
+  revision: number;
+  workspace_id: string;
+  [k: string]: unknown;
+}
 export interface SkillsUploadChunkAckNotification {
   len: number;
   next_offset: number;
@@ -3188,10 +3148,21 @@ export interface RecoveryProviderFailure {
   class: ProviderFailureClass;
   errorReason?: ProviderErrorReason | null;
   httpStatus?: number | null;
+  rawResponse?: ProviderErrorResponse | null;
   requestId?: ProviderRequestId | null;
   retryAfterMs?: number | null;
   stage: ProviderFailureStage;
   transport: ProviderTransportKind;
+}
+/**
+ * Original provider error response, bounded by the transport limit for local storage.
+ * Debug output deliberately omits all payloads; public prose never uses them.
+ */
+export interface ProviderErrorResponse {
+  body: string;
+  processingError?: string | null;
+  streamContext?: string | null;
+  truncated: boolean;
 }
 export interface TaskLifecyclePolicy {
   attachment: TaskAttachmentMode;
@@ -3203,10 +3174,6 @@ export interface TaskLifecyclePolicy {
 export interface TaskMetadata {
   composerWork?: TaskComposerWork | null;
   data?: TaskValue | null;
-  /**
-   * Server-owned durable decision to stop future runs.
-   */
-  finishRequest?: TaskFinishRequest | null;
   labels?: string[];
   [k: string]: unknown;
 }
@@ -3216,6 +3183,8 @@ export interface TaskComposerWork {
   [k: string]: unknown;
 }
 export interface TurnStartParams {
+  context_authority?: string | null;
+  context_window?: number | null;
   /**
    * Explicit, bounded cross-capsule delegations requested for this root
    * Agent execution. These are authorization inputs, never prompt content.
@@ -3241,6 +3210,10 @@ export interface TurnStartParams {
   sandbox_policy?: SandboxPolicy | null;
   thread_id: string;
   turn_id: string;
+  service_mode?: {
+    id: string;
+    authority: string;
+  } | null;
   [k: string]: unknown;
 }
 /**
@@ -3339,18 +3312,6 @@ export interface SandboxPolicy {
   mode: SandboxMode;
   [k: string]: unknown;
 }
-/**
- * A user-directed final soft stop; this is not evidence that the goal succeeded.
- */
-export interface TaskFinishRequest {
-  /**
-   * Earliest admitted run whose real outcome contributes to the final state.
-   */
-  firstRunNumber: number;
-  reason?: string | null;
-  requestedAt: number;
-  [k: string]: unknown;
-}
 export interface TaskResult {
   artifacts?: TaskArtifact[];
   completedByRunId?: string | null;
@@ -3395,6 +3356,10 @@ export interface TaskTrigger {
   status: TaskTriggerStatus;
   taskId: string;
   updatedAt: number;
+  /**
+   * Opaque keystore reference; the bearer secret is never persisted here.
+   */
+  webhookSecretRef?: string | null;
   [k: string]: unknown;
 }
 export interface TaskTriggerCatchUpPolicy {
@@ -3440,6 +3405,16 @@ export interface TaskRun {
   taskId: string;
   triggerId?: string | null;
   updatedAt: number;
+  /**
+   * External data accepted for this occurrence, preserved across retries.
+   */
+  triggerInput?: TaskRunTriggerInput | null;
+  [k: string]: unknown;
+}
+export interface TaskRunTriggerInput {
+  body: string;
+  contentType?: string | null;
+  encoding: TaskRunInputEncoding;
   [k: string]: unknown;
 }
 export interface TaskRunCreatedNotification {
@@ -3597,6 +3572,10 @@ export interface TaskAgentReviewPolicy {
   requireExplicitAcceptance: boolean;
   resolutionStrategy: TaskResultReviewResolutionStrategy;
   reviewers?: TaskResultReviewerSpec[];
+  /**
+   * Mandatory-review marker: never resolve this policy through the legacy review timeout. Legacy records default to false.
+   */
+  disableTimeoutAcceptance?: boolean;
   [k: string]: unknown;
 }
 export interface TaskResultReviewerSpec {
@@ -4070,6 +4049,10 @@ export interface GatewayRemoteAccessStatusChangedNotification {
 export interface GatewayRemoteAccessStatusSnapshot {
   error_kind?: GatewayRemoteAccessErrorKind | null;
   message?: string | null;
+  /**
+   * Present only for the currently authenticated relay connection.
+   */
+  public_base_url?: GatewayBaseUrl | null;
   state?: 'disabled' | 'starting' | 'connected' | 'reconnecting' | 'failed' | 'stopped';
   updated_at_unix?: number | null;
   [k: string]: unknown;
@@ -4087,11 +4070,11 @@ export interface GatewayVoiceInputStatusChangedNotification {
   [k: string]: unknown;
 }
 export interface GatewayVoiceInputSettings {
-  transcribe_while_recording?: boolean;
   enabled?: boolean;
   model?: string | null;
   provider?: GatewayVoiceInputProvider | null;
   runtime?: GatewayVoiceInputRuntimeSnapshot;
+  transcribe_while_recording?: boolean;
   [k: string]: unknown;
 }
 export interface GatewayVoiceInputRuntimeSnapshot {

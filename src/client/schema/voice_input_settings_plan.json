@@ -64,8 +64,7 @@
       "type": "string",
       "enum": [
         "codex",
-        "claude",
-        "opencode"
+        "claude"
       ]
     },
     "GatewayCliRuntimeInstanceSettings": {
@@ -266,6 +265,20 @@
         {
           "type": "object",
           "properties": {
+            "context_authority": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "context_window": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint64",
+              "minimum": 0
+            },
             "instance": {
               "type": "string"
             },
@@ -284,6 +297,29 @@
             },
             "transport": {
               "$ref": "#/$defs/ModelSelectionTransport"
+            },
+            "service_mode": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "authority": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "authority"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "null"
+                }
+              ]
             }
           },
           "additionalProperties": false,
@@ -524,14 +560,6 @@
           "format": "uint32",
           "minimum": 0
         },
-        "max_segments": {
-          "type": [
-            "integer",
-            "null"
-          ],
-          "format": "uint32",
-          "minimum": 0
-        },
         "min_relevancy": {
           "type": [
             "number",
@@ -546,13 +574,6 @@
           ],
           "format": "uint32",
           "minimum": 0
-        },
-        "near_capacity_percent": {
-          "type": [
-            "number",
-            "null"
-          ],
-          "format": "double"
         },
         "recall_enabled": {
           "type": [
@@ -599,6 +620,7 @@
       "enum": [
         "openai",
         "openrouter",
+        "vercel-ai-gateway",
         "local"
       ]
     },
@@ -694,8 +716,7 @@
       "enum": [
         "api",
         "codex",
-        "claude",
-        "opencode"
+        "claude"
       ]
     },
     "VoiceInputSettingsPlanRejection": {

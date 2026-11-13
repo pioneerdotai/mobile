@@ -16,7 +16,6 @@ export type SidebarNodeId =
       kind: 'agents_document';
       [k: string]: unknown;
     };
-export type ThreadTreeLoadState = 'pending' | 'ready' | 'failed';
 export type ThreadAgentsDocStatus = 'draft' | 'active' | 'archived';
 export type ThreadMode = ('Message' | 'Agent') | 'Chat';
 export type PersistedActorRef =
@@ -56,9 +55,7 @@ export type PromptManifestDiagnosticCode =
   | 'hook_best_effort_failed'
   | 'capability_rejected';
 export type PromptManifestHookPhase =
-  | 'turn_pre_prompt_context'
-  | 'turn_pre_prompt_compile'
-  | 'runtime_turn_pre_context';
+  'turn_pre_prompt_context' | 'turn_pre_prompt_compile' | 'runtime_turn_pre_context';
 export type PromptManifestHookContributionKind =
   'prompt_context' | 'thread_context' | 'prompt_section' | 'prompt_manifest_diagnostic' | 'runtime_failure';
 export type PromptManifestHookTruncation = 'none' | 'hook' | 'prompt' | 'hook_and_prompt' | 'unknown';
@@ -77,7 +74,6 @@ export interface ThreadTreePublication {
   };
   changes: SidebarChangeSet;
   error?: string | null;
-  load?: ThreadTreeLoadReceipt | null;
   loading: boolean;
   revision: number;
   snapshot: ThreadTreeSnapshot;
@@ -94,15 +90,6 @@ export interface SidebarChangeSet {
   changed: SidebarNodeId[];
   removed: SidebarNodeId[];
   reordered_folders: string[];
-  [k: string]: unknown;
-}
-/**
- * Evidence from the existing directory request owner. Local unread/metadata
- * projections may change `loading`, but cannot complete a full-tree request.
- */
-export interface ThreadTreeLoadReceipt {
-  generation: number;
-  state: ThreadTreeLoadState;
   [k: string]: unknown;
 }
 export interface ThreadTreeSnapshot {
@@ -167,6 +154,8 @@ export interface ThreadPlacement {
 export interface Thread {
   agent_nickname?: string | null;
   agent_role?: string | null;
+  context_authority?: string | null;
+  context_window?: number | null;
   created_at: number;
   id: string;
   mode: ThreadMode;
@@ -188,6 +177,10 @@ export interface Thread {
   updated_at: number;
   visibility?: ThreadVisibility | null;
   workspace_id: string;
+  service_mode?: {
+    id: string;
+    authority: string;
+  } | null;
   [k: string]: unknown;
 }
 export interface TurnAuthorSnapshot {
@@ -232,6 +225,10 @@ export interface Turn {
   reply_to_turn_id?: string | null;
   status: TurnStatus;
   turn_kind?: 'conversation' | 'task_run';
+  /**
+   * Immutable owner of the admitted work; absent historical wire values own their turn.
+   */
+  work_owner?: 'turn' | 'detached_task';
   [k: string]: unknown;
 }
 export interface TurnMention {

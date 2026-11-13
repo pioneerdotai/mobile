@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { router } from 'expo-router';
 import { BottomSheetModal, BottomSheetScrollView } from '@gorhom/bottom-sheet';
-import { File, Image, Zap } from 'lucide-react-native';
+import { File, Image, Zap, Box as PluginIcon } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useShallow } from 'zustand/react/shallow';
@@ -155,6 +155,11 @@ const ComposerAttachmentMenuSheet = () => {
         router.push({ pathname: '/composer-capabilities/mcp' });
     }, [close]);
 
+    const openPlugins = useCallback(() => {
+        close();
+        router.push({ pathname: '/composer-capabilities/plugins' });
+    }, [close]);
+
     return (
         <BottomSheetModal
             ref={bottomSheetRef}
@@ -196,8 +201,20 @@ const ComposerAttachmentMenuSheet = () => {
                                             color={theme.colors.typography}
                                         />
                                     }
-                                    label={t('composerSkills')}
+                                    label={t('composerAddSkill')}
                                     onPress={openSkills}
+                                />
+                            ) : null}
+                            {canUseSkills && canUseMcp ? (
+                                <MenuItem
+                                    icon={
+                                        <PluginIcon
+                                            size={theme.space(5)}
+                                            color={theme.colors.typography}
+                                        />
+                                    }
+                                    label={t('composerAddPlugins')}
+                                    onPress={openPlugins}
                                 />
                             ) : null}
                             {canUseMcp ? (
@@ -208,7 +225,7 @@ const ComposerAttachmentMenuSheet = () => {
                                             color={theme.colors.typography}
                                         />
                                     }
-                                    label={t('composerMcp')}
+                                    label={t('composerAddMcp')}
                                     onPress={openMcp}
                                 />
                             ) : null}

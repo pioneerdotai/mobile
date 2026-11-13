@@ -2,16 +2,16 @@
 
 export type VoiceInputSettingsAction =
   | {
-      enabled: boolean;
-      kind: 'set_transcribe_while_recording';
-      [k: string]: unknown;
-    }
-  | {
       kind: 'enable';
       [k: string]: unknown;
     }
   | {
       kind: 'disable';
+      [k: string]: unknown;
+    }
+  | {
+      enabled: boolean;
+      kind: 'set_transcribe_while_recording';
       [k: string]: unknown;
     }
   | {
@@ -32,11 +32,11 @@ export interface VoiceInputSettingsPlanRequest {
   [k: string]: unknown;
 }
 export interface GatewayVoiceInputSettings {
-  transcribe_while_recording?: boolean;
   enabled?: boolean;
   model?: string | null;
   provider?: GatewayVoiceInputProvider | null;
   runtime?: GatewayVoiceInputRuntimeSnapshot;
+  transcribe_while_recording?: boolean;
   [k: string]: unknown;
 }
 export interface GatewayVoiceInputRuntimeSnapshot {

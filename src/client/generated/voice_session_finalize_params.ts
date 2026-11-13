@@ -2,6 +2,12 @@
 
 export type TurnCapabilityKind =
   | {
+      expectedRevision: number;
+      pluginId: string;
+      type: 'plugin';
+      [k: string]: unknown;
+    }
+  | {
       packId?: SkillPackId | null;
       skillId: SkillId;
       type: 'skill';
@@ -110,14 +116,22 @@ export type UserInput =
 export type SandboxMode = 'FullAccess';
 
 export interface VoiceSessionFinalizeParams {
-  /** Optional on the wire; absent integrity fails closed at the gateway. */
+  /**
+   * Optional on the wire for decoding legacy clients; servers fail closed
+   * when absent. A new client requires version 1 in the start response.
+   */
   audio_integrity?: VoiceAudioIntegrity | null;
   context: VoiceTurnContext;
   session_id: string;
   [k: string]: unknown;
 }
-/** Normalized mono 16 kHz PCM before VAD, never ASR speech or padding. */
+/**
+ * Counts normalized mono 16 kHz PCM before VAD, never ASR speech or padding.
+ */
 export interface VoiceAudioIntegrity {
+  /**
+   * Number of packets, equivalently the sequence immediately after the tail.
+   */
   next_sequence: number;
   normalized_samples: number;
   [k: string]: unknown;

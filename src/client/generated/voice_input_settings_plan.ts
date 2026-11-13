@@ -28,15 +28,21 @@ export type GatewayModelSelection =
       source: 'inherit';
     }
   | {
+      context_authority?: string | null;
+      context_window?: number | null;
       instance: string;
       model: string;
       reasoning_effort?: string | null;
       source: 'explicit';
       transport: ModelSelectionTransport;
+      service_mode?: {
+        id: string;
+        authority: string;
+      } | null;
     };
-export type ModelSelectionTransport = 'api' | 'codex' | 'claude' | 'opencode';
-export type CLIAgentRuntimeKind = 'codex' | 'claude' | 'opencode';
-export type GatewayThreadEpisodicVectorProvider = 'openai' | 'openrouter' | 'local';
+export type ModelSelectionTransport = 'api' | 'codex' | 'claude';
+export type CLIAgentRuntimeKind = 'codex' | 'claude';
+export type GatewayThreadEpisodicVectorProvider = 'openai' | 'openrouter' | 'vercel-ai-gateway' | 'local';
 export type GatewayVoiceInputProvider = 'local';
 export type VoiceInputSettingsPlanRejection = 'invalid_provider' | 'missing_model' | 'retry_unavailable';
 
@@ -93,23 +99,17 @@ export interface GatewayModelCatalogProxyUpdate {
   proxy_url?: string | null;
   [k: string]: unknown;
 }
-export interface GatewayMemoryModelSelection {
-  model?: string | null;
-  model_provider?: string | null;
-  source?: 'thread' | 'custom';
-  [k: string]: unknown;
-}
 export interface GatewayMemorySettings {
   background_extraction_enabled: boolean;
   debug_trace_enabled: boolean;
   enabled: boolean;
   proactive_writes_enabled: boolean;
-  proactive_writes_model?: GatewayMemoryModelSelection1;
+  proactive_writes_model?: GatewayMemoryModelSelection;
   strict_diagnostics_enabled: boolean;
   tools_enabled: boolean;
   [k: string]: unknown;
 }
-export interface GatewayMemoryModelSelection1 {
+export interface GatewayMemoryModelSelection {
   model?: string | null;
   model_provider?: string | null;
   source?: 'thread' | 'custom';
@@ -145,10 +145,8 @@ export interface GatewayThreadEpisodicSettingsUpdate {
   max_candidate_work?: number | null;
   max_hit_chars?: number | null;
   max_prompt_chars?: number | null;
-  max_segments?: number | null;
   min_relevancy?: number | null;
   min_results?: number | null;
-  near_capacity_percent?: number | null;
   recall_enabled?: boolean | null;
   retry_base_delay_secs?: number | null;
   retry_max_delay_secs?: number | null;
@@ -166,10 +164,10 @@ export interface GatewayThreadEpisodicVectorSearchSettingsUpdate {
   [k: string]: unknown;
 }
 export interface GatewayVoiceInputSettingsUpdate {
-  transcribe_while_recording?: boolean | null;
   enabled?: boolean | null;
   model?: string | null;
   provider?: GatewayVoiceInputProvider | null;
   retry_install?: boolean;
+  transcribe_while_recording?: boolean | null;
   [k: string]: unknown;
 }

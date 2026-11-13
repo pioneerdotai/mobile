@@ -15,8 +15,7 @@
       "type": "string",
       "enum": [
         "codex",
-        "claude",
-        "opencode"
+        "claude"
       ]
     },
     "RuntimeAccountSnapshot": {

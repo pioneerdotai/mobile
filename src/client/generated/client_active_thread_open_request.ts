@@ -38,9 +38,7 @@ export type PromptManifestDiagnosticCode =
   | 'hook_best_effort_failed'
   | 'capability_rejected';
 export type PromptManifestHookPhase =
-  | 'turn_pre_prompt_context'
-  | 'turn_pre_prompt_compile'
-  | 'runtime_turn_pre_context';
+  'turn_pre_prompt_context' | 'turn_pre_prompt_compile' | 'runtime_turn_pre_context';
 export type PromptManifestHookContributionKind =
   'prompt_context' | 'thread_context' | 'prompt_section' | 'prompt_manifest_diagnostic' | 'runtime_failure';
 export type PromptManifestHookTruncation = 'none' | 'hook' | 'prompt' | 'hook_and_prompt' | 'unknown';

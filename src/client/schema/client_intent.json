@@ -529,6 +529,38 @@
         "demand",
         "generation"
       ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "connection_id": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "intent": {
+          "$ref": "#/$defs/PluginIntent"
+        },
+        "kind": {
+          "type": "string",
+          "const": "plugins"
+        },
+        "workspace_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "workspace_id",
+        "intent"
+      ]
     }
   ],
   "$defs": {
@@ -1596,8 +1628,7 @@
       "type": "string",
       "enum": [
         "codex",
-        "claude",
-        "opencode"
+        "claude"
       ]
     },
     "CLIRuntimeLoginStartParams": {
@@ -2520,6 +2551,22 @@
             "kind",
             "workspace_id"
           ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "plugins"
+            },
+            "workspace_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "workspace_id"
+          ]
         }
       ]
     },
@@ -2627,6 +2674,42 @@
     },
     "ComposerCapabilityKind": {
       "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "Plugin": {
+              "type": "object",
+              "properties": {
+                "expected_revision": {
+                  "type": "integer",
+                  "format": "int64"
+                },
+                "plugin_id": {
+                  "type": "string"
+                },
+                "icon": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/ImageReference"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null
+                }
+              },
+              "required": [
+                "plugin_id",
+                "expected_revision"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "Plugin"
+          ]
+        },
         {
           "type": "object",
           "properties": {
@@ -2924,11 +3007,43 @@
             "kind",
             "identity"
           ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "identity": {
+              "$ref": "#/$defs/ComposerOperationIdentity"
+            },
+            "kind": {
+              "type": "string",
+              "const": "toggle_plugin"
+            },
+            "plugin_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "identity",
+            "plugin_id"
+          ]
         }
       ]
     },
     "ComposerCatalogKind": {
       "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "plugins"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
         {
           "type": "object",
           "properties": {
@@ -3687,6 +3802,20 @@
             }
           ]
         },
+        "selected_context_authority": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "selected_context_window": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0
+        },
         "selected_mentions": {
           "type": "array",
           "items": {
@@ -3725,6 +3854,29 @@
           "items": {
             "$ref": "#/$defs/ComposerSkillSelection"
           }
+        },
+        "selected_service_mode": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "authority": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "authority"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       },
       "additionalProperties": false,
@@ -4311,6 +4463,50 @@
         {
           "type": "object",
           "properties": {
+            "identity": {
+              "$ref": "#/$defs/ComposerOperationIdentity"
+            },
+            "kind": {
+              "type": "string",
+              "const": "select_service_mode"
+            },
+            "id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "identity",
+            "id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "identity": {
+              "$ref": "#/$defs/ComposerOperationIdentity"
+            },
+            "kind": {
+              "type": "string",
+              "const": "select_context_window"
+            },
+            "window": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint64",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "kind",
+            "identity"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
             "effort": {
               "type": [
                 "string",
@@ -4405,10 +4601,47 @@
         "provider": {
           "type": "string"
         },
+        "selected_context_authority": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "selected_context_window": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0
+        },
         "selected_reasoning_effort": {
           "type": [
             "string",
             "null"
+          ]
+        },
+        "selected_service_mode": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "authority": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "authority"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
           ]
         }
       },
@@ -4529,6 +4762,22 @@
           "properties": {
             "kind": {
               "type": "string",
+              "const": "send_admission_failed"
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "message"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
               "const": "cancelled"
             }
           },
@@ -4576,7 +4825,8 @@
       "type": "string",
       "enum": [
         "skills",
-        "mcp"
+        "mcp",
+        "plugins"
       ]
     },
     "ComposerReplyTarget": {
@@ -4768,6 +5018,20 @@
         {
           "type": "object",
           "properties": {
+            "context_authority": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "context_window": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint64",
+              "minimum": 0
+            },
             "instance": {
               "type": "string"
             },
@@ -4786,6 +5050,29 @@
             },
             "transport": {
               "$ref": "#/$defs/ModelSelectionTransport"
+            },
+            "service_mode": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "authority": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "authority"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "null"
+                }
+              ]
             }
           },
           "additionalProperties": false,
@@ -5209,6 +5496,7 @@
       "enum": [
         "openai",
         "openrouter",
+        "vercel-ai-gateway",
         "local"
       ]
     },
@@ -5698,6 +5986,150 @@
         "NoToolCatalog"
       ]
     },
+    "McpIntent": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "retry_authorization_browser"
+            },
+            "server_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "server_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "sign_in"
+            },
+            "server_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "server_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "disconnect"
+            },
+            "server_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "server_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "flow_id": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "cancel_authorization"
+            },
+            "server_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "server_id",
+            "flow_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "allow_implicit_invocation": {
+              "type": "boolean"
+            },
+            "enabled": {
+              "type": "boolean"
+            },
+            "kind": {
+              "type": "string",
+              "const": "policy"
+            },
+            "server_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "server_id",
+            "enabled",
+            "allow_implicit_invocation"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "restart"
+            },
+            "server_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "server_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "remove"
+            },
+            "server_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "server_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "config_json": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "configure"
+            }
+          },
+          "required": [
+            "kind",
+            "config_json"
+          ]
+        }
+      ]
+    },
     "McpScopeKind": {
       "type": "string",
       "enum": [
@@ -5975,8 +6407,7 @@
       "enum": [
         "api",
         "codex",
-        "claude",
-        "opencode"
+        "claude"
       ]
     },
     "ModelSelectorSelection": {
@@ -5994,10 +6425,47 @@
             "null"
           ]
         },
+        "selected_context_authority": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "selected_context_window": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0
+        },
         "selected_reasoning_effort": {
           "type": [
             "string",
             "null"
+          ]
+        },
+        "selected_service_mode": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "authority": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "authority"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
           ]
         }
       }
@@ -6277,6 +6745,18 @@
           "required": [
             "kind"
           ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "back_from_plugin"
+            }
+          },
+          "required": [
+            "kind"
+          ]
         }
       ]
     },
@@ -6537,6 +7017,305 @@
         }
       ]
     },
+    "PluginComponentKey": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string"
+        },
+        "member_key": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "member_key"
+      ]
+    },
+    "PluginIntent": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "observe"
+            },
+            "plugin_id": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "close"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "expected_revision": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "kind": {
+              "type": "string",
+              "const": "set_enabled"
+            },
+            "plugin_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "plugin_id",
+            "expected_revision",
+            "enabled"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "expected_revision": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "intent": {
+              "$ref": "#/$defs/PluginManagementIntent"
+            },
+            "kind": {
+              "type": "string",
+              "const": "mutate"
+            },
+            "plugin_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "plugin_id",
+            "expected_revision",
+            "intent"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "install"
+            },
+            "upload_operation": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "kind",
+            "upload_operation"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "confirm_changes": {
+              "type": "boolean"
+            },
+            "kind": {
+              "type": "string",
+              "const": "apply_update"
+            },
+            "upload_operation": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "kind",
+            "upload_operation",
+            "confirm_changes"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "allow_implicit_invocation": {
+              "type": "boolean"
+            },
+            "enabled": {
+              "type": "boolean"
+            },
+            "kind": {
+              "type": "string",
+              "const": "skill"
+            },
+            "skill_id": {
+              "$ref": "#/$defs/SkillId"
+            }
+          },
+          "required": [
+            "kind",
+            "skill_id",
+            "enabled",
+            "allow_implicit_invocation"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "remove_skill"
+            },
+            "skill_id": {
+              "$ref": "#/$defs/SkillId"
+            }
+          },
+          "required": [
+            "kind",
+            "skill_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "body": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "configure_mcp"
+            },
+            "server_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "server_id",
+            "body"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "intent": {
+              "$ref": "#/$defs/McpIntent"
+            },
+            "kind": {
+              "type": "string",
+              "const": "mcp"
+            }
+          },
+          "required": [
+            "kind",
+            "intent"
+          ]
+        }
+      ]
+    },
+    "PluginManagementIntent": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "update"
+            },
+            "confirm_changes": {
+              "type": "boolean"
+            },
+            "expected_fingerprint": {
+              "type": "string"
+            },
+            "upload_id": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "action",
+            "upload_id",
+            "expected_fingerprint",
+            "confirm_changes"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "retry"
+            },
+            "components": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/PluginComponentKey"
+              }
+            },
+            "restore_removed": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "action",
+            "components",
+            "restore_removed"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "continue"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "remove"
+            },
+            "purge_data": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "action",
+            "purge_data"
+          ]
+        }
+      ]
+    },
     "PreparedComposerAttachment": {
       "type": "object",
       "properties": {
@@ -6625,7 +7404,7 @@
           "minLength": 1
         },
         "media_type": {
-          "$ref": "#/$defs/ProfileAvatarMediaType"
+          "$ref": "#/$defs/ImageMediaType"
         }
       },
       "additionalProperties": false,
@@ -6634,7 +7413,7 @@
         "content_base64"
       ]
     },
-    "ProfileAvatarMediaType": {
+    "ImageMediaType": {
       "type": "string",
       "enum": [
         "image/png",
@@ -7245,6 +8024,7 @@
       "type": "string",
       "enum": [
         "Chat",
+        "AuxiliaryChat",
         "SelfImprovement",
         "Embeddings",
         "Transcription"
@@ -7546,6 +8326,18 @@
           "properties": {
             "kind": {
               "type": "string",
+              "const": "plugins"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
               "const": "threads"
             }
           },
@@ -7651,6 +8443,32 @@
           "required": [
             "kind",
             "route"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "component": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/PluginComponentKey"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "kind": {
+              "type": "string",
+              "const": "plugin"
+            },
+            "plugin_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "plugin_id"
           ]
         }
       ]
@@ -8084,6 +8902,22 @@
         {
           "type": "object",
           "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "kind": {
+              "type": "string",
+              "const": "voice_transcribe_while_recording"
+            }
+          },
+          "required": [
+            "kind",
+            "enabled"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
             "kind": {
               "type": "string",
               "const": "voice_model"
@@ -8115,22 +8949,6 @@
           },
           "required": [
             "kind"
-          ]
-        },
-        {
-          "type": "object",
-          "properties": {
-            "enabled": {
-              "type": "boolean"
-            },
-            "kind": {
-              "type": "string",
-              "const": "voice_transcribe_while_recording"
-            }
-          },
-          "required": [
-            "kind",
-            "enabled"
           ]
         }
       ]
@@ -8215,6 +9033,62 @@
             "picker_id",
             "expected_owner",
             "model"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "expected_owner": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "kind": {
+              "type": "string",
+              "const": "select_service_mode"
+            },
+            "picker_id": {
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "picker_id",
+            "expected_owner",
+            "id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "expected_owner": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "kind": {
+              "type": "string",
+              "const": "select_context_window"
+            },
+            "picker_id": {
+              "type": "string"
+            },
+            "window": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint64",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "kind",
+            "picker_id",
+            "expected_owner"
           ]
         },
         {
@@ -8408,22 +9282,6 @@
     },
     "TaskNotificationIntent": {
       "oneOf": [
-        {
-          "type": "object",
-          "properties": {
-            "kind": {
-              "type": "string",
-              "const": "read_all"
-            },
-            "workspace_id": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "kind",
-            "workspace_id"
-          ]
-        },
         {
           "type": "object",
           "properties": {
@@ -9111,6 +9969,27 @@
         {
           "type": "object",
           "properties": {
+            "expectedRevision": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "pluginId": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "const": "plugin"
+            }
+          },
+          "required": [
+            "type",
+            "pluginId",
+            "expectedRevision"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
             "packId": {
               "anyOf": [
                 {
@@ -9478,6 +10357,20 @@
             }
           ]
         },
+        "context_authority": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "context_window": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0
+        },
         "execution_backend": {
           "anyOf": [
             {
@@ -9559,6 +10452,29 @@
         "workspace_id": {
           "description": "Workspace active when the voice session starts.\n\n`TurnStartParams` is still thread-scoped; the gateway keeps the\nworkspace here to validate/session-route the frozen voice context.",
           "type": "string"
+        },
+        "service_mode": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "authority": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "authority"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       },
       "required": [
@@ -9878,6 +10794,22 @@
         "workspace_id",
         "principal_id"
       ]
+    },
+    "ImageReference": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "revision": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "revision"
+      ],
+      "description": "Immutable image reference. Gateway inventory exposes a native storage link, never image bytes."
     }
   }
 }
