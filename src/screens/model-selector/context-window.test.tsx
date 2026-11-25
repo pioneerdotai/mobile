@@ -107,3 +107,55 @@ describe('context window selection', () => {
         act(() => { tree.unmount(); });
     });
 });
+
+describe('service mode selection', () => {
+    it('shows service and context choices together and dispatches the selected service mode', () => {
+        mockPicker.mockReturnValue({
+            ...picker(),
+            selected_service_mode: { authority: 'endpoint', id: 'fast' },
+            service_rows: [
+                { id: 'standard', label: 'Standard', available: true, selected: false },
+                { id: 'fast', label: 'Fast', available: true, selected: true },
+                { id: 'unavailable', label: 'Unavailable', available: false, selected: false },
+            ],
+        });
+        let tree!: ReactTestRenderer;
+        act(() => { tree = create(<ModelSelectorHomeScreen />); });
+        const rows = tree.root.findAll((node) => String(node.type) === 'Pressable' && node.props.accessibilityRole === 'radio');
+        expect(rows).toHaveLength(5);
+        expect(rows[0].props.accessibilityState).toEqual({ checked: false, disabled: false });
+        expect(rows[1].props.accessibilityState).toEqual({ checked: true, disabled: false });
+        expect(rows[2].props.accessibilityState).toEqual({ checked: false, disabled: true });
+        expect(rows[2].props.disabled).toBe(true);
+        act(() => { rows[0].props.onPress(); });
+        expect(mockDispatch).toHaveBeenCalledWith({ kind: 'select_service_mode', identity, id: 'standard' });
+        act(() => { rows[1].props.onPress(); });
+        expect(mockDispatch).toHaveBeenCalledWith({ kind: 'select_service_mode', identity, id: 'fast' });
+        act(() => { rows[4].props.onPress(); });
+        expect(mockDispatch).toHaveBeenCalledWith({ kind: 'select_context_window', identity, window: 128000 });
+        act(() => { tree.unmount(); });
+    });
+
+    it('warns when a saved service mode is unavailable', () => {
+        mockPicker.mockReturnValue({
+            ...picker(),
+            selected_service_mode: { authority: 'endpoint', id: 'fast' },
+            service_rows: [
+                { id: 'standard', label: 'Standard', available: true, selected: false },
+                { id: 'fast', label: 'Fast', available: false, selected: true },
+            ],
+        });
+        let tree!: ReactTestRenderer;
+        act(() => { tree = create(<ModelSelectorHomeScreen />); });
+        expect(tree.root.findAll((node) => String(node.type) === 'Text' && node.children.includes('modelSelectorServiceInvalid'))).toHaveLength(1);
+        act(() => { tree.unmount(); });
+    });
+
+    it('hides the service section when there are no service choices', () => {
+        mockPicker.mockReturnValue({ ...picker(), service_rows: [] });
+        let tree!: ReactTestRenderer;
+        act(() => { tree = create(<ModelSelectorHomeScreen />); });
+        expect(tree.root.findAll((node) => String(node.type) === 'Text' && node.children.includes('modelSelectorServiceLabel'))).toHaveLength(0);
+        act(() => { tree.unmount(); });
+    });
+});

@@ -165,12 +165,14 @@ describe('native composer model picker session', () => {
             },
         });
     });
-    it('routes one user selection and drains the two immutable outputs', () => {
-        const intent = {
-            kind: 'select_model' as const,
-            identity: publication().identity,
-            model: 'one',
-        };
+    it.each([
+        { kind: 'select_model' as const, model: 'one' },
+        { kind: 'select_context_window' as const, window: 131072 },
+        { kind: 'select_context_window' as const, window: null },
+        { kind: 'select_service_mode' as const, id: 'pro' },
+        { kind: 'select_service_mode' as const, id: 'standard' },
+    ])('routes $kind and drains the two immutable outputs', (selection) => {
+        const intent = { ...selection, identity: publication().identity };
         dispatchComposerModelPicker(intent);
         expect(dispatch).toHaveBeenCalledTimes(1);
         expect(dispatch).toHaveBeenCalledWith({
