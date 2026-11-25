@@ -4,9 +4,7 @@ const cleanEnv = (value) => {
 
 const appName = cleanEnv(process.env.APP_NAME) || 'Pioneer';
 const appVersion = cleanEnv(process.env.APP_VERSION) || '1.0';
-// Inbox requires the native publication's request_busy and completed_operation_id fields.
-// Keep older native builds from receiving this JS through an OTA update.
-const clientBoundaryVersion = 3;
+const clientBoundaryVersion = 2;
 const appBuildNumber = cleanEnv(process.env.APP_BUILD_NUMBER) || '1';
 const appBundleIdentifier = cleanEnv(process.env.APP_BUNDLE_IDENTIFIER) || '';
 const appVariant = cleanEnv(process.env.APP_VARIANT);
