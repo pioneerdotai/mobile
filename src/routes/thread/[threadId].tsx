@@ -21,7 +21,7 @@ const InvalidThreadRoute = () => {
     );
 };
 
-const ExistingThreadRoute = () => {
+export const ExistingThreadRoute = ({ backToInbox = false }: { backToInbox?: boolean }) => {
     const params = useLocalSearchParams<{
         threadId?: string | string[];
         parentThreadId?: string | string[];
@@ -35,12 +35,13 @@ const ExistingThreadRoute = () => {
     const openMembers = useCallback(() => {
         if (!threadId) return;
         router.push({
-            pathname: './members/[threadId]',
+            pathname: backToInbox ? '/inbox/members/[threadId]' : '/thread/members/[threadId]',
             params: { threadId },
         });
-    }, [threadId]);
+    }, [threadId, backToInbox]);
     const { options } = useThreadScreen({
         navigation: 'stack',
+        backToInbox,
         threadId,
         onActionsPress: threadId ? openActions : undefined,
     });

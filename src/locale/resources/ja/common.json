@@ -11,5 +11,12 @@
     "taskNotificationSystem": "システム",
     "taskNotificationUnknownHistoricalActor": "不明な過去の実行者",
     "taskNotificationCompleted": "タスクが完了しました",
-    "taskNotificationMarkRead": "既読にする"
+    "taskNotificationMarkRead": "既読にする",
+    "inbox": "受信トレイ",
+    "inboxEmpty": "タスクの結果はありません",
+    "inboxError": "タスクの結果を読み込めませんでした",
+    "inboxReadAll": "すべて既読にする",
+    "inboxTask": "タスク",
+    "inboxOpen": "受信トレイを開く、未読 {{count}} 件",
+    "inboxClose": "受信トレイを閉じる"
 }

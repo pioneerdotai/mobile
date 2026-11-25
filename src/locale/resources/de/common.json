@@ -11,5 +11,12 @@
     "taskNotificationSystem": "System",
     "taskNotificationUnknownHistoricalActor": "Unbekannter historischer Akteur",
     "taskNotificationCompleted": "Aufgabe abgeschlossen",
-    "taskNotificationMarkRead": "Als gelesen markieren"
+    "taskNotificationMarkRead": "Als gelesen markieren",
+    "inbox": "Posteingang",
+    "inboxEmpty": "Keine Aufgabenergebnisse",
+    "inboxError": "Aufgabenergebnisse konnten nicht geladen werden",
+    "inboxReadAll": "Alle als gelesen markieren",
+    "inboxTask": "Aufgabe",
+    "inboxOpen": "Posteingang öffnen, {{count}} ungelesen",
+    "inboxClose": "Posteingang schließen"
 }

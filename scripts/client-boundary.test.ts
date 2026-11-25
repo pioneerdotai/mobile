@@ -80,9 +80,9 @@ test('OTA runtime identity prevents mixed old-native/new-JS artifacts and preser
         vm.runInNewContext(read(path.join(app, 'app.config.js')), context);
         return context.module.exports;
     };
-    expect(evaluate('1.0').runtimeVersion).toBe('1.0-client-ffi-2');
+    expect(evaluate('1.0').runtimeVersion).toBe('1.0-client-ffi-3');
     expect(evaluate('1.0').runtimeVersion).not.toBe('1.0');
-    expect(evaluate('1.1').runtimeVersion).toBe('1.1-client-ffi-2');
+    expect(evaluate('1.1').runtimeVersion).toBe('1.1-client-ffi-3');
     expect(source).toContain('boundary_version: 2');
     expect(read(path.join(app, 'src/client/native.ts'))).toContain('boundary_version !== 2');
     for (const relative of ['crates/desktop/Cargo.toml', 'crates/client/Cargo.toml']) {

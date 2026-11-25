@@ -375,6 +375,7 @@ const RootStack = () => {
             >
                 <Stack.Screen name="(tabs)" />
                 <Stack.Screen name="thread" options={threadModalOptions} />
+                <Stack.Screen name="inbox" options={threadModalOptions} />
                 <Stack.Screen
                     name="message-revisions"
                     options={{

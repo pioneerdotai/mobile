@@ -2,7 +2,7 @@ import { Stack } from 'expo-router/js-stack';
 
 import { useScreen } from '@/hooks/use-screen';
 
-export default function ThreadStackLayout() {
+export default function ThreadStackLayout({ inbox = false }: { inbox?: boolean } = {}) {
     const { options } = useScreen();
 
     return (
@@ -21,8 +21,8 @@ export default function ThreadStackLayout() {
                 cardOverlayEnabled: false,
             }}
         >
-            <Stack.Screen name="new" />
-            <Stack.Screen name="[threadId]" />
+            {inbox ? <Stack.Screen name="index" /> : <Stack.Screen name="new" />}
+            <Stack.Screen name={inbox ? 'thread/[threadId]' : '[threadId]'} />
             <Stack.Screen name="child/[threadId]" />
             <Stack.Screen name="members/[threadId]" />
         </Stack>
