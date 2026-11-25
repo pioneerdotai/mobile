@@ -32,20 +32,7 @@
     "selected_service_mode": {
       "anyOf": [
         {
-          "type": "object",
-          "properties": {
-            "id": {
-              "type": "string"
-            },
-            "authority": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "id",
-            "authority"
-          ],
-          "additionalProperties": false
+          "$ref": "#/$defs/NativeServiceModeSelection"
         },
         {
           "type": "null"
@@ -56,5 +43,24 @@
   "required": [
     "provider",
     "model"
-  ]
+  ],
+  "$defs": {
+    "NativeServiceModeSelection": {
+      "description": "Explicit choice uses the existing endpoint/credential/model authority proof.\nAbsence means Standard; Inherit belongs to the enclosing model selection.",
+      "type": "object",
+      "properties": {
+        "authority": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "authority"
+      ]
+    }
+  }
 }

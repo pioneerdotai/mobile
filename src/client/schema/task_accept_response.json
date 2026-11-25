@@ -451,7 +451,8 @@
       "type": "string",
       "enum": [
         "codex",
-        "claude"
+        "claude",
+        "opencode"
       ]
     },
     "McpScopeKind": {
@@ -459,6 +460,23 @@
       "enum": [
         "workspace",
         "user"
+      ]
+    },
+    "NativeServiceModeSelection": {
+      "description": "Explicit choice uses the existing endpoint/credential/model authority proof.\nAbsence means Standard; Inherit belongs to the enclosing model selection.",
+      "type": "object",
+      "properties": {
+        "authority": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "authority"
       ]
     },
     "PrincipalId": {
@@ -574,7 +592,7 @@
     "ProviderRequestId": {
       "type": "string",
       "maxLength": 128,
-      "pattern": "^(gen-|req-|cmpl-|chatcmpl-)[A-Za-z0-9_-]+$"
+      "pattern": "^(gen-|req-|req_|cmpl-|chatcmpl-)[A-Za-z0-9_-]+$"
     },
     "ProviderTransportKind": {
       "type": "string",
@@ -1136,6 +1154,31 @@
         "system"
       ]
     },
+    "TaskFinishRequest": {
+      "description": "A user-directed final soft stop; this is not evidence that the goal succeeded.",
+      "type": "object",
+      "properties": {
+        "firstRunNumber": {
+          "description": "Earliest admitted run whose real outcome contributes to the final state.",
+          "type": "integer",
+          "format": "int64"
+        },
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "requestedAt": {
+          "type": "integer",
+          "format": "int64"
+        }
+      },
+      "required": [
+        "requestedAt",
+        "firstRunNumber"
+      ]
+    },
     "TaskLifecyclePolicy": {
       "type": "object",
       "properties": {
@@ -1176,6 +1219,17 @@
           "anyOf": [
             {
               "$ref": "#/$defs/TaskValue"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "finishRequest": {
+          "description": "Server-owned durable decision to stop future runs.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TaskFinishRequest"
             },
             {
               "type": "null"
@@ -1692,10 +1746,6 @@
             "null"
           ]
         },
-        "updatedAt": {
-          "type": "integer",
-          "format": "int64"
-        },
         "triggerInput": {
           "description": "External data accepted for this occurrence, preserved across retries.",
           "anyOf": [
@@ -1706,6 +1756,10 @@
               "type": "null"
             }
           ]
+        },
+        "updatedAt": {
+          "type": "integer",
+          "format": "int64"
         }
       },
       "required": [
@@ -2013,6 +2067,28 @@
         {
           "type": "object",
           "properties": {
+            "appId": {
+              "type": "string"
+            },
+            "expectedRevision": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "type": {
+              "type": "string",
+              "const": "app"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "appId",
+            "expectedRevision"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
             "expectedRevision": {
               "type": "integer",
               "format": "int64"
@@ -2025,6 +2101,7 @@
               "const": "plugin"
             }
           },
+          "additionalProperties": false,
           "required": [
             "type",
             "pluginId",
@@ -2052,6 +2129,7 @@
               "const": "skill"
             }
           },
+          "additionalProperties": false,
           "required": [
             "type",
             "skillId"
@@ -2068,6 +2146,7 @@
               "const": "skillPack"
             }
           },
+          "additionalProperties": false,
           "required": [
             "type",
             "packId"
@@ -2087,6 +2166,7 @@
               "const": "mcpServer"
             }
           },
+          "additionalProperties": false,
           "required": [
             "type",
             "name",
@@ -2110,6 +2190,7 @@
               "const": "mcpTool"
             }
           },
+          "additionalProperties": false,
           "required": [
             "type",
             "serverName",
@@ -2153,20 +2234,6 @@
     "TurnStartParams": {
       "type": "object",
       "properties": {
-        "context_authority": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "context_window": {
-          "type": [
-            "integer",
-            "null"
-          ],
-          "format": "uint64",
-          "minimum": 0
-        },
         "agent_delegation_routes": {
           "description": "Explicit, bounded cross-capsule delegations requested for this root\nAgent execution. These are authorization inputs, never prompt content.",
           "type": "array",
@@ -2200,6 +2267,21 @@
               "type": "null"
             }
           ]
+        },
+        "context_authority": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "context_window": {
+          "description": "User-owned model choice; absent means Auto, not inheritance of a wider override.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0
         },
         "execution_backend": {
           "anyOf": [
@@ -2282,34 +2364,21 @@
             }
           ]
         },
-        "thread_id": {
-          "type": "string"
-        },
-        "turn_id": {
-          "type": "string"
-        },
         "service_mode": {
           "anyOf": [
             {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "type": "string"
-                },
-                "authority": {
-                  "type": "string"
-                }
-              },
-              "required": [
-                "id",
-                "authority"
-              ],
-              "additionalProperties": false
+              "$ref": "#/$defs/NativeServiceModeSelection"
             },
             {
               "type": "null"
             }
           ]
+        },
+        "thread_id": {
+          "type": "string"
+        },
+        "turn_id": {
+          "type": "string"
         }
       },
       "required": [

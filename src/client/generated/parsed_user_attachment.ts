@@ -18,10 +18,11 @@ export type ArtifactKind =
 export type ArtifactProjectionKind = 'plain_text' | 'thumbnail' | 'json_summary' | 'pdf_text';
 export type ArtifactProjectionStatus = 'pending' | 'ready' | 'failed' | 'stale';
 export type ArtifactStatus = 'ready' | 'pending' | 'quarantined' | 'deleted' | 'missing_external_source' | 'failed';
-export type ParsedUserAttachmentKind = 'Plugin' | 'File' | 'Skill' | 'Mcp';
+export type ParsedUserAttachmentKind = 'App' | 'Plugin' | 'File' | 'Skill' | 'Mcp';
 
 export interface ParsedUserAttachment {
   artifact?: ArtifactRef | null;
+  dark_icon?: ImageReference | null;
   display_name: string;
   id: string;
   kind: ParsedUserAttachmentKind;
@@ -52,7 +53,7 @@ export interface ArtifactPreviewRef {
   [k: string]: unknown;
 }
 /**
- * Immutable image reference. Gateway inventory exposes a native storage link, never image bytes.
+ * Immutable image reference. Published paths are authenticated Gateway storage links.
  */
 export interface ImageReference {
   path: string;

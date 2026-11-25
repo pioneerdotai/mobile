@@ -1,3 +1,3 @@
 /* eslint-disable */
 
-export type ParsedUserAttachmentKind = 'Plugin' | 'File' | 'Skill' | 'Mcp';
+export type ParsedUserAttachmentKind = 'App' | 'Plugin' | 'File' | 'Skill' | 'Mcp';

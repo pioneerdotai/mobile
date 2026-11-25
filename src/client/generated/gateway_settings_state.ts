@@ -14,15 +14,12 @@ export type GatewayModelSelection =
       instance: string;
       model: string;
       reasoning_effort?: string | null;
+      service_mode?: NativeServiceModeSelection | null;
       source: 'explicit';
       transport: ModelSelectionTransport;
-      service_mode?: {
-        id: string;
-        authority: string;
-      } | null;
     };
-export type ModelSelectionTransport = 'api' | 'codex' | 'claude';
-export type CLIAgentRuntimeKind = 'codex' | 'claude';
+export type ModelSelectionTransport = 'api' | 'codex' | 'claude' | 'opencode';
+export type CLIAgentRuntimeKind = 'codex' | 'claude' | 'opencode';
 export type GatewayRemoteAccessErrorKind =
   | 'invalid_settings'
   | 'missing_key'
@@ -36,7 +33,6 @@ export type GatewayRemoteAccessErrorKind =
   | 'restart_limit_reached'
   | 'io'
   | 'unknown';
-export type GatewayBaseUrl = string;
 export type SelfImprovementStatusReason =
   | 'disabled'
   | 'model_unavailable'
@@ -111,6 +107,14 @@ export interface GatewayCliRuntimeInstanceSettings {
   shadow_home_path?: string | null;
   [k: string]: unknown;
 }
+/**
+ * Explicit choice uses the existing endpoint/credential/model authority proof.
+ * Absence means Standard; Inherit belongs to the enclosing model selection.
+ */
+export interface NativeServiceModeSelection {
+  authority: string;
+  id: string;
+}
 export interface GatewayGeneralSettings {
   /**
    * Inherit is a real absence of an override. It never stores a resolved fallback.
@@ -126,12 +130,9 @@ export interface GatewayGeneralSettings {
         instance: string;
         model: string;
         reasoning_effort?: string | null;
+        service_mode?: NativeServiceModeSelection | null;
         source: 'explicit';
         transport: ModelSelectionTransport;
-        service_mode?: {
-          id: string;
-          authority: string;
-        } | null;
       };
   keepawake?: boolean;
   model_catalog?: GatewayModelCatalogSettings;
@@ -178,7 +179,7 @@ export interface GatewayRemoteAccessStatusSnapshot {
   /**
    * Present only for the currently authenticated relay connection.
    */
-  public_base_url?: GatewayBaseUrl | null;
+  public_base_url?: string | null;
   state?: 'disabled' | 'starting' | 'connected' | 'reconnecting' | 'failed' | 'stopped';
   updated_at_unix?: number | null;
   [k: string]: unknown;

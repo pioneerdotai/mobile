@@ -35,34 +35,34 @@ export type ComposerAttachmentUploadState =
     };
 export type TurnCapabilityKind =
   | {
+      appId: string;
+      expectedRevision: number;
+      type: 'app';
+    }
+  | {
       expectedRevision: number;
       pluginId: string;
       type: 'plugin';
-      [k: string]: unknown;
     }
   | {
       packId?: SkillPackId | null;
       skillId: SkillId;
       type: 'skill';
-      [k: string]: unknown;
     }
   | {
       packId: SkillPackId;
       type: 'skillPack';
-      [k: string]: unknown;
     }
   | {
       name: string;
       scopeKind: McpScopeKind;
       type: 'mcpServer';
-      [k: string]: unknown;
     }
   | {
       rawToolName: string;
       scopeKind: McpScopeKind;
       serverName: string;
       type: 'mcpTool';
-      [k: string]: unknown;
     };
 export type SkillPackId = string;
 export type SkillId = string;
@@ -84,7 +84,7 @@ export type AgentExecutionBackend =
       type: 'acpAgentRuntime';
       [k: string]: unknown;
     };
-export type CLIAgentRuntimeKind = 'codex' | 'claude';
+export type CLIAgentRuntimeKind = 'codex' | 'claude' | 'opencode';
 export type ThreadMode = ('Message' | 'Agent') | 'Chat';
 export type TurnPermissionMode = 'full_access' | 'auto_accept_edits' | 'supervised';
 export type UserInput =
@@ -228,6 +228,7 @@ export interface VoiceTurnContext {
   prepared_input?: UserInput[];
   reasoning?: TurnReasoningSelection | null;
   sandbox_policy?: SandboxPolicy | null;
+  service_mode?: NativeServiceModeSelection | null;
   /**
    * Thread that receives the gateway-created turn after transcription.
    */
@@ -243,10 +244,6 @@ export interface VoiceTurnContext {
    * workspace here to validate/session-route the frozen voice context.
    */
   workspace_id: string;
-  service_mode?: {
-    id: string;
-    authority: string;
-  } | null;
   [k: string]: unknown;
 }
 export interface TurnCapability {
@@ -288,4 +285,12 @@ export interface TurnReasoningSelection {
 export interface SandboxPolicy {
   mode: SandboxMode;
   [k: string]: unknown;
+}
+/**
+ * Explicit choice uses the existing endpoint/credential/model authority proof.
+ * Absence means Standard; Inherit belongs to the enclosing model selection.
+ */
+export interface NativeServiceModeSelection {
+  authority: string;
+  id: string;
 }

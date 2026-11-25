@@ -170,6 +170,11 @@ export type ClientScope =
       [k: string]: unknown;
     }
   | {
+      kind: 'apps';
+      workspace_id: string;
+      [k: string]: unknown;
+    }
+  | {
       kind: 'skills_upload';
       operation_id: number;
       workspace_id: string;

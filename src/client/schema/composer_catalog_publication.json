@@ -3,6 +3,15 @@
   "title": "ComposerCatalogPublication",
   "type": "object",
   "properties": {
+    "app_request": {
+      "$ref": "#/$defs/ComposerCatalogRequest"
+    },
+    "apps": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/PluginItem"
+      }
+    },
     "draft_id": {
       "type": "integer",
       "format": "uint64",
@@ -67,16 +76,125 @@
     "thread_id",
     "draft_id",
     "revision",
+    "apps",
+    "app_request",
+    "plugins",
+    "plugin_request",
     "skills",
     "skill_request",
     "mcp_servers",
     "mcp_tools",
     "mcp_request",
-    "tool_requests",
-    "plugins",
-    "plugin_request"
+    "tool_requests"
   ],
   "$defs": {
+    "AppLocalization": {
+      "type": "object",
+      "properties": {
+        "longDescription": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "shortDescription": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "AppMetadata": {
+      "description": "Verified presentation snapshot only; native authority remains in components.",
+      "type": "object",
+      "properties": {
+        "categories": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "composer_icon": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AppThemedIcon"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "default_locale": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "developer_logo": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AppThemedIcon"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "developer_url": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "has_ui": {
+          "type": "boolean",
+          "default": false
+        },
+        "icon": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AppThemedIcon"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "localizations": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/AppLocalization"
+          }
+        }
+      },
+      "required": [
+        "categories",
+        "localizations"
+      ]
+    },
+    "AppThemedIcon": {
+      "type": "object",
+      "properties": {
+        "dark": {
+          "$ref": "#/$defs/ImageReference"
+        },
+        "light": {
+          "$ref": "#/$defs/ImageReference"
+        }
+      },
+      "required": [
+        "light",
+        "dark"
+      ]
+    },
     "ComposerCapability": {
       "type": "object",
       "properties": {
@@ -101,15 +219,25 @@
         {
           "type": "object",
           "properties": {
-            "Plugin": {
+            "App": {
               "type": "object",
               "properties": {
+                "app_id": {
+                  "type": "string"
+                },
+                "dark_icon": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/ImageReference"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
                 "expected_revision": {
                   "type": "integer",
                   "format": "int64"
-                },
-                "plugin_id": {
-                  "type": "string"
                 },
                 "icon": {
                   "anyOf": [
@@ -119,8 +247,42 @@
                     {
                       "type": "null"
                     }
-                  ],
-                  "default": null
+                  ]
+                }
+              },
+              "required": [
+                "app_id",
+                "expected_revision"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "App"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "Plugin": {
+              "type": "object",
+              "properties": {
+                "expected_revision": {
+                  "type": "integer",
+                  "format": "int64"
+                },
+                "icon": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/ImageReference"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "plugin_id": {
+                  "type": "string"
                 }
               },
               "required": [
@@ -333,13 +495,33 @@
     "ComposerPickerKind": {
       "type": "string",
       "enum": [
+        "apps",
+        "plugins",
         "skills",
-        "mcp",
-        "plugins"
+        "mcp"
       ]
     },
     "ComposerPickerSelection": {
       "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "capabilities": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/ComposerCapability"
+              }
+            },
+            "kind": {
+              "type": "string",
+              "const": "apps"
+            }
+          },
+          "required": [
+            "kind",
+            "capabilities"
+          ]
+        },
         {
           "type": "object",
           "properties": {
@@ -350,6 +532,25 @@
           },
           "required": [
             "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "capabilities": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/ComposerCapability"
+              }
+            },
+            "kind": {
+              "type": "string",
+              "const": "plugins"
+            }
+          },
+          "required": [
+            "kind",
+            "capabilities"
           ]
         },
         {
@@ -389,25 +590,6 @@
           "required": [
             "kind",
             "selected"
-          ]
-        },
-        {
-          "type": "object",
-          "properties": {
-            "capabilities": {
-              "type": "array",
-              "items": {
-                "$ref": "#/$defs/ComposerCapability"
-              }
-            },
-            "kind": {
-              "type": "string",
-              "const": "plugins"
-            }
-          },
-          "required": [
-            "kind",
-            "capabilities"
           ]
         }
       ]
@@ -477,6 +659,22 @@
         }
       ]
     },
+    "ImageReference": {
+      "description": "Immutable image reference. Published paths are authenticated Gateway storage links.",
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "revision": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "revision"
+      ]
+    },
     "McpCapabilityUnavailableReason": {
       "type": "string",
       "enum": [
@@ -492,6 +690,57 @@
         "workspace",
         "user"
       ]
+    },
+    "PackageKind": {
+      "description": "Product identity is distinct even when installation mechanics are shared.",
+      "type": "string",
+      "enum": [
+        "plugin",
+        "app"
+      ]
+    },
+    "PackageOwner": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/PackageKind"
+        },
+        "member_key": {
+          "type": "string"
+        },
+        "package_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "package_id",
+        "member_key"
+      ]
+    },
+    "PluginAuthor": {
+      "description": "Authored presentation only. None of these fields grant execution authority.",
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "url": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
     },
     "PluginComponentItem": {
       "type": "object",
@@ -562,6 +811,10 @@
     "PluginItem": {
       "type": "object",
       "properties": {
+        "allow_implicit_invocation": {
+          "type": "boolean",
+          "default": false
+        },
         "components": {
           "type": "array",
           "items": {
@@ -569,12 +822,12 @@
           }
         },
         "description": {
+          "description": "Authored package description, bounded by the Gateway; absent for old peers.",
           "type": [
             "string",
             "null"
           ],
-          "maxLength": 2048,
-          "default": null
+          "maxLength": 2048
         },
         "diagnostics": {
           "type": "array",
@@ -587,6 +840,34 @@
         },
         "id": {
           "type": "string"
+        },
+        "metadata": {
+          "$ref": "#/$defs/PluginMetadata",
+          "default": {
+            "author": {
+              "email": null,
+              "name": null,
+              "url": null
+            },
+            "brand_color": null,
+            "category": null,
+            "composer_icon": null,
+            "default_prompts": [],
+            "description": null,
+            "developer_name": null,
+            "display_name": null,
+            "documentation_url": null,
+            "homepage": null,
+            "keywords": [],
+            "license": null,
+            "logo": null,
+            "long_description": null,
+            "privacy_policy_url": null,
+            "repository": null,
+            "short_description": null,
+            "support_url": null,
+            "terms_of_service_url": null
+          }
         },
         "name": {
           "type": "string"
@@ -606,38 +887,6 @@
             "string",
             "null"
           ]
-        },
-        "metadata": {
-          "$ref": "#/$defs/PluginMetadata",
-          "default": {
-            "display_name": null,
-            "short_description": null,
-            "description": null,
-            "long_description": null,
-            "developer_name": null,
-            "homepage": null,
-            "repository": null,
-            "documentation_url": null,
-            "support_url": null,
-            "privacy_policy_url": null,
-            "terms_of_service_url": null,
-            "license": null,
-            "category": null,
-            "brand_color": null,
-            "author": {
-              "name": null,
-              "email": null,
-              "url": null
-            },
-            "keywords": [],
-            "default_prompts": [],
-            "logo": null,
-            "composer_icon": null
-          }
-        },
-        "allow_implicit_invocation": {
-          "type": "boolean",
-          "default": false
         }
       },
       "required": [
@@ -650,6 +899,163 @@
         "components",
         "diagnostics"
       ]
+    },
+    "PluginMetadata": {
+      "type": "object",
+      "properties": {
+        "app": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AppMetadata"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "author": {
+          "$ref": "#/$defs/PluginAuthor",
+          "default": {
+            "email": null,
+            "name": null,
+            "url": null
+          }
+        },
+        "brand_color": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "category": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "composer_icon": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ImageReference"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "default_prompts": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "description": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "developer_name": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "display_name": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "documentation_url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "homepage": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "keywords": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "license": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "logo": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ImageReference"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "long_description": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "privacy_policy_url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "repository": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "short_description": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "support_url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "terms_of_service_url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      }
     },
     "PluginOwner": {
       "type": "object",
@@ -846,6 +1252,16 @@
           "anyOf": [
             {
               "$ref": "#/$defs/SkillPackMembership"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "package_owner": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PackageOwner"
             },
             {
               "type": "null"
@@ -1068,193 +1484,6 @@
         "level",
         "message"
       ]
-    },
-    "PluginMetadata": {
-      "type": "object",
-      "properties": {
-        "display_name": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "default": null
-        },
-        "short_description": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "default": null
-        },
-        "description": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "default": null
-        },
-        "long_description": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "default": null
-        },
-        "developer_name": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "default": null
-        },
-        "homepage": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "default": null
-        },
-        "repository": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "default": null
-        },
-        "documentation_url": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "default": null
-        },
-        "support_url": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "default": null
-        },
-        "privacy_policy_url": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "default": null
-        },
-        "terms_of_service_url": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "default": null
-        },
-        "license": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "default": null
-        },
-        "category": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "default": null
-        },
-        "brand_color": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "default": null
-        },
-        "author": {
-          "$ref": "#/$defs/PluginAuthor",
-          "default": {
-            "name": null,
-            "email": null,
-            "url": null
-          }
-        },
-        "keywords": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "default": []
-        },
-        "default_prompts": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "default": []
-        },
-        "logo": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ImageReference"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
-        },
-        "composer_icon": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ImageReference"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
-        }
-      }
-    },
-    "PluginAuthor": {
-      "type": "object",
-      "properties": {
-        "name": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "email": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "url": {
-          "type": [
-            "string",
-            "null"
-          ]
-        }
-      },
-      "description": "Authored presentation only. None of these fields grant execution authority."
-    },
-    "ImageReference": {
-      "type": "object",
-      "properties": {
-        "path": {
-          "type": "string"
-        },
-        "revision": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "path",
-        "revision"
-      ],
-      "description": "Immutable image reference. Gateway inventory exposes a native storage link, never image bytes."
     }
   }
 }

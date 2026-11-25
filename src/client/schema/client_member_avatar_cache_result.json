@@ -10,13 +10,13 @@
       "type": "string"
     },
     "media_type": {
-      "$ref": "#/$defs/ProfileAvatarMediaType"
+      "$ref": "#/$defs/ImageMediaType"
     },
     "principal_id": {
       "$ref": "#/$defs/PrincipalId"
     },
     "source": {
-      "$ref": "#/$defs/AvatarCacheSource"
+      "$ref": "#/$defs/ImageCacheSource"
     }
   },
   "required": [
@@ -27,7 +27,7 @@
     "source"
   ],
   "$defs": {
-    "AvatarCacheSource": {
+    "ImageCacheSource": {
       "type": "string",
       "enum": [
         "downloaded",
@@ -35,19 +35,19 @@
         "offline_cache"
       ]
     },
-    "PrincipalId": {
-      "type": "string",
-      "maxLength": 21,
-      "minLength": 21,
-      "pattern": "^[A-Za-z0-9]{21}$"
-    },
-    "ProfileAvatarMediaType": {
+    "ImageMediaType": {
       "type": "string",
       "enum": [
         "image/png",
         "image/jpeg",
         "image/webp"
       ]
+    },
+    "PrincipalId": {
+      "type": "string",
+      "maxLength": 21,
+      "minLength": 21,
+      "pattern": "^[A-Za-z0-9]{21}$"
     }
   }
 }

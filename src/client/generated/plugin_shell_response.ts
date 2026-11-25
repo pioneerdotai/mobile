@@ -1,6 +1,10 @@
 /* eslint-disable */
 
 export type SkillId = string;
+/**
+ * Product identity is distinct even when installation mechanics are shared.
+ */
+export type PackageKind = 'plugin' | 'app';
 export type McpRuntimeState =
   | 'not_started'
   | 'disabled'
@@ -56,20 +60,37 @@ export type SkillPackId = string;
 export interface PluginShellResponse {
   accepted: boolean;
   active_flows: string[];
+  app_view?: AppViewPublication | null;
   command_receipt?: PluginCommandReceipt | null;
   launches: NativeOAuthLaunch[];
   operation_id?: number | null;
   origin?: PluginCommandOrigin | null;
   parent?: PluginPublication | null;
   picker: PluginPickerRow[];
+  view_ticket?: number | null;
   [k: string]: unknown;
 }
+export interface AppViewPublication {
+  base_url?: string | null;
+  development: boolean;
+  expires_at?: number | null;
+  state: string;
+  title: string;
+  url?: string | null;
+  [k: string]: unknown;
+}
+/**
+ * Admission identity, captured from this command's immutable publication.
+ */
 export interface PluginCommandReceipt {
   generation: number;
   origin: PluginCommandOrigin;
   parent_id: string;
   [k: string]: unknown;
 }
+/**
+ * Captured connection and effective authorization at the shell submission.
+ */
 export interface PluginCommandOrigin {
   authorization_sequence: number;
   connection_generation: number;
@@ -88,12 +109,19 @@ export interface PluginPublication {
   busy: boolean;
   connection_id?: number | null;
   details?: PluginItem | null;
+  /**
+   * Failure of the shared catalog read. Operation failures are keyed below.
+   */
   error?: string | null;
   generation: number;
   loaded: boolean;
   managing: boolean;
   mcp: McpListItem[];
   mcp_details: McpServerDetailsResponse[];
+  /**
+   * A dispatched mutation failed without an authoritative response. Refresh
+   * or retry using the retained upload identity; never infer rollback.
+   */
   mutation_uncertain: boolean;
   oauth: PluginOAuthPresentation[];
   operations: {
@@ -107,18 +135,21 @@ export interface PluginPublication {
   [k: string]: unknown;
 }
 export interface PluginItem {
+  allow_implicit_invocation?: boolean;
   components: PluginComponentItem[];
+  /**
+   * Authored package description, bounded by the Gateway; absent for old peers.
+   */
   description?: string | null;
   diagnostics: PluginDiagnostic[];
   enabled: boolean;
   id: string;
+  metadata?: PluginMetadata;
   name: string;
   revision: number;
   state: string;
   status: string;
   version?: string | null;
-  metadata?: PluginMetadata;
-  allow_implicit_invocation?: boolean;
   [k: string]: unknown;
 }
 export interface PluginComponentItem {
@@ -138,58 +169,93 @@ export interface PluginDiagnostic {
   [k: string]: unknown;
 }
 export interface PluginMetadata {
-  display_name?: string | null;
-  short_description?: string | null;
-  description?: string | null;
-  long_description?: string | null;
-  developer_name?: string | null;
-  homepage?: string | null;
-  repository?: string | null;
-  documentation_url?: string | null;
-  support_url?: string | null;
-  privacy_policy_url?: string | null;
-  terms_of_service_url?: string | null;
-  license?: string | null;
-  category?: string | null;
-  brand_color?: string | null;
+  app?: AppMetadata | null;
   author?: PluginAuthor;
-  keywords?: string[];
-  default_prompts?: string[];
-  logo?: ImageReference | null;
+  brand_color?: string | null;
+  category?: string | null;
   composer_icon?: ImageReference | null;
+  default_prompts?: string[];
+  description?: string | null;
+  developer_name?: string | null;
+  display_name?: string | null;
+  documentation_url?: string | null;
+  homepage?: string | null;
+  keywords?: string[];
+  license?: string | null;
+  logo?: ImageReference | null;
+  long_description?: string | null;
+  privacy_policy_url?: string | null;
+  repository?: string | null;
+  short_description?: string | null;
+  support_url?: string | null;
+  terms_of_service_url?: string | null;
   [k: string]: unknown;
 }
 /**
- * Authored presentation only. None of these fields grant execution authority.
+ * Verified presentation snapshot only; native authority remains in components.
  */
-export interface PluginAuthor {
-  name?: string | null;
-  email?: string | null;
-  url?: string | null;
+export interface AppMetadata {
+  categories: string[];
+  composer_icon?: AppThemedIcon | null;
+  default_locale?: string | null;
+  developer_logo?: AppThemedIcon | null;
+  developer_url?: string | null;
+  has_ui?: boolean;
+  icon?: AppThemedIcon | null;
+  localizations: {
+    [k: string]: AppLocalization;
+  };
+  [k: string]: unknown;
+}
+export interface AppThemedIcon {
+  dark: ImageReference;
+  light: ImageReference;
   [k: string]: unknown;
 }
 /**
- * Immutable image reference. Gateway inventory exposes a native storage link, never image bytes.
+ * Immutable image reference. Published paths are authenticated Gateway storage links.
  */
 export interface ImageReference {
   path: string;
   revision: string;
   [k: string]: unknown;
 }
+export interface AppLocalization {
+  longDescription?: string | null;
+  name?: string | null;
+  shortDescription?: string | null;
+  [k: string]: unknown;
+}
+/**
+ * Authored presentation only. None of these fields grant execution authority.
+ */
+export interface PluginAuthor {
+  email?: string | null;
+  name?: string | null;
+  url?: string | null;
+  [k: string]: unknown;
+}
 export interface McpListItem {
   display_name?: string | null;
   id: string;
   name: string;
+  package_owner?: PackageOwner | null;
   plugin_owner?: PluginOwner | null;
   policy: McpPolicyState;
   prompts_count: number;
-  required: ['type'];
+  required: boolean;
   resource_templates_count: number;
   resources_count: number;
   runtime: McpRuntimeStatus;
   scope: McpScopeKind;
   status: McpServerStatus;
   tools_count: number;
+  [k: string]: unknown;
+}
+export interface PackageOwner {
+  kind: PackageKind;
+  member_key: string;
+  package_id: string;
   [k: string]: unknown;
 }
 export interface PluginOwner {
@@ -330,6 +396,9 @@ export interface McpTurnBindingSummary {
   server_name: string;
   [k: string]: unknown;
 }
+/**
+ * Secret-free native authorization presentation, shared by management shells.
+ */
 export interface PluginOAuthPresentation {
   browser_failed: boolean;
   flow_id?: string | null;
@@ -337,6 +406,9 @@ export interface PluginOAuthPresentation {
   state: McpOAuthState;
   [k: string]: unknown;
 }
+/**
+ * A parent's operation outcome is independent of other visible parents.
+ */
 export interface PluginOperationPublication {
   busy: boolean;
   error?: string | null;
@@ -408,6 +480,7 @@ export interface SkillListItem {
   install: SkillInstallState;
   owner?: string | null;
   pack?: SkillPackMembership | null;
+  package_owner?: PackageOwner | null;
   plugin_owner?: PluginOwner | null;
   policy: SkillPolicyState;
   skill_id: SkillId;
@@ -445,6 +518,11 @@ export interface SkillPolicyState {
   enabled: boolean;
   [k: string]: unknown;
 }
+/**
+ * Parent-only presentation for immediate pickers. Selection retains its original
+ * revision even when catalog labels/revisions refresh. Desktop picker migration:
+ * use these rows in place of shell-local eligibility and selected-key checks.
+ */
 export interface PluginPickerRow {
   description?: string | null;
   key: string;

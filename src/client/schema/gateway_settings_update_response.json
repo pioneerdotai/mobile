@@ -15,11 +15,9 @@
       "type": "string",
       "enum": [
         "codex",
-        "claude"
+        "claude",
+        "opencode"
       ]
-    },
-    "GatewayBaseUrl": {
-      "type": "string"
     },
     "GatewayCliRuntimeInstanceSettings": {
       "type": "object",
@@ -99,6 +97,13 @@
           "type": "boolean",
           "default": false
         },
+        "model_catalog": {
+          "$ref": "#/$defs/GatewayModelCatalogSettings",
+          "default": {
+            "catalog_available": false,
+            "proxy_configured": false
+          }
+        },
         "telemetry_enabled": {
           "type": "boolean",
           "default": true
@@ -170,6 +175,26 @@
         "strict_diagnostics_enabled"
       ]
     },
+    "GatewayModelCatalogSettings": {
+      "type": "object",
+      "properties": {
+        "catalog_available": {
+          "type": "boolean",
+          "default": false
+        },
+        "proxy_configured": {
+          "type": "boolean",
+          "default": false
+        },
+        "proxy_url": {
+          "description": "Credential-free display URL. Userinfo, query, and fragment are removed.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
     "GatewayModelSelection": {
       "description": "Inherit is a real absence of an override. It never stores a resolved fallback.\nThe tagged value also distinguishes an explicit reset from an omitted update.",
       "oneOf": [
@@ -215,35 +240,22 @@
                 "null"
               ]
             },
+            "service_mode": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/NativeServiceModeSelection"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
             "source": {
               "type": "string",
               "const": "explicit"
             },
             "transport": {
               "$ref": "#/$defs/ModelSelectionTransport"
-            },
-            "service_mode": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "id": {
-                      "type": "string"
-                    },
-                    "authority": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "id",
-                    "authority"
-                  ],
-                  "additionalProperties": false
-                },
-                {
-                  "type": "null"
-                }
-              ]
             }
           },
           "additionalProperties": false,
@@ -340,13 +352,9 @@
         },
         "public_base_url": {
           "description": "Present only for the currently authenticated relay connection.",
-          "anyOf": [
-            {
-              "$ref": "#/$defs/GatewayBaseUrl"
-            },
-            {
-              "type": "null"
-            }
+          "type": [
+            "string",
+            "null"
           ]
         },
         "state": {
@@ -514,6 +522,15 @@
                 "id": "claude",
                 "kind": "claude",
                 "nickname": "claude"
+              },
+              {
+                "binary_path": "opencode",
+                "display_name": "OpenCode",
+                "enabled": true,
+                "home_path": "~/.config/opencode",
+                "id": "opencode",
+                "kind": "opencode",
+                "nickname": "opencode"
               }
             ]
           }
@@ -525,6 +542,10 @@
               "source": "inherit"
             },
             "keepawake": false,
+            "model_catalog": {
+              "catalog_available": false,
+              "proxy_configured": false
+            },
             "telemetry_enabled": true
           }
         },
@@ -931,7 +952,25 @@
       "enum": [
         "api",
         "codex",
-        "claude"
+        "claude",
+        "opencode"
+      ]
+    },
+    "NativeServiceModeSelection": {
+      "description": "Explicit choice uses the existing endpoint/credential/model authority proof.\nAbsence means Standard; Inherit belongs to the enclosing model selection.",
+      "type": "object",
+      "properties": {
+        "authority": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "authority"
       ]
     },
     "SelfImprovementPhase": {

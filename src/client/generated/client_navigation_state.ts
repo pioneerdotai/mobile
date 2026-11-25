@@ -15,7 +15,23 @@ export type AgentsDocEditorScope =
     };
 export type SemanticDestination =
   | {
+      kind: 'apps';
+      [k: string]: unknown;
+    }
+  | {
+      app_id: string;
+      component?: PluginComponentKey | null;
+      kind: 'app';
+      [k: string]: unknown;
+    }
+  | {
       kind: 'plugins';
+      [k: string]: unknown;
+    }
+  | {
+      component?: PluginComponentKey | null;
+      kind: 'plugin';
+      plugin_id: string;
       [k: string]: unknown;
     }
   | {
@@ -49,12 +65,6 @@ export type SemanticDestination =
   | {
       kind: 'settings';
       route: SettingsRoute;
-      [k: string]: unknown;
-    }
-  | {
-      component?: PluginComponentKey | null;
-      kind: 'plugin';
-      plugin_id: string;
       [k: string]: unknown;
     };
 export type ProviderFilter = 'Api' | 'Connected' | 'Cli';

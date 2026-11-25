@@ -22,14 +22,24 @@ export type ComposerCatalogRequestState =
       kind: 'cancelled';
       [k: string]: unknown;
     };
+export type SkillId = string;
 export type McpScopeKind = 'workspace' | 'user';
 export type McpCapabilityUnavailableReason =
   'DisabledByPolicy' | 'RuntimeUnavailable' | 'RuntimeNotReady' | 'NoToolCatalog';
-export type SkillId = string;
-export type ComposerPickerKind = 'skills' | 'mcp' | 'plugins';
+export type ComposerPickerKind = 'apps' | 'plugins' | 'skills' | 'mcp';
 export type ComposerPickerSelection =
   | {
+      capabilities: ComposerCapability[];
+      kind: 'apps';
+      [k: string]: unknown;
+    }
+  | {
       kind: 'immediate';
+      [k: string]: unknown;
+    }
+  | {
+      capabilities: ComposerCapability[];
+      kind: 'plugins';
       [k: string]: unknown;
     }
   | {
@@ -41,31 +51,22 @@ export type ComposerPickerSelection =
       kind: 'mcp';
       selected: string[];
       [k: string]: unknown;
-    }
-  | {
-      capabilities: ComposerCapability[];
-      kind: 'plugins';
-      [k: string]: unknown;
     };
-export type ComposerSkillSelection =
-  | {
-      kind: 'skill';
-      pack_id?: SkillPackId | null;
-      skill_id: SkillId;
-      [k: string]: unknown;
-    }
-  | {
-      kind: 'skill_pack';
-      pack_id: SkillPackId;
-      [k: string]: unknown;
-    };
-export type SkillPackId = string;
 export type ComposerCapabilityKind =
+  | {
+      App: {
+        app_id: string;
+        dark_icon?: ImageReference | null;
+        expected_revision: number;
+        icon?: ImageReference | null;
+        [k: string]: unknown;
+      };
+    }
   | {
       Plugin: {
         expected_revision: number;
-        plugin_id: string;
         icon?: ImageReference | null;
+        plugin_id: string;
         [k: string]: unknown;
       };
     }
@@ -93,8 +94,27 @@ export type ComposerCapabilityKind =
         [k: string]: unknown;
       };
     };
+export type ComposerSkillSelection =
+  | {
+      kind: 'skill';
+      pack_id?: SkillPackId | null;
+      skill_id: SkillId;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'skill_pack';
+      pack_id: SkillPackId;
+      [k: string]: unknown;
+    };
+export type SkillPackId = string;
+/**
+ * Product identity is distinct even when installation mechanics are shared.
+ */
+export type PackageKind = 'plugin' | 'app';
 
 export interface ComposerCatalogPublication {
+  app_request: ComposerCatalogRequest;
+  apps: PluginItem[];
   draft_id: number;
   mcp_request: ComposerCatalogRequest;
   mcp_servers: SelectableMcpCapability[];
@@ -116,32 +136,22 @@ export interface ComposerCatalogRequest {
   state: ComposerCatalogRequestState;
   [k: string]: unknown;
 }
-export interface SelectableMcpCapability {
-  description: string;
-  key: string;
-  label: string;
-  raw_tool_name?: string | null;
-  scope_kind: McpScopeKind;
-  selectable: boolean;
-  server_id: string;
-  server_name: string;
-  tools_count?: number | null;
-  unavailable_reason?: McpCapabilityUnavailableReason | null;
-  [k: string]: unknown;
-}
 export interface PluginItem {
+  allow_implicit_invocation?: boolean;
   components: PluginComponentItem[];
+  /**
+   * Authored package description, bounded by the Gateway; absent for old peers.
+   */
   description?: string | null;
   diagnostics: PluginDiagnostic[];
   enabled: boolean;
   id: string;
+  metadata?: PluginMetadata;
   name: string;
   revision: number;
   state: string;
   status: string;
   version?: string | null;
-  metadata?: PluginMetadata;
-  allow_implicit_invocation?: boolean;
   [k: string]: unknown;
 }
 export interface PluginComponentItem {
@@ -161,42 +171,83 @@ export interface PluginDiagnostic {
   [k: string]: unknown;
 }
 export interface PluginMetadata {
-  display_name?: string | null;
-  short_description?: string | null;
-  description?: string | null;
-  long_description?: string | null;
-  developer_name?: string | null;
-  homepage?: string | null;
-  repository?: string | null;
-  documentation_url?: string | null;
-  support_url?: string | null;
-  privacy_policy_url?: string | null;
-  terms_of_service_url?: string | null;
-  license?: string | null;
-  category?: string | null;
-  brand_color?: string | null;
+  app?: AppMetadata | null;
   author?: PluginAuthor;
-  keywords?: string[];
-  default_prompts?: string[];
-  logo?: ImageReference | null;
+  brand_color?: string | null;
+  category?: string | null;
   composer_icon?: ImageReference | null;
+  default_prompts?: string[];
+  description?: string | null;
+  developer_name?: string | null;
+  display_name?: string | null;
+  documentation_url?: string | null;
+  homepage?: string | null;
+  keywords?: string[];
+  license?: string | null;
+  logo?: ImageReference | null;
+  long_description?: string | null;
+  privacy_policy_url?: string | null;
+  repository?: string | null;
+  short_description?: string | null;
+  support_url?: string | null;
+  terms_of_service_url?: string | null;
+  [k: string]: unknown;
+}
+/**
+ * Verified presentation snapshot only; native authority remains in components.
+ */
+export interface AppMetadata {
+  categories: string[];
+  composer_icon?: AppThemedIcon | null;
+  default_locale?: string | null;
+  developer_logo?: AppThemedIcon | null;
+  developer_url?: string | null;
+  has_ui?: boolean;
+  icon?: AppThemedIcon | null;
+  localizations: {
+    [k: string]: AppLocalization;
+  };
+  [k: string]: unknown;
+}
+export interface AppThemedIcon {
+  dark: ImageReference;
+  light: ImageReference;
+  [k: string]: unknown;
+}
+/**
+ * Immutable image reference. Published paths are authenticated Gateway storage links.
+ */
+export interface ImageReference {
+  path: string;
+  revision: string;
+  [k: string]: unknown;
+}
+export interface AppLocalization {
+  longDescription?: string | null;
+  name?: string | null;
+  shortDescription?: string | null;
   [k: string]: unknown;
 }
 /**
  * Authored presentation only. None of these fields grant execution authority.
  */
 export interface PluginAuthor {
-  name?: string | null;
   email?: string | null;
+  name?: string | null;
   url?: string | null;
   [k: string]: unknown;
 }
-/**
- * Immutable image reference. Gateway inventory exposes a native storage link, never image bytes.
- */
-export interface ImageReference {
-  path: string;
-  revision: string;
+export interface SelectableMcpCapability {
+  description: string;
+  key: string;
+  label: string;
+  raw_tool_name?: string | null;
+  scope_kind: McpScopeKind;
+  selectable: boolean;
+  server_id: string;
+  server_name: string;
+  tools_count?: number | null;
+  unavailable_reason?: McpCapabilityUnavailableReason | null;
   [k: string]: unknown;
 }
 export interface ComposerPickerSession {
@@ -236,6 +287,7 @@ export interface SkillListItem {
   install: SkillInstallState;
   owner?: string | null;
   pack?: SkillPackMembership | null;
+  package_owner?: PackageOwner | null;
   plugin_owner?: PluginOwner | null;
   policy: SkillPolicyState;
   skill_id: SkillId;
@@ -286,6 +338,12 @@ export interface SkillInstallState {
 export interface SkillPackMembership {
   member_key: string;
   pack_id: SkillPackId;
+  [k: string]: unknown;
+}
+export interface PackageOwner {
+  kind: PackageKind;
+  member_key: string;
+  package_id: string;
   [k: string]: unknown;
 }
 export interface PluginOwner {

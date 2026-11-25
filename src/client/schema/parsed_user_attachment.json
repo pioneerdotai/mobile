@@ -13,6 +13,16 @@
         }
       ]
     },
+    "dark_icon": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ImageReference"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
     "display_name": {
       "type": "string"
     },
@@ -30,8 +40,7 @@
         {
           "type": "null"
         }
-      ],
-      "default": null
+      ]
     }
   },
   "required": [
@@ -196,16 +205,8 @@
         "failed"
       ]
     },
-    "ParsedUserAttachmentKind": {
-      "type": "string",
-      "enum": [
-        "Plugin",
-        "File",
-        "Skill",
-        "Mcp"
-      ]
-    },
     "ImageReference": {
+      "description": "Immutable image reference. Published paths are authenticated Gateway storage links.",
       "type": "object",
       "properties": {
         "path": {
@@ -218,8 +219,17 @@
       "required": [
         "path",
         "revision"
-      ],
-      "description": "Immutable image reference. Gateway inventory exposes a native storage link, never image bytes."
+      ]
+    },
+    "ParsedUserAttachmentKind": {
+      "type": "string",
+      "enum": [
+        "App",
+        "Plugin",
+        "File",
+        "Skill",
+        "Mcp"
+      ]
     }
   }
 }

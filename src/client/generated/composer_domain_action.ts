@@ -220,10 +220,19 @@ export type ArtifactProjectionStatus = 'pending' | 'ready' | 'failed' | 'stale';
 export type ArtifactStatus = 'ready' | 'pending' | 'quarantined' | 'deleted' | 'missing_external_source' | 'failed';
 export type ComposerCapabilityKind =
   | {
+      App: {
+        app_id: string;
+        dark_icon?: ImageReference | null;
+        expected_revision: number;
+        icon?: ImageReference | null;
+        [k: string]: unknown;
+      };
+    }
+  | {
       Plugin: {
         expected_revision: number;
-        plugin_id: string;
         icon?: ImageReference | null;
+        plugin_id: string;
         [k: string]: unknown;
       };
     }
@@ -318,7 +327,7 @@ export interface ComposerCapability {
   [k: string]: unknown;
 }
 /**
- * Immutable image reference. Gateway inventory exposes a native storage link, never image bytes.
+ * Immutable image reference. Published paths are authenticated Gateway storage links.
  */
 export interface ImageReference {
   path: string;
@@ -399,11 +408,16 @@ export interface ComposerModelSelection {
   selected_context_authority?: string | null;
   selected_context_window?: number | null;
   selected_reasoning_effort?: string | null;
-  selected_service_mode?: {
-    id: string;
-    authority: string;
-  } | null;
+  selected_service_mode?: NativeServiceModeSelection | null;
   [k: string]: unknown;
+}
+/**
+ * Explicit choice uses the existing endpoint/credential/model authority proof.
+ * Absence means Standard; Inherit belongs to the enclosing model selection.
+ */
+export interface NativeServiceModeSelection {
+  authority: string;
+  id: string;
 }
 export interface ComposerDomainState {
   attachments?: ComposerAttachment[];
@@ -420,11 +434,8 @@ export interface ComposerDomainState {
   selected_permission_mode?: 'full_access' | 'auto_accept_edits' | 'supervised';
   selected_provider?: string | null;
   selected_reasoning_effort?: string | null;
+  selected_service_mode?: NativeServiceModeSelection | null;
   skill_selections?: ComposerSkillSelection[];
-  selected_service_mode?: {
-    id: string;
-    authority: string;
-  } | null;
 }
 export interface ComposerMentionSelection {
   display_name: string;

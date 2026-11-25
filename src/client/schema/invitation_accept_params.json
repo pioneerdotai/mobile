@@ -56,6 +56,14 @@
         "other"
       ]
     },
+    "ImageMediaType": {
+      "type": "string",
+      "enum": [
+        "image/png",
+        "image/jpeg",
+        "image/webp"
+      ]
+    },
     "NewMemberProfile": {
       "type": "object",
       "properties": {
@@ -104,14 +112,6 @@
       "required": [
         "media_type",
         "content_base64"
-      ]
-    },
-    "ImageMediaType": {
-      "type": "string",
-      "enum": [
-        "image/png",
-        "image/jpeg",
-        "image/webp"
       ]
     }
   }

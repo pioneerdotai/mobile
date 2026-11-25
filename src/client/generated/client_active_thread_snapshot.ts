@@ -387,6 +387,11 @@ export type UserMessageAttachment =
       [k: string]: unknown;
     }
   | {
+      capability: TurnAppCapabilitySummary;
+      type: 'app';
+      [k: string]: unknown;
+    }
+  | {
       capability: TurnSkillPackCapabilitySummary;
       type: 'skillPack';
       [k: string]: unknown;
@@ -923,8 +928,25 @@ export interface TurnSkillPackPresentationSummary {
 }
 export interface TurnPluginCapabilitySummary {
   expectedRevision: number;
+  icon?: ImageReference | null;
   label: string;
   pluginId: string;
+  [k: string]: unknown;
+}
+/**
+ * Immutable image reference. Published paths are authenticated Gateway storage links.
+ */
+export interface ImageReference {
+  path: string;
+  revision: string;
+  [k: string]: unknown;
+}
+export interface TurnAppCapabilitySummary {
+  appId: string;
+  darkIcon?: ImageReference | null;
+  expectedRevision: number;
+  icon?: ImageReference | null;
+  label: string;
   [k: string]: unknown;
 }
 export interface TurnSkillPackCapabilitySummary {
@@ -955,11 +977,38 @@ export interface ToolObservation {
   attemptId: number;
   eventSeq: number;
   monoNs: number;
+  omittedPhaseBoundaries?: number;
+  outputSizes?: ToolOutputMeasurements | null;
+  parentOperationId?: string | null;
+  phaseBoundaries?: ToolPhaseBoundary[];
   pipelineStage: string;
+  processRunId?: string | null;
   toolCallId: string;
   traceId: string;
   tsUnixMs: number;
   turnId: string;
+  [k: string]: unknown;
+}
+export interface ToolOutputMeasurements {
+  basis: string;
+  capturedTextBytes: number;
+  modelProjectionTextBytes: number;
+  /**
+   * Prepared handler representation; persistence is a separate acknowledged fact.
+   */
+  preparedSourceBytes: number;
+  [k: string]: unknown;
+}
+/**
+ * Content-free source boundaries, bounded per invocation. All mono_ns values
+ * belong to the enclosing observation's process_run_id.
+ */
+export interface ToolPhaseBoundary {
+  attemptId: number;
+  localSequence: number;
+  monoNs: number;
+  phase: string;
+  tsUnixMs: number;
   [k: string]: unknown;
 }
 export interface ToolOutcome {
@@ -1155,6 +1204,11 @@ export interface TurnBlockedResumeMetadata {
 export interface Thread {
   agent_nickname?: string | null;
   agent_role?: string | null;
+  context_authority?: string | null;
+  /**
+   * Manual Native/API choice from this thread's latest admitted conversation.
+   */
+  context_window?: number | null;
   created_at: number;
   id: string;
   mode: ThreadMode;
@@ -1170,6 +1224,7 @@ export interface Thread {
    */
   preview_author?: TurnAuthorSnapshot | null;
   reasoning_effort?: string | null;
+  service_mode?: NativeServiceModeSelection | null;
   sidebar_visibility?: 'visible' | 'hidden';
   status: ThreadStatus;
   turns: Turn[];
@@ -1206,6 +1261,14 @@ export interface AgentPresentationSnapshot {
   role_label?: string | null;
   [k: string]: unknown;
 }
+/**
+ * Explicit choice uses the existing endpoint/credential/model authority proof.
+ * Absence means Standard; Inherit belongs to the enclosing model selection.
+ */
+export interface NativeServiceModeSelection {
+  authority: string;
+  id: string;
+}
 export interface Turn {
   author?: TurnAuthorSnapshot | null;
   error?: string | null;
@@ -1220,6 +1283,10 @@ export interface Turn {
   reply_to_turn_id?: string | null;
   status: TurnStatus;
   turn_kind?: 'conversation' | 'task_run';
+  /**
+   * Immutable owner of the admitted work; absent historical wire values own their turn.
+   */
+  work_owner?: 'turn' | 'detached_task';
   [k: string]: unknown;
 }
 export interface TurnMention {

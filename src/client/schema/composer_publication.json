@@ -583,15 +583,25 @@
         {
           "type": "object",
           "properties": {
-            "Plugin": {
+            "App": {
               "type": "object",
               "properties": {
+                "app_id": {
+                  "type": "string"
+                },
+                "dark_icon": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/ImageReference"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
                 "expected_revision": {
                   "type": "integer",
                   "format": "int64"
-                },
-                "plugin_id": {
-                  "type": "string"
                 },
                 "icon": {
                   "anyOf": [
@@ -601,8 +611,42 @@
                     {
                       "type": "null"
                     }
-                  ],
-                  "default": null
+                  ]
+                }
+              },
+              "required": [
+                "app_id",
+                "expected_revision"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "App"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "Plugin": {
+              "type": "object",
+              "properties": {
+                "expected_revision": {
+                  "type": "integer",
+                  "format": "int64"
+                },
+                "icon": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/ImageReference"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "plugin_id": {
+                  "type": "string"
                 }
               },
               "required": [
@@ -918,35 +962,22 @@
             "null"
           ]
         },
+        "selected_service_mode": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/NativeServiceModeSelection"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "skill_selections": {
           "type": "array",
           "default": [],
           "items": {
             "$ref": "#/$defs/ComposerSkillSelection"
           }
-        },
-        "selected_service_mode": {
-          "anyOf": [
-            {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "type": "string"
-                },
-                "authority": {
-                  "type": "string"
-                }
-              },
-              "required": [
-                "id",
-                "authority"
-              ],
-              "additionalProperties": false
-            },
-            {
-              "type": "null"
-            }
-          ]
         }
       },
       "additionalProperties": false,
@@ -1722,11 +1753,44 @@
       },
       "additionalProperties": false
     },
+    "ImageReference": {
+      "description": "Immutable image reference. Published paths are authenticated Gateway storage links.",
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "revision": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "revision"
+      ]
+    },
     "McpScopeKind": {
       "type": "string",
       "enum": [
         "workspace",
         "user"
+      ]
+    },
+    "NativeServiceModeSelection": {
+      "description": "Explicit choice uses the existing endpoint/credential/model authority proof.\nAbsence means Standard; Inherit belongs to the enclosing model selection.",
+      "type": "object",
+      "properties": {
+        "authority": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "authority"
       ]
     },
     "PersistedActorRef": {
@@ -1999,6 +2063,46 @@
         "turnId"
       ]
     },
+    "TurnAppCapabilitySummary": {
+      "type": "object",
+      "properties": {
+        "appId": {
+          "type": "string"
+        },
+        "darkIcon": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ImageReference"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "expectedRevision": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "icon": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ImageReference"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "label": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "appId",
+        "expectedRevision",
+        "label"
+      ]
+    },
     "TurnAuthorSnapshot": {
       "type": "object",
       "properties": {
@@ -2107,6 +2211,28 @@
         {
           "type": "object",
           "properties": {
+            "appId": {
+              "type": "string"
+            },
+            "expectedRevision": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "type": {
+              "type": "string",
+              "const": "app"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "appId",
+            "expectedRevision"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
             "expectedRevision": {
               "type": "integer",
               "format": "int64"
@@ -2119,6 +2245,7 @@
               "const": "plugin"
             }
           },
+          "additionalProperties": false,
           "required": [
             "type",
             "pluginId",
@@ -2146,6 +2273,7 @@
               "const": "skill"
             }
           },
+          "additionalProperties": false,
           "required": [
             "type",
             "skillId"
@@ -2162,6 +2290,7 @@
               "const": "skillPack"
             }
           },
+          "additionalProperties": false,
           "required": [
             "type",
             "packId"
@@ -2181,6 +2310,7 @@
               "const": "mcpServer"
             }
           },
+          "additionalProperties": false,
           "required": [
             "type",
             "name",
@@ -2204,6 +2334,7 @@
               "const": "mcpTool"
             }
           },
+          "additionalProperties": false,
           "required": [
             "type",
             "serverName",
@@ -2307,12 +2438,6 @@
           "type": "integer",
           "format": "int64"
         },
-        "label": {
-          "type": "string"
-        },
-        "pluginId": {
-          "type": "string"
-        },
         "icon": {
           "anyOf": [
             {
@@ -2321,8 +2446,13 @@
             {
               "type": "null"
             }
-          ],
-          "default": null
+          ]
+        },
+        "label": {
+          "type": "string"
+        },
+        "pluginId": {
+          "type": "string"
         }
       },
       "required": [
@@ -2791,6 +2921,22 @@
           "type": "object",
           "properties": {
             "capability": {
+              "$ref": "#/$defs/TurnAppCapabilitySummary"
+            },
+            "type": {
+              "type": "string",
+              "const": "app"
+            }
+          },
+          "required": [
+            "type",
+            "capability"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "capability": {
               "$ref": "#/$defs/TurnSkillPackCapabilitySummary"
             },
             "type": {
@@ -3226,6 +3372,16 @@
             }
           ]
         },
+        "service_mode": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/NativeServiceModeSelection"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "thread_id": {
           "description": "Thread that receives the gateway-created turn after transcription.",
           "type": "string"
@@ -3237,29 +3393,6 @@
         "workspace_id": {
           "description": "Workspace active when the voice session starts.\n\n`TurnStartParams` is still thread-scoped; the gateway keeps the\nworkspace here to validate/session-route the frozen voice context.",
           "type": "string"
-        },
-        "service_mode": {
-          "anyOf": [
-            {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "type": "string"
-                },
-                "authority": {
-                  "type": "string"
-                }
-              },
-              "required": [
-                "id",
-                "authority"
-              ],
-              "additionalProperties": false
-            },
-            {
-              "type": "null"
-            }
-          ]
         }
       },
       "required": [
@@ -3267,22 +3400,6 @@
         "thread_id",
         "turn_id"
       ]
-    },
-    "ImageReference": {
-      "type": "object",
-      "properties": {
-        "path": {
-          "type": "string"
-        },
-        "revision": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "path",
-        "revision"
-      ],
-      "description": "Immutable image reference. Gateway inventory exposes a native storage link, never image bytes."
     }
   }
 }

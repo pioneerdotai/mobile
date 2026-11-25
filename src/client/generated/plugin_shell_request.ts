@@ -2,6 +2,44 @@
 
 export type PluginShellRequest =
   | {
+      app_id: string;
+      kind: 'app_view_open';
+      workspace_id: string;
+    }
+  | {
+      kind: 'app_view_poll';
+      ticket: number;
+    }
+  | {
+      kind: 'app_view_close';
+      ticket: number;
+    }
+  | {
+      app_id: string;
+      kind: 'app_parent_snapshot';
+      workspace_id: string;
+    }
+  | {
+      app_id: string;
+      intent: PluginIntent;
+      kind: 'app_parent_command';
+      origin: PluginCommandOrigin;
+      workspace_id: string;
+    }
+  | {
+      draft_id: number;
+      kind: 'app_composer_picker';
+      query: string;
+      thread_id: string;
+    }
+  | {
+      kind: 'configure_oauth';
+      redirect_uri: string;
+    }
+  | {
+      kind: 'poll_oauth';
+    }
+  | {
       kind: 'parent_snapshot';
       plugin_id: string;
       workspace_id: string;
@@ -12,13 +50,6 @@ export type PluginShellRequest =
       origin: PluginCommandOrigin;
       plugin_id: string;
       workspace_id: string;
-    }
-  | {
-      kind: 'configure_oauth';
-      redirect_uri: string;
-    }
-  | {
-      kind: 'poll_oauth';
     }
   | {
       draft_id: number;
@@ -58,6 +89,7 @@ export type PluginIntent =
       [k: string]: unknown;
     }
   | {
+      allow_implicit_invocation?: boolean | null;
       enabled: boolean;
       expected_revision: number;
       kind: 'set_enabled';
@@ -171,7 +203,27 @@ export type McpIntent =
     };
 export type SkillUploadTarget =
   | {
+      kind: 'app_preview';
+      [k: string]: unknown;
+    }
+  | {
+      app_id: string;
+      expected_revision: number;
+      kind: 'app_update_preview';
+      [k: string]: unknown;
+    }
+  | {
       kind: 'plugin_install';
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'plugin_preview';
+      [k: string]: unknown;
+    }
+  | {
+      expected_revision: number;
+      kind: 'plugin_update_preview';
+      plugin_id: string;
       [k: string]: unknown;
     }
   | {
@@ -187,16 +239,6 @@ export type SkillUploadTarget =
       kind: 'update_pack';
       pack_id: SkillPackId;
       [k: string]: unknown;
-    }
-  | {
-      kind: 'plugin_preview';
-      [k: string]: unknown;
-    }
-  | {
-      expected_revision: number;
-      kind: 'plugin_update_preview';
-      plugin_id: string;
-      [k: string]: unknown;
     };
 export type SkillPackId = string;
 
@@ -204,6 +246,9 @@ export interface PluginComponentKey {
   kind: string;
   member_key: string;
 }
+/**
+ * Captured connection and effective authorization at the shell submission.
+ */
 export interface PluginCommandOrigin {
   authorization_sequence: number;
   connection_generation: number;

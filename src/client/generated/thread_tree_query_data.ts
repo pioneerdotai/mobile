@@ -59,8 +59,19 @@ export interface ClientThreadTreeQueryData {
 export interface ComposerModelSelection {
   model: string;
   provider: string;
+  selected_context_authority?: string | null;
+  selected_context_window?: number | null;
   selected_reasoning_effort?: string | null;
+  selected_service_mode?: NativeServiceModeSelection | null;
   [k: string]: unknown;
+}
+/**
+ * Explicit choice uses the existing endpoint/credential/model authority proof.
+ * Absence means Standard; Inherit belongs to the enclosing model selection.
+ */
+export interface NativeServiceModeSelection {
+  authority: string;
+  id: string;
 }
 export interface ThreadTreeSnapshot {
   agents_doc_summaries_by_folder_key: {
@@ -124,6 +135,11 @@ export interface ThreadPlacement {
 export interface Thread {
   agent_nickname?: string | null;
   agent_role?: string | null;
+  context_authority?: string | null;
+  /**
+   * Manual Native/API choice from this thread's latest admitted conversation.
+   */
+  context_window?: number | null;
   created_at: number;
   id: string;
   mode: ThreadMode;
@@ -139,6 +155,7 @@ export interface Thread {
    */
   preview_author?: TurnAuthorSnapshot | null;
   reasoning_effort?: string | null;
+  service_mode?: NativeServiceModeSelection | null;
   sidebar_visibility?: 'visible' | 'hidden';
   status: ThreadStatus;
   turns: Turn[];
@@ -189,6 +206,10 @@ export interface Turn {
   reply_to_turn_id?: string | null;
   status: TurnStatus;
   turn_kind?: 'conversation' | 'task_run';
+  /**
+   * Immutable owner of the admitted work; absent historical wire values own their turn.
+   */
+  work_owner?: 'turn' | 'detached_task';
   [k: string]: unknown;
 }
 export interface TurnMention {

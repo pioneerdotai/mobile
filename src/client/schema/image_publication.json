@@ -55,6 +55,9 @@
     "avatar_revision"
   ],
   "$defs": {
+    "ClientPath": {
+      "type": "string"
+    },
     "ImageCacheError": {
       "type": "string",
       "enum": [
@@ -75,9 +78,6 @@
         "revalidated",
         "offline_cache"
       ]
-    },
-    "ClientPath": {
-      "type": "string"
     },
     "ImageMediaType": {
       "type": "string",

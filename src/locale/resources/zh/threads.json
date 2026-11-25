@@ -1,4 +1,5 @@
 {
+    "composerPreparingSend": "正在准备消息",
     "tasksRunning": "任务正在运行",
     "title": "线程",
     "threadTitle": "线程",

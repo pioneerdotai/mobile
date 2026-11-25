@@ -78,6 +78,10 @@ const publication = (thread: string): ComposerCatalogPublication => ({
     mcp_servers: [],
     mcp_tools: [],
     mcp_request: { generation: 0, state: { kind: 'idle' } },
+    apps: [],
+    app_request: { generation: 0, state: { kind: 'idle' } },
+    plugins: [],
+    plugin_request: { generation: 0, state: { kind: 'idle' } },
     tool_requests: {},
     session: {
         identity: { thread_id: thread, draft_id: 1, generation: 7 },

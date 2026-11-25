@@ -10,10 +10,10 @@
       "type": "string"
     },
     "media_type": {
-      "$ref": "#/$defs/ProfileAvatarMediaType"
+      "$ref": "#/$defs/ImageMediaType"
     },
     "source": {
-      "$ref": "#/$defs/AvatarCacheSource"
+      "$ref": "#/$defs/ImageCacheSource"
     }
   },
   "required": [
@@ -23,7 +23,7 @@
     "source"
   ],
   "$defs": {
-    "AvatarCacheSource": {
+    "ImageCacheSource": {
       "type": "string",
       "enum": [
         "downloaded",
@@ -31,7 +31,7 @@
         "offline_cache"
       ]
     },
-    "ProfileAvatarMediaType": {
+    "ImageMediaType": {
       "type": "string",
       "enum": [
         "image/png",

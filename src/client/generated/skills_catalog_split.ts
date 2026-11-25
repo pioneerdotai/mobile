@@ -1,6 +1,10 @@
 /* eslint-disable */
 
 export type SkillPackId = string;
+/**
+ * Product identity is distinct even when installation mechanics are shared.
+ */
+export type PackageKind = 'plugin' | 'app';
 export type SkillId = string;
 
 export interface SkillsCatalogSplit {
@@ -16,6 +20,7 @@ export interface SkillListItem {
   install: SkillInstallState;
   owner?: string | null;
   pack?: SkillPackMembership | null;
+  package_owner?: PackageOwner | null;
   plugin_owner?: PluginOwner | null;
   policy: SkillPolicyState;
   skill_id: SkillId;
@@ -66,6 +71,12 @@ export interface SkillInstallState {
 export interface SkillPackMembership {
   member_key: string;
   pack_id: SkillPackId;
+  [k: string]: unknown;
+}
+export interface PackageOwner {
+  kind: PackageKind;
+  member_key: string;
+  package_id: string;
   [k: string]: unknown;
 }
 export interface PluginOwner {

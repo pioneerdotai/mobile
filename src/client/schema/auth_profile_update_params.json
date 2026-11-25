@@ -71,6 +71,14 @@
         }
       ]
     },
+    "ImageMediaType": {
+      "type": "string",
+      "enum": [
+        "image/png",
+        "image/jpeg",
+        "image/webp"
+      ]
+    },
     "ProfileAvatarInput": {
       "type": "object",
       "properties": {
@@ -80,21 +88,13 @@
           "minLength": 1
         },
         "media_type": {
-          "$ref": "#/$defs/ProfileAvatarMediaType"
+          "$ref": "#/$defs/ImageMediaType"
         }
       },
       "additionalProperties": false,
       "required": [
         "media_type",
         "content_base64"
-      ]
-    },
-    "ProfileAvatarMediaType": {
-      "type": "string",
-      "enum": [
-        "image/png",
-        "image/jpeg",
-        "image/webp"
       ]
     }
   }
