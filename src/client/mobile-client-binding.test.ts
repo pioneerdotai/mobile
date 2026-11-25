@@ -123,6 +123,13 @@ test('document subscriptions isolate folders and release only their own demand',
 });
 
 describe('MobileClientBinding', () => {
+    test('app scope identity is isolated per workspace', () => {
+        const binding = new MobileClientBinding(bridgeFixture(null).bridge);
+        const first = binding.scope({ kind: 'apps', workspace_id: 'one' });
+        expect(binding.scope({ kind: 'apps', workspace_id: 'one' })).toBe(first);
+        expect(binding.scope({ kind: 'apps', workspace_id: 'two' })).not.toBe(first);
+    });
+
     test('provider scope identity is semantic and scoped row reuse survives reordering and deletion', () => {
         const scope: ClientScope = {
             kind: 'provider_collection',

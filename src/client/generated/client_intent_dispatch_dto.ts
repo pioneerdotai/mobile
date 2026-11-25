@@ -2,6 +2,20 @@
 
 export type ClientIntent =
   | {
+      connection_id?: number | null;
+      intent: PluginIntent;
+      kind: 'apps';
+      workspace_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      connection_id?: number | null;
+      intent: PluginIntent;
+      kind: 'plugins';
+      workspace_id: string;
+      [k: string]: unknown;
+    }
+  | {
       demand: SessionDemand;
       kind: 'session_demand';
       [k: string]: unknown;
@@ -160,12 +174,128 @@ export type ClientIntent =
       kind: 'set_scope_demand';
       scope: ClientScope;
       [k: string]: unknown;
+    };
+export type PluginIntent =
+  | {
+      kind: 'observe';
+      plugin_id?: string | null;
+      [k: string]: unknown;
     }
   | {
-      connection_id?: number | null;
-      intent: PluginIntent;
-      kind: 'plugins';
-      workspace_id: string;
+      kind: 'close';
+      [k: string]: unknown;
+    }
+  | {
+      allow_implicit_invocation?: boolean | null;
+      enabled: boolean;
+      expected_revision: number;
+      kind: 'set_enabled';
+      plugin_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      expected_revision: number;
+      intent: PluginManagementIntent;
+      kind: 'mutate';
+      plugin_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'install';
+      upload_operation: number;
+      [k: string]: unknown;
+    }
+  | {
+      confirm_changes: boolean;
+      kind: 'apply_update';
+      upload_operation: number;
+      [k: string]: unknown;
+    }
+  | {
+      allow_implicit_invocation: boolean;
+      enabled: boolean;
+      kind: 'skill';
+      skill_id: SkillId;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'remove_skill';
+      skill_id: SkillId;
+      [k: string]: unknown;
+    }
+  | {
+      body: string;
+      kind: 'configure_mcp';
+      server_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      intent: McpIntent;
+      kind: 'mcp';
+      [k: string]: unknown;
+    };
+export type PluginManagementIntent =
+  | {
+      action: 'update';
+      confirm_changes: boolean;
+      expected_fingerprint: string;
+      upload_id: string;
+    }
+  | {
+      action: 'retry';
+      components: PluginComponentKey[];
+      restore_removed: boolean;
+    }
+  | {
+      action: 'continue';
+    }
+  | {
+      action: 'remove';
+      purge_data: boolean;
+    };
+export type SkillId = string;
+export type McpIntent =
+  | {
+      kind: 'retry_authorization_browser';
+      server_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'sign_in';
+      server_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'disconnect';
+      server_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      flow_id: string;
+      kind: 'cancel_authorization';
+      server_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      allow_implicit_invocation: boolean;
+      enabled: boolean;
+      kind: 'policy';
+      server_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'restart';
+      server_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'remove';
+      server_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      config_json: string;
+      kind: 'configure';
       [k: string]: unknown;
     };
 export type SessionVisibility = 'foreground' | 'inactive' | 'background';
@@ -194,9 +324,9 @@ export type SettingsModelPickerIntent =
     }
   | {
       expected_owner: number;
+      id: string;
       kind: 'select_service_mode';
       picker_id: string;
-      id: string;
       [k: string]: unknown;
     }
   | {
@@ -231,7 +361,7 @@ export type SettingsModelPickerIntent =
       picker_id: string;
       [k: string]: unknown;
     };
-export type ProviderModelSelectorMode = 'Chat' | 'AuxiliaryChat' | 'SelfImprovement' | 'Embeddings' | 'Transcription';
+export type ProviderModelSelectorMode = ('Chat' | 'SelfImprovement' | 'Embeddings' | 'Transcription') | 'AuxiliaryChat';
 export type OnboardingIntent =
   | {
       kind: 'initialize';
@@ -628,14 +758,11 @@ export type GatewayModelSelection =
       instance: string;
       model: string;
       reasoning_effort?: string | null;
+      service_mode?: NativeServiceModeSelection | null;
       source: 'explicit';
       transport: ModelSelectionTransport;
-      service_mode?: {
-        id: string;
-        authority: string;
-      } | null;
     };
-export type ModelSelectionTransport = 'api' | 'codex' | 'claude';
+export type ModelSelectionTransport = 'api' | 'codex' | 'claude' | 'opencode';
 export type MemorySettingToggle = 'Enabled' | 'ProactiveWrites' | 'BackgroundExtraction' | 'DebugTrace';
 export type MemoryModelSetting = 'PostTurnExtractor';
 export type SelfImprovementModelSetting = 'Default' | 'Reviewer';
@@ -959,7 +1086,7 @@ export type ProviderCommand =
       };
       [k: string]: unknown;
     };
-export type CLIAgentRuntimeKind = 'codex' | 'claude';
+export type CLIAgentRuntimeKind = 'codex' | 'claude' | 'opencode';
 export type CLIRuntimeProviderDraftMode =
   | 'Create'
   | {
@@ -1135,9 +1262,9 @@ export type ComposerModelPickerIntent =
       [k: string]: unknown;
     }
   | {
+      id: string;
       identity: ComposerOperationIdentity;
       kind: 'select_service_mode';
-      id: string;
       [k: string]: unknown;
     }
   | {
@@ -1203,6 +1330,18 @@ export type ComposerCatalogIntent =
       [k: string]: unknown;
     }
   | {
+      app_id: string;
+      identity: ComposerOperationIdentity;
+      kind: 'toggle_app';
+      [k: string]: unknown;
+    }
+  | {
+      identity: ComposerOperationIdentity;
+      kind: 'toggle_plugin';
+      plugin_id: string;
+      [k: string]: unknown;
+    }
+  | {
       identity: ComposerOperationIdentity;
       kind: 'toggle_skill';
       selection: ComposerSkillSelection;
@@ -1223,14 +1362,12 @@ export type ComposerCatalogIntent =
       identity: ComposerOperationIdentity;
       kind: 'close_picker';
       [k: string]: unknown;
-    }
-  | {
-      identity: ComposerOperationIdentity;
-      kind: 'toggle_plugin';
-      plugin_id: string;
-      [k: string]: unknown;
     };
 export type ComposerCatalogKind =
+  | {
+      kind: 'apps';
+      [k: string]: unknown;
+    }
   | {
       kind: 'plugins';
       [k: string]: unknown;
@@ -1248,7 +1385,7 @@ export type ComposerCatalogKind =
       server_id: string;
       [k: string]: unknown;
     };
-export type ComposerPickerKind = 'skills' | 'mcp' | 'plugins';
+export type ComposerPickerKind = 'apps' | 'plugins' | 'skills' | 'mcp';
 export type ComposerSkillSelection =
   | {
       kind: 'skill';
@@ -1262,7 +1399,6 @@ export type ComposerSkillSelection =
       [k: string]: unknown;
     };
 export type SkillPackId = string;
-export type SkillId = string;
 export type MessageRevisionIntent =
   | {
       kind: 'open';
@@ -1576,34 +1712,34 @@ export type ComposerAttachmentUploadState =
     };
 export type TurnCapabilityKind =
   | {
+      appId: string;
+      expectedRevision: number;
+      type: 'app';
+    }
+  | {
       expectedRevision: number;
       pluginId: string;
       type: 'plugin';
-      [k: string]: unknown;
     }
   | {
       packId?: SkillPackId | null;
       skillId: SkillId;
       type: 'skill';
-      [k: string]: unknown;
     }
   | {
       packId: SkillPackId;
       type: 'skillPack';
-      [k: string]: unknown;
     }
   | {
       name: string;
       scopeKind: McpScopeKind;
       type: 'mcpServer';
-      [k: string]: unknown;
     }
   | {
       rawToolName: string;
       scopeKind: McpScopeKind;
       serverName: string;
       type: 'mcpTool';
-      [k: string]: unknown;
     };
 export type McpScopeKind = 'workspace' | 'user';
 export type AgentExecutionBackend =
@@ -1687,10 +1823,19 @@ export type UserInput =
 export type SandboxMode = 'FullAccess';
 export type ComposerCapabilityKind =
   | {
+      App: {
+        app_id: string;
+        dark_icon?: ImageReference | null;
+        expected_revision: number;
+        icon?: ImageReference | null;
+        [k: string]: unknown;
+      };
+    }
+  | {
       Plugin: {
         expected_revision: number;
-        plugin_id: string;
         icon?: ImageReference | null;
+        plugin_id: string;
         [k: string]: unknown;
       };
     }
@@ -1996,6 +2141,11 @@ export type WorkspaceIntent =
     };
 export type TaskNotificationIntent =
   | {
+      kind: 'read_all';
+      workspace_id: string;
+      [k: string]: unknown;
+    }
+  | {
       kind: 'refresh';
       workspace_id: string;
       [k: string]: unknown;
@@ -2106,21 +2256,41 @@ export type NavigationIntent =
       [k: string]: unknown;
     }
   | {
+      kind: 'back_from_plugin';
+      [k: string]: unknown;
+    }
+  | {
       kind: 'clear_lineage';
       [k: string]: unknown;
     }
   | {
       kind: 'reset';
       [k: string]: unknown;
-    }
-  | {
-      kind: 'back_from_plugin';
-      [k: string]: unknown;
     };
 export type AdministrationRoute = 'Members' | 'Invitations';
 export type SettingsRoute = 'General' | 'Account' | 'Memory' | 'SelfImprovement';
 export type ProviderFilter = 'Api' | 'Connected' | 'Cli';
 export type SemanticDestination =
+  | {
+      kind: 'apps';
+      [k: string]: unknown;
+    }
+  | {
+      app_id: string;
+      component?: PluginComponentKey | null;
+      kind: 'app';
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'plugins';
+      [k: string]: unknown;
+    }
+  | {
+      component?: PluginComponentKey | null;
+      kind: 'plugin';
+      plugin_id: string;
+      [k: string]: unknown;
+    }
   | {
       kind: 'threads';
       [k: string]: unknown;
@@ -2152,16 +2322,6 @@ export type SemanticDestination =
   | {
       kind: 'settings';
       route: SettingsRoute;
-      [k: string]: unknown;
-    }
-  | {
-      kind: 'plugins';
-      [k: string]: unknown;
-    }
-  | {
-      component?: PluginComponentKey | null;
-      kind: 'plugin';
-      plugin_id: string;
       [k: string]: unknown;
     };
 export type TimelineIntent =
@@ -2358,6 +2518,16 @@ export type ClientScope =
       [k: string]: unknown;
     }
   | {
+      kind: 'plugins';
+      workspace_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'apps';
+      workspace_id: string;
+      [k: string]: unknown;
+    }
+  | {
       kind: 'skills_upload';
       operation_id: number;
       workspace_id: string;
@@ -2422,138 +2592,16 @@ export type ClientScope =
       kind: 'agents_document';
       workspace_id: string;
       [k: string]: unknown;
-    }
-  | {
-      kind: 'plugins';
-      workspace_id: string;
-      [k: string]: unknown;
     };
 export type SettingsPage = 'general' | 'remote_access' | 'voice' | 'memory' | 'self_improvement';
-export type PluginIntent =
-  | {
-      kind: 'observe';
-      plugin_id?: string | null;
-      [k: string]: unknown;
-    }
-  | {
-      kind: 'close';
-      [k: string]: unknown;
-    }
-  | {
-      enabled: boolean;
-      expected_revision: number;
-      kind: 'set_enabled';
-      plugin_id: string;
-      [k: string]: unknown;
-    }
-  | {
-      expected_revision: number;
-      intent: PluginManagementIntent;
-      kind: 'mutate';
-      plugin_id: string;
-      [k: string]: unknown;
-    }
-  | {
-      kind: 'install';
-      upload_operation: number;
-      [k: string]: unknown;
-    }
-  | {
-      confirm_changes: boolean;
-      kind: 'apply_update';
-      upload_operation: number;
-      [k: string]: unknown;
-    }
-  | {
-      allow_implicit_invocation: boolean;
-      enabled: boolean;
-      kind: 'skill';
-      skill_id: SkillId;
-      [k: string]: unknown;
-    }
-  | {
-      kind: 'remove_skill';
-      skill_id: SkillId;
-      [k: string]: unknown;
-    }
-  | {
-      body: string;
-      kind: 'configure_mcp';
-      server_id: string;
-      [k: string]: unknown;
-    }
-  | {
-      intent: McpIntent;
-      kind: 'mcp';
-      [k: string]: unknown;
-    };
-export type PluginManagementIntent =
-  | {
-      action: 'update';
-      confirm_changes: boolean;
-      expected_fingerprint: string;
-      upload_id: string;
-    }
-  | {
-      action: 'retry';
-      components: PluginComponentKey[];
-      restore_removed: boolean;
-    }
-  | {
-      action: 'continue';
-    }
-  | {
-      action: 'remove';
-      purge_data: boolean;
-    };
-export type McpIntent =
-  | {
-      kind: 'retry_authorization_browser';
-      server_id: string;
-      [k: string]: unknown;
-    }
-  | {
-      kind: 'sign_in';
-      server_id: string;
-      [k: string]: unknown;
-    }
-  | {
-      kind: 'disconnect';
-      server_id: string;
-      [k: string]: unknown;
-    }
-  | {
-      flow_id: string;
-      kind: 'cancel_authorization';
-      server_id: string;
-      [k: string]: unknown;
-    }
-  | {
-      allow_implicit_invocation: boolean;
-      enabled: boolean;
-      kind: 'policy';
-      server_id: string;
-      [k: string]: unknown;
-    }
-  | {
-      kind: 'restart';
-      server_id: string;
-      [k: string]: unknown;
-    }
-  | {
-      kind: 'remove';
-      server_id: string;
-      [k: string]: unknown;
-    }
-  | {
-      config_json: string;
-      kind: 'configure';
-      [k: string]: unknown;
-    };
 
 export interface ClientIntentDispatchDto {
   intent: ClientIntent;
   schema_version: number;
+}
+export interface PluginComponentKey {
+  kind: string;
+  member_key: string;
 }
 export interface SessionDemand {
   endpoint_id?: string | null;
@@ -2567,11 +2615,16 @@ export interface ModelSelectorSelection {
   selected_context_authority?: string | null;
   selected_context_window?: number | null;
   selected_reasoning_effort?: string | null;
-  selected_service_mode?: {
-    id: string;
-    authority: string;
-  } | null;
+  selected_service_mode?: NativeServiceModeSelection | null;
   [k: string]: unknown;
+}
+/**
+ * Explicit choice uses the existing endpoint/credential/model authority proof.
+ * Absence means Standard; Inherit belongs to the enclosing model selection.
+ */
+export interface NativeServiceModeSelection {
+  authority: string;
+  id: string;
 }
 export interface ProfileAvatarInput {
   content_base64: string;
@@ -2714,12 +2767,9 @@ export interface CLIRuntimeProviderDraft {
         instance: string;
         model: string;
         reasoning_effort?: string | null;
+        service_mode?: NativeServiceModeSelection | null;
         source: 'explicit';
         transport: ModelSelectionTransport;
-        service_mode?: {
-          id: string;
-          authority: string;
-        } | null;
       };
   display_name: string;
   enabled: boolean;
@@ -2853,6 +2903,7 @@ export interface VoiceTurnContext {
   prepared_input?: UserInput[];
   reasoning?: TurnReasoningSelection | null;
   sandbox_policy?: SandboxPolicy | null;
+  service_mode?: NativeServiceModeSelection | null;
   /**
    * Thread that receives the gateway-created turn after transcription.
    */
@@ -2868,10 +2919,6 @@ export interface VoiceTurnContext {
    * workspace here to validate/session-route the frozen voice context.
    */
   workspace_id: string;
-  service_mode?: {
-    id: string;
-    authority: string;
-  } | null;
   [k: string]: unknown;
 }
 export interface TurnCapability {
@@ -2929,11 +2976,8 @@ export interface ComposerDomainState {
   selected_permission_mode?: 'full_access' | 'auto_accept_edits' | 'supervised';
   selected_provider?: string | null;
   selected_reasoning_effort?: string | null;
+  selected_service_mode?: NativeServiceModeSelection | null;
   skill_selections?: ComposerSkillSelection[];
-  selected_service_mode?: {
-    id: string;
-    authority: string;
-  } | null;
 }
 export interface ComposerCapability {
   id: string;
@@ -2942,7 +2986,7 @@ export interface ComposerCapability {
   [k: string]: unknown;
 }
 /**
- * Immutable image reference. Gateway inventory exposes a native storage link, never image bytes.
+ * Immutable image reference. Published paths are authenticated Gateway storage links.
  */
 export interface ImageReference {
   path: string;
@@ -3029,10 +3073,7 @@ export interface ComposerModelSelection {
   selected_context_authority?: string | null;
   selected_context_window?: number | null;
   selected_reasoning_effort?: string | null;
-  selected_service_mode?: {
-    id: string;
-    authority: string;
-  } | null;
+  selected_service_mode?: NativeServiceModeSelection | null;
   [k: string]: unknown;
 }
 export interface TaskNotificationEffect {
@@ -3041,10 +3082,6 @@ export interface TaskNotificationEffect {
   task_id: string;
   workspace_id: string;
   [k: string]: unknown;
-}
-export interface PluginComponentKey {
-  kind: string;
-  member_key: string;
 }
 export interface TaskThreadLineage {
   child_thread_id: string;

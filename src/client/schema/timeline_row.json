@@ -481,6 +481,22 @@
         "inaccessible"
       ]
     },
+    "ImageReference": {
+      "description": "Immutable image reference. Published paths are authenticated Gateway storage links.",
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "revision": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "revision"
+      ]
+    },
     "McpScopeKind": {
       "type": "string",
       "enum": [
@@ -927,6 +943,46 @@
         "agent_action"
       ]
     },
+    "TurnAppCapabilitySummary": {
+      "type": "object",
+      "properties": {
+        "appId": {
+          "type": "string"
+        },
+        "darkIcon": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ImageReference"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "expectedRevision": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "icon": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ImageReference"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "label": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "appId",
+        "expectedRevision",
+        "label"
+      ]
+    },
     "TurnAuthorSnapshot": {
       "type": "object",
       "properties": {
@@ -1099,12 +1155,6 @@
           "type": "integer",
           "format": "int64"
         },
-        "label": {
-          "type": "string"
-        },
-        "pluginId": {
-          "type": "string"
-        },
         "icon": {
           "anyOf": [
             {
@@ -1113,8 +1163,13 @@
             {
               "type": "null"
             }
-          ],
-          "default": null
+          ]
+        },
+        "label": {
+          "type": "string"
+        },
+        "pluginId": {
+          "type": "string"
         }
       },
       "required": [
@@ -1146,7 +1201,8 @@
       "enum": [
         "native",
         "codex_cli",
-        "claude_cli"
+        "claude_cli",
+        "opencode_cli"
       ]
     },
     "TurnSkillCapabilitySummary": {
@@ -1451,6 +1507,22 @@
           "type": "object",
           "properties": {
             "capability": {
+              "$ref": "#/$defs/TurnAppCapabilitySummary"
+            },
+            "type": {
+              "type": "string",
+              "const": "app"
+            }
+          },
+          "required": [
+            "type",
+            "capability"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "capability": {
               "$ref": "#/$defs/TurnSkillPackCapabilitySummary"
             },
             "type": {
@@ -1595,22 +1667,6 @@
         "edited",
         "deleted"
       ]
-    },
-    "ImageReference": {
-      "type": "object",
-      "properties": {
-        "path": {
-          "type": "string"
-        },
-        "revision": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "path",
-        "revision"
-      ],
-      "description": "Immutable image reference. Gateway inventory exposes a native storage link, never image bytes."
     }
   }
 }

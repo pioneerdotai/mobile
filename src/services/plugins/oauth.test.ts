@@ -1,4 +1,5 @@
 // NOT_RUN / NOT_COMPILED. Native platform boundary mocks only; no app/provider.
+import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { pioneerClient } from '@/client';
 import { initializePluginOAuthEffects, relayPluginOAuthCallback } from './oauth';
 import * as WebBrowser from 'expo-web-browser';
@@ -15,7 +16,9 @@ jest.mock('react-native', () => ({
 }));
 
 describe('native plugin OAuth callback boundary', () => {
-    beforeEach(() => jest.clearAllMocks());
+    beforeEach(() => {
+        jest.clearAllMocks();
+    });
     it('passes the original opaque response to native identity validation', () => {
         const callback =
             'pioneer:///oauth/mcp/callback?state=nonce&code=opaque&iss=https%3A%2F%2Fissuer.example';
@@ -57,7 +60,9 @@ describe('plugin browser result ownership', () => {
         jest.clearAllMocks();
         jest.useFakeTimers();
     });
-    afterEach(() => jest.useRealTimers());
+    afterEach(() => {
+        jest.useRealTimers();
+    });
     it.each(['locked', 'cancel', 'dismiss'] as const)(
         'relays %s with its original flow identity',
         async (type) => {

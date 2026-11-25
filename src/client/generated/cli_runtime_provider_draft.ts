@@ -1,7 +1,7 @@
 /* eslint-disable */
 
-export type ModelSelectionTransport = 'api' | 'codex' | 'claude';
-export type CLIAgentRuntimeKind = 'codex' | 'claude';
+export type ModelSelectionTransport = 'api' | 'codex' | 'claude' | 'opencode';
+export type CLIAgentRuntimeKind = 'codex' | 'claude' | 'opencode';
 export type CLIRuntimeProviderDraftMode =
   | 'Create'
   | {
@@ -32,12 +32,9 @@ export interface CLIRuntimeProviderDraft {
         instance: string;
         model: string;
         reasoning_effort?: string | null;
+        service_mode?: NativeServiceModeSelection | null;
         source: 'explicit';
         transport: ModelSelectionTransport;
-        service_mode?: {
-          id: string;
-          authority: string;
-        } | null;
       };
   display_name: string;
   enabled: boolean;
@@ -52,4 +49,12 @@ export interface CLIRuntimeProviderDraft {
   nickname?: string;
   shadow_home_path: string;
   [k: string]: unknown;
+}
+/**
+ * Explicit choice uses the existing endpoint/credential/model authority proof.
+ * Absence means Standard; Inherit belongs to the enclosing model selection.
+ */
+export interface NativeServiceModeSelection {
+  authority: string;
+  id: string;
 }

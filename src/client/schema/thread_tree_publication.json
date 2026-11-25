@@ -19,6 +19,16 @@
         "null"
       ]
     },
+    "load": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ThreadTreeLoadReceipt"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
     "loading": {
       "type": "boolean"
     },
@@ -138,6 +148,23 @@
         "revision",
         "generation",
         "pending"
+      ]
+    },
+    "NativeServiceModeSelection": {
+      "description": "Explicit choice uses the existing endpoint/credential/model authority proof.\nAbsence means Standard; Inherit belongs to the enclosing model selection.",
+      "type": "object",
+      "properties": {
+        "authority": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "authority"
       ]
     },
     "PermissionBehavior": {
@@ -512,6 +539,7 @@
           ]
         },
         "context_window": {
+          "description": "Manual Native/API choice from this thread's latest admitted conversation.",
           "type": [
             "integer",
             "null"
@@ -565,6 +593,16 @@
             "null"
           ]
         },
+        "service_mode": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/NativeServiceModeSelection"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "sidebar_visibility": {
           "$ref": "#/$defs/ThreadSidebarVisibility",
           "default": "visible"
@@ -594,29 +632,6 @@
         },
         "workspace_id": {
           "type": "string"
-        },
-        "service_mode": {
-          "anyOf": [
-            {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "type": "string"
-                },
-                "authority": {
-                  "type": "string"
-                }
-              },
-              "required": [
-                "id",
-                "authority"
-              ],
-              "additionalProperties": false
-            },
-            {
-              "type": "null"
-            }
-          ]
         }
       },
       "required": [
@@ -796,6 +811,32 @@
         "Active",
         "Idle",
         "Closed"
+      ]
+    },
+    "ThreadTreeLoadReceipt": {
+      "description": "Evidence from the existing directory request owner. Local unread/metadata\nprojections may change `loading`, but cannot complete a full-tree request.",
+      "type": "object",
+      "properties": {
+        "generation": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "state": {
+          "$ref": "#/$defs/ThreadTreeLoadState"
+        }
+      },
+      "required": [
+        "generation",
+        "state"
+      ]
+    },
+    "ThreadTreeLoadState": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "ready",
+        "failed"
       ]
     },
     "ThreadTreeSnapshot": {
@@ -1075,8 +1116,7 @@
         },
         "work_owner": {
           "description": "Immutable owner of the admitted work; absent historical wire values own their turn.",
-          "$ref": "#/$defs/TurnWorkOwner",
-          "default": "turn"
+          "$ref": "#/$defs/TurnWorkOwner"
         }
       },
       "required": [

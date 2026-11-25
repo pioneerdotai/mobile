@@ -806,6 +806,37 @@
         "blocked"
       ]
     },
+    "AppsChangedNotification": {
+      "type": "object",
+      "properties": {
+        "app_id": {
+          "type": "string"
+        },
+        "execution_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "revision": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "runtime_only": {
+          "type": "boolean",
+          "default": false
+        },
+        "workspace_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "workspace_id",
+        "app_id",
+        "revision"
+      ]
+    },
     "ArtifactBindingDirection": {
       "type": "string",
       "enum": [
@@ -2040,9 +2071,6 @@
         "failed"
       ]
     },
-    "GatewayBaseUrl": {
-      "type": "string"
-    },
     "GatewayEndpointKind": {
       "type": "string",
       "enum": [
@@ -2253,6 +2281,22 @@
             },
             "params": {
               "$ref": "#/$defs/ThreadTreeChangedNotification"
+            }
+          },
+          "required": [
+            "kind",
+            "params"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "workspace_push"
+            },
+            "params": {
+              "$ref": "#/$defs/WorkspacePushNotification"
             }
           },
           "required": [
@@ -2813,6 +2857,22 @@
             },
             "params": {
               "$ref": "#/$defs/PluginsChangedNotification"
+            }
+          },
+          "required": [
+            "kind",
+            "params"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "apps_changed"
+            },
+            "params": {
+              "$ref": "#/$defs/AppsChangedNotification"
             }
           },
           "required": [
@@ -3714,13 +3774,9 @@
         },
         "public_base_url": {
           "description": "Present only for the currently authenticated relay connection.",
-          "anyOf": [
-            {
-              "$ref": "#/$defs/GatewayBaseUrl"
-            },
-            {
-              "type": "null"
-            }
+          "type": [
+            "string",
+            "null"
           ]
         },
         "state": {
@@ -3937,6 +3993,22 @@
         "callId",
         "title",
         "artifact"
+      ]
+    },
+    "ImageReference": {
+      "description": "Immutable image reference. Published paths are authenticated Gateway storage links.",
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "revision": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "revision"
       ]
     },
     "InvitationChangedNotification": {
@@ -5745,6 +5817,23 @@
         "expired"
       ]
     },
+    "NativeServiceModeSelection": {
+      "description": "Explicit choice uses the existing endpoint/credential/model authority proof.\nAbsence means Standard; Inherit belongs to the enclosing model selection.",
+      "type": "object",
+      "properties": {
+        "authority": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "authority"
+      ]
+    },
     "PermissionBehavior": {
       "type": "string",
       "enum": [
@@ -6148,7 +6237,7 @@
     "ProviderRequestId": {
       "type": "string",
       "maxLength": 128,
-      "pattern": "^(gen-|req-|cmpl-|chatcmpl-)[A-Za-z0-9_-]+$"
+      "pattern": "^(gen-|req-|req_|cmpl-|chatcmpl-)[A-Za-z0-9_-]+$"
     },
     "ProviderTransportKind": {
       "type": "string",
@@ -7695,6 +7784,11 @@
     "TaskAgentReviewPolicy": {
       "type": "object",
       "properties": {
+        "disableTimeoutAcceptance": {
+          "description": "Mandatory-review marker: never resolve this policy through the legacy review timeout. Legacy records default to false.",
+          "type": "boolean",
+          "default": false
+        },
         "maxRevisionRounds": {
           "type": "integer",
           "format": "uint32",
@@ -7715,11 +7809,6 @@
           "items": {
             "$ref": "#/$defs/TaskResultReviewerSpec"
           }
-        },
-        "disableTimeoutAcceptance": {
-          "description": "Mandatory-review marker: never resolve this policy through the legacy review timeout. Legacy records default to false.",
-          "type": "boolean",
-          "default": false
         }
       },
       "required": [
@@ -8043,6 +8132,70 @@
       },
       "required": [
         "workspaceId"
+      ]
+    },
+    "TaskCompletionInboxEntry": {
+      "description": "One saved terminal run in the current user's workspace inbox. Contains no\nexecution-thread identity, raw failure, HTML, or full result payload.",
+      "type": "object",
+      "properties": {
+        "completedAt": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "completedKey": {
+          "description": "Exact server keyset ordering key. Empty only for legacy servers.",
+          "type": "string"
+        },
+        "error": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "readAt": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "int64"
+        },
+        "runId": {
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/TaskRunStatus"
+        },
+        "summary": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "taskId": {
+          "type": "string"
+        },
+        "threadId": {
+          "type": "string"
+        },
+        "threadTitle": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "workspaceId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "workspaceId",
+        "taskId",
+        "runId",
+        "title",
+        "threadId",
+        "threadTitle",
+        "status",
+        "completedAt"
       ]
     },
     "TaskComposerWork": {
@@ -8658,6 +8811,70 @@
         "task"
       ]
     },
+    "TaskFinishRequest": {
+      "description": "A user-directed final soft stop; this is not evidence that the goal succeeded.",
+      "type": "object",
+      "properties": {
+        "firstRunNumber": {
+          "description": "Earliest admitted run whose real outcome contributes to the final state.",
+          "type": "integer",
+          "format": "int64"
+        },
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "requestedAt": {
+          "type": "integer",
+          "format": "int64"
+        }
+      },
+      "required": [
+        "requestedAt",
+        "firstRunNumber"
+      ]
+    },
+    "TaskInboxPatch": {
+      "type": "object",
+      "properties": {
+        "nextCursor": {
+          "description": "Authoritative keyset frontier when snapshot or replace is true.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "removes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "replace": {
+          "description": "Authoritative inbox replacement, also used by a read-all mutation ack.",
+          "type": "boolean",
+          "default": false
+        },
+        "unreadCount": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "upserts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TaskCompletionInboxEntry"
+          }
+        }
+      },
+      "required": [
+        "upserts",
+        "removes",
+        "unreadCount"
+      ]
+    },
     "TaskLifecyclePolicy": {
       "type": "object",
       "properties": {
@@ -8707,6 +8924,17 @@
           "anyOf": [
             {
               "$ref": "#/$defs/TaskValue"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "finishRequest": {
+          "description": "Server-owned durable decision to stop future runs.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TaskFinishRequest"
             },
             {
               "type": "null"
@@ -9213,10 +9441,6 @@
             "null"
           ]
         },
-        "updatedAt": {
-          "type": "integer",
-          "format": "int64"
-        },
         "triggerInput": {
           "description": "External data accepted for this occurrence, preserved across retries.",
           "anyOf": [
@@ -9227,6 +9451,10 @@
               "type": "null"
             }
           ]
+        },
+        "updatedAt": {
+          "type": "integer",
+          "format": "int64"
         }
       },
       "required": [
@@ -9975,20 +10203,6 @@
     "Thread": {
       "type": "object",
       "properties": {
-        "context_authority": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "context_window": {
-          "type": [
-            "integer",
-            "null"
-          ],
-          "format": "uint64",
-          "minimum": 0
-        },
         "agent_nickname": {
           "type": [
             "string",
@@ -10000,6 +10214,21 @@
             "string",
             "null"
           ]
+        },
+        "context_authority": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "context_window": {
+          "description": "Manual Native/API choice from this thread's latest admitted conversation.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0
         },
         "created_at": {
           "type": "integer",
@@ -10047,6 +10276,16 @@
             "null"
           ]
         },
+        "service_mode": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/NativeServiceModeSelection"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "sidebar_visibility": {
           "$ref": "#/$defs/ThreadSidebarVisibility",
           "default": "visible"
@@ -10076,29 +10315,6 @@
         },
         "workspace_id": {
           "type": "string"
-        },
-        "service_mode": {
-          "anyOf": [
-            {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "type": "string"
-                },
-                "authority": {
-                  "type": "string"
-                }
-              },
-              "required": [
-                "id",
-                "authority"
-              ],
-              "additionalProperties": false
-            },
-            {
-              "type": "null"
-            }
-          ]
         }
       },
       "required": [
@@ -10297,6 +10513,48 @@
       "required": [
         "workspaceId",
         "threadId"
+      ]
+    },
+    "ThreadIndicatorPatch": {
+      "type": "object",
+      "properties": {
+        "hasRunningTasks": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "threadId": {
+          "type": "string"
+        },
+        "unreadCount": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "threadId"
+      ]
+    },
+    "ThreadMetadataPatch": {
+      "type": "object",
+      "properties": {
+        "previewTruncated": {
+          "description": "True only when directory projection actually shortened the preview.\nA real shorter/empty edit is authoritative when this is false.",
+          "type": "boolean"
+        },
+        "thread": {
+          "description": "Canonical thin directory metadata; never a full timeline/history snapshot.",
+          "$ref": "#/$defs/Thread"
+        }
+      },
+      "required": [
+        "thread",
+        "previewTruncated"
       ]
     },
     "ThreadMode": {
@@ -10957,8 +11215,41 @@
           "format": "uint64",
           "minimum": 0
         },
+        "omittedPhaseBoundaries": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "outputSizes": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ToolOutputMeasurements"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "parentOperationId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "phaseBoundaries": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ToolPhaseBoundary"
+          }
+        },
         "pipelineStage": {
           "type": "string"
+        },
+        "processRunId": {
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "toolCallId": {
           "type": "string"
@@ -11033,6 +11324,36 @@
         "recoverable_error",
         "fatal_error",
         "partial_success"
+      ]
+    },
+    "ToolOutputMeasurements": {
+      "type": "object",
+      "properties": {
+        "basis": {
+          "type": "string"
+        },
+        "capturedTextBytes": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "modelProjectionTextBytes": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "preparedSourceBytes": {
+          "description": "Prepared handler representation; persistence is a separate acknowledged fact.",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "capturedTextBytes",
+        "preparedSourceBytes",
+        "modelProjectionTextBytes",
+        "basis"
       ]
     },
     "ToolOutputPolicySnapshot": {
@@ -11173,6 +11494,41 @@
         "task_subagent",
         "memory_write",
         "agent_action"
+      ]
+    },
+    "ToolPhaseBoundary": {
+      "description": "Content-free source boundaries, bounded per invocation. All mono_ns values\nbelong to the enclosing observation's process_run_id.",
+      "type": "object",
+      "properties": {
+        "attemptId": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "localSequence": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "monoNs": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "phase": {
+          "type": "string"
+        },
+        "tsUnixMs": {
+          "type": "integer",
+          "format": "int64"
+        }
+      },
+      "required": [
+        "phase",
+        "attemptId",
+        "tsUnixMs",
+        "monoNs",
+        "localSequence"
       ]
     },
     "ToolRecoveryIdempotencyMode": {
@@ -11540,14 +11896,53 @@
         },
         "work_owner": {
           "description": "Immutable owner of the admitted work; absent historical wire values own their turn.",
-          "$ref": "#/$defs/TurnWorkOwner",
-          "default": "turn"
+          "$ref": "#/$defs/TurnWorkOwner"
         }
       },
       "required": [
         "id",
         "status",
         "permission_profile"
+      ]
+    },
+    "TurnAppCapabilitySummary": {
+      "type": "object",
+      "properties": {
+        "appId": {
+          "type": "string"
+        },
+        "darkIcon": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ImageReference"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "expectedRevision": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "icon": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ImageReference"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "label": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "appId",
+        "expectedRevision",
+        "label"
       ]
     },
     "TurnAuthorSnapshot": {
@@ -11729,6 +12124,28 @@
         {
           "type": "object",
           "properties": {
+            "appId": {
+              "type": "string"
+            },
+            "expectedRevision": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "type": {
+              "type": "string",
+              "const": "app"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "appId",
+            "expectedRevision"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
             "expectedRevision": {
               "type": "integer",
               "format": "int64"
@@ -11741,6 +12158,7 @@
               "const": "plugin"
             }
           },
+          "additionalProperties": false,
           "required": [
             "type",
             "pluginId",
@@ -11768,6 +12186,7 @@
               "const": "skill"
             }
           },
+          "additionalProperties": false,
           "required": [
             "type",
             "skillId"
@@ -11784,6 +12203,7 @@
               "const": "skillPack"
             }
           },
+          "additionalProperties": false,
           "required": [
             "type",
             "packId"
@@ -11803,6 +12223,7 @@
               "const": "mcpServer"
             }
           },
+          "additionalProperties": false,
           "required": [
             "type",
             "name",
@@ -11826,6 +12247,7 @@
               "const": "mcpTool"
             }
           },
+          "additionalProperties": false,
           "required": [
             "type",
             "serverName",
@@ -13743,12 +14165,6 @@
           "type": "integer",
           "format": "int64"
         },
-        "label": {
-          "type": "string"
-        },
-        "pluginId": {
-          "type": "string"
-        },
         "icon": {
           "anyOf": [
             {
@@ -13757,8 +14173,13 @@
             {
               "type": "null"
             }
-          ],
-          "default": null
+          ]
+        },
+        "label": {
+          "type": "string"
+        },
+        "pluginId": {
+          "type": "string"
         }
       },
       "required": [
@@ -13925,20 +14346,6 @@
     "TurnStartParams": {
       "type": "object",
       "properties": {
-        "context_authority": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "context_window": {
-          "type": [
-            "integer",
-            "null"
-          ],
-          "format": "uint64",
-          "minimum": 0
-        },
         "agent_delegation_routes": {
           "description": "Explicit, bounded cross-capsule delegations requested for this root\nAgent execution. These are authorization inputs, never prompt content.",
           "type": "array",
@@ -13972,6 +14379,21 @@
               "type": "null"
             }
           ]
+        },
+        "context_authority": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "context_window": {
+          "description": "User-owned model choice; absent means Auto, not inheritance of a wider override.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0
         },
         "execution_backend": {
           "anyOf": [
@@ -14054,34 +14476,21 @@
             }
           ]
         },
-        "thread_id": {
-          "type": "string"
-        },
-        "turn_id": {
-          "type": "string"
-        },
         "service_mode": {
           "anyOf": [
             {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "type": "string"
-                },
-                "authority": {
-                  "type": "string"
-                }
-              },
-              "required": [
-                "id",
-                "authority"
-              ],
-              "additionalProperties": false
+              "$ref": "#/$defs/NativeServiceModeSelection"
             },
             {
               "type": "null"
             }
           ]
+        },
+        "thread_id": {
+          "type": "string"
+        },
+        "turn_id": {
+          "type": "string"
         }
       },
       "required": [
@@ -14850,6 +15259,22 @@
           "type": "object",
           "properties": {
             "capability": {
+              "$ref": "#/$defs/TurnAppCapabilitySummary"
+            },
+            "type": {
+              "type": "string",
+              "const": "app"
+            }
+          },
+          "required": [
+            "type",
+            "capability"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "capability": {
               "$ref": "#/$defs/TurnSkillPackCapabilitySummary"
             },
             "type": {
@@ -15108,21 +15533,58 @@
         "workspace_id"
       ]
     },
-    "ImageReference": {
+    "WorkspacePushNotification": {
       "type": "object",
       "properties": {
-        "path": {
+        "epoch": {
           "type": "string"
         },
+        "inbox": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TaskInboxPatch"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "indicators": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ThreadIndicatorPatch"
+          }
+        },
+        "resyncRequired": {
+          "type": "boolean"
+        },
         "revision": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "snapshot": {
+          "type": "boolean"
+        },
+        "threadSummaries": {
+          "description": "Compact metadata and indicators share one revision and atomic reduction.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ThreadMetadataPatch"
+          }
+        },
+        "workspaceId": {
           "type": "string"
         }
       },
       "required": [
-        "path",
-        "revision"
-      ],
-      "description": "Immutable image reference. Gateway inventory exposes a native storage link, never image bytes."
+        "workspaceId",
+        "epoch",
+        "revision",
+        "snapshot",
+        "resyncRequired",
+        "indicators"
+      ]
     }
   }
 }

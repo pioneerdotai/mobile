@@ -2,15 +2,17 @@
   "boundary_version": 2,
   "binding_schema_version": 1,
   "rust_packages": [
+    "pioneer-apps",
     "pioneer-client",
     "pioneer-client-ffi",
+    "pioneer-mcp",
     "pioneer-observability",
-    "pioneer-plugins",
+    "pioneer-packages",
     "pioneer-protocol",
     "pioneer-skills"
   ],
-  "rust_source_sha256": "7b72154127fd022642e8f943e37c425700d3b3bade5cc1ef9f8ee799f6416a37",
-  "mobile_boundary_sha256": "83e61df6b71e26d8de9e61cabce9aebd7af9de900f6518cb4236454684c8d816",
+  "rust_source_sha256": "0a34af63e8a3f5655c99f645c8526cb898b4b8032b62fdfaf2fbdd7f7ac943eb",
+  "mobile_boundary_sha256": "ea585075f7827d0fcf455ac8bde96d11c30d6e65d45fb000b5cc5204bcdb2302",
   "platforms": {
     "ios": [
       "PioneerClientFfi.xcframework/Info.plist",

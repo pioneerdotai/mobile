@@ -185,7 +185,7 @@ export const VoiceInputSettings = () => {
                     {selector?.models.map((model) => <Pressable key={model.id} accessibilityRole="radio"
                         accessibilityLabel={model.name ?? model.id} accessibilityState={{ selected: selector.selected_model === model.id, disabled }}
                         disabled={disabled} style={styles.modelRow} onPress={() => selectModel(model.id)}>
-                        <Text fontWeight={selector.selected_model === model.id ? 'semibold' : 'default'}>{model.name ?? model.id}</Text>
+                        <Text fontWeight={selector.selected_model === model.id ? 'semibold' : undefined}>{model.name ?? model.id}</Text>
                     </Pressable>)}
                 </BottomSheetScrollView>
             </ActionsSheet>

@@ -50,6 +50,10 @@ export type McpTransportSummary =
       url: string;
       [k: string]: unknown;
     };
+/**
+ * Product identity is distinct even when installation mechanics are shared.
+ */
+export type PackageKind = 'plugin' | 'app';
 
 export interface McpListState {
   details_loading: boolean;
@@ -196,6 +200,7 @@ export interface McpListItem {
   display_name?: string | null;
   id: string;
   name: string;
+  package_owner?: PackageOwner | null;
   plugin_owner?: PluginOwner | null;
   policy: McpPolicyState;
   prompts_count: number;
@@ -206,6 +211,12 @@ export interface McpListItem {
   scope: McpScopeKind;
   status: McpServerStatus;
   tools_count: number;
+  [k: string]: unknown;
+}
+export interface PackageOwner {
+  kind: PackageKind;
+  member_key: string;
+  package_id: string;
   [k: string]: unknown;
 }
 export interface PluginOwner {

@@ -2,10 +2,19 @@
 
 export type ComposerCapabilityKind =
   | {
+      App: {
+        app_id: string;
+        dark_icon?: ImageReference | null;
+        expected_revision: number;
+        icon?: ImageReference | null;
+        [k: string]: unknown;
+      };
+    }
+  | {
       Plugin: {
         expected_revision: number;
-        plugin_id: string;
         icon?: ImageReference | null;
+        plugin_id: string;
         [k: string]: unknown;
       };
     }
@@ -53,7 +62,7 @@ export interface ComposerCapability {
   [k: string]: unknown;
 }
 /**
- * Immutable image reference. Gateway inventory exposes a native storage link, never image bytes.
+ * Immutable image reference. Published paths are authenticated Gateway storage links.
  */
 export interface ImageReference {
   path: string;

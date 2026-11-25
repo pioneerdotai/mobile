@@ -143,6 +143,11 @@ describe('shared timeline publication', () => {
                     delete value.presentationRevision;
                     delete value.presentationLocale;
                     delete value.semanticWorkItem;
+                    // HTML publications were added after this historical shell fixture.
+                    if (value.type === 'assistant-message') {
+                        expect(value.htmlPublications).toEqual([]);
+                        delete value.htmlPublications;
+                    }
                     return value;
                 });
             expect(rows).toEqual(acceptedRows as unknown as typeof rows);

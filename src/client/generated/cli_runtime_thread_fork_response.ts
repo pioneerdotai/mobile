@@ -62,6 +62,9 @@ export interface Thread {
   agent_nickname?: string | null;
   agent_role?: string | null;
   context_authority?: string | null;
+  /**
+   * Manual Native/API choice from this thread's latest admitted conversation.
+   */
   context_window?: number | null;
   created_at: number;
   id: string;
@@ -78,16 +81,13 @@ export interface Thread {
    */
   preview_author?: TurnAuthorSnapshot | null;
   reasoning_effort?: string | null;
+  service_mode?: NativeServiceModeSelection | null;
   sidebar_visibility?: 'visible' | 'hidden';
   status: ThreadStatus;
   turns: Turn[];
   updated_at: number;
   visibility?: ThreadVisibility | null;
   workspace_id: string;
-  service_mode?: {
-    id: string;
-    authority: string;
-  } | null;
   [k: string]: unknown;
 }
 export interface TurnAuthorSnapshot {
@@ -117,6 +117,14 @@ export interface AgentPresentationSnapshot {
   nickname: string;
   role_label?: string | null;
   [k: string]: unknown;
+}
+/**
+ * Explicit choice uses the existing endpoint/credential/model authority proof.
+ * Absence means Standard; Inherit belongs to the enclosing model selection.
+ */
+export interface NativeServiceModeSelection {
+  authority: string;
+  id: string;
 }
 export interface Turn {
   author?: TurnAuthorSnapshot | null;

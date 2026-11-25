@@ -35,10 +35,19 @@ export type ArtifactProjectionStatus = 'pending' | 'ready' | 'failed' | 'stale';
 export type ArtifactStatus = 'ready' | 'pending' | 'quarantined' | 'deleted' | 'missing_external_source' | 'failed';
 export type ComposerCapabilityKind =
   | {
+      App: {
+        app_id: string;
+        dark_icon?: ImageReference | null;
+        expected_revision: number;
+        icon?: ImageReference | null;
+        [k: string]: unknown;
+      };
+    }
+  | {
       Plugin: {
         expected_revision: number;
-        plugin_id: string;
         icon?: ImageReference | null;
+        plugin_id: string;
         [k: string]: unknown;
       };
     }
@@ -140,6 +149,11 @@ export type UserMessageAttachment =
       [k: string]: unknown;
     }
   | {
+      capability: TurnAppCapabilitySummary;
+      type: 'app';
+      [k: string]: unknown;
+    }
+  | {
       capability: TurnSkillPackCapabilitySummary;
       type: 'skillPack';
       [k: string]: unknown;
@@ -238,34 +252,34 @@ export type ComposerOperationStatus =
 export type ComposerVoiceCapturePreflightState = 'checking' | 'ready';
 export type TurnCapabilityKind =
   | {
+      appId: string;
+      expectedRevision: number;
+      type: 'app';
+    }
+  | {
       expectedRevision: number;
       pluginId: string;
       type: 'plugin';
-      [k: string]: unknown;
     }
   | {
       packId?: SkillPackId | null;
       skillId: SkillId;
       type: 'skill';
-      [k: string]: unknown;
     }
   | {
       packId: SkillPackId;
       type: 'skillPack';
-      [k: string]: unknown;
     }
   | {
       name: string;
       scopeKind: McpScopeKind;
       type: 'mcpServer';
-      [k: string]: unknown;
     }
   | {
       rawToolName: string;
       scopeKind: McpScopeKind;
       serverName: string;
       type: 'mcpTool';
-      [k: string]: unknown;
     };
 export type AgentExecutionBackend =
   | {
@@ -420,12 +434,6 @@ export interface ComposerPublication {
   voice_readiness?: ComposerVoiceReadinessPublication | null;
   [k: string]: unknown;
 }
-export interface ComposerPreparingSend {
-  attachments: ComposerAttachment[];
-  identity: ComposerOperationIdentity;
-  text: string;
-  [k: string]: unknown;
-}
 /**
  * Complete, shell-neutral draft payload used by desktop and mobile.
  *
@@ -452,11 +460,8 @@ export interface ComposerDomainState {
   selected_permission_mode?: 'full_access' | 'auto_accept_edits' | 'supervised';
   selected_provider?: string | null;
   selected_reasoning_effort?: string | null;
+  selected_service_mode?: NativeServiceModeSelection | null;
   skill_selections?: ComposerSkillSelection[];
-  selected_service_mode?: {
-    id: string;
-    authority: string;
-  } | null;
 }
 export interface ComposerAttachment {
   file_name: string;
@@ -495,7 +500,7 @@ export interface ComposerCapability {
   [k: string]: unknown;
 }
 /**
- * Immutable image reference. Gateway inventory exposes a native storage link, never image bytes.
+ * Immutable image reference. Published paths are authenticated Gateway storage links.
  */
 export interface ImageReference {
   path: string;
@@ -524,6 +529,14 @@ export interface ComposerMentionSelection {
   nickname: string;
   principal_id: PrincipalId;
   text_token: string;
+}
+/**
+ * Explicit choice uses the existing endpoint/credential/model authority proof.
+ * Absence means Standard; Inherit belongs to the enclosing model selection.
+ */
+export interface NativeServiceModeSelection {
+  authority: string;
+  id: string;
 }
 export interface ComposerMessageEditTarget {
   artifacts: ArtifactRef[];
@@ -571,9 +584,17 @@ export interface TurnSkillPackPresentationSummary {
 }
 export interface TurnPluginCapabilitySummary {
   expectedRevision: number;
+  icon?: ImageReference | null;
   label: string;
   pluginId: string;
+  [k: string]: unknown;
+}
+export interface TurnAppCapabilitySummary {
+  appId: string;
+  darkIcon?: ImageReference | null;
+  expectedRevision: number;
   icon?: ImageReference | null;
+  label: string;
   [k: string]: unknown;
 }
 export interface TurnSkillPackCapabilitySummary {
@@ -770,6 +791,7 @@ export interface VoiceTurnContext {
   prepared_input?: UserInput[];
   reasoning?: TurnReasoningSelection | null;
   sandbox_policy?: SandboxPolicy | null;
+  service_mode?: NativeServiceModeSelection | null;
   /**
    * Thread that receives the gateway-created turn after transcription.
    */
@@ -785,10 +807,6 @@ export interface VoiceTurnContext {
    * workspace here to validate/session-route the frozen voice context.
    */
   workspace_id: string;
-  service_mode?: {
-    id: string;
-    authority: string;
-  } | null;
   [k: string]: unknown;
 }
 export interface TurnCapability {

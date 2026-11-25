@@ -44,6 +44,10 @@ const mockSnapshot = (id: string | null) =>
           }
         : null;
 jest.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
+jest.mock('@/services/telemetry/thread-opening', () => ({
+    threadOpening: { observe: jest.fn() },
+    threadOpeningScope: () => ({}),
+}));
 jest.mock('@/services/threads/active', () => ({
     openActiveThread: () => mockOpen(),
     openActiveThreadById: () => mockOpen(),

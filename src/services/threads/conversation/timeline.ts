@@ -16,7 +16,7 @@ import type {
 export type TimelineUserAttachment = {
     id: string;
     label: string;
-    kind: 'artifact' | 'file' | 'image' | 'audio' | 'video' | 'skill' | 'mcp' | 'plugin';
+    kind: 'artifact' | 'file' | 'image' | 'audio' | 'video' | 'skill' | 'mcp' | 'plugin' | 'app';
     artifact: ArtifactRef | null;
 };
 

@@ -1,4 +1,6 @@
 {
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "McpActionPublication",
   "type": "object",
   "properties": {
     "field_error": {
@@ -28,15 +30,16 @@
       "$ref": "#/$defs/McpActionState"
     },
     "uncertain": {
+      "description": "Configure was dispatched without an authoritative response.",
       "type": "boolean"
     }
   },
   "required": [
+    "uncertain",
     "operation_id",
     "revision",
     "state",
-    "kind",
-    "uncertain"
+    "kind"
   ],
   "$defs": {
     "McpActionKind": {
