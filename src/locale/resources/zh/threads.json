@@ -1,4 +1,9 @@
 {
+    "composerAddApps": "Add Apps",
+    "composerAppsFailed": "Could not load Apps.",
+    "composerLoadingApps": "Loading Apps…",
+    "composerNoApps": "No Apps available.",
+    "composerSearchApps": "Search Apps",
     "composerPreparingSend": "正在准备消息",
     "tasksRunning": "任务正在运行",
     "title": "线程",

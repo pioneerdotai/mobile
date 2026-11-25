@@ -1026,7 +1026,7 @@ const ComposerCapabilityChip = ({
 }) => {
     const { theme } = useUnistyles();
     const Icon =
-        'Plugin' in capability.kind ? PluginIcon : 'Skill' in capability.kind ? Zap : McpIcon;
+        'App' in capability.kind || 'Plugin' in capability.kind ? PluginIcon : 'Skill' in capability.kind ? Zap : McpIcon;
 
     return (
         <HStack style={styles.chip}>

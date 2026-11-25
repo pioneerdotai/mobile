@@ -1,4 +1,9 @@
 {
+    "composerAddApps": "Add Apps",
+    "composerAppsFailed": "Could not load Apps.",
+    "composerLoadingApps": "Loading Apps…",
+    "composerNoApps": "No Apps available.",
+    "composerSearchApps": "Search Apps",
     "composerPreparingSend": "Nachricht wird vorbereitet",
     "tasksRunning": "Aufgaben werden ausgeführt",
     "title": "Konversationen",

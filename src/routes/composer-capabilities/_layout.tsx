@@ -39,6 +39,7 @@ export default function ComposerCapabilitiesStackLayout() {
                     headerLeft: () => <CollapseButton onPressHandler={close} />,
                 }}
             />
+            <Stack.Screen name="apps" options={{ title: t('composerAddApps'), headerLeft: () => <CollapseButton onPressHandler={close} /> }} />
             <Stack.Screen
                 name="plugins"
                 options={{

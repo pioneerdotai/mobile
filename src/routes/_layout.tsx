@@ -421,6 +421,7 @@ const RootStack = () => {
                         animation: 'slide_from_bottom',
                     }}
                 />
+                <Stack.Screen name="app-view" options={{ presentation: 'card', animation: 'slide_from_bottom', cardOverlayEnabled: false, headerShown: true, gestureEnabled: true }} />
                 <Stack.Screen name="settings" />
                 <Stack.Screen
                     name="activate"

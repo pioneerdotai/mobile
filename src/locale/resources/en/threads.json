@@ -1,4 +1,9 @@
 {
+    "composerAddApps": "Add Apps",
+    "composerAppsFailed": "Could not load Apps.",
+    "composerLoadingApps": "Loading Apps…",
+    "composerNoApps": "No Apps available.",
+    "composerSearchApps": "Search Apps",
     "composerPreparingSend": "Preparing message",
     "tasksRunning": "Tasks running",
     "title": "Threads",

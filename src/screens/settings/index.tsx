@@ -109,6 +109,7 @@ const SettingsScreen = () => {
     const role = capabilities.capabilitySnapshot?.role;
 
     const general = [
+        { icon: Globe, title: t('apps.title'), onPress: () => router.navigate({ pathname: '/settings/apps' }) },
         {
             icon: Globe,
             title: t('plugins.title'),

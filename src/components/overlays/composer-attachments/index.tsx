@@ -155,6 +155,7 @@ const ComposerAttachmentMenuSheet = () => {
         router.push({ pathname: '/composer-capabilities/mcp' });
     }, [close]);
 
+    const openApps = useCallback(() => { close(); router.push({ pathname: '/composer-capabilities/apps' }); }, [close]);
     const openPlugins = useCallback(() => {
         close();
         router.push({ pathname: '/composer-capabilities/plugins' });
@@ -205,6 +206,7 @@ const ComposerAttachmentMenuSheet = () => {
                                     onPress={openSkills}
                                 />
                             ) : null}
+                            {canUseSkills ? <MenuItem icon={<PluginIcon size={theme.space(5)} color={theme.colors.typography} />} label={t('composerAddApps')} onPress={openApps} /> : null}
                             {canUseSkills && canUseMcp ? (
                                 <MenuItem
                                     icon={

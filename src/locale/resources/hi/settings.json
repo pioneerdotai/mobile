@@ -1,4 +1,13 @@
 {
+    "apps": {
+        "title": "Apps",
+        "openView": "Open App",
+        "closeView": "Close App view",
+        "loading": "Opening App…",
+        "offline": "Reconnect to open this App.",
+        "failed": "The App could not be opened.",
+        "denied": "You do not have access to this App."
+    },
     "title": "सेटिंग्स",
     "subtitle": "ऐप की भाषा और रूप सेट करें.",
     "profile": {
