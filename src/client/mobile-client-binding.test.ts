@@ -123,6 +123,17 @@ test('document subscriptions isolate folders and release only their own demand',
 });
 
 describe('MobileClientBinding', () => {
+    test('app scopes are keyed by workspace and do not alias plugin scopes', () => {
+        const fixture = bridgeFixture(null);
+        const binding = new MobileClientBinding(fixture.bridge);
+        const first = binding.scope({ kind: 'apps', workspace_id: 'a' });
+        const second = binding.scope({ kind: 'apps', workspace_id: 'b' });
+        const plugins = binding.scope({ kind: 'plugins', workspace_id: 'a' });
+        expect(binding.scope({ workspace_id: 'a', kind: 'apps' })).toBe(first);
+        expect(first).not.toBe(second);
+        expect(first).not.toBe(plugins);
+    });
+
     test('app scope identity is isolated per workspace', () => {
         const binding = new MobileClientBinding(bridgeFixture(null).bridge);
         const first = binding.scope({ kind: 'apps', workspace_id: 'one' });

@@ -1,4 +1,4 @@
-// NOT_RUN / NOT_COMPILED. Native platform boundary mocks only; no app/provider.
+// Native platform boundary mocks only; no app/provider.
 import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { pioneerClient } from '@/client';
 import { initializePluginOAuthEffects, relayPluginOAuthCallback } from './oauth';
