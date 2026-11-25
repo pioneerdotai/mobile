@@ -79,7 +79,13 @@ beforeEach(() => {
     });
     dispatch.mockClear();
     drain.mockClear();
-    dispatch.mockReturnValue({ schema_version: 1, sequence: 1, outcome: 'changed', effects: [] });
+    dispatch.mockReturnValue({
+        schema_version: 1,
+        sequence: 1,
+        outcome: 'changed',
+        effects: [],
+        composer_begin_plan: fixture.operation!.plan,
+    });
 });
 
 describe('native composer operation adapter', () => {
