@@ -1350,6 +1350,8 @@ const ThreadScreen = ({
                         <View ref={composerRef} onLayout={handleComposerAreaLayout}>
                             <ThreadComposer
                                 value={composerText}
+                                preparingSend={composerPublication?.preparing_send ?? null}
+                                preparingSendLabel={t('composerPreparingSend')}
                                 placeholder={t('inputPlaceholder')}
                                 sendLabel={t('sendMessage')}
                                 stopLabel={t('stopTurn')}
