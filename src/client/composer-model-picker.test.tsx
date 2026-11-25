@@ -167,6 +167,8 @@ describe('native composer model picker session', () => {
     });
     it.each([
         { kind: 'select_model' as const, model: 'one' },
+        { kind: 'select_context_window' as const, window: 131072 },
+        { kind: 'select_context_window' as const, window: null },
         { kind: 'select_service_mode' as const, id: 'pro' },
         { kind: 'select_service_mode' as const, id: 'standard' },
     ])('routes $kind and drains the two immutable outputs', (selection) => {
