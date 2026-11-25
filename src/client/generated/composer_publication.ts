@@ -35,6 +35,14 @@ export type ArtifactProjectionStatus = 'pending' | 'ready' | 'failed' | 'stale';
 export type ArtifactStatus = 'ready' | 'pending' | 'quarantined' | 'deleted' | 'missing_external_source' | 'failed';
 export type ComposerCapabilityKind =
   | {
+      Plugin: {
+        expected_revision: number;
+        plugin_id: string;
+        icon?: ImageReference | null;
+        [k: string]: unknown;
+      };
+    }
+  | {
       Skill: {
         owner?: string | null;
         skill_id: SkillId;
@@ -124,6 +132,11 @@ export type UserMessageAttachment =
   | {
       capability: TurnSkillCapabilitySummary;
       type: 'skill';
+      [k: string]: unknown;
+    }
+  | {
+      capability: TurnPluginCapabilitySummary;
+      type: 'plugin';
       [k: string]: unknown;
     }
   | {
@@ -224,6 +237,12 @@ export type ComposerOperationStatus =
     };
 export type ComposerVoiceCapturePreflightState = 'checking' | 'ready';
 export type TurnCapabilityKind =
+  | {
+      expectedRevision: number;
+      pluginId: string;
+      type: 'plugin';
+      [k: string]: unknown;
+    }
   | {
       packId?: SkillPackId | null;
       skillId: SkillId;
@@ -425,6 +444,8 @@ export interface ComposerDomainState {
   mode_manually_selected?: boolean;
   model_manually_selected?: boolean;
   reply_target?: ComposerReplyTarget | null;
+  selected_context_authority?: string | null;
+  selected_context_window?: number | null;
   selected_mentions?: ComposerMentionSelection[];
   selected_mode?: ('Message' | 'Agent') | 'Chat';
   selected_model?: string | null;
@@ -432,6 +453,10 @@ export interface ComposerDomainState {
   selected_provider?: string | null;
   selected_reasoning_effort?: string | null;
   skill_selections?: ComposerSkillSelection[];
+  selected_service_mode?: {
+    id: string;
+    authority: string;
+  } | null;
 }
 export interface ComposerAttachment {
   file_name: string;
@@ -467,6 +492,14 @@ export interface ComposerCapability {
   id: string;
   kind: ComposerCapabilityKind;
   label: string;
+  [k: string]: unknown;
+}
+/**
+ * Immutable image reference. Gateway inventory exposes a native storage link, never image bytes.
+ */
+export interface ImageReference {
+  path: string;
+  revision: string;
   [k: string]: unknown;
 }
 /**
@@ -534,6 +567,13 @@ export interface TurnSkillCapabilitySummary {
 export interface TurnSkillPackPresentationSummary {
   label: string;
   packId: SkillPackId;
+  [k: string]: unknown;
+}
+export interface TurnPluginCapabilitySummary {
+  expectedRevision: number;
+  label: string;
+  pluginId: string;
+  icon?: ImageReference | null;
   [k: string]: unknown;
 }
 export interface TurnSkillPackCapabilitySummary {
@@ -707,6 +747,8 @@ export interface VoiceTurnContext {
    */
   capabilities?: TurnCapability[];
   cli_runtime_options?: TurnCLIRuntimeOptions | null;
+  context_authority?: string | null;
+  context_window?: number | null;
   execution_backend?: AgentExecutionBackend | null;
   mode?: ThreadMode | null;
   model?: string | null;
@@ -743,6 +785,10 @@ export interface VoiceTurnContext {
    * workspace here to validate/session-route the frozen voice context.
    */
   workspace_id: string;
+  service_mode?: {
+    id: string;
+    authority: string;
+  } | null;
   [k: string]: unknown;
 }
 export interface TurnCapability {
@@ -821,6 +867,16 @@ export interface ComposerPermissionModeOption {
   description: string;
   label: string;
   mode: TurnPermissionMode;
+  [k: string]: unknown;
+}
+/**
+ * Captured local Send payload, visible until the prepared optimistic commit.
+ * This is Composer feedback, not a server turn or uploaded-artifact receipt.
+ */
+export interface ComposerPreparingSend {
+  attachments: ComposerAttachment[];
+  identity: ComposerOperationIdentity;
+  text: string;
   [k: string]: unknown;
 }
 export interface ExecutionDraftReconciliation {

@@ -69,6 +69,7 @@ export interface SkillListItem {
   install: SkillInstallState;
   owner?: string | null;
   pack?: SkillPackMembership | null;
+  plugin_owner?: PluginOwner | null;
   policy: SkillPolicyState;
   skill_id: SkillId;
   slug: string;
@@ -97,6 +98,11 @@ export interface SkillInstallState {
 export interface SkillPackMembership {
   member_key: string;
   pack_id: SkillPackId;
+  [k: string]: unknown;
+}
+export interface PluginOwner {
+  member_key: string;
+  plugin_id: string;
   [k: string]: unknown;
 }
 export interface SkillPolicyState {

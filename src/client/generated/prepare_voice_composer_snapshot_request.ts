@@ -35,6 +35,14 @@ export type ArtifactProjectionStatus = 'pending' | 'ready' | 'failed' | 'stale';
 export type ArtifactStatus = 'ready' | 'pending' | 'quarantined' | 'deleted' | 'missing_external_source' | 'failed';
 export type ComposerCapabilityKind =
   | {
+      Plugin: {
+        expected_revision: number;
+        plugin_id: string;
+        icon?: ImageReference | null;
+        [k: string]: unknown;
+      };
+    }
+  | {
       Skill: {
         owner?: string | null;
         skill_id: SkillId;
@@ -78,7 +86,7 @@ export type AgentExecutionBackend =
       type: 'acpAgentRuntime';
       [k: string]: unknown;
     };
-export type CLIAgentRuntimeKind = 'codex' | 'claude' | 'opencode';
+export type CLIAgentRuntimeKind = 'codex' | 'claude';
 export type TurnPermissionMode = 'full_access' | 'auto_accept_edits' | 'supervised';
 export type ThreadMode = ('Message' | 'Agent') | 'Chat';
 export type SkillPackId = string;
@@ -111,6 +119,8 @@ export interface PrepareVoiceComposerSnapshotRequest {
   endpoint_kind?: GatewayEndpointKind | null;
   execution_backend?: AgentExecutionBackend | null;
   permission_mode: TurnPermissionMode;
+  selected_context_authority?: string | null;
+  selected_context_window?: number | null;
   selected_mode?: ThreadMode | null;
   selected_model?: string | null;
   selected_provider?: string | null;
@@ -121,6 +131,10 @@ export interface PrepareVoiceComposerSnapshotRequest {
   turn_id: string;
   turn_model_provider?: string | null;
   workspace_id: string;
+  selected_service_mode?: {
+    id: string;
+    authority: string;
+  } | null;
   [k: string]: unknown;
 }
 export interface ComposerAttachment {
@@ -157,6 +171,14 @@ export interface ComposerCapability {
   id: string;
   kind: ComposerCapabilityKind;
   label: string;
+  [k: string]: unknown;
+}
+/**
+ * Immutable image reference. Gateway inventory exposes a native storage link, never image bytes.
+ */
+export interface ImageReference {
+  path: string;
+  revision: string;
   [k: string]: unknown;
 }
 export interface TurnCLIRuntimeOptions {

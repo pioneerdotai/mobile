@@ -1219,6 +1219,22 @@
           "properties": {
             "kind": {
               "type": "string",
+              "const": "plugins"
+            },
+            "workspace_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "workspace_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
               "const": "skills_upload"
             },
             "operation_id": {
@@ -3636,6 +3652,7 @@
     "TimelineAttachmentKind": {
       "type": "string",
       "enum": [
+        "plugin",
         "artifact",
         "file",
         "image",
@@ -6553,6 +6570,26 @@
         "system"
       ]
     },
+    "TurnPluginCapabilitySummary": {
+      "type": "object",
+      "properties": {
+        "expectedRevision": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "label": {
+          "type": "string"
+        },
+        "pluginId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "pluginId",
+        "expectedRevision",
+        "label"
+      ]
+    },
     "TurnSandboxMode": {
       "type": "string",
       "enum": [
@@ -6855,6 +6892,22 @@
             "type": {
               "type": "string",
               "const": "skill"
+            }
+          },
+          "required": [
+            "type",
+            "capability"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "capability": {
+              "$ref": "#/$defs/TurnPluginCapabilitySummary"
+            },
+            "type": {
+              "type": "string",
+              "const": "plugin"
             }
           },
           "required": [

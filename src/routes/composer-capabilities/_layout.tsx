@@ -40,6 +40,13 @@ export default function ComposerCapabilitiesStackLayout() {
                 }}
             />
             <Stack.Screen
+                name="plugins"
+                options={{
+                    title: t('composerAddPlugins'),
+                    headerLeft: () => <CollapseButton onPressHandler={close} />,
+                }}
+            />
+            <Stack.Screen
                 name="mcp"
                 options={{
                     title: t('composerAddMcp'),

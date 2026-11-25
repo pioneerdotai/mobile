@@ -90,7 +90,6 @@ export interface ArtifactBindingSummary {
   tool_call_id?: string | null;
   turn_id?: string | null;
   turn_item_id?: string | null;
-  version_id?: string | null;
   workspace_id: string;
   [k: string]: unknown;
 }

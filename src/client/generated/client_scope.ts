@@ -229,6 +229,11 @@ export type ClientScope =
       kind: 'agents_document';
       workspace_id: string;
       [k: string]: unknown;
+    }
+  | {
+      kind: 'plugins';
+      workspace_id: string;
+      [k: string]: unknown;
     };
 export type AdministrationPage =
   | {

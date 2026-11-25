@@ -35,6 +35,12 @@ export type ComposerAttachmentUploadState =
     };
 export type TurnCapabilityKind =
   | {
+      expectedRevision: number;
+      pluginId: string;
+      type: 'plugin';
+      [k: string]: unknown;
+    }
+  | {
       packId?: SkillPackId | null;
       skillId: SkillId;
       type: 'skill';
@@ -78,7 +84,7 @@ export type AgentExecutionBackend =
       type: 'acpAgentRuntime';
       [k: string]: unknown;
     };
-export type CLIAgentRuntimeKind = 'codex' | 'claude' | 'opencode';
+export type CLIAgentRuntimeKind = 'codex' | 'claude';
 export type ThreadMode = ('Message' | 'Agent') | 'Chat';
 export type TurnPermissionMode = 'full_access' | 'auto_accept_edits' | 'supervised';
 export type UserInput =
@@ -199,6 +205,8 @@ export interface VoiceTurnContext {
    */
   capabilities?: TurnCapability[];
   cli_runtime_options?: TurnCLIRuntimeOptions | null;
+  context_authority?: string | null;
+  context_window?: number | null;
   execution_backend?: AgentExecutionBackend | null;
   mode?: ThreadMode | null;
   model?: string | null;
@@ -235,6 +243,10 @@ export interface VoiceTurnContext {
    * workspace here to validate/session-route the frozen voice context.
    */
   workspace_id: string;
+  service_mode?: {
+    id: string;
+    authority: string;
+  } | null;
   [k: string]: unknown;
 }
 export interface TurnCapability {

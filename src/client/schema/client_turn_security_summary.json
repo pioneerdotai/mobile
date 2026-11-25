@@ -129,8 +129,7 @@
       "enum": [
         "native",
         "codex_cli",
-        "claude_cli",
-        "opencode_cli"
+        "claude_cli"
       ]
     }
   }

@@ -32,7 +32,7 @@ export type CliRuntimeMcpReadinessReason =
   | 'continuityUnavailable'
   | 'readinessUnavailable';
 export type RuntimeDiagnosticLevel = 'info' | 'warning' | 'error';
-export type CLIAgentRuntimeKind = 'codex' | 'claude' | 'opencode';
+export type CLIAgentRuntimeKind = 'codex' | 'claude';
 export type RuntimeStatus =
   | {
       state: 'disabled';
@@ -76,12 +76,34 @@ export type RuntimeStatus =
       state: 'error';
       [k: string]: unknown;
     };
-export type ProviderModelSelectorMode = 'Chat' | 'SelfImprovement' | 'Embeddings' | 'Transcription';
-export type ReasoningCapabilitySource =
-  'provider_metadata' | 'cli_metadata' | 'config_override' | 'unknown';
+export type ProviderModelSelectorMode = 'Chat' | 'AuxiliaryChat' | 'SelfImprovement' | 'Embeddings' | 'Transcription';
+export type ReasoningCapabilitySource = 'provider_metadata' | 'cli_metadata' | 'config_override' | 'unknown';
+/**
+ * Authority-scoped, normalized context choices. Absence on a discovery DTO means unavailable metadata, distinct from a confirmed model without tiers.
+ */
+export type ProviderContextTiers =
+  | {
+      status: 'no_tiers';
+      [k: string]: unknown;
+    }
+  | {
+      status: 'excluded';
+      [k: string]: unknown;
+    }
+  | {
+      status: 'invalid';
+      [k: string]: unknown;
+    }
+  | {
+      status: 'tiered';
+      windows: number[];
+      price_order_confirmed: boolean;
+      [k: string]: unknown;
+    };
 
 export interface ComposerModelPickerPublication {
   closed: boolean;
+  context_rows?: ContextWindowRow[];
   deferred: boolean;
   identity: ComposerOperationIdentity;
   models_request: ComposerCatalogRequest;
@@ -89,9 +111,29 @@ export interface ComposerModelPickerPublication {
   providers_request: ComposerCatalogRequest;
   reasoning_rows: ReasoningEffortRow[];
   revision: number;
+  selected_context_authority?: string | null;
+  selected_context_window?: number | null;
   selected_provider_ready: boolean;
   selected_reasoning_effort?: string | null;
   selector: ProviderModelSelectorState;
+  selected_service_mode?: {
+    id: string;
+    authority: string;
+  } | null;
+  service_rows?: {
+    id: string;
+    label: string;
+    selected: boolean;
+    available: boolean;
+    [k: string]: unknown;
+  }[];
+  default_reasoning_only?: boolean;
+  [k: string]: unknown;
+}
+export interface ContextWindowRow {
+  window?: number | null;
+  tokens: number;
+  selected: boolean;
   [k: string]: unknown;
 }
 export interface ComposerOperationIdentity {
@@ -204,6 +246,8 @@ export interface RuntimeDiagnostic {
 export interface ProviderModelInfo {
   active?: boolean | null;
   capabilities: ProviderModelCapabilities;
+  context_authority?: string | null;
+  context_tiers?: ProviderContextTiers | null;
   created?: number | null;
   description?: string | null;
   family?: string | null;
@@ -215,6 +259,74 @@ export interface ProviderModelInfo {
   pricing?: ProviderModelPricing | null;
   provider: string;
   transcription?: ProviderTranscriptionModelMetadata | null;
+  service_modes?:
+    | null
+    | (
+        | {
+            status: 'unknown';
+            [k: string]: unknown;
+          }
+        | {
+            status: 'malformed';
+            [k: string]: unknown;
+          }
+        | {
+            status: 'known';
+            modes: {
+              [k: string]:
+                | {
+                    status: 'malformed';
+                    [k: string]: unknown;
+                  }
+                | {
+                    status: 'unmapped';
+                    [k: string]: unknown;
+                  }
+                | {
+                    status: 'parsed';
+                    descriptor: {
+                      id: string;
+                      label: string;
+                      parameters:
+                        | {
+                            kind: 'neutral';
+                          }
+                        | {
+                            kind: 'open_ai_standard';
+                          }
+                        | {
+                            kind: 'anthropic_standard';
+                          }
+                        | {
+                            kind: 'bedrock_standard';
+                          }
+                        | {
+                            kind: 'open_ai_pro';
+                          }
+                        | {
+                            kind: 'bedrock_nested_ultrafast';
+                          }
+                        | {
+                            kind: 'open_ai_tier';
+                            tier: 'priority' | 'flex' | 'ultrafast';
+                          }
+                        | {
+                            kind: 'anthropic_fast';
+                            beta?: string | null;
+                          };
+                      source_provider: string;
+                      source_model: string;
+                      source_api: string;
+                      source_url?: string | null;
+                      cost?: unknown;
+                      [k: string]: unknown;
+                    };
+                    [k: string]: unknown;
+                  };
+            };
+            [k: string]: unknown;
+          }
+      );
   [k: string]: unknown;
 }
 export interface ProviderModelCapabilities {

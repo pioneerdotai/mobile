@@ -58,11 +58,9 @@ export interface PendingRequestDetailRow {
   [k: string]: unknown;
 }
 export interface PendingRequestUserInputQuestion {
-  allow_custom?: boolean;
   header?: string | null;
   id: string;
   is_secret: boolean;
-  multiple?: boolean;
   options: PendingRequestUserInputOption[];
   question: string;
   [k: string]: unknown;

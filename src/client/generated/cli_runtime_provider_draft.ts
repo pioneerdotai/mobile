@@ -1,7 +1,7 @@
 /* eslint-disable */
 
-export type ModelSelectionTransport = 'api' | 'codex' | 'claude' | 'opencode';
-export type CLIAgentRuntimeKind = 'codex' | 'claude' | 'opencode';
+export type ModelSelectionTransport = 'api' | 'codex' | 'claude';
+export type CLIAgentRuntimeKind = 'codex' | 'claude';
 export type CLIRuntimeProviderDraftMode =
   | 'Create'
   | {
@@ -27,11 +27,17 @@ export interface CLIRuntimeProviderDraft {
         source: 'inherit';
       }
     | {
+        context_authority?: string | null;
+        context_window?: number | null;
         instance: string;
         model: string;
         reasoning_effort?: string | null;
         source: 'explicit';
         transport: ModelSelectionTransport;
+        service_mode?: {
+          id: string;
+          authority: string;
+        } | null;
       };
   display_name: string;
   enabled: boolean;
