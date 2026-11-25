@@ -1,4 +1,5 @@
 import {
+    Box as PluginIcon,
     Download,
     FileAudio,
     FileText,
@@ -273,6 +274,9 @@ const UserAttachmentIcon = ({
     size: number;
 }) => {
     switch (attachment.kind) {
+        case 'app':
+        case 'plugin':
+            return <PluginIcon size={size} color={color} />;
         case 'skill':
             return <Zap size={size} color={color} />;
         case 'mcp':

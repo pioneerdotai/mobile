@@ -1,7 +1,7 @@
 /* eslint-disable */
 
 export type ClientKind = 'desktop' | 'mobile' | 'other';
-export type ProfileAvatarMediaType = 'image/png' | 'image/jpeg' | 'image/webp';
+export type ImageMediaType = 'image/png' | 'image/jpeg' | 'image/webp';
 
 export interface InvitationAcceptParams {
   installation: ClientInstallationDescriptor;
@@ -21,5 +21,5 @@ export interface NewMemberProfile {
 }
 export interface ProfileAvatarInput {
   content_base64: string;
-  media_type: ProfileAvatarMediaType;
+  media_type: ImageMediaType;
 }

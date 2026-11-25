@@ -2,6 +2,23 @@
 
 export type ComposerCapabilityKind =
   | {
+      App: {
+        app_id: string;
+        dark_icon?: ImageReference | null;
+        expected_revision: number;
+        icon?: ImageReference | null;
+        [k: string]: unknown;
+      };
+    }
+  | {
+      Plugin: {
+        expected_revision: number;
+        icon?: ImageReference | null;
+        plugin_id: string;
+        [k: string]: unknown;
+      };
+    }
+  | {
       Skill: {
         owner?: string | null;
         skill_id: SkillId;
@@ -27,3 +44,12 @@ export type ComposerCapabilityKind =
     };
 export type SkillId = string;
 export type McpScopeKind = 'workspace' | 'user';
+
+/**
+ * Immutable image reference. Published paths are authenticated Gateway storage links.
+ */
+export interface ImageReference {
+  path: string;
+  revision: string;
+  [k: string]: unknown;
+}

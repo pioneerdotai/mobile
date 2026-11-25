@@ -9,9 +9,11 @@ jest.mock('react-native-unistyles', () => ({
     StyleSheet: { create: (styles: unknown) => styles },
     useUnistyles: () => ({ theme: {} }),
 }));
+jest.mock('@shopify/flash-list', () => ({ FlashList: () => null }));
 jest.mock('@/components/feedback/spinner', () => () => null);
 jest.mock('@/client', () => ({}));
 jest.mock('lucide-react-native', () => ({
+    Check: () => null,
     ChevronRight: () => null,
 }));
 

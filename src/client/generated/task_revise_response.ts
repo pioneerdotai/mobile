@@ -63,7 +63,7 @@ export type ProviderFailureClass =
   | 'permission_denied'
   | 'unknown';
 /**
- * Allowlisted OpenRouter Chat Completions metadata.error_type values.
+ * Allowlisted provider error reasons, never raw provider messages or values.
  * Diagnostic only: these values must not drive recovery policy.
  */
 export type ProviderErrorReason =
@@ -71,6 +71,12 @@ export type ProviderErrorReason =
   | 'max_tokens_exceeded'
   | 'token_limit_exceeded'
   | 'string_too_long'
+  | 'missing_required_parameter'
+  | 'unsupported_parameter'
+  | 'invalid_parameter_value'
+  | 'invalid_parameter_type'
+  | 'responses_missing_required_item'
+  | 'responses_unpaired_tool_call'
   | 'authentication'
   | 'permission_denied'
   | 'payment_required'
@@ -118,6 +124,7 @@ export type TaskRunStatus =
   | 'blocked'
   | 'cancelled'
   | 'timed_out';
+export type TaskRunInputEncoding = 'utf8' | 'base64';
 export type TaskStatus =
   | 'draft'
   | 'scheduled'
@@ -164,31 +171,43 @@ export type AgentExecutionProfileSelection =
       exact: {
         profile_id: AgentExecutionProfileId;
       };
+    }
+  | {
+      model: {
+        model_id: string;
+        provider_id?: string | null;
+      };
     };
 export type TurnCapabilityKind =
+  | {
+      appId: string;
+      expectedRevision: number;
+      type: 'app';
+    }
+  | {
+      expectedRevision: number;
+      pluginId: string;
+      type: 'plugin';
+    }
   | {
       packId?: SkillPackId | null;
       skillId: SkillId;
       type: 'skill';
-      [k: string]: unknown;
     }
   | {
       packId: SkillPackId;
       type: 'skillPack';
-      [k: string]: unknown;
     }
   | {
       name: string;
       scopeKind: McpScopeKind;
       type: 'mcpServer';
-      [k: string]: unknown;
     }
   | {
       rawToolName: string;
       scopeKind: McpScopeKind;
       serverName: string;
       type: 'mcpTool';
-      [k: string]: unknown;
     };
 export type SkillPackId = string;
 export type SkillId = string;
@@ -330,10 +349,21 @@ export interface RecoveryProviderFailure {
   class: ProviderFailureClass;
   errorReason?: ProviderErrorReason | null;
   httpStatus?: number | null;
+  rawResponse?: ProviderErrorResponse | null;
   requestId?: ProviderRequestId | null;
   retryAfterMs?: number | null;
   stage: ProviderFailureStage;
   transport: ProviderTransportKind;
+}
+/**
+ * Original provider error response, bounded by the transport limit for local storage.
+ * Debug output deliberately omits all payloads; public prose never uses them.
+ */
+export interface ProviderErrorResponse {
+  body: string;
+  processingError?: string | null;
+  streamContext?: string | null;
+  truncated: boolean;
 }
 export interface TaskResult {
   artifacts?: TaskArtifact[];
@@ -410,7 +440,17 @@ export interface TaskRun {
   status: TaskRunStatus;
   taskId: string;
   triggerId?: string | null;
+  /**
+   * External data accepted for this occurrence, preserved across retries.
+   */
+  triggerInput?: TaskRunTriggerInput | null;
   updatedAt: number;
+  [k: string]: unknown;
+}
+export interface TaskRunTriggerInput {
+  body: string;
+  contentType?: string | null;
+  encoding: TaskRunInputEncoding;
   [k: string]: unknown;
 }
 export interface Task {
@@ -487,9 +527,6 @@ export interface TaskComposerWork {
   [k: string]: unknown;
 }
 export interface TurnStartParams {
-  context_window?: number | null;
-  service_mode?: { id: string; authority: string } | null;
-  context_authority?: string | null;
   /**
    * Explicit, bounded cross-capsule delegations requested for this root
    * Agent execution. These are authorization inputs, never prompt content.
@@ -503,6 +540,11 @@ export interface TurnStartParams {
   agent_launch?: AgentLaunchSelection | null;
   capabilities?: TurnCapability[];
   cli_runtime_options?: TurnCLIRuntimeOptions | null;
+  context_authority?: string | null;
+  /**
+   * User-owned model choice; absent means Auto, not inheritance of a wider override.
+   */
+  context_window?: number | null;
   execution_backend?: AgentExecutionBackend | null;
   input?: UserInput[];
   mentioned_principal_ids?: PrincipalId[];
@@ -513,6 +555,7 @@ export interface TurnStartParams {
   reasoning?: TurnReasoningSelection | null;
   reply_to_turn_id?: string | null;
   sandbox_policy?: SandboxPolicy | null;
+  service_mode?: NativeServiceModeSelection | null;
   thread_id: string;
   turn_id: string;
   [k: string]: unknown;
@@ -612,6 +655,14 @@ export interface ByteRange {
 export interface SandboxPolicy {
   mode: SandboxMode;
   [k: string]: unknown;
+}
+/**
+ * Explicit choice uses the existing endpoint/credential/model authority proof.
+ * Absence means Standard; Inherit belongs to the enclosing model selection.
+ */
+export interface NativeServiceModeSelection {
+  authority: string;
+  id: string;
 }
 /**
  * A user-directed final soft stop; this is not evidence that the goal succeeded.

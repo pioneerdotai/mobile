@@ -44,5 +44,9 @@ export interface McpActionPublication {
   operation_id: number;
   revision: number;
   state: McpActionState;
+  /**
+   * Configure was dispatched without an authoritative response.
+   */
+  uncertain: boolean;
   [k: string]: unknown;
 }

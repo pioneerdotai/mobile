@@ -35,6 +35,23 @@ export type ArtifactProjectionStatus = 'pending' | 'ready' | 'failed' | 'stale';
 export type ArtifactStatus = 'ready' | 'pending' | 'quarantined' | 'deleted' | 'missing_external_source' | 'failed';
 export type ComposerCapabilityKind =
   | {
+      App: {
+        app_id: string;
+        dark_icon?: ImageReference | null;
+        expected_revision: number;
+        icon?: ImageReference | null;
+        [k: string]: unknown;
+      };
+    }
+  | {
+      Plugin: {
+        expected_revision: number;
+        icon?: ImageReference | null;
+        plugin_id: string;
+        [k: string]: unknown;
+      };
+    }
+  | {
       Skill: {
         owner?: string | null;
         skill_id: SkillId;
@@ -104,9 +121,6 @@ export type ComposerSkillSelection =
     };
 
 export interface PrepareVoiceComposerSnapshotRequest {
-  selected_context_window?: number | null;
-  selected_service_mode?: { id: string; authority: string } | null;
-  selected_context_authority?: string | null;
   attachments: ComposerAttachment[];
   authorization_fingerprint: string;
   capabilities: ComposerCapability[];
@@ -114,10 +128,13 @@ export interface PrepareVoiceComposerSnapshotRequest {
   endpoint_kind?: GatewayEndpointKind | null;
   execution_backend?: AgentExecutionBackend | null;
   permission_mode: TurnPermissionMode;
+  selected_context_authority?: string | null;
+  selected_context_window?: number | null;
   selected_mode?: ThreadMode | null;
   selected_model?: string | null;
   selected_provider?: string | null;
   selected_reasoning_effort?: string | null;
+  selected_service_mode?: NativeServiceModeSelection | null;
   skill_picker?: ComposerSkillPickerProjection;
   skill_selections?: ComposerSkillSelection[];
   thread_id: string;
@@ -162,6 +179,14 @@ export interface ComposerCapability {
   label: string;
   [k: string]: unknown;
 }
+/**
+ * Immutable image reference. Published paths are authenticated Gateway storage links.
+ */
+export interface ImageReference {
+  path: string;
+  revision: string;
+  [k: string]: unknown;
+}
 export interface TurnCLIRuntimeOptions {
   effort?: string | null;
   personality?: string | null;
@@ -169,6 +194,14 @@ export interface TurnCLIRuntimeOptions {
   steer_if_active?: boolean | null;
   summary?: string | null;
   [k: string]: unknown;
+}
+/**
+ * Explicit choice uses the existing endpoint/credential/model authority proof.
+ * Absence means Standard; Inherit belongs to the enclosing model selection.
+ */
+export interface NativeServiceModeSelection {
+  authority: string;
+  id: string;
 }
 export interface ComposerSkillPickerProjection {
   packs: SelectableSkillPackCapability[];

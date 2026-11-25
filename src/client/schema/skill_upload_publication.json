@@ -3,10 +3,24 @@
   "title": "SkillUploadPublication",
   "type": "object",
   "properties": {
+    "failure": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/SkillUploadFailure"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
     "generation": {
       "type": "integer",
       "format": "uint64",
       "minimum": 0
+    },
+    "mutation_uncertain": {
+      "description": "Apply was dispatched without an authoritative result; retained identity is retryable.",
+      "type": "boolean"
     },
     "operation_id": {
       "type": "integer",
@@ -15,6 +29,36 @@
     },
     "pack": {
       "type": "boolean"
+    },
+    "plugin_preview": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/PluginPreviewPublication"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "plugin_result": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/PluginItem"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "plugin_update_preview": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/PluginUpdatePreviewPublication"
+        },
+        {
+          "type": "null"
+        }
+      ]
     },
     "revision": {
       "type": "integer",
@@ -39,6 +83,7 @@
     }
   },
   "required": [
+    "mutation_uncertain",
     "operation_id",
     "generation",
     "revision",
@@ -49,6 +94,609 @@
     "pack"
   ],
   "$defs": {
+    "AppLocalization": {
+      "type": "object",
+      "properties": {
+        "longDescription": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "shortDescription": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "AppMetadata": {
+      "description": "Verified presentation snapshot only; native authority remains in components.",
+      "type": "object",
+      "properties": {
+        "categories": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "composer_icon": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AppThemedIcon"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "default_locale": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "developer_logo": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AppThemedIcon"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "developer_url": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "has_ui": {
+          "type": "boolean",
+          "default": false
+        },
+        "icon": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AppThemedIcon"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "localizations": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/AppLocalization"
+          }
+        }
+      },
+      "required": [
+        "categories",
+        "localizations"
+      ]
+    },
+    "AppThemedIcon": {
+      "type": "object",
+      "properties": {
+        "dark": {
+          "$ref": "#/$defs/ImageReference"
+        },
+        "light": {
+          "$ref": "#/$defs/ImageReference"
+        }
+      },
+      "required": [
+        "light",
+        "dark"
+      ]
+    },
+    "ImageReference": {
+      "description": "Immutable image reference. Published paths are authenticated Gateway storage links.",
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "revision": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "revision"
+      ]
+    },
+    "PluginAuthor": {
+      "description": "Authored presentation only. None of these fields grant execution authority.",
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "url": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "PluginComponentItem": {
+      "type": "object",
+      "properties": {
+        "diagnostic": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "kind": {
+          "type": "string"
+        },
+        "mcp_installation_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "member_key": {
+          "type": "string"
+        },
+        "runtime_status": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "skill_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SkillId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "status": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "member_key",
+        "status"
+      ]
+    },
+    "PluginComponentKey": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string"
+        },
+        "member_key": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "member_key"
+      ]
+    },
+    "PluginDiagnostic": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "path",
+        "message"
+      ]
+    },
+    "PluginItem": {
+      "type": "object",
+      "properties": {
+        "allow_implicit_invocation": {
+          "type": "boolean",
+          "default": false
+        },
+        "components": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PluginComponentItem"
+          }
+        },
+        "description": {
+          "description": "Authored package description, bounded by the Gateway; absent for old peers.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 2048
+        },
+        "diagnostics": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PluginDiagnostic"
+          }
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "id": {
+          "type": "string"
+        },
+        "metadata": {
+          "$ref": "#/$defs/PluginMetadata",
+          "default": {
+            "author": {
+              "email": null,
+              "name": null,
+              "url": null
+            },
+            "brand_color": null,
+            "category": null,
+            "composer_icon": null,
+            "default_prompts": [],
+            "description": null,
+            "developer_name": null,
+            "display_name": null,
+            "documentation_url": null,
+            "homepage": null,
+            "keywords": [],
+            "license": null,
+            "logo": null,
+            "long_description": null,
+            "privacy_policy_url": null,
+            "repository": null,
+            "short_description": null,
+            "support_url": null,
+            "terms_of_service_url": null
+          }
+        },
+        "name": {
+          "type": "string"
+        },
+        "revision": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "state": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "version": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "enabled",
+        "state",
+        "revision",
+        "status",
+        "components",
+        "diagnostics"
+      ]
+    },
+    "PluginMetadata": {
+      "type": "object",
+      "properties": {
+        "app": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AppMetadata"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "author": {
+          "$ref": "#/$defs/PluginAuthor",
+          "default": {
+            "email": null,
+            "name": null,
+            "url": null
+          }
+        },
+        "brand_color": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "category": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "composer_icon": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ImageReference"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "default_prompts": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "description": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "developer_name": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "display_name": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "documentation_url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "homepage": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "keywords": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "license": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "logo": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ImageReference"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "long_description": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "privacy_policy_url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "repository": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "short_description": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "support_url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "terms_of_service_url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      }
+    },
+    "PluginPreviewPublication": {
+      "type": "object",
+      "properties": {
+        "package": {
+          "$ref": "#/$defs/PluginsPreviewResponse"
+        },
+        "upload_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "upload_id",
+        "package"
+      ]
+    },
+    "PluginUpdatePreviewPublication": {
+      "type": "object",
+      "properties": {
+        "preview": {
+          "$ref": "#/$defs/PluginsUpdatePreviewResponse"
+        },
+        "upload_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "upload_id",
+        "preview"
+      ]
+    },
+    "PluginsPreviewResponse": {
+      "type": "object",
+      "properties": {
+        "components": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PluginComponentItem"
+          }
+        },
+        "description": {
+          "description": "Authored package description, bounded by the Gateway; absent for old peers.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 2048
+        },
+        "diagnostics": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PluginDiagnostic"
+          }
+        },
+        "fingerprint": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "version": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "fingerprint",
+        "components",
+        "diagnostics"
+      ]
+    },
+    "PluginsUpdatePreviewResponse": {
+      "type": "object",
+      "properties": {
+        "added": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PluginComponentKey"
+          }
+        },
+        "authorization_changes": {
+          "description": "Conservative disclosure of changed MCP configurations that may need sign-in.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PluginComponentKey"
+          }
+        },
+        "identity_resets": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PluginComponentKey"
+          }
+        },
+        "package": {
+          "$ref": "#/$defs/PluginsPreviewResponse"
+        },
+        "removed": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PluginComponentKey"
+          }
+        },
+        "supporting_files_changed": {
+          "description": "Package bytes changed outside a changed member (for example shared assets).",
+          "type": "boolean",
+          "default": false
+        },
+        "updated": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PluginComponentKey"
+          }
+        }
+      },
+      "required": [
+        "package",
+        "added",
+        "updated",
+        "identity_resets",
+        "removed",
+        "authorization_changes"
+      ]
+    },
     "SkillId": {
       "type": "string",
       "maxLength": 21,
@@ -60,6 +708,20 @@
       "maxLength": 21,
       "minLength": 21,
       "pattern": "^[A-Za-z0-9]{21}$"
+    },
+    "SkillUploadFailure": {
+      "description": "Stable, secret-free upload failures shared by all shells.",
+      "type": "string",
+      "enum": [
+        "source_unavailable",
+        "source_changed",
+        "source_too_large",
+        "invalid_package",
+        "gateway_unavailable",
+        "access_denied",
+        "busy",
+        "unknown"
+      ]
     },
     "SkillUploadState": {
       "type": "string",
@@ -76,6 +738,84 @@
     },
     "SkillUploadTarget": {
       "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "app_preview"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "app_id": {
+              "type": "string"
+            },
+            "expected_revision": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "kind": {
+              "type": "string",
+              "const": "app_update_preview"
+            }
+          },
+          "required": [
+            "kind",
+            "app_id",
+            "expected_revision"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "plugin_install"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "plugin_preview"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "expected_revision": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "kind": {
+              "type": "string",
+              "const": "plugin_update_preview"
+            },
+            "plugin_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "plugin_id",
+            "expected_revision"
+          ]
+        },
         {
           "type": "object",
           "properties": {

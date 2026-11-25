@@ -35,28 +35,34 @@ export type ComposerAttachmentUploadState =
     };
 export type TurnCapabilityKind =
   | {
+      appId: string;
+      expectedRevision: number;
+      type: 'app';
+    }
+  | {
+      expectedRevision: number;
+      pluginId: string;
+      type: 'plugin';
+    }
+  | {
       packId?: SkillPackId | null;
       skillId: SkillId;
       type: 'skill';
-      [k: string]: unknown;
     }
   | {
       packId: SkillPackId;
       type: 'skillPack';
-      [k: string]: unknown;
     }
   | {
       name: string;
       scopeKind: McpScopeKind;
       type: 'mcpServer';
-      [k: string]: unknown;
     }
   | {
       rawToolName: string;
       scopeKind: McpScopeKind;
       serverName: string;
       type: 'mcpTool';
-      [k: string]: unknown;
     };
 export type SkillPackId = string;
 export type SkillId = string;
@@ -194,14 +200,13 @@ export interface ComposerAttachment {
  * successful transcription.
  */
 export interface VoiceTurnContext {
-  context_window?: number | null;
-  service_mode?: { id: string; authority: string } | null;
-  context_authority?: string | null;
   /**
    * Selected skills, MCP tools/servers and related turn capabilities.
    */
   capabilities?: TurnCapability[];
   cli_runtime_options?: TurnCLIRuntimeOptions | null;
+  context_authority?: string | null;
+  context_window?: number | null;
   execution_backend?: AgentExecutionBackend | null;
   mode?: ThreadMode | null;
   model?: string | null;
@@ -223,6 +228,7 @@ export interface VoiceTurnContext {
   prepared_input?: UserInput[];
   reasoning?: TurnReasoningSelection | null;
   sandbox_policy?: SandboxPolicy | null;
+  service_mode?: NativeServiceModeSelection | null;
   /**
    * Thread that receives the gateway-created turn after transcription.
    */
@@ -279,4 +285,12 @@ export interface TurnReasoningSelection {
 export interface SandboxPolicy {
   mode: SandboxMode;
   [k: string]: unknown;
+}
+/**
+ * Explicit choice uses the existing endpoint/credential/model authority proof.
+ * Absence means Standard; Inherit belongs to the enclosing model selection.
+ */
+export interface NativeServiceModeSelection {
+  authority: string;
+  id: string;
 }

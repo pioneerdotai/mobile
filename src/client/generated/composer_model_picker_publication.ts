@@ -76,18 +76,94 @@ export type RuntimeStatus =
       state: 'error';
       [k: string]: unknown;
     };
-export type ProviderModelSelectorMode = 'Chat' | 'AuxiliaryChat' | 'SelfImprovement' | 'Embeddings' | 'Transcription';
-export type ReasoningCapabilitySource =
-  'provider_metadata' | 'cli_metadata' | 'config_override' | 'unknown';
+export type ProviderModelSelectorMode = ('Chat' | 'SelfImprovement' | 'Embeddings' | 'Transcription') | 'AuxiliaryChat';
+export type ReasoningCapabilitySource = 'provider_metadata' | 'cli_metadata' | 'config_override' | 'unknown';
+/**
+ * Authority-scoped, normalized context choices. Absence on a discovery DTO
+ * means unavailable metadata, distinct from a confirmed model without tiers.
+ */
+export type ProviderContextTiers =
+  | {
+      status: 'no_tiers';
+      [k: string]: unknown;
+    }
+  | {
+      status: 'excluded';
+      [k: string]: unknown;
+    }
+  | {
+      status: 'invalid';
+      [k: string]: unknown;
+    }
+  | {
+      price_order_confirmed: boolean;
+      status: 'tiered';
+      windows: number[];
+      [k: string]: unknown;
+    };
+export type SourceServiceModes =
+  | {
+      status: 'unknown';
+      [k: string]: unknown;
+    }
+  | {
+      status: 'malformed';
+      [k: string]: unknown;
+    }
+  | {
+      modes: {
+        [k: string]: SourceServiceMode;
+      };
+      status: 'known';
+      [k: string]: unknown;
+    };
+export type SourceServiceMode =
+  | {
+      descriptor: ServiceModeDescriptor;
+      status: 'parsed';
+      [k: string]: unknown;
+    }
+  | {
+      status: 'malformed';
+      [k: string]: unknown;
+    }
+  | {
+      status: 'unmapped';
+      [k: string]: unknown;
+    };
+export type ServiceModeParameters =
+  | {
+      kind: 'neutral';
+    }
+  | {
+      kind: 'open_ai_standard';
+    }
+  | {
+      kind: 'anthropic_standard';
+    }
+  | {
+      kind: 'bedrock_standard';
+    }
+  | {
+      kind: 'open_ai_tier';
+      tier: OpenAiTier;
+    }
+  | {
+      kind: 'open_ai_pro';
+    }
+  | {
+      beta?: string | null;
+      kind: 'anthropic_fast';
+    }
+  | {
+      kind: 'bedrock_nested_ultrafast';
+    };
+export type OpenAiTier = 'priority' | 'flex' | 'ultrafast';
 
 export interface ComposerModelPickerPublication {
-  selected_context_window?: number | null;
-  selected_service_mode?: { id: string; authority: string } | null;
-  selected_context_authority?: string | null;
-  default_reasoning_only?: boolean;
-  service_rows?: { id: string; label: string; selected: boolean; available: boolean }[];
-  context_rows?: ContextWindowRow[];
   closed: boolean;
+  context_rows?: ContextWindowRow[];
+  default_reasoning_only?: boolean;
   deferred: boolean;
   identity: ComposerOperationIdentity;
   models_request: ComposerCatalogRequest;
@@ -95,9 +171,22 @@ export interface ComposerModelPickerPublication {
   providers_request: ComposerCatalogRequest;
   reasoning_rows: ReasoningEffortRow[];
   revision: number;
+  selected_context_authority?: string | null;
+  selected_context_window?: number | null;
   selected_provider_ready: boolean;
   selected_reasoning_effort?: string | null;
+  selected_service_mode?: NativeServiceModeSelection | null;
   selector: ProviderModelSelectorState;
+  service_rows?: ServiceModeRow[];
+  [k: string]: unknown;
+}
+/**
+ * Model-scoped context choices. Shells only localize the Auto/up-to labels.
+ */
+export interface ContextWindowRow {
+  selected: boolean;
+  tokens: number;
+  window?: number | null;
   [k: string]: unknown;
 }
 export interface ComposerOperationIdentity {
@@ -135,6 +224,14 @@ export interface ReasoningEffortRow {
   effort: string;
   label: string;
   selected: boolean;
+}
+/**
+ * Explicit choice uses the existing endpoint/credential/model authority proof.
+ * Absence means Standard; Inherit belongs to the enclosing model selection.
+ */
+export interface NativeServiceModeSelection {
+  authority: string;
+  id: string;
 }
 export interface ProviderModelSelectorState {
   cli_runtimes: RuntimeSummary[];
@@ -207,18 +304,11 @@ export interface RuntimeDiagnostic {
   message: string;
   [k: string]: unknown;
 }
-export type ProviderContextTiers =
-  | { status: 'no_tiers' }
-  | { status: 'excluded' }
-  | { status: 'invalid' }
-  | { status: 'tiered'; windows: number[]; price_order_confirmed: boolean };
-
 export interface ProviderModelInfo {
-  service_modes?: ({ status: 'unknown' | 'malformed' } | { status: 'known'; modes: { [id: string]: { status: 'malformed' | 'unmapped' } | { status: 'parsed'; descriptor: { id: string; label: string; parameters: ({ kind: 'neutral' | 'open_ai_standard' | 'anthropic_standard' | 'bedrock_standard' | 'open_ai_pro' | 'bedrock_nested_ultrafast' } | { kind: 'open_ai_tier'; tier: 'priority' | 'flex' | 'ultrafast' } | { kind: 'anthropic_fast'; beta?: string | null }); source_provider: string; source_model: string; source_api: string; source_url?: string | null; cost?: unknown } } } }) | null;
-  context_authority?: string | null;
-  context_tiers?: ProviderContextTiers | null;
   active?: boolean | null;
   capabilities: ProviderModelCapabilities;
+  context_authority?: string | null;
+  context_tiers?: ProviderContextTiers | null;
   created?: number | null;
   description?: string | null;
   family?: string | null;
@@ -229,6 +319,7 @@ export interface ProviderModelInfo {
   owned_by?: string | null;
   pricing?: ProviderModelPricing | null;
   provider: string;
+  service_modes?: SourceServiceModes | null;
   transcription?: ProviderTranscriptionModelMetadata | null;
   [k: string]: unknown;
 }
@@ -268,6 +359,22 @@ export interface ProviderModelPricing {
   request?: number | null;
   [k: string]: unknown;
 }
+/**
+ * Retains conditional/partial source prices without flattening context bands
+ * or treating absent prices as Standard. Pricing must prove applicability
+ * before passing these rates to the existing estimator.
+ */
+export interface ServiceModeDescriptor {
+  cost?: unknown;
+  id: string;
+  label: string;
+  parameters: ServiceModeParameters;
+  source_api: string;
+  source_model: string;
+  source_provider: string;
+  source_url?: string | null;
+  [k: string]: unknown;
+}
 export interface ProviderTranscriptionModelMetadata {
   accuracy_score: number;
   download_size_mb: number;
@@ -301,10 +408,13 @@ export interface ProviderSummaryCapabilities {
   transcription?: boolean;
   [k: string]: unknown;
 }
-
-export interface ContextWindowRow {
-  window?: number | null;
-  tokens: number;
+/**
+ * Shell-neutral rows; prices remain evidence rather than invented flat amounts.
+ */
+export interface ServiceModeRow {
+  available: boolean;
+  id: string;
+  label: string;
   selected: boolean;
   [k: string]: unknown;
 }

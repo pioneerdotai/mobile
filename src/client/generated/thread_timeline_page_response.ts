@@ -24,6 +24,7 @@ export type TimelineBlockKind =
     }
   | {
       author?: TurnAuthorSnapshot | null;
+      codexRetryNotices?: CodexRetryNotice[];
       kind: 'detached_task_run';
       task: TaskTurnItem;
       [k: string]: unknown;
@@ -112,6 +113,16 @@ export type UserMessageAttachment =
   | {
       capability: TurnSkillCapabilitySummary;
       type: 'skill';
+      [k: string]: unknown;
+    }
+  | {
+      capability: TurnPluginCapabilitySummary;
+      type: 'plugin';
+      [k: string]: unknown;
+    }
+  | {
+      capability: TurnAppCapabilitySummary;
+      type: 'app';
       [k: string]: unknown;
     }
   | {
@@ -372,6 +383,29 @@ export interface TurnSkillPackPresentationSummary {
   packId: SkillPackId;
   [k: string]: unknown;
 }
+export interface TurnPluginCapabilitySummary {
+  expectedRevision: number;
+  icon?: ImageReference | null;
+  label: string;
+  pluginId: string;
+  [k: string]: unknown;
+}
+/**
+ * Immutable image reference. Published paths are authenticated Gateway storage links.
+ */
+export interface ImageReference {
+  path: string;
+  revision: string;
+  [k: string]: unknown;
+}
+export interface TurnAppCapabilitySummary {
+  appId: string;
+  darkIcon?: ImageReference | null;
+  expectedRevision: number;
+  icon?: ImageReference | null;
+  label: string;
+  [k: string]: unknown;
+}
 export interface TurnSkillPackCapabilitySummary {
   label: string;
   packId: SkillPackId;
@@ -549,6 +583,18 @@ export interface HtmlPublication {
   title: string;
   turnId: string;
   workspaceId: string;
+}
+/**
+ * Read-only presentation of a canonical Codex retry notice owned by a Task's
+ * hidden execution. This never becomes a canonical event in the viewing thread.
+ */
+export interface CodexRetryNotice {
+  itemId: string;
+  message: string;
+  occurredAtUnixMs: number;
+  sourceThreadId: string;
+  sourceTurnId: string;
+  [k: string]: unknown;
 }
 export interface TaskTurnItem {
   agentRole?: string | null;

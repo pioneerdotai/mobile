@@ -13,12 +13,14 @@ export type TaskRunStatus =
   | 'timed_out';
 
 export interface TaskInboxPublication {
+  completed_operation_id?: number | null;
   error?: string | null;
   items: TaskInboxItem[];
   loading: boolean;
   native_notifications: TaskNotificationEffect[];
   next_cursor?: string | null;
   opened?: TaskNotificationPublication | null;
+  request_busy: boolean;
   revision: number;
   unread_count: number;
   workspace_id: string;

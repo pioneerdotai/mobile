@@ -2,6 +2,20 @@
 
 export type ClientIntent =
   | {
+      connection_id?: number | null;
+      intent: PluginIntent;
+      kind: 'apps';
+      workspace_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      connection_id?: number | null;
+      intent: PluginIntent;
+      kind: 'plugins';
+      workspace_id: string;
+      [k: string]: unknown;
+    }
+  | {
       demand: SessionDemand;
       kind: 'session_demand';
       [k: string]: unknown;
@@ -161,6 +175,129 @@ export type ClientIntent =
       scope: ClientScope;
       [k: string]: unknown;
     };
+export type PluginIntent =
+  | {
+      kind: 'observe';
+      plugin_id?: string | null;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'close';
+      [k: string]: unknown;
+    }
+  | {
+      allow_implicit_invocation?: boolean | null;
+      enabled: boolean;
+      expected_revision: number;
+      kind: 'set_enabled';
+      plugin_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      expected_revision: number;
+      intent: PluginManagementIntent;
+      kind: 'mutate';
+      plugin_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'install';
+      upload_operation: number;
+      [k: string]: unknown;
+    }
+  | {
+      confirm_changes: boolean;
+      kind: 'apply_update';
+      upload_operation: number;
+      [k: string]: unknown;
+    }
+  | {
+      allow_implicit_invocation: boolean;
+      enabled: boolean;
+      kind: 'skill';
+      skill_id: SkillId;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'remove_skill';
+      skill_id: SkillId;
+      [k: string]: unknown;
+    }
+  | {
+      body: string;
+      kind: 'configure_mcp';
+      server_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      intent: McpIntent;
+      kind: 'mcp';
+      [k: string]: unknown;
+    };
+export type PluginManagementIntent =
+  | {
+      action: 'update';
+      confirm_changes: boolean;
+      expected_fingerprint: string;
+      upload_id: string;
+    }
+  | {
+      action: 'retry';
+      components: PluginComponentKey[];
+      restore_removed: boolean;
+    }
+  | {
+      action: 'continue';
+    }
+  | {
+      action: 'remove';
+      purge_data: boolean;
+    };
+export type SkillId = string;
+export type McpIntent =
+  | {
+      kind: 'retry_authorization_browser';
+      server_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'sign_in';
+      server_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'disconnect';
+      server_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      flow_id: string;
+      kind: 'cancel_authorization';
+      server_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      allow_implicit_invocation: boolean;
+      enabled: boolean;
+      kind: 'policy';
+      server_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'restart';
+      server_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'remove';
+      server_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      config_json: string;
+      kind: 'configure';
+      [k: string]: unknown;
+    };
 export type SessionVisibility = 'foreground' | 'inactive' | 'background';
 export type SettingsModelPickerIntent =
   | {
@@ -187,16 +324,16 @@ export type SettingsModelPickerIntent =
     }
   | {
       expected_owner: number;
-      kind: 'select_service_mode';
       id: string;
+      kind: 'select_service_mode';
       picker_id: string;
       [k: string]: unknown;
     }
   | {
-      window?: number | null;
       expected_owner: number;
       kind: 'select_context_window';
       picker_id: string;
+      window?: number | null;
       [k: string]: unknown;
     }
   | {
@@ -224,7 +361,7 @@ export type SettingsModelPickerIntent =
       picker_id: string;
       [k: string]: unknown;
     };
-export type ProviderModelSelectorMode = 'Chat' | 'AuxiliaryChat' | 'SelfImprovement' | 'Embeddings' | 'Transcription';
+export type ProviderModelSelectorMode = ('Chat' | 'SelfImprovement' | 'Embeddings' | 'Transcription') | 'AuxiliaryChat';
 export type OnboardingIntent =
   | {
       kind: 'initialize';
@@ -373,7 +510,7 @@ export type InvitationIntent =
       [k: string]: unknown;
     };
 export type ProfileField = 'first_name' | 'last_name' | 'nickname';
-export type ProfileAvatarMediaType = 'image/png' | 'image/jpeg' | 'image/webp';
+export type ImageMediaType = 'image/png' | 'image/jpeg' | 'image/webp';
 export type GatewaySetupIntent =
   | {
       kind: 'open';
@@ -477,11 +614,6 @@ export type GatewaySetupMode =
 export type GatewayId = string;
 export type SettingsIntent =
   | {
-      enabled: boolean;
-      kind: 'voice_transcribe_while_recording';
-      [k: string]: unknown;
-    }
-  | {
       kind: 'create_device_activation';
       [k: string]: unknown;
     }
@@ -545,7 +677,7 @@ export type SettingsIntent =
     }
   | {
       kind: 'memory_model';
-      selection: GatewayMemoryModelSelection;
+      selection: GatewayMemoryModelSelection1;
       setting: MemoryModelSetting;
       [k: string]: unknown;
     }
@@ -596,6 +728,11 @@ export type SettingsIntent =
       [k: string]: unknown;
     }
   | {
+      enabled: boolean;
+      kind: 'voice_transcribe_while_recording';
+      [k: string]: unknown;
+    }
+  | {
       kind: 'voice_model';
       model?: string | null;
       provider?: string | null;
@@ -616,21 +753,20 @@ export type GatewayModelSelection =
       source: 'inherit';
     }
   | {
+      context_authority?: string | null;
+      context_window?: number | null;
       instance: string;
       model: string;
       reasoning_effort?: string | null;
-      context_window?: number | null;
-      service_mode?: { id: string; authority: string } | null;
-      context_authority?: string | null;
+      service_mode?: NativeServiceModeSelection | null;
       source: 'explicit';
       transport: ModelSelectionTransport;
     };
 export type ModelSelectionTransport = 'api' | 'codex' | 'claude' | 'opencode';
-export type MemorySettingToggle =
-  'Enabled' | 'ProactiveWrites' | 'BackgroundExtraction' | 'DebugTrace';
+export type MemorySettingToggle = 'Enabled' | 'ProactiveWrites' | 'BackgroundExtraction' | 'DebugTrace';
 export type MemoryModelSetting = 'PostTurnExtractor';
 export type SelfImprovementModelSetting = 'Default' | 'Reviewer';
-export type GatewayThreadEpisodicVectorProvider = 'openai' | 'openrouter' | 'local';
+export type GatewayThreadEpisodicVectorProvider = 'openai' | 'openrouter' | 'vercel-ai-gateway' | 'local';
 export type ProfileIntent =
   | {
       expected_owner: number;
@@ -1126,15 +1262,15 @@ export type ComposerModelPickerIntent =
       [k: string]: unknown;
     }
   | {
+      id: string;
       identity: ComposerOperationIdentity;
       kind: 'select_service_mode';
-      id: string;
       [k: string]: unknown;
     }
   | {
-      window?: number | null;
       identity: ComposerOperationIdentity;
       kind: 'select_context_window';
+      window?: number | null;
       [k: string]: unknown;
     }
   | {
@@ -1194,6 +1330,18 @@ export type ComposerCatalogIntent =
       [k: string]: unknown;
     }
   | {
+      app_id: string;
+      identity: ComposerOperationIdentity;
+      kind: 'toggle_app';
+      [k: string]: unknown;
+    }
+  | {
+      identity: ComposerOperationIdentity;
+      kind: 'toggle_plugin';
+      plugin_id: string;
+      [k: string]: unknown;
+    }
+  | {
       identity: ComposerOperationIdentity;
       kind: 'toggle_skill';
       selection: ComposerSkillSelection;
@@ -1217,6 +1365,14 @@ export type ComposerCatalogIntent =
     };
 export type ComposerCatalogKind =
   | {
+      kind: 'apps';
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'plugins';
+      [k: string]: unknown;
+    }
+  | {
       kind: 'skills';
       [k: string]: unknown;
     }
@@ -1229,7 +1385,7 @@ export type ComposerCatalogKind =
       server_id: string;
       [k: string]: unknown;
     };
-export type ComposerPickerKind = 'skills' | 'mcp';
+export type ComposerPickerKind = 'apps' | 'plugins' | 'skills' | 'mcp';
 export type ComposerSkillSelection =
   | {
       kind: 'skill';
@@ -1243,7 +1399,6 @@ export type ComposerSkillSelection =
       [k: string]: unknown;
     };
 export type SkillPackId = string;
-export type SkillId = string;
 export type MessageRevisionIntent =
   | {
       kind: 'open';
@@ -1514,6 +1669,11 @@ export type ComposerOperationCompletion =
       [k: string]: unknown;
     }
   | {
+      kind: 'send_admission_failed';
+      message: string;
+      [k: string]: unknown;
+    }
+  | {
       kind: 'cancelled';
       [k: string]: unknown;
     };
@@ -1552,28 +1712,34 @@ export type ComposerAttachmentUploadState =
     };
 export type TurnCapabilityKind =
   | {
+      appId: string;
+      expectedRevision: number;
+      type: 'app';
+    }
+  | {
+      expectedRevision: number;
+      pluginId: string;
+      type: 'plugin';
+    }
+  | {
       packId?: SkillPackId | null;
       skillId: SkillId;
       type: 'skill';
-      [k: string]: unknown;
     }
   | {
       packId: SkillPackId;
       type: 'skillPack';
-      [k: string]: unknown;
     }
   | {
       name: string;
       scopeKind: McpScopeKind;
       type: 'mcpServer';
-      [k: string]: unknown;
     }
   | {
       rawToolName: string;
       scopeKind: McpScopeKind;
       serverName: string;
       type: 'mcpTool';
-      [k: string]: unknown;
     };
 export type McpScopeKind = 'workspace' | 'user';
 export type AgentExecutionBackend =
@@ -1656,6 +1822,23 @@ export type UserInput =
     };
 export type SandboxMode = 'FullAccess';
 export type ComposerCapabilityKind =
+  | {
+      App: {
+        app_id: string;
+        dark_icon?: ImageReference | null;
+        expected_revision: number;
+        icon?: ImageReference | null;
+        [k: string]: unknown;
+      };
+    }
+  | {
+      Plugin: {
+        expected_revision: number;
+        icon?: ImageReference | null;
+        plugin_id: string;
+        [k: string]: unknown;
+      };
+    }
   | {
       Skill: {
         owner?: string | null;
@@ -2073,6 +2256,10 @@ export type NavigationIntent =
       [k: string]: unknown;
     }
   | {
+      kind: 'back_from_plugin';
+      [k: string]: unknown;
+    }
+  | {
       kind: 'clear_lineage';
       [k: string]: unknown;
     }
@@ -2084,6 +2271,26 @@ export type AdministrationRoute = 'Members' | 'Invitations';
 export type SettingsRoute = 'General' | 'Account' | 'Memory' | 'SelfImprovement';
 export type ProviderFilter = 'Api' | 'Connected' | 'Cli';
 export type SemanticDestination =
+  | {
+      kind: 'apps';
+      [k: string]: unknown;
+    }
+  | {
+      app_id: string;
+      component?: PluginComponentKey | null;
+      kind: 'app';
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'plugins';
+      [k: string]: unknown;
+    }
+  | {
+      component?: PluginComponentKey | null;
+      kind: 'plugin';
+      plugin_id: string;
+      [k: string]: unknown;
+    }
   | {
       kind: 'threads';
       [k: string]: unknown;
@@ -2311,6 +2518,16 @@ export type ClientScope =
       [k: string]: unknown;
     }
   | {
+      kind: 'plugins';
+      workspace_id: string;
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'apps';
+      workspace_id: string;
+      [k: string]: unknown;
+    }
+  | {
       kind: 'skills_upload';
       operation_id: number;
       workspace_id: string;
@@ -2382,6 +2599,10 @@ export interface ClientIntentDispatchDto {
   intent: ClientIntent;
   schema_version: number;
 }
+export interface PluginComponentKey {
+  kind: string;
+  member_key: string;
+}
 export interface SessionDemand {
   endpoint_id?: string | null;
   generation: number;
@@ -2389,32 +2610,40 @@ export interface SessionDemand {
   visibility: SessionVisibility;
 }
 export interface ModelSelectorSelection {
-  selected_context_window?: number | null;
-  selected_service_mode?: { id: string; authority: string } | null;
-  selected_context_authority?: string | null;
   model?: string | null;
   provider?: string | null;
+  selected_context_authority?: string | null;
+  selected_context_window?: number | null;
   selected_reasoning_effort?: string | null;
+  selected_service_mode?: NativeServiceModeSelection | null;
   [k: string]: unknown;
+}
+/**
+ * Explicit choice uses the existing endpoint/credential/model authority proof.
+ * Absence means Standard; Inherit belongs to the enclosing model selection.
+ */
+export interface NativeServiceModeSelection {
+  authority: string;
+  id: string;
 }
 export interface ProfileAvatarInput {
   content_base64: string;
-  media_type: ProfileAvatarMediaType;
-}
-export interface GatewayMemoryModelSelection {
-  model?: string | null;
-  model_provider?: string | null;
-  source?: 'thread' | 'custom';
-  [k: string]: unknown;
+  media_type: ImageMediaType;
 }
 export interface GatewayMemorySettings {
   background_extraction_enabled: boolean;
   debug_trace_enabled: boolean;
   enabled: boolean;
   proactive_writes_enabled: boolean;
-  proactive_writes_model?: GatewayMemoryModelSelection1;
+  proactive_writes_model?: GatewayMemoryModelSelection;
   strict_diagnostics_enabled: boolean;
   tools_enabled: boolean;
+  [k: string]: unknown;
+}
+export interface GatewayMemoryModelSelection {
+  model?: string | null;
+  model_provider?: string | null;
+  source?: 'thread' | 'custom';
   [k: string]: unknown;
 }
 export interface GatewayMemoryModelSelection1 {
@@ -2533,9 +2762,12 @@ export interface CLIRuntimeProviderDraft {
         source: 'inherit';
       }
     | {
+        context_authority?: string | null;
+        context_window?: number | null;
         instance: string;
         model: string;
         reasoning_effort?: string | null;
+        service_mode?: NativeServiceModeSelection | null;
         source: 'explicit';
         transport: ModelSelectionTransport;
       };
@@ -2643,14 +2875,13 @@ export interface ComposerAttachment {
  * successful transcription.
  */
 export interface VoiceTurnContext {
-  context_window?: number | null;
-  service_mode?: { id: string; authority: string } | null;
-  context_authority?: string | null;
   /**
    * Selected skills, MCP tools/servers and related turn capabilities.
    */
   capabilities?: TurnCapability[];
   cli_runtime_options?: TurnCLIRuntimeOptions | null;
+  context_authority?: string | null;
+  context_window?: number | null;
   execution_backend?: AgentExecutionBackend | null;
   mode?: ThreadMode | null;
   model?: string | null;
@@ -2672,6 +2903,7 @@ export interface VoiceTurnContext {
   prepared_input?: UserInput[];
   reasoning?: TurnReasoningSelection | null;
   sandbox_policy?: SandboxPolicy | null;
+  service_mode?: NativeServiceModeSelection | null;
   /**
    * Thread that receives the gateway-created turn after transcription.
    */
@@ -2730,27 +2962,35 @@ export interface SandboxPolicy {
   [k: string]: unknown;
 }
 export interface ComposerDomainState {
-  selected_context_window?: number | null;
-  selected_service_mode?: { id: string; authority: string } | null;
-  selected_context_authority?: string | null;
   attachments?: ComposerAttachment[];
   capabilities?: ComposerCapability[];
   capability_target: ComposerCapabilityTarget;
   mode_manually_selected?: boolean;
   model_manually_selected?: boolean;
   reply_target?: ComposerReplyTarget | null;
+  selected_context_authority?: string | null;
+  selected_context_window?: number | null;
   selected_mentions?: ComposerMentionSelection[];
   selected_mode?: ('Message' | 'Agent') | 'Chat';
   selected_model?: string | null;
   selected_permission_mode?: 'full_access' | 'auto_accept_edits' | 'supervised';
   selected_provider?: string | null;
   selected_reasoning_effort?: string | null;
+  selected_service_mode?: NativeServiceModeSelection | null;
   skill_selections?: ComposerSkillSelection[];
 }
 export interface ComposerCapability {
   id: string;
   kind: ComposerCapabilityKind;
   label: string;
+  [k: string]: unknown;
+}
+/**
+ * Immutable image reference. Published paths are authenticated Gateway storage links.
+ */
+export interface ImageReference {
+  path: string;
+  revision: string;
   [k: string]: unknown;
 }
 /**
@@ -2828,12 +3068,12 @@ export interface ComposerMentionCandidate {
   principal_id: PrincipalId;
 }
 export interface ComposerModelSelection {
-  selected_context_window?: number | null;
-  selected_service_mode?: { id: string; authority: string } | null;
-  selected_context_authority?: string | null;
   model: string;
   provider: string;
+  selected_context_authority?: string | null;
+  selected_context_window?: number | null;
   selected_reasoning_effort?: string | null;
+  selected_service_mode?: NativeServiceModeSelection | null;
   [k: string]: unknown;
 }
 export interface TaskNotificationEffect {

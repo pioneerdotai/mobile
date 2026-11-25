@@ -35,6 +35,23 @@ export type ArtifactProjectionStatus = 'pending' | 'ready' | 'failed' | 'stale';
 export type ArtifactStatus = 'ready' | 'pending' | 'quarantined' | 'deleted' | 'missing_external_source' | 'failed';
 export type ComposerCapabilityKind =
   | {
+      App: {
+        app_id: string;
+        dark_icon?: ImageReference | null;
+        expected_revision: number;
+        icon?: ImageReference | null;
+        [k: string]: unknown;
+      };
+    }
+  | {
+      Plugin: {
+        expected_revision: number;
+        icon?: ImageReference | null;
+        plugin_id: string;
+        [k: string]: unknown;
+      };
+    }
+  | {
       Skill: {
         owner?: string | null;
         skill_id: SkillId;
@@ -124,6 +141,16 @@ export type UserMessageAttachment =
   | {
       capability: TurnSkillCapabilitySummary;
       type: 'skill';
+      [k: string]: unknown;
+    }
+  | {
+      capability: TurnPluginCapabilitySummary;
+      type: 'plugin';
+      [k: string]: unknown;
+    }
+  | {
+      capability: TurnAppCapabilitySummary;
+      type: 'app';
       [k: string]: unknown;
     }
   | {
@@ -225,28 +252,34 @@ export type ComposerOperationStatus =
 export type ComposerVoiceCapturePreflightState = 'checking' | 'ready';
 export type TurnCapabilityKind =
   | {
+      appId: string;
+      expectedRevision: number;
+      type: 'app';
+    }
+  | {
+      expectedRevision: number;
+      pluginId: string;
+      type: 'plugin';
+    }
+  | {
       packId?: SkillPackId | null;
       skillId: SkillId;
       type: 'skill';
-      [k: string]: unknown;
     }
   | {
       packId: SkillPackId;
       type: 'skillPack';
-      [k: string]: unknown;
     }
   | {
       name: string;
       scopeKind: McpScopeKind;
       type: 'mcpServer';
-      [k: string]: unknown;
     }
   | {
       rawToolName: string;
       scopeKind: McpScopeKind;
       serverName: string;
       type: 'mcpTool';
-      [k: string]: unknown;
     };
 export type AgentExecutionBackend =
   | {
@@ -391,6 +424,7 @@ export interface ComposerPublication {
   model_display?: ComposerModelDisplayPublication | null;
   operation?: ComposerOperationPublication | null;
   permission_options: ComposerPermissionModeOption[];
+  preparing_send?: ComposerPreparingSend | null;
   reconciliation?: ExecutionDraftReconciliation | null;
   revision: number;
   runtime_selection?: ComposerRuntimePublication | null;
@@ -412,21 +446,21 @@ export interface ComposerDomainDraft {
   text?: string;
 }
 export interface ComposerDomainState {
-  selected_context_window?: number | null;
-  selected_service_mode?: { id: string; authority: string } | null;
-  selected_context_authority?: string | null;
   attachments?: ComposerAttachment[];
   capabilities?: ComposerCapability[];
   capability_target: ComposerCapabilityTarget;
   mode_manually_selected?: boolean;
   model_manually_selected?: boolean;
   reply_target?: ComposerReplyTarget | null;
+  selected_context_authority?: string | null;
+  selected_context_window?: number | null;
   selected_mentions?: ComposerMentionSelection[];
   selected_mode?: ('Message' | 'Agent') | 'Chat';
   selected_model?: string | null;
   selected_permission_mode?: 'full_access' | 'auto_accept_edits' | 'supervised';
   selected_provider?: string | null;
   selected_reasoning_effort?: string | null;
+  selected_service_mode?: NativeServiceModeSelection | null;
   skill_selections?: ComposerSkillSelection[];
 }
 export interface ComposerAttachment {
@@ -466,6 +500,14 @@ export interface ComposerCapability {
   [k: string]: unknown;
 }
 /**
+ * Immutable image reference. Published paths are authenticated Gateway storage links.
+ */
+export interface ImageReference {
+  path: string;
+  revision: string;
+  [k: string]: unknown;
+}
+/**
  * Capability eligibility context.
  *
  * The target kind exists only because native skills retain their current
@@ -487,6 +529,14 @@ export interface ComposerMentionSelection {
   nickname: string;
   principal_id: PrincipalId;
   text_token: string;
+}
+/**
+ * Explicit choice uses the existing endpoint/credential/model authority proof.
+ * Absence means Standard; Inherit belongs to the enclosing model selection.
+ */
+export interface NativeServiceModeSelection {
+  authority: string;
+  id: string;
 }
 export interface ComposerMessageEditTarget {
   artifacts: ArtifactRef[];
@@ -530,6 +580,21 @@ export interface TurnSkillCapabilitySummary {
 export interface TurnSkillPackPresentationSummary {
   label: string;
   packId: SkillPackId;
+  [k: string]: unknown;
+}
+export interface TurnPluginCapabilitySummary {
+  expectedRevision: number;
+  icon?: ImageReference | null;
+  label: string;
+  pluginId: string;
+  [k: string]: unknown;
+}
+export interface TurnAppCapabilitySummary {
+  appId: string;
+  darkIcon?: ImageReference | null;
+  expectedRevision: number;
+  icon?: ImageReference | null;
+  label: string;
   [k: string]: unknown;
 }
 export interface TurnSkillPackCapabilitySummary {
@@ -698,14 +763,13 @@ export interface VoiceSessionStartContext {
  * successful transcription.
  */
 export interface VoiceTurnContext {
-  context_window?: number | null;
-  service_mode?: { id: string; authority: string } | null;
-  context_authority?: string | null;
   /**
    * Selected skills, MCP tools/servers and related turn capabilities.
    */
   capabilities?: TurnCapability[];
   cli_runtime_options?: TurnCLIRuntimeOptions | null;
+  context_authority?: string | null;
+  context_window?: number | null;
   execution_backend?: AgentExecutionBackend | null;
   mode?: ThreadMode | null;
   model?: string | null;
@@ -727,6 +791,7 @@ export interface VoiceTurnContext {
   prepared_input?: UserInput[];
   reasoning?: TurnReasoningSelection | null;
   sandbox_policy?: SandboxPolicy | null;
+  service_mode?: NativeServiceModeSelection | null;
   /**
    * Thread that receives the gateway-created turn after transcription.
    */
@@ -820,6 +885,16 @@ export interface ComposerPermissionModeOption {
   description: string;
   label: string;
   mode: TurnPermissionMode;
+  [k: string]: unknown;
+}
+/**
+ * Captured local Send payload, visible until the prepared optimistic commit.
+ * This is Composer feedback, not a server turn or uploaded-artifact receipt.
+ */
+export interface ComposerPreparingSend {
+  attachments: ComposerAttachment[];
+  identity: ComposerOperationIdentity;
+  text: string;
   [k: string]: unknown;
 }
 export interface ExecutionDraftReconciliation {

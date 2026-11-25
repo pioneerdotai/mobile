@@ -245,6 +245,16 @@ export type UserMessageAttachment =
       [k: string]: unknown;
     }
   | {
+      capability: TurnPluginCapabilitySummary;
+      type: 'plugin';
+      [k: string]: unknown;
+    }
+  | {
+      capability: TurnAppCapabilitySummary;
+      type: 'app';
+      [k: string]: unknown;
+    }
+  | {
       capability: TurnSkillPackCapabilitySummary;
       type: 'skillPack';
       [k: string]: unknown;
@@ -705,6 +715,29 @@ export interface TurnSkillPackPresentationSummary {
   packId: SkillPackId;
   [k: string]: unknown;
 }
+export interface TurnPluginCapabilitySummary {
+  expectedRevision: number;
+  icon?: ImageReference | null;
+  label: string;
+  pluginId: string;
+  [k: string]: unknown;
+}
+/**
+ * Immutable image reference. Published paths are authenticated Gateway storage links.
+ */
+export interface ImageReference {
+  path: string;
+  revision: string;
+  [k: string]: unknown;
+}
+export interface TurnAppCapabilitySummary {
+  appId: string;
+  darkIcon?: ImageReference | null;
+  expectedRevision: number;
+  icon?: ImageReference | null;
+  label: string;
+  [k: string]: unknown;
+}
 export interface TurnSkillPackCapabilitySummary {
   label: string;
   packId: SkillPackId;
@@ -756,11 +789,38 @@ export interface ToolObservation {
   attemptId: number;
   eventSeq: number;
   monoNs: number;
+  omittedPhaseBoundaries?: number;
+  outputSizes?: ToolOutputMeasurements | null;
+  parentOperationId?: string | null;
+  phaseBoundaries?: ToolPhaseBoundary[];
   pipelineStage: string;
+  processRunId?: string | null;
   toolCallId: string;
   traceId: string;
   tsUnixMs: number;
   turnId: string;
+  [k: string]: unknown;
+}
+export interface ToolOutputMeasurements {
+  basis: string;
+  capturedTextBytes: number;
+  modelProjectionTextBytes: number;
+  /**
+   * Prepared handler representation; persistence is a separate acknowledged fact.
+   */
+  preparedSourceBytes: number;
+  [k: string]: unknown;
+}
+/**
+ * Content-free source boundaries, bounded per invocation. All mono_ns values
+ * belong to the enclosing observation's process_run_id.
+ */
+export interface ToolPhaseBoundary {
+  attemptId: number;
+  localSequence: number;
+  monoNs: number;
+  phase: string;
+  tsUnixMs: number;
   [k: string]: unknown;
 }
 export interface ToolOutcome {

@@ -15,6 +15,26 @@ export type AgentsDocEditorScope =
     };
 export type SemanticDestination =
   | {
+      kind: 'apps';
+      [k: string]: unknown;
+    }
+  | {
+      app_id: string;
+      component?: PluginComponentKey | null;
+      kind: 'app';
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'plugins';
+      [k: string]: unknown;
+    }
+  | {
+      component?: PluginComponentKey | null;
+      kind: 'plugin';
+      plugin_id: string;
+      [k: string]: unknown;
+    }
+  | {
       kind: 'threads';
       [k: string]: unknown;
     }
@@ -64,11 +84,16 @@ export interface ClientNavigationState {
   };
   lineage: TaskThreadLineage[];
   mcp_server_id?: string | null;
+  plugin_return?: SemanticDestination | null;
   providers?: ProviderFilter | null;
   settings: SettingsRoute;
   skill_id?: SkillId | null;
   workspace_id?: string | null;
   [k: string]: unknown;
+}
+export interface PluginComponentKey {
+  kind: string;
+  member_key: string;
 }
 export interface TaskThreadLineage {
   child_thread_id: string;
