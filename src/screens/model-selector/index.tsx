@@ -4,7 +4,7 @@ import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import type { ReactNode } from 'react';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
-import { Check, ChevronRight } from 'lucide-react-native';
+import { Check as CheckIcon, ChevronRight } from 'lucide-react-native';
 
 import type { ProviderModelInfo, ReasoningEffortRow } from '@/client';
 import Spinner from '@/components/feedback/spinner';
@@ -146,7 +146,7 @@ export const ModelSelectorHomeScreen = () => {
                                             ? t('modelSelectorServiceStandard')
                                             : row.label}
                                     </Text>
-                                    {row.selected ? <Check /> : null}
+                                    {row.selected ? <CheckIcon /> : null}
                                 </HStack>
                             </Pressable>
                         ))}
@@ -179,7 +179,7 @@ export const ModelSelectorHomeScreen = () => {
                                             ? t('modelSelectorContextAuto', { tokens: row.tokens })
                                             : t('modelSelectorContextUpTo', { tokens: row.tokens })}
                                     </Text>
-                                    {row.selected ? <Check /> : null}
+                                    {row.selected ? <CheckIcon /> : null}
                                 </HStack>
                             </Pressable>
                         ))}
