@@ -1,3 +1,4 @@
+import { initializePluginOAuthEffects } from '@/services/plugins/oauth';
 import { attachGatewayProjection } from '@/client/onboarding';
 import { loadGatewayRegistry, saveGatewayRegistry } from './registry';
 import { mobileAuthInstallation } from './session-grant';
@@ -15,6 +16,7 @@ import {
 /** Native resource lifetime only; session policy and completion validity belong to Rust. */
 export class MobileSessionStorageAdapter {
     readonly #binding: MobileClientBinding;
+    #closeOAuth: (() => void) | null = null;
     #closed = false;
     readonly #pending = new Map<string, Promise<void>>();
     readonly #completed = new Set<string>();
@@ -25,8 +27,12 @@ export class MobileSessionStorageAdapter {
     #detach: (() => void) | null;
     #releaseGatewayProjection: (() => void) | null;
 
-    constructor(binding: MobileClientBinding = mobileClientBinding) {
+    constructor(
+        binding: MobileClientBinding = mobileClientBinding,
+        oauthEffects: () => () => void = () => () => {},
+    ) {
         this.#binding = binding;
+        this.#closeOAuth = oauthEffects();
         this.#releaseGatewayProjection = attachGatewayProjection(binding);
         this.#detach = binding.attachPlatformEffects(
             (plans) => this.#deliver(plans),
@@ -203,6 +209,8 @@ export class MobileSessionStorageAdapter {
     async close(cancel = true): Promise<void> {
         if (this.#closed) return;
         this.#closed = true;
+        this.#closeOAuth?.();
+        this.#closeOAuth = null;
         this.#releaseGatewayProjection?.();
         this.#releaseGatewayProjection = null;
         const detach = this.#detach;
@@ -225,5 +233,8 @@ export class MobileSessionStorageAdapter {
 
 let processStorageAdapter: MobileSessionStorageAdapter | null = null;
 export const initializeMobilePlatformEffects = (): void => {
-    processStorageAdapter ??= new MobileSessionStorageAdapter();
+    processStorageAdapter ??= new MobileSessionStorageAdapter(
+        mobileClientBinding,
+        initializePluginOAuthEffects,
+    );
 };

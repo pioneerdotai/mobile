@@ -1,7 +1,7 @@
 import { useEffect, useSyncExternalStore } from 'react';
 import { mobileClientBinding } from './mobile-client-binding';
 import type { IdentityAuthorizationPublication } from './generated/identity_authorization_publication';
-import type { AvatarPublication } from './generated/avatar_publication';
+import type { ImagePublication as AvatarPublication } from './generated/image_publication';
 import { resolveMemberAvatar, cachedAvatarPathToUri } from '@/services/members/resolve-avatar';
 import { resolveAgentAvatarRepresentation } from '@/services/members/resolve-agent-avatar';
 

@@ -2,28 +2,34 @@
 
 export type TurnCapabilityKind =
   | {
+      appId: string;
+      expectedRevision: number;
+      type: 'app';
+    }
+  | {
+      expectedRevision: number;
+      pluginId: string;
+      type: 'plugin';
+    }
+  | {
       packId?: SkillPackId | null;
       skillId: SkillId;
       type: 'skill';
-      [k: string]: unknown;
     }
   | {
       packId: SkillPackId;
       type: 'skillPack';
-      [k: string]: unknown;
     }
   | {
       name: string;
       scopeKind: McpScopeKind;
       type: 'mcpServer';
-      [k: string]: unknown;
     }
   | {
       rawToolName: string;
       scopeKind: McpScopeKind;
       serverName: string;
       type: 'mcpTool';
-      [k: string]: unknown;
     };
 export type SkillPackId = string;
 export type SkillId = string;
@@ -110,14 +116,22 @@ export type UserInput =
 export type SandboxMode = 'FullAccess';
 
 export interface VoiceSessionFinalizeParams {
-  /** Optional on the wire; absent integrity fails closed at the gateway. */
+  /**
+   * Optional on the wire for decoding legacy clients; servers fail closed
+   * when absent. A new client requires version 1 in the start response.
+   */
   audio_integrity?: VoiceAudioIntegrity | null;
   context: VoiceTurnContext;
   session_id: string;
   [k: string]: unknown;
 }
-/** Normalized mono 16 kHz PCM before VAD, never ASR speech or padding. */
+/**
+ * Counts normalized mono 16 kHz PCM before VAD, never ASR speech or padding.
+ */
 export interface VoiceAudioIntegrity {
+  /**
+   * Number of packets, equivalently the sequence immediately after the tail.
+   */
   next_sequence: number;
   normalized_samples: number;
   [k: string]: unknown;
@@ -131,13 +145,13 @@ export interface VoiceAudioIntegrity {
  * successful transcription.
  */
 export interface VoiceTurnContext {
-  context_window?: number | null;
-  context_authority?: string | null;
   /**
    * Selected skills, MCP tools/servers and related turn capabilities.
    */
   capabilities?: TurnCapability[];
   cli_runtime_options?: TurnCLIRuntimeOptions | null;
+  context_authority?: string | null;
+  context_window?: number | null;
   execution_backend?: AgentExecutionBackend | null;
   mode?: ThreadMode | null;
   model?: string | null;
@@ -159,6 +173,7 @@ export interface VoiceTurnContext {
   prepared_input?: UserInput[];
   reasoning?: TurnReasoningSelection | null;
   sandbox_policy?: SandboxPolicy | null;
+  service_mode?: NativeServiceModeSelection | null;
   /**
    * Thread that receives the gateway-created turn after transcription.
    */
@@ -215,4 +230,12 @@ export interface TurnReasoningSelection {
 export interface SandboxPolicy {
   mode: SandboxMode;
   [k: string]: unknown;
+}
+/**
+ * Explicit choice uses the existing endpoint/credential/model authority proof.
+ * Absence means Standard; Inherit belongs to the enclosing model selection.
+ */
+export interface NativeServiceModeSelection {
+  authority: string;
+  id: string;
 }

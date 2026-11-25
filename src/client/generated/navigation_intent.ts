@@ -74,6 +74,10 @@ export type NavigationIntent =
       [k: string]: unknown;
     }
   | {
+      kind: 'back_from_plugin';
+      [k: string]: unknown;
+    }
+  | {
       kind: 'clear_lineage';
       [k: string]: unknown;
     }
@@ -98,6 +102,26 @@ export type SettingsRoute = 'General' | 'Account' | 'Memory' | 'SelfImprovement'
 export type ProviderFilter = 'Api' | 'Connected' | 'Cli';
 export type SkillId = string;
 export type SemanticDestination =
+  | {
+      kind: 'apps';
+      [k: string]: unknown;
+    }
+  | {
+      app_id: string;
+      component?: PluginComponentKey | null;
+      kind: 'app';
+      [k: string]: unknown;
+    }
+  | {
+      kind: 'plugins';
+      [k: string]: unknown;
+    }
+  | {
+      component?: PluginComponentKey | null;
+      kind: 'plugin';
+      plugin_id: string;
+      [k: string]: unknown;
+    }
   | {
       kind: 'threads';
       [k: string]: unknown;
@@ -132,6 +156,10 @@ export type SemanticDestination =
       [k: string]: unknown;
     };
 
+export interface PluginComponentKey {
+  kind: string;
+  member_key: string;
+}
 export interface TaskThreadLineage {
   child_thread_id: string;
   parent_thread_id: string;

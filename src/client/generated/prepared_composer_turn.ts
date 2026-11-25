@@ -35,28 +35,34 @@ export type ComposerAttachmentUploadState =
     };
 export type TurnCapabilityKind =
   | {
+      appId: string;
+      expectedRevision: number;
+      type: 'app';
+    }
+  | {
+      expectedRevision: number;
+      pluginId: string;
+      type: 'plugin';
+    }
+  | {
       packId?: SkillPackId | null;
       skillId: SkillId;
       type: 'skill';
-      [k: string]: unknown;
     }
   | {
       packId: SkillPackId;
       type: 'skillPack';
-      [k: string]: unknown;
     }
   | {
       name: string;
       scopeKind: McpScopeKind;
       type: 'mcpServer';
-      [k: string]: unknown;
     }
   | {
       rawToolName: string;
       scopeKind: McpScopeKind;
       serverName: string;
       type: 'mcpTool';
-      [k: string]: unknown;
     };
 export type SkillPackId = string;
 export type SkillId = string;
@@ -172,6 +178,16 @@ export type UserMessageAttachment =
       [k: string]: unknown;
     }
   | {
+      capability: TurnPluginCapabilitySummary;
+      type: 'plugin';
+      [k: string]: unknown;
+    }
+  | {
+      capability: TurnAppCapabilitySummary;
+      type: 'app';
+      [k: string]: unknown;
+    }
+  | {
       capability: TurnSkillPackCapabilitySummary;
       type: 'skillPack';
       [k: string]: unknown;
@@ -259,6 +275,29 @@ export interface TurnSkillCapabilitySummary {
 export interface TurnSkillPackPresentationSummary {
   label: string;
   packId: SkillPackId;
+  [k: string]: unknown;
+}
+export interface TurnPluginCapabilitySummary {
+  expectedRevision: number;
+  icon?: ImageReference | null;
+  label: string;
+  pluginId: string;
+  [k: string]: unknown;
+}
+/**
+ * Immutable image reference. Published paths are authenticated Gateway storage links.
+ */
+export interface ImageReference {
+  path: string;
+  revision: string;
+  [k: string]: unknown;
+}
+export interface TurnAppCapabilitySummary {
+  appId: string;
+  darkIcon?: ImageReference | null;
+  expectedRevision: number;
+  icon?: ImageReference | null;
+  label: string;
   [k: string]: unknown;
 }
 export interface TurnSkillPackCapabilitySummary {

@@ -3,6 +3,8 @@
   "title": "ParsedUserAttachmentKind",
   "type": "string",
   "enum": [
+    "App",
+    "Plugin",
     "File",
     "Skill",
     "Mcp"

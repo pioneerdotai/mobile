@@ -13,6 +13,16 @@
         }
       ]
     },
+    "dark_icon": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ImageReference"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
     "display_name": {
       "type": "string"
     },
@@ -21,6 +31,16 @@
     },
     "kind": {
       "$ref": "#/$defs/ParsedUserAttachmentKind"
+    },
+    "plugin_icon": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ImageReference"
+        },
+        {
+          "type": "null"
+        }
+      ]
     }
   },
   "required": [
@@ -185,9 +205,27 @@
         "failed"
       ]
     },
+    "ImageReference": {
+      "description": "Immutable image reference. Published paths are authenticated Gateway storage links.",
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "revision": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "revision"
+      ]
+    },
     "ParsedUserAttachmentKind": {
       "type": "string",
       "enum": [
+        "App",
+        "Plugin",
         "File",
         "Skill",
         "Mcp"

@@ -18,13 +18,15 @@ export type ArtifactKind =
 export type ArtifactProjectionKind = 'plain_text' | 'thumbnail' | 'json_summary' | 'pdf_text';
 export type ArtifactProjectionStatus = 'pending' | 'ready' | 'failed' | 'stale';
 export type ArtifactStatus = 'ready' | 'pending' | 'quarantined' | 'deleted' | 'missing_external_source' | 'failed';
-export type ParsedUserAttachmentKind = 'File' | 'Skill' | 'Mcp';
+export type ParsedUserAttachmentKind = 'App' | 'Plugin' | 'File' | 'Skill' | 'Mcp';
 
 export interface ParsedUserAttachment {
   artifact?: ArtifactRef | null;
+  dark_icon?: ImageReference | null;
   display_name: string;
   id: string;
   kind: ParsedUserAttachmentKind;
+  plugin_icon?: ImageReference | null;
   [k: string]: unknown;
 }
 export interface ArtifactRef {
@@ -48,5 +50,13 @@ export interface ArtifactPreviewRef {
   size_bytes?: number | null;
   status: ArtifactProjectionStatus;
   version_id: string;
+  [k: string]: unknown;
+}
+/**
+ * Immutable image reference. Published paths are authenticated Gateway storage links.
+ */
+export interface ImageReference {
+  path: string;
+  revision: string;
   [k: string]: unknown;
 }

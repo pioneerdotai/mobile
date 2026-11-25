@@ -257,6 +257,18 @@
       "properties": {
         "kind": {
           "type": "string",
+          "const": "back_from_plugin"
+        }
+      },
+      "required": [
+        "kind"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
           "const": "clear_lineage"
         }
       },
@@ -325,6 +337,22 @@
         }
       ]
     },
+    "PluginComponentKey": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string"
+        },
+        "member_key": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "member_key"
+      ]
+    },
     "ProviderFilter": {
       "type": "string",
       "enum": [
@@ -335,6 +363,82 @@
     },
     "SemanticDestination": {
       "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "apps"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "app_id": {
+              "type": "string"
+            },
+            "component": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/PluginComponentKey"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "kind": {
+              "type": "string",
+              "const": "app"
+            }
+          },
+          "required": [
+            "kind",
+            "app_id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "plugins"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "component": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/PluginComponentKey"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "kind": {
+              "type": "string",
+              "const": "plugin"
+            },
+            "plugin_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "plugin_id"
+          ]
+        },
         {
           "type": "object",
           "properties": {

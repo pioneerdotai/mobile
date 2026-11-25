@@ -1,6 +1,6 @@
 /* eslint-disable */
 
-export type ProfileAvatarMediaType = 'image/png' | 'image/jpeg' | 'image/webp';
+export type ImageMediaType = 'image/png' | 'image/jpeg' | 'image/webp';
 
 export interface AuthProfileUpdateParams {
   avatar?:
@@ -22,5 +22,5 @@ export interface AuthProfileUpdateParams {
 }
 export interface ProfileAvatarInput {
   content_base64: string;
-  media_type: ProfileAvatarMediaType;
+  media_type: ImageMediaType;
 }

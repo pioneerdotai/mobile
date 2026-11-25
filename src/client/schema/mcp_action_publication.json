@@ -28,9 +28,14 @@
     },
     "state": {
       "$ref": "#/$defs/McpActionState"
+    },
+    "uncertain": {
+      "description": "Configure was dispatched without an authoritative response.",
+      "type": "boolean"
     }
   },
   "required": [
+    "uncertain",
     "operation_id",
     "revision",
     "state",

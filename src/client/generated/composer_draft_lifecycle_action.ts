@@ -59,6 +59,23 @@ export type ArtifactProjectionStatus = 'pending' | 'ready' | 'failed' | 'stale';
 export type ArtifactStatus = 'ready' | 'pending' | 'quarantined' | 'deleted' | 'missing_external_source' | 'failed';
 export type ComposerCapabilityKind =
   | {
+      App: {
+        app_id: string;
+        dark_icon?: ImageReference | null;
+        expected_revision: number;
+        icon?: ImageReference | null;
+        [k: string]: unknown;
+      };
+    }
+  | {
+      Plugin: {
+        expected_revision: number;
+        icon?: ImageReference | null;
+        plugin_id: string;
+        [k: string]: unknown;
+      };
+    }
+  | {
       Skill: {
         owner?: string | null;
         skill_id: SkillId;
@@ -112,20 +129,21 @@ export interface ComposerDomainDraft {
   text?: string;
 }
 export interface ComposerDomainState {
-  selected_context_window?: number | null;
-  selected_context_authority?: string | null;
   attachments?: ComposerAttachment[];
   capabilities?: ComposerCapability[];
   capability_target: ComposerCapabilityTarget;
   mode_manually_selected?: boolean;
   model_manually_selected?: boolean;
   reply_target?: ComposerReplyTarget | null;
+  selected_context_authority?: string | null;
+  selected_context_window?: number | null;
   selected_mentions?: ComposerMentionSelection[];
   selected_mode?: ('Message' | 'Agent') | 'Chat';
   selected_model?: string | null;
   selected_permission_mode?: 'full_access' | 'auto_accept_edits' | 'supervised';
   selected_provider?: string | null;
   selected_reasoning_effort?: string | null;
+  selected_service_mode?: NativeServiceModeSelection | null;
   skill_selections?: ComposerSkillSelection[];
 }
 export interface ComposerAttachment {
@@ -165,6 +183,14 @@ export interface ComposerCapability {
   [k: string]: unknown;
 }
 /**
+ * Immutable image reference. Published paths are authenticated Gateway storage links.
+ */
+export interface ImageReference {
+  path: string;
+  revision: string;
+  [k: string]: unknown;
+}
+/**
  * Capability eligibility context.
  *
  * The target kind exists only because native skills retain their current
@@ -186,4 +212,12 @@ export interface ComposerMentionSelection {
   nickname: string;
   principal_id: PrincipalId;
   text_token: string;
+}
+/**
+ * Explicit choice uses the existing endpoint/credential/model authority proof.
+ * Absence means Standard; Inherit belongs to the enclosing model selection.
+ */
+export interface NativeServiceModeSelection {
+  authority: string;
+  id: string;
 }

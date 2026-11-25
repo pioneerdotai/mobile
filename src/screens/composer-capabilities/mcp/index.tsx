@@ -5,10 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useUnistyles } from 'react-native-unistyles';
 
 import { pioneerClient, type SelectableMcpCapability } from '@/client';
-import { HStack } from '@/components/primitives/hstack';
 import { Pressable } from '@/components/primitives/pressable';
-import { Text } from '@/components/primitives/text';
-import { VStack } from '@/components/primitives/vstack';
 import { composerSnapshot, useComposerPublication } from '@/client/composer';
 import { dispatchComposerCatalog, useComposerPicker } from '@/client/composer-catalog';
 import { useActiveThreadStore } from '@/stores/active-thread';
@@ -17,7 +14,7 @@ import { useAdministrationCapabilities } from '@/hooks/use-administration-capabi
 
 import {
     CapabilityCard,
-    Check,
+    CapabilitySelectionRow,
     ListHeader,
     ListState,
     SectionHeader,
@@ -237,28 +234,13 @@ const McpRow = ({
     const ToolsChevron = expanded ? ChevronUp : ChevronDown;
 
     return (
-        <HStack
-            style={[
-                styles.listRow,
-                isTool && !searching ? styles.toolRow : null,
-                !item.row.selectable ? styles.disabledRow : null,
-            ]}
+        <CapabilitySelectionRow
+            label={item.row.label}
+            selected={selected}
+            disabled={!item.row.selectable}
+            indented={isTool && !searching}
+            onPress={onPress}
         >
-            <Pressable
-                accessibilityRole="button"
-                disabled={!item.row.selectable}
-                onPress={onPress}
-                style={styles.rowMainButton}
-            >
-                <VStack style={styles.rowTextWrap}>
-                    <Text numberOfLines={1} style={styles.listRowTitle}>
-                        {item.row.label}
-                    </Text>
-                </VStack>
-            </Pressable>
-            <Pressable accessibilityRole="button" disabled={!item.row.selectable} onPress={onPress}>
-                {selected ? <Check /> : null}
-            </Pressable>
             {showToolsChevron ? (
                 <Pressable
                     accessibilityRole="button"
@@ -268,6 +250,6 @@ const McpRow = ({
                     <ToolsChevron size={theme.space(5)} color={theme.colors.typography} />
                 </Pressable>
             ) : null}
-        </HStack>
+        </CapabilitySelectionRow>
     );
 };
