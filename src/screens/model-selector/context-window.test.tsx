@@ -129,6 +129,8 @@ describe('service mode selection', () => {
         expect(rows[2].props.disabled).toBe(true);
         act(() => { rows[0].props.onPress(); });
         expect(mockDispatch).toHaveBeenCalledWith({ kind: 'select_service_mode', identity, id: 'standard' });
+        act(() => { rows[1].props.onPress(); });
+        expect(mockDispatch).toHaveBeenCalledWith({ kind: 'select_service_mode', identity, id: 'fast' });
         act(() => { rows[4].props.onPress(); });
         expect(mockDispatch).toHaveBeenCalledWith({ kind: 'select_context_window', identity, window: 128000 });
         act(() => { tree.unmount(); });
