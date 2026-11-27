@@ -1,3 +1,4 @@
+import { ThreadCalls } from '@/components/calls/overlay';
 import { directorySnapshot } from '@/client/workspaces';
 import { SemanticNavigationController } from '@/components/navigation/semantic-navigation';
 import { initializeMobilePlatformEffects } from '@/services/gateway/platform-effects';
@@ -199,6 +200,7 @@ const RootContent = () => {
             <ThreadTreeController />
             <AuthorizationProjectionController />
             <RootStack />
+            <ThreadCalls />
             <SemanticNavigationController />
             <MobileStartupReadinessController hasActiveGateway={activeGateway !== null} />
             <TaskUserNotificationController />

@@ -37,6 +37,8 @@ export interface PioneerClient extends HybridObject<{ ios: 'c++'; android: 'c++'
     workspaceCreateJson(inputJson: string): Promise<string>;
     workspaceRenameJson(inputJson: string): Promise<string>;
     composerVoiceCapturePlanJson(inputJson: string): Promise<string>;
+    threadCallJson(inputJson: string): Promise<string>;
+    threadCallUpdatesJson(inputJson: string): Promise<string>;
     voiceSessionStartJson(inputJson: string): Promise<string>;
     pluginShellJson(inputJson: string): string;
     voiceAudioChunkJson(inputJson: string, sourceSamples: ArrayBuffer): string;

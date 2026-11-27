@@ -4,7 +4,7 @@ const cleanEnv = (value) => {
 
 const appName = cleanEnv(process.env.APP_NAME) || 'Pioneer';
 const appVersion = cleanEnv(process.env.APP_VERSION) || '1.0';
-const clientBoundaryVersion = 2;
+const clientBoundaryVersion = 3;
 const appBuildNumber = cleanEnv(process.env.APP_BUILD_NUMBER) || '1';
 const appBundleIdentifier = cleanEnv(process.env.APP_BUNDLE_IDENTIFIER) || '';
 const appVariant = cleanEnv(process.env.APP_VARIANT);
@@ -115,6 +115,14 @@ module.exports = {
         'expo-document-picker',
         'expo-file-system',
         'expo-image',
+        '@livekit/react-native-expo-plugin',
+        [
+            '@config-plugins/react-native-webrtc',
+            {
+                cameraPermission: 'Allow Pioneer to use your camera for video calls.',
+                microphonePermission: 'Allow Pioneer to use your microphone for calls.',
+            },
+        ],
         [
             'expo-image-picker',
             {
@@ -177,7 +185,7 @@ module.exports = {
         [
             'react-native-permissions',
             {
-                iosPermissions: ['Notifications'],
+                iosPermissions: ['Camera', 'Microphone', 'Notifications'],
             },
         ],
         [

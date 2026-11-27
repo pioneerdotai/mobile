@@ -1,10 +1,11 @@
 import { useThreadOpeningRoute } from '@/services/telemetry/thread-opening';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Stack } from 'expo-router/js-stack';
 import { Text, View } from 'react-native';
 
 import ThreadScreen from '@/screens/thread';
+import { useActiveThreadSnapshotQuery } from '@/hooks/use-active-thread-snapshot-query';
 import { useThreadScreen } from '@/screens/thread/hooks';
 
 const normalizeRouteParam = (value: string | string[] | undefined): string | null => {
@@ -39,10 +40,29 @@ export const ExistingThreadRoute = ({ backToInbox = false }: { backToInbox?: boo
             params: { threadId },
         });
     }, [threadId, backToInbox]);
+    const { data: callThread } = useActiveThreadSnapshotQuery(threadId);
+    const callWorkspace = callThread?.workspace_id;
+    const callTitle = callThread?.thread?.name?.trim() || callThread?.thread?.preview.trim();
+    const callable =
+        callThread?.thread_id === threadId &&
+        callThread?.thread != null &&
+        callThread.thread.status !== 'Closed';
+    const callTarget = useMemo(
+        () =>
+            callable && callWorkspace && threadId && !normalizeRouteParam(params.parentThreadId)
+                ? {
+                      workspace_id: callWorkspace,
+                      thread_id: threadId,
+                      title: callTitle ?? undefined,
+                  }
+                : null,
+        [callable, callWorkspace, threadId, params.parentThreadId, callTitle],
+    );
     const { options } = useThreadScreen({
         navigation: 'stack',
         backToInbox,
         threadId,
+        callTarget,
         onActionsPress: threadId ? openActions : undefined,
     });
 

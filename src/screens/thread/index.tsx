@@ -24,6 +24,7 @@ import {
 import { dispatchNavigation, navigationSnapshot } from '@/client/navigation';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { router, useFocusEffect, useNavigation, usePathname } from 'expo-router';
+import { CALL_BANNER_HEIGHT, useCallBanner } from '@/components/calls';
 import { useTranslation } from 'react-i18next';
 import { type LayoutChangeEvent, Text, View, type ViewInstance } from 'react-native';
 import { KeyboardGestureArea, KeyboardStickyView } from 'react-native-keyboard-controller';
@@ -517,8 +518,9 @@ const ThreadScreen = ({
     const showThreadLoader = Boolean(
         (!visibleSnapshot && waitingForSnapshot) || waitingForInitialTimelinePage,
     );
-    const contentTopInset = theme.screenContentPadding('child').paddingTop;
-    const avatarRailTopInset = theme.screenHeaderHeight();
+    const callBannerInset = useCallBanner() ? CALL_BANNER_HEIGHT : 0;
+    const contentTopInset = theme.screenContentPadding('child').paddingTop + callBannerInset;
+    const avatarRailTopInset = theme.screenHeaderHeight() + callBannerInset;
 
     const shouldUseDraftComposerSelection = isLiveDraftThread && !composerModelManuallySelected;
     const selectedProviderReady = composerPublication?.selected_provider_ready ?? false;
