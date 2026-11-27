@@ -17,14 +17,14 @@ describe('versioned Mobile boundary', () => {
         jest.mocked(getPioneerClientNitro).mockReturnValue(nitro as never);
     });
     it('rejects a stale bundled native artifact before exposing Client', () => {
-        for (const version of [undefined, 1, 3]) {
+        for (const version of [undefined, 1, 2, 4]) {
             nitro.initializeJson.mockReturnValue(
                 ok({ initialized: true, boundary_version: version }),
             );
             expect(() => pioneerClient.initialize()).toThrow('boundary version mismatch');
         }
-        nitro.initializeJson.mockReturnValue(ok({ initialized: true, boundary_version: 2 }));
-        expect(pioneerClient.initialize().initialized).toBe(true);
+        nitro.initializeJson.mockReturnValue(ok({ initialized: true, boundary_version: 3 }));
+        expect(pioneerClient.initialize()).toEqual({ initialized: true, boundary_version: 3 });
     });
     it('preserves every typed outcome without inventing a revision', () => {
         const request = {

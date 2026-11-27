@@ -80,11 +80,11 @@ test('OTA runtime identity prevents mixed old-native/new-JS artifacts and preser
         vm.runInNewContext(read(path.join(app, 'app.config.js')), context);
         return context.module.exports;
     };
-    expect(evaluate('1.0').runtimeVersion).toBe('1.0-client-ffi-2');
+    expect(evaluate('1.0').runtimeVersion).toBe('1.0-client-ffi-3');
     expect(evaluate('1.0').runtimeVersion).not.toBe('1.0');
-    expect(evaluate('1.1').runtimeVersion).toBe('1.1-client-ffi-2');
-    expect(source).toContain('boundary_version: 2');
-    expect(read(path.join(app, 'src/client/native.ts'))).toContain('boundary_version !== 2');
+    expect(evaluate('1.1').runtimeVersion).toBe('1.1-client-ffi-3');
+    expect(source).toContain('boundary_version: 3');
+    expect(read(path.join(app, 'src/client/native.ts'))).toContain('boundary_version !== 3');
     for (const relative of ['crates/desktop/Cargo.toml', 'crates/client/Cargo.toml']) {
         const manifest = read(path.join(rust!, relative));
         expect(manifest).not.toMatch(/^pioneer-client-ffi\s*=/m);
@@ -182,7 +182,7 @@ test('source and prebuilt integrity reject mixed inputs, modified binaries and m
     run('check-source');
     const contractPath = `${fixtureNative}/boundary-source.json`;
     const contract = JSON.parse(files.get(contractPath)!);
-    expect(contract.boundary_version).toBe(2);
+    expect(contract.boundary_version).toBe(3);
     expect(contract.platforms.android).toHaveLength(4);
     expect(contract.platforms.ios.filter((file: string) => file.endsWith('.a'))).toHaveLength(2);
     files.set(`${fixtureRust}/crates/client-ffi/src/lib.rs`, 'changed Rust');

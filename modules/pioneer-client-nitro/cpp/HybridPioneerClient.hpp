@@ -90,6 +90,8 @@ public:
       const std::string& inputJson) override;
   std::shared_ptr<margelo::nitro::Promise<std::string>> composerVoiceCapturePlanJson(
       const std::string& inputJson) override;
+  std::shared_ptr<margelo::nitro::Promise<std::string>> threadCallJson(const std::string& inputJson) override;
+  std::shared_ptr<margelo::nitro::Promise<std::string>> threadCallUpdatesJson(const std::string& inputJson) override;
   std::shared_ptr<margelo::nitro::Promise<std::string>> voiceSessionStartJson(
       const std::string& inputJson) override;
   std::string pluginShellJson(const std::string& inputJson) override;

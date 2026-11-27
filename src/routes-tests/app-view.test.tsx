@@ -2,7 +2,7 @@ import React from 'react';
 import { runInNewContext } from 'node:vm';
 import renderer, { act, type ReactTestRenderer } from 'react-test-renderer';
 import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
-import AppViewScreen from './app-view';
+import AppViewScreen from '../routes/app-view';
 
 const mockCalls: { kind: string; ticket?: number }[] = [];
 const mockUrl = `https://gateway.example/pioneer/storage/app-views/${'A'.repeat(43)}/ui/`;

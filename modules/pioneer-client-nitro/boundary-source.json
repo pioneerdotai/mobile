@@ -1,5 +1,5 @@
 {
-  "boundary_version": 2,
+  "boundary_version": 3,
   "binding_schema_version": 1,
   "rust_packages": [
     "pioneer-apps",
@@ -11,8 +11,8 @@
     "pioneer-protocol",
     "pioneer-skills"
   ],
-  "rust_source_sha256": "0a34af63e8a3f5655c99f645c8526cb898b4b8032b62fdfaf2fbdd7f7ac943eb",
-  "mobile_boundary_sha256": "ea585075f7827d0fcf455ac8bde96d11c30d6e65d45fb000b5cc5204bcdb2302",
+  "rust_source_sha256": "17799888b0582a2fcd61d6cda1c451b1b67c12ada03d8e3fcf1870c4615e1085",
+  "mobile_boundary_sha256": "948f2664426f67cdd5732cd5fba1254c2baa980dafd1b917f0712fa90cef9357",
   "platforms": {
     "ios": [
       "PioneerClientFfi.xcframework/Info.plist",

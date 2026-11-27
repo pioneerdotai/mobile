@@ -91,7 +91,7 @@ const sourceContract = () => {
     }
 
     return {
-        boundary_version: 2,
+        boundary_version: 3,
         binding_schema_version: 1,
         rust_packages: [...selected.keys()].sort(),
         rust_source_sha256: digest(rustRoot, rustInputs),
@@ -123,7 +123,7 @@ if (mode === 'source' || mode === 'check-source') {
                 throw new Error('XCFramework header does not match the source contract');
     const encoded =
         JSON.stringify(
-            { boundary_version: 2, source_contract_sha256: hash(contract), artifacts },
+            { boundary_version: 3, source_contract_sha256: hash(contract), artifacts },
             null,
             2,
         ) + '\n';

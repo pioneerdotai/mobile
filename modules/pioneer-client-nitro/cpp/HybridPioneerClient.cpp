@@ -276,6 +276,16 @@ HybridPioneerClient::composerVoiceCapturePlanJson(const std::string& inputJson) 
 }
 
 std::shared_ptr<margelo::nitro::Promise<std::string>>
+HybridPioneerClient::threadCallJson(const std::string& inputJson) {
+  return callWithClientAsync(pioneer_client_ffi_thread_call, inputJson);
+}
+
+std::shared_ptr<margelo::nitro::Promise<std::string>>
+HybridPioneerClient::threadCallUpdatesJson(const std::string& inputJson) {
+  return callWithClientAsync(pioneer_client_ffi_thread_call_updates, inputJson);
+}
+
+std::shared_ptr<margelo::nitro::Promise<std::string>>
 HybridPioneerClient::voiceSessionStartJson(const std::string& inputJson) {
   return callWithClientAsync(pioneer_client_ffi_voice_session_start, inputJson);
 }

@@ -487,7 +487,7 @@ export const pioneerClient = {
                 }),
             ),
         );
-        if (result.boundary_version !== 2)
+        if (result.boundary_version !== 3)
             throw new Error('Client native boundary version mismatch');
         return result;
     },
